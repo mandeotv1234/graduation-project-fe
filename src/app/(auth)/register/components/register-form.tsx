@@ -1,53 +1,23 @@
 'use client'
 
+import Link from 'next/link'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PATH } from '@/lib/constants'
-import { RegisterFormValues, registerSchema } from '@/lib/types'
-import { registerAction } from '@/lib/actions'
-import Link from 'next/link'
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+
+import { useRegister } from '../hooks/use-register'
 
 export function RegisterForm() {
-  const [errorMessage, setErrorMessage] = useState<string>('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
   const {
     register,
     handleSubmit,
-    formState: { errors }
-  } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      fullName: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    }
-  })
-
-  const onSubmit = async (data: RegisterFormValues) => {
-    setIsSubmitting(true)
-    setErrorMessage('')
-
-    try {
-      const result = await registerAction({
-        fullName: data.fullName,
-        email: data.email,
-        password: data.password
-      })
-      if (!result.success) {
-        setErrorMessage(result.message)
-      }
-    } catch (error) {
-      setErrorMessage('Đã xảy ra lỗi, vui lòng thử lại.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+    errors,
+    errorMessage,
+    isSubmitting,
+    onSubmit
+  } = useRegister()
 
   return (
     <div className="space-y-8 rounded-2xl border border-zinc-200/70 bg-white/90 p-8 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900">

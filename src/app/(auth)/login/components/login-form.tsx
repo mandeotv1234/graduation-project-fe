@@ -1,46 +1,23 @@
 'use client'
 
+import Link from 'next/link'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PATH } from '@/lib/constants'
-import { LoginFormValues, loginSchema } from '@/lib/types'
-import { loginAction } from '@/lib/actions'
-import Link from 'next/link'
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+
+import { useLogin } from '../hooks/use-login'
 
 export function LoginForm() {
-  const [errorMessage, setErrorMessage] = useState<string>('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
   const {
     register,
     handleSubmit,
-    formState: { errors }
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: ''
-    }
-  })
-
-  const onSubmit = async (data: LoginFormValues) => {
-    setIsSubmitting(true)
-    setErrorMessage('')
-
-    try {
-      const response = await loginAction(data)
-      if (!response.success) {
-        setErrorMessage(response.message)
-      }
-    } catch (error) {
-      setErrorMessage('Đã xảy ra lỗi, vui lòng thử lại.')
-    }
-    setIsSubmitting(false)
-  }
+    errors,
+    errorMessage,
+    isSubmitting,
+    onSubmit
+  } = useLogin()
 
   return (
     <div className="space-y-8 rounded-2xl border border-zinc-200/70 bg-white/90 p-8 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900">
