@@ -10,14 +10,7 @@ import { PATH } from '@/lib/constants'
 import { useRegister } from '../hooks/use-register'
 
 export function RegisterForm() {
-  const {
-    register,
-    handleSubmit,
-    errors,
-    errorMessage,
-    isSubmitting,
-    onSubmit
-  } = useRegister()
+  const { register, handleSubmit, errors, isLoading, onSubmit } = useRegister()
 
   return (
     <div className="space-y-8 rounded-2xl border border-zinc-200/70 bg-white/90 p-8 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900">
@@ -32,12 +25,6 @@ export function RegisterForm() {
           Nhập thông tin cá nhân để hoàn tất đăng ký
         </p>
       </div>
-
-      {errorMessage && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100">
-          {errorMessage}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
         <div className="space-y-2">
@@ -126,9 +113,9 @@ export function RegisterForm() {
         <Button
           type="submit"
           className="h-11 w-full rounded-lg text-base font-semibold"
-          disabled={isSubmitting}
+          disabled={isLoading}
         >
-          {isSubmitting ? 'Đang tạo tài khoản...' : 'Đăng ký'}
+          {isLoading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
         </Button>
       </form>
 

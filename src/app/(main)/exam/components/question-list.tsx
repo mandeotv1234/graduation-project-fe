@@ -17,7 +17,7 @@ export default function QuestionList({
   onSelectQuestion
 }: QuestionListProps) {
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 hidden lg:flex flex-col shrink-0">
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 hidden md:flex flex-col shrink-0">
       <div className="p-4 border-b border-slate-800">
         <h2 className="font-semibold text-slate-200">SQL Final Exam</h2>
         <p className="text-xs text-slate-400 mt-1">Danh sách câu hỏi</p>

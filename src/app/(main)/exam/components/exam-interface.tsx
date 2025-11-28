@@ -4,7 +4,8 @@ import { useState } from 'react'
 import ExamHeader from './exam-header'
 import QuestionList from './question-list'
 import ExamEditor from './exam-editor'
-import ExamSidebar from './exam-sidebar'
+import ExamBottomPanel from './exam-bottom-panel'
+import { ResizablePanel } from '@/components/shared'
 import { Question, TableSchema } from '@/lib/types'
 
 interface ExamInterfaceProps {
@@ -26,16 +27,21 @@ export default function ExamInterface({
     <div className="flex flex-col h-screen bg-slate-950 text-slate-50 font-sans overflow-hidden">
       <ExamHeader />
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Left: Question List */}
         <QuestionList
           questions={questions}
           selectedQuestionId={selectedQuestionId}
           onSelectQuestion={setSelectedQuestionId}
         />
 
-        <ExamEditor question={currentQuestion} />
-
-        <ExamSidebar tables={tables} />
+        {/* Right: Editor + Bottom Panel with Resizer */}
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
+          <ResizablePanel defaultSize={60} minSize={30} maxSize={80}>
+            <ExamEditor question={currentQuestion} />
+            <ExamBottomPanel tables={tables} />
+          </ResizablePanel>
+        </div>
       </div>
     </div>
   )

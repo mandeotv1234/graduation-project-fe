@@ -1,7 +1,7 @@
 'use server'
 
 import { apiClient } from '@/lib/api'
-import { ENDPOINTS, PATH } from '@/lib/constants'
+import { ENDPOINTS } from '@/lib/constants'
 import {
   ApiResponse,
   LoginFormValues,
@@ -10,41 +10,45 @@ import {
   RegisterResponse
 } from '@/lib/types'
 import { setCookie } from '@/lib/utils'
-import { redirect } from 'next/navigation'
 
 const COOKIE_BASE_OPTIONS = {
   httpOnly: true,
-  sameSite: 'lax' as const,
+  sameSite: 'strict' as const,
   secure: process.env.NODE_ENV === 'production',
   path: '/'
 }
-export async function loginAction(
+
+export async function login(
   data: LoginFormValues
 ): Promise<ApiResponse<LoginResponse>> {
   const response = await apiClient.post<LoginResponse>(ENDPOINTS.LOGIN, data)
 
-  const accessToken = response.data?.accessToken
-  const refreshToken = response.data?.refreshToken
+  if (response.data) {
+    const accessToken = response.data.accessToken
+    const refreshToken = response.data.refreshToken
+    // Set cookies
+    await Promise.all([
+      setCookie('accessToken', accessToken, {
+        maxAge: 60 * 30,
+        ...COOKIE_BASE_OPTIONS
+      }),
+      setCookie('refreshToken', refreshToken, {
+        maxAge: 60 * 60 * 24 * 7,
+        ...COOKIE_BASE_OPTIONS
+      })
+    ])
+  }
 
-  // Set cookies
-  await Promise.all([
-    setCookie('accessToken', accessToken, {
-      maxAge: 60 * 30, // 30 minutes
-      ...COOKIE_BASE_OPTIONS
-    }),
-    setCookie('refreshToken', refreshToken, {
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      ...COOKIE_BASE_OPTIONS
-    })
-  ])
-
-  redirect(PATH.HOME)
+  return response
 }
 
-export async function registerAction(
+export async function signUp(
   data: Omit<RegisterFormValues, 'confirmPassword'>
 ): Promise<ApiResponse<RegisterResponse>> {
-  await apiClient.post<RegisterResponse>(ENDPOINTS.REGISTER, data)
+  const response = await apiClient.post<RegisterResponse>(
+    ENDPOINTS.REGISTER,
+    data
+  )
 
-  redirect(PATH.LOGIN)
+  return response
 }

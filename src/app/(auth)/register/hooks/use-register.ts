@@ -1,14 +1,15 @@
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import { registerAction } from '@/lib/actions'
+import { signUp } from '@/lib/actions'
 import { RegisterFormValues, registerSchema } from '@/lib/types'
+import { useApi } from '@/hooks/use-api'
+import { PATH } from '@/lib/constants'
+import { useRouter } from 'next/navigation'
 
 export function useRegister() {
-  const [errorMessage, setErrorMessage] = useState<string>('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
+  const { callApi, isLoading } = useApi()
+  const router = useRouter()
   const {
     register,
     handleSubmit,
@@ -24,32 +25,23 @@ export function useRegister() {
   })
 
   const onSubmit = async (data: RegisterFormValues) => {
-    setIsSubmitting(true)
-    setErrorMessage('')
-
-    try {
-      const result = await registerAction({
+    const result = await callApi(
+      signUp({
         fullName: data.fullName,
         email: data.email,
         password: data.password
       })
-      if (!result.success) {
-        setErrorMessage(result.message)
-      }
-    } catch (error) {
-      console.error(error)
-      setErrorMessage('Đã xảy ra lỗi, vui lòng thử lại.')
-    } finally {
-      setIsSubmitting(false)
+    )
+    if (result.success) {
+      router.push(PATH.LOGIN)
     }
   }
 
   return {
     register,
     handleSubmit,
+    isLoading,
     errors,
-    errorMessage,
-    isSubmitting,
     onSubmit
   }
 }
