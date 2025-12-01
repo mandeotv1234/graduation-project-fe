@@ -21,54 +21,30 @@ const COOKIE_BASE_OPTIONS = {
 export async function loginAction(
   data: LoginFormValues
 ): Promise<ApiResponse<LoginResponse>> {
-  try {
-    const response = await apiClient.post<LoginResponse>(ENDPOINTS.LOGIN, data)
+  const response = await apiClient.post<LoginResponse>(ENDPOINTS.LOGIN, data)
 
-    const accessToken = response.data?.accessToken
-    const refreshToken = response.data?.refreshToken
+  const accessToken = response.data?.accessToken
+  const refreshToken = response.data?.refreshToken
 
-    if (!accessToken || !refreshToken) {
-      return {
-        success: false,
-        code: 'UNAUTHORIZED',
-        message: 'Hệ thống không trả về thông tin xác thực'
-      }
-    }
+  // Set cookies
+  await Promise.all([
+    setCookie('accessToken', accessToken, {
+      maxAge: 60 * 30, // 30 minutes
+      ...COOKIE_BASE_OPTIONS
+    }),
+    setCookie('refreshToken', refreshToken, {
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      ...COOKIE_BASE_OPTIONS
+    })
+  ])
 
-    // Set cookies
-    await Promise.all([
-      setCookie('accessToken', accessToken, {
-        maxAge: 60 * 30, // 30 minutes
-        ...COOKIE_BASE_OPTIONS
-      }),
-      setCookie('refreshToken', refreshToken, {
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        ...COOKIE_BASE_OPTIONS
-      })
-    ])
-
-    redirect(PATH.HOME)
-  } catch (error) {
-    return {
-      success: false,
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Đã xảy ra lỗi, vui lòng thử lại.'
-    }
-  }
+  redirect(PATH.HOME)
 }
 
 export async function registerAction(
   data: Omit<RegisterFormValues, 'confirmPassword'>
 ): Promise<ApiResponse<RegisterResponse>> {
-  try {
-    await apiClient.post<RegisterResponse>(ENDPOINTS.REGISTER, data)
+  await apiClient.post<RegisterResponse>(ENDPOINTS.REGISTER, data)
 
-    redirect(PATH.LOGIN)
-  } catch (error) {
-    return {
-      success: false,
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Đã xảy ra lỗi, vui lòng thử lại.'
-    }
-  }
+  redirect(PATH.LOGIN)
 }

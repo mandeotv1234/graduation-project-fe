@@ -1,14 +1,9 @@
 export const PATH = {
   HOME: '/',
   LOGIN: '/login',
-  REGISTER: '/register',
+  REGISTER: '/register'
 }
 
-export const PRIVATE_PATH = [
-  PATH.HOME,
-]
+export const PRIVATE_PATH = []
 
-export const PUBLIC_PATH = [
-  PATH.LOGIN,
-  PATH.REGISTER,
-]
+export const PUBLIC_PATH = [PATH.LOGIN, PATH.REGISTER]

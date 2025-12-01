@@ -9,7 +9,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const isPrivatePath = PRIVATE_PATH.some((path) => pathname.startsWith(path))
+  const isPrivatePath =
+    pathname == PATH.HOME ||
+    PRIVATE_PATH.some((path) => pathname.startsWith(path))
   const accessToken = await getCookie('accessToken')
 
   if (isPrivatePath && !accessToken) {
