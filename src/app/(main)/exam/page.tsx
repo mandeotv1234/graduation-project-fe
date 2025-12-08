@@ -23,5 +23,5 @@ const tables = [
 
 export default async function ExamPage() {
   const questionRes = await getExamQuestions()
-  return <ExamInterface questions={questionRes.data} tables={tables} />
+  return <ExamInterface questions={questionRes.data || []} tables={tables} />
 }

@@ -17,10 +17,12 @@ export default function QuestionList({
   onSelectQuestion
 }: QuestionListProps) {
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 hidden md:flex flex-col shrink-0">
-      <div className="p-4 border-b border-slate-800">
-        <h2 className="font-semibold text-slate-200">SQL Final Exam</h2>
-        <p className="text-xs text-slate-400 mt-1">Danh sách câu hỏi</p>
+    <aside className="w-64 bg-sidebar border-r border-sidebar-border hidden md:flex flex-col shrink-0">
+      <div className="p-4 border-b border-sidebar-border">
+        <h2 className="font-semibold text-sidebar-foreground">
+          SQL Final Exam
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1">Danh sách câu hỏi</p>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-2">
@@ -31,12 +33,12 @@ export default function QuestionList({
               className={cn(
                 'w-full flex items-center gap-3 p-3 rounded-lg transition-all text-sm border',
                 q.id === selectedQuestionId
-                  ? 'bg-slate-800 border-slate-700 text-white shadow-sm'
-                  : 'border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                  ? 'bg-sidebar-accent border-sidebar-border text-sidebar-accent-foreground shadow-sm'
+                  : 'border-transparent text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
               )}
             >
               {q.id === selectedQuestionId ? (
-                <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                <CheckCircle2 className="w-5 h-5 text-primary" />
               ) : (
                 <Circle className="w-5 h-5" />
               )}

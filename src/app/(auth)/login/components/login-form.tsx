@@ -13,12 +13,12 @@ export function LoginForm() {
   const { register, handleSubmit, errors, isLoading, onSubmit } = useLogin()
 
   return (
-    <div className="space-y-8 rounded-2xl border border-zinc-200/70 bg-white/90 p-8 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="space-y-8 rounded-2xl border border-border bg-card p-8 shadow-sm backdrop-blur">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Đăng nhập hệ thống
         </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           Sử dụng email và mật khẩu được cấp bởi nhà trường
         </p>
       </div>
@@ -36,7 +36,7 @@ export function LoginForm() {
             {...register('email')}
           />
           {errors.email && (
-            <p id="email-error" className="text-sm text-rose-500">
+            <p id="email-error" className="text-sm text-destructive">
               {errors.email.message}
             </p>
           )}
@@ -62,7 +62,7 @@ export function LoginForm() {
             {...register('password')}
           />
           {errors.password && (
-            <p id="password-error" className="text-sm text-rose-500">
+            <p id="password-error" className="text-sm text-destructive">
               {errors.password.message}
             </p>
           )}
@@ -77,7 +77,7 @@ export function LoginForm() {
         </Button>
       </form>
 
-      <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-center text-sm text-muted-foreground">
         Chưa có tài khoản?{' '}
         <Link
           href={PATH.REGISTER}

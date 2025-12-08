@@ -2,6 +2,13 @@ import { useRef } from 'react'
 import Editor from '@monaco-editor/react'
 import type { Monaco } from '@monaco-editor/react'
 import type * as monaco from 'monaco-editor'
+import { useTheme } from 'next-themes'
+import { Geist_Mono } from 'next/font/google'
+
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono'
+})
 
 interface SqlEditorProps {
   value: string
@@ -17,34 +24,13 @@ export function SqlEditor({
   readOnly = false
 }: SqlEditorProps) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+  const monacoRef = useRef<Monaco | null>(null)
+  const { theme, systemTheme } = useTheme()
+  const currentTheme = theme === 'system' ? systemTheme : theme
+  const isDark = currentTheme === 'dark'
 
   const handleEditorWillMount = (monaco: Monaco) => {
-    // Define custom dark theme for SQL
-    monaco.editor.defineTheme('sql-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },
-        { token: 'keyword', foreground: '569CD6', fontStyle: 'bold' },
-        { token: 'string', foreground: 'CE9178' },
-        { token: 'number', foreground: 'B5CEA8' },
-        { token: 'operator', foreground: 'D4D4D4' },
-        { token: 'identifier', foreground: '9CDCFE' },
-        { token: 'type', foreground: '4EC9B0' }
-      ],
-      colors: {
-        'editor.background': '#020617',
-        'editor.foreground': '#e2e8f0',
-        'editor.lineHighlightBackground': '#1e293b',
-        'editor.selectionBackground': '#334155',
-        'editorCursor.foreground': '#60a5fa',
-        'editorLineNumber.foreground': '#475569',
-        'editorLineNumber.activeForeground': '#94a3b8',
-        'editor.inactiveSelectionBackground': '#1e293b80',
-        'editorIndentGuide.background': '#334155',
-        'editorIndentGuide.activeBackground': '#475569'
-      }
-    })
+    monacoRef.current = monaco
   }
 
   const handleEditorDidMount = (
@@ -65,11 +51,11 @@ export function SqlEditor({
       insertSpaces: true,
       formatOnPaste: true,
       formatOnType: false,
-      readOnly: readOnly
+      readOnly: readOnly,
+      fontFamily: geistMono.style.fontFamily
     })
 
     // Add keyboard shortcuts
-    // Ctrl+/ or Cmd+/ for comment toggle
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash, () => {
       editor.getAction('editor.action.commentLine')?.run()
     })
@@ -84,7 +70,7 @@ export function SqlEditor({
         onChange={onChange}
         beforeMount={handleEditorWillMount}
         onMount={handleEditorDidMount}
-        theme="sql-dark"
+        theme={isDark ? 'vs-dark' : 'vs'}
         options={{
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
@@ -102,7 +88,8 @@ export function SqlEditor({
           suggestOnTriggerCharacters: true,
           acceptSuggestionOnEnter: 'on',
           tabCompletion: 'on',
-          wordBasedSuggestions: 'allDocuments'
+          wordBasedSuggestions: 'allDocuments',
+          fontFamily: geistMono.style.fontFamily
         }}
       />
     </div>

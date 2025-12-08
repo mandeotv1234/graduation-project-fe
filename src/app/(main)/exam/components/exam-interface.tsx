@@ -24,7 +24,7 @@ export default function ExamInterface({
     questions.find((q) => q.id === selectedQuestionId) || questions[0]
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-50 font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-background text-foreground font-sans overflow-hidden">
       <ExamHeader />
 
       <div className="flex flex-1 min-h-0 overflow-hidden">

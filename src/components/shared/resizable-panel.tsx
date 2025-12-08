@@ -70,11 +70,11 @@ export function ResizablePanel({
 
       {/* Resizer */}
       <div
-        className="relative h-1 bg-slate-800 hover:bg-blue-500 cursor-ns-resize transition-colors group shrink-0"
+        className="relative h-1 bg-border hover:bg-primary cursor-ns-resize transition-colors group shrink-0"
         onMouseDown={handleMouseDown}
       >
         <div className="absolute inset-x-0 -top-1 -bottom-1 flex items-center justify-center">
-          <div className="w-12 h-1 bg-slate-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="w-12 h-1 bg-muted-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
 
