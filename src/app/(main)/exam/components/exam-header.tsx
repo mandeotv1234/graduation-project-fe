@@ -32,7 +32,7 @@ export default function ExamHeader() {
             <span className="text-base sm:text-xl font-bold leading-none">
               {String(time.h).padStart(2, '0')}
             </span>
-            <span className="text-[8px] sm:text-[10px] text-muted-foreground uppercase mt-0.5 sm:mt-1 hidden sm:inline">
+            <span className="text-xs text-muted-foreground uppercase mt-0.5 sm:mt-1 hidden sm:inline">
               Giờ
             </span>
           </div>
@@ -43,7 +43,7 @@ export default function ExamHeader() {
             <span className="text-base sm:text-xl font-bold leading-none">
               {String(time.m).padStart(2, '0')}
             </span>
-            <span className="text-[8px] sm:text-[10px] text-muted-foreground uppercase mt-0.5 sm:mt-1 hidden sm:inline">
+            <span className="text-xs text-muted-foreground uppercase mt-0.5 sm:mt-1 hidden sm:inline">
               Phút
             </span>
           </div>
@@ -54,7 +54,7 @@ export default function ExamHeader() {
             <span className="text-base sm:text-xl font-bold leading-none">
               {String(time.s).padStart(2, '0')}
             </span>
-            <span className="text-[8px] sm:text-[10px] text-muted-foreground uppercase mt-0.5 sm:mt-1 hidden sm:inline">
+            <span className="text-xs text-muted-foreground uppercase mt-0.5 sm:mt-1 hidden sm:inline">
               Giây
             </span>
           </div>

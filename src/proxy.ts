@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PATH, PRIVATE_PATH, PUBLIC_PATH } from './lib/constants'
+import {
+  COOKIE_BASE_OPTIONS,
+  PATH,
+  PRIVATE_PATH,
+  PUBLIC_PATH
+} from './lib/constants'
 import { getCookie, setCookie } from './lib/utils'
+import { refreshNewAccessToken } from './lib/actions/auth.action'
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
@@ -19,10 +25,12 @@ export async function proxy(request: NextRequest) {
     if (!refreshToken) {
       return NextResponse.redirect(new URL(PATH.LOGIN, request.url))
     }
-    // const newAccessToken = await refreshToken(refreshToken) // TODO: implement refresh token
-    const newAccessToken = 'newAccessToken'
-    if (newAccessToken) {
-      setCookie('accessToken', newAccessToken)
+    const newAccessToken = await refreshNewAccessToken(refreshToken)
+    if (newAccessToken.data) {
+      setCookie('accessToken', newAccessToken.data.accessToken, {
+        expires: new Date(newAccessToken.data.accessTokenExpiresAt),
+        ...COOKIE_BASE_OPTIONS
+      })
       return NextResponse.redirect(new URL(pathname, request.url))
     }
     return NextResponse.redirect(new URL(PATH.LOGIN, request.url))
