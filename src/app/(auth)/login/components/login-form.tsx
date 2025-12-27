@@ -10,31 +10,18 @@ import { PATH } from '@/lib/constants'
 import { useLogin } from '../hooks/use-login'
 
 export function LoginForm() {
-  const {
-    register,
-    handleSubmit,
-    errors,
-    errorMessage,
-    isSubmitting,
-    onSubmit
-  } = useLogin()
+  const { register, handleSubmit, errors, isLoading, onSubmit } = useLogin()
 
   return (
-    <div className="space-y-8 rounded-2xl border border-zinc-200/70 bg-white/90 p-8 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="space-y-8 rounded-2xl border border-border bg-card p-8 shadow-sm backdrop-blur">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Đăng nhập hệ thống
         </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           Sử dụng email và mật khẩu được cấp bởi nhà trường
         </p>
       </div>
-
-      {errorMessage && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100">
-          {errorMessage}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
         <div className="space-y-2">
@@ -49,7 +36,7 @@ export function LoginForm() {
             {...register('email')}
           />
           {errors.email && (
-            <p id="email-error" className="text-sm text-rose-500">
+            <p id="email-error" className="text-sm text-destructive">
               {errors.email.message}
             </p>
           )}
@@ -75,7 +62,7 @@ export function LoginForm() {
             {...register('password')}
           />
           {errors.password && (
-            <p id="password-error" className="text-sm text-rose-500">
+            <p id="password-error" className="text-sm text-destructive">
               {errors.password.message}
             </p>
           )}
@@ -84,13 +71,13 @@ export function LoginForm() {
         <Button
           type="submit"
           className="h-11 w-full rounded-lg text-base font-semibold"
-          disabled={isSubmitting}
+          disabled={isLoading}
         >
-          {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </Button>
       </form>
 
-      <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-center text-sm text-muted-foreground">
         Chưa có tài khoản?{' '}
         <Link
           href={PATH.REGISTER}

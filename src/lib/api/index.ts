@@ -2,7 +2,7 @@ import qs from 'qs'
 import { ApiResponse } from '../types'
 import { getCookie } from '../utils'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 
 type RequestOptions = RequestInit & {
   queries?: Record<string, string | number>
@@ -60,7 +60,7 @@ export class ApiClient {
     return (await res).json()
   }
 
-  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
     const res = this.request(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined
@@ -68,7 +68,7 @@ export class ApiClient {
     return (await res).json()
   }
 
-  async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
     const res = this.request(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined
@@ -77,7 +77,7 @@ export class ApiClient {
     return (await res).json()
   }
 
-  async patch<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+  async patch<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
     const res = this.request(endpoint, {
       method: 'PATCH',
       body: data ? JSON.stringify(data) : undefined

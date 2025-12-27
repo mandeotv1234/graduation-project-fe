@@ -24,12 +24,19 @@ export const registerSchema = z
 export type RegisterFormValues = z.infer<typeof registerSchema>
 
 // API Response Types
-export type LoginResponse = {
+export interface LoginResponse {
   accessToken: string
   refreshToken: string
+  accessTokenExpiresAt: Date
+  refreshTokenExpiresAt: Date
 }
 
-export type RegisterResponse = {
+export interface RefreshTokenResponse {
+  accessToken: string
+  accessTokenExpiresAt: Date
+}
+
+export interface RegisterResponse {
   id: string
   email: string
   fullName: string
