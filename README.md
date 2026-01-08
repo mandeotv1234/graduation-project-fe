@@ -71,7 +71,6 @@ You can start editing the main page by modifying `src/app/(main)/page.tsx`. The 
 ### 3. `src/lib` – shared logic & domain layer
 
 - **`src/lib/api`**
-
   - Contains API client(s) (currently an `apiClient` based on `fetch`):
     - Applies `baseURL` from `NEXT_PUBLIC_API_URL`.
     - Automatically attaches an `Authorization` header if an `accessToken` cookie exists.
@@ -81,7 +80,6 @@ You can start editing the main page by modifying `src/app/(main)/page.tsx`. The 
     - `apiClient.post<T>(ENDPOINTS.UPDATE_PROGRESS, body)`
 
 - **`src/lib/constants`**
-
   - `PATH`: defines frontend routes used for navigation (e.g. `HOME`, `LOGIN`, `REGISTER`, `PROJECT_DETAIL`, ...).
   - `ENDPOINTS`: defines backend API routes (e.g. `LOGIN`, `REGISTER`, `PROJECTS`, `PROJECT_DETAIL`, ...).
   - When adding a new feature:
@@ -89,7 +87,6 @@ You can start editing the main page by modifying `src/app/(main)/page.tsx`. The 
     - Add a constant under `PATH` if there is a corresponding frontend route.
 
 - **`src/lib/types`**
-
   - `common.type.ts`: shared types, for example:
     - `ApiResponse<T>` – normalized backend response (`data`, `code`, `message`).
   - Domain-specific files (e.g. `auth.type.ts`, `project.type.ts`):
@@ -98,7 +95,6 @@ You can start editing the main page by modifying `src/app/(main)/page.tsx`. The 
   - `index.ts`: re-exports all domain types so they can be imported from `@/lib/types`.
 
 - **`src/lib/actions`**
-
   - Contains **server actions** for each domain (auth, project, profile, ...).
   - Each action should:
     - Receive **already validated data** (from react-hook-form + Zod).
@@ -162,7 +158,6 @@ You can start editing the main page by modifying `src/app/(main)/page.tsx`. The 
 ### 4. Data Fetching, Revalidation, Auth & Middleware
 
 - **Data Fetching (server-first)**:
-
   - Prefer **server components** in the App Router for fetching data:
     - Call `apiClient` directly in a server component (`async function Page() { ... }`) or inside a server action.
     - Advantages: better security (tokens stay on the server), smaller client bundles.
@@ -171,7 +166,6 @@ You can start editing the main page by modifying `src/app/(main)/page.tsx`. The 
       - Server actions (submit forms, mutate data).
 
 - **Revalidation strategy (project convention)**:
-
   - We keep caching rules simple and rely on **explicit invalidation only**:
     - Use `revalidatePath('/some-path')` in server actions after a successful mutation to invalidate a specific route.
     - Use `revalidateTag('tag-name')` together with `fetch(..., { next: { tags: ['tag-name'] } })` to invalidate a group of related requests.
@@ -207,24 +201,20 @@ You can start editing the main page by modifying `src/app/(main)/page.tsx`. The 
 ## How to Implement a New Page (High-Level Recipe)
 
 1. **Define routes & constants**
-
    - Add a file under `src/app/(group)/<slug>/page.tsx` (e.g. `src/app/(main)/projects/page.tsx`).
 
 2. **Add types & validation schemas**
-
    - In `src/lib/types/<domain>.type.ts`:
      - Define Zod schemas for request/response and forms.
      - Export the inferred TypeScript types (form values, entities, responses).
 
 3. **Call backend via `apiClient`**
-
    - For data fetching (in server components or server actions), use:
      - `apiClient.get<T>(ENDPOINTS.SOMETHING, { queries })`
      - `apiClient.post<T>(ENDPOINTS.SOMETHING, body)`
    - Let `apiClient` handle base URL, auth header, and normalizing errors.
 
 4. **Create server actions for mutations**
-
    - In `src/lib/actions/<domain>.action.ts`:
      - Export async functions that:
        - Accept validated data (from Zod + react-hook-form).
