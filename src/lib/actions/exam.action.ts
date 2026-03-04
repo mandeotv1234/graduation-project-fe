@@ -93,7 +93,6 @@ WHERE hire_date < '2020-01-01' AND status = 'resigned';`
 
 export async function getExamQuestions(): Promise<ApiResponse<Question[]>> {
   return {
-    success: true,
     data: mockQuestions,
     code: '200',
     message: 'Fetched exam questions successfully'

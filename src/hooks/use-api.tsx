@@ -33,16 +33,22 @@ export function useApi() {
           errorMessage = error.message || errorMessage
         }
       } else if (typeof error === 'string') {
-        errorMessage = error
+        try {
+          const parsed = JSON.parse(error) as { message?: string }
+          if (parsed?.message) {
+            errorMessage = parsed.message
+          }
+        } catch {
+          errorMessage = error
+        }
       }
 
       toast.error(errorMessage)
 
       return {
-        success: false,
         code: 'UNHANDLED_ERROR',
         message: errorMessage,
-        data: {} as T
+        data: undefined
       }
     } finally {
       setIsLoading(false)

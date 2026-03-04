@@ -32,7 +32,7 @@ export function useRegister() {
         password: data.password
       })
     )
-    if (result.success) {
+    if (result.data) {
       router.push(PATH.LOGIN)
     }
   }

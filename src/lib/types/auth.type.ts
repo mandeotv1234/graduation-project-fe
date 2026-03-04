@@ -23,17 +23,20 @@ export const registerSchema = z
 
 export type RegisterFormValues = z.infer<typeof registerSchema>
 
-// API Response Types
+// API Response Types (match backend DTOs exactly)
+
+// LoginResponseDto
 export interface LoginResponse {
   accessToken: string
   refreshToken: string
-  accessTokenExpiresAt: Date
-  refreshTokenExpiresAt: Date
+  accessTokenExpiresAt: string
+  refreshTokenExpiresAt: string
 }
 
+// RefreshTokenResponseDto (only accessToken, no refreshToken)
 export interface RefreshTokenResponse {
   accessToken: string
-  accessTokenExpiresAt: Date
+  accessTokenExpiresAt: string
 }
 
 export interface RegisterResponse {

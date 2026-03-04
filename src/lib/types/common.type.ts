@@ -1,6 +1,10 @@
+export interface ApiMeta {
+  timestamp: string
+}
+
 export interface ApiResponse<T> {
-  success: boolean
   data?: T
+  meta?: ApiMeta
   code: string
   message: string
 }

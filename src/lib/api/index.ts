@@ -42,52 +42,73 @@ export class ApiClient {
     const res = await fetch(url, config)
 
     if (!res.ok) {
-      throw JSON.stringify(await res.json())
+      // Safely parse error body — some responses (e.g. 204, 401) may have empty body
+      let errorBody: string
+      try {
+        const errorJson = await res.json()
+        errorBody = JSON.stringify(errorJson)
+      } catch {
+        errorBody = JSON.stringify({
+          code: String(res.status),
+          message: res.statusText || 'Request failed'
+        })
+      }
+      throw errorBody
     }
 
     return res
+  }
+
+  /**
+   * Safely parse JSON from response. Handles empty bodies (204 No Content).
+   */
+  private async parseJson<T>(res: Response): Promise<ApiResponse<T>> {
+    const text = await res.text()
+    if (!text) {
+      return { code: String(res.status), message: 'OK' } as ApiResponse<T>
+    }
+    return JSON.parse(text) as ApiResponse<T>
   }
 
   async get<T>(
     endpoint: string,
     options?: Omit<RequestOptions, 'method'>
   ): Promise<ApiResponse<T>> {
-    const res = this.request(endpoint, {
+    const res = await this.request(endpoint, {
       method: 'GET',
       cache: 'force-cache',
       ...options
     })
-    return (await res).json()
+    return this.parseJson<T>(res)
   }
 
   async post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
-    const res = this.request(endpoint, {
+    const res = await this.request(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined
     })
-    return (await res).json()
+    return this.parseJson<T>(res)
   }
 
   async put<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
-    const res = this.request(endpoint, {
+    const res = await this.request(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined
     })
-
-    return (await res).json()
+    return this.parseJson<T>(res)
   }
 
   async patch<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
-    const res = this.request(endpoint, {
+    const res = await this.request(endpoint, {
       method: 'PATCH',
       body: data ? JSON.stringify(data) : undefined
     })
-    return (await res).json()
+    return this.parseJson<T>(res)
   }
 
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    const res = this.request(endpoint, { method: 'DELETE' })
-    return (await res).json()
+    const res = await this.request(endpoint, { method: 'DELETE' })
+    return this.parseJson<T>(res)
   }
 }
 
