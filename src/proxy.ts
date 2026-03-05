@@ -21,11 +21,18 @@ export async function proxy(request: NextRequest) {
     }
 
     // Try to refresh - import dynamically to avoid circular deps
-    const { refreshNewAccessToken } = await import('./lib/actions/auth.action')
-    const newAccessToken = await refreshNewAccessToken()
-    if (newAccessToken.data) {
-      return NextResponse.redirect(new URL(pathname, request.url))
+    try {
+      const { refreshNewAccessToken } = await import(
+        './lib/actions/auth.action'
+      )
+      const newAccessToken = await refreshNewAccessToken()
+      if (newAccessToken.data) {
+        return NextResponse.redirect(new URL(pathname, request.url))
+      }
+    } catch {
+      // Refresh failed (expired, reuse detected, etc.) — fall through to redirect
     }
+
     return NextResponse.redirect(new URL(PATH.LOGIN, request.url))
   }
   return NextResponse.next()
