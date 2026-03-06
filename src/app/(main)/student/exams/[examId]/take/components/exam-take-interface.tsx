@@ -47,7 +47,6 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     <>
       <div className="flex h-[calc(100vh-theme(spacing.16))] flex-col overflow-hidden">
         <ExamTakeHeader
-          exam={exam}
           answeredCount={answeredCount}
           totalQuestions={questions.length}
           isLoading={isLoading}

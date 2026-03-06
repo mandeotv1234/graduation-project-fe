@@ -42,14 +42,12 @@ export async function login(
         expires: refreshExpiry,
         ...COOKIE_BASE_OPTIONS
       }),
-      // Store role for middleware route protection
+      // Store role for middleware route protection (httpOnly for security)
       ...(decoded
         ? [
             setCookie('userRole', decoded.role, {
               expires: refreshExpiry,
-              sameSite: 'strict' as const,
-              secure: process.env.NODE_ENV === 'production',
-              path: '/'
+              ...COOKIE_BASE_OPTIONS
             })
           ]
         : [])

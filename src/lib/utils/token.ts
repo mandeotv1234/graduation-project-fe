@@ -8,7 +8,8 @@ export interface DecodedToken {
 
 /**
  * Decode JWT token payload without verification.
- * Only use on client-side for extracting role/user info.
+ * Works in both server (Node.js) and client environments.
+ * Used for extracting role/user info — NOT for security validation.
  */
 export function decodeJwtPayload(token: string): DecodedToken | null {
   try {

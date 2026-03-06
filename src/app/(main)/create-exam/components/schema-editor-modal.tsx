@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface SchemaEditorModalProps {
   isOpen: boolean
@@ -27,6 +27,13 @@ export default function SchemaEditorModal({
   onSave
 }: SchemaEditorModalProps) {
   const [editedSchema, setEditedSchema] = useState(schema)
+
+  // Sync editedSchema with the schema prop when the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setEditedSchema(schema)
+    }
+  }, [isOpen, schema])
 
   const handleSave = () => {
     onSave(editedSchema)

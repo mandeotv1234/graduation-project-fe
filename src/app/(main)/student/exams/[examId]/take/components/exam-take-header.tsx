@@ -2,10 +2,8 @@
 
 import { Send, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { StudentExamDetail } from '@/lib/types'
 
 interface ExamTakeHeaderProps {
-  exam: StudentExamDetail
   answeredCount: number
   totalQuestions: number
   isLoading: boolean

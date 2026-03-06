@@ -27,10 +27,10 @@ export async function getClasses(
   sortBy = 'CREATED_AT',
   sortOrder = 'DESC'
 ): Promise<PaginatedApiResponse<ClassListItem>> {
-  return apiClient.get<ClassListItem[]>(ENDPOINTS.CLASSES, {
+  return apiClient.get(ENDPOINTS.CLASSES, {
     queries: { page, size, sortBy, sortOrder },
     cache: 'no-store'
-  })
+  }) as Promise<PaginatedApiResponse<ClassListItem>>
 }
 
 export async function getClassDetail(
@@ -54,10 +54,10 @@ export async function getStudentsInClass(
   sortBy = 'FULL_NAME',
   sortOrder = 'ASC'
 ): Promise<PaginatedApiResponse<StudentInClass>> {
-  return apiClient.get<StudentInClass[]>(ENDPOINTS.CLASS_STUDENTS(classId), {
+  return apiClient.get(ENDPOINTS.CLASS_STUDENTS(classId), {
     queries: { page, size, sortBy, sortOrder },
     cache: 'no-store'
-  })
+  }) as Promise<PaginatedApiResponse<StudentInClass>>
 }
 
 export async function getClassExams(

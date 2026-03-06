@@ -106,8 +106,8 @@ export default function ExamDescriptionEditor({
         <EditorContent editor={editor} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Dùng các nút ở bài tập, bao gồm hướng dẫn, mục tiêu và kỹ thuật có thể
-        liên quan đến lên quan đến cho người dùng.
+        Mô tả chi tiết bài tập, bao gồm hướng dẫn, mục tiêu và các kỹ thuật liên
+        quan cho người dùng.
       </p>
     </div>
   )

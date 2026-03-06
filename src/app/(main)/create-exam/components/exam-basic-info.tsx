@@ -21,7 +21,7 @@ export default function ExamBasicInfo({
         </Label>
         <Input
           id="exam-title"
-          placeholder="VD: Câu hỏng 3: Thụy viết câu lệnh cơ bản"
+          placeholder="VD: Bài tập 3: Viết câu lệnh SQL cơ bản"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           className="bg-background border-input"

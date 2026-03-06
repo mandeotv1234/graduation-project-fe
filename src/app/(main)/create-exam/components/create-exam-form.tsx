@@ -40,10 +40,7 @@ export default function CreateExamForm() {
 
     setIsSaving(true)
     try {
-      // TODO: Implement API call to save exam
-      console.log('Saving exam:', formData)
-
-      // Simulate API call
+      // TODO: Replace with real API call (e.g. createExam action)
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       toast.success('Đã lưu bài tập thành công!')
