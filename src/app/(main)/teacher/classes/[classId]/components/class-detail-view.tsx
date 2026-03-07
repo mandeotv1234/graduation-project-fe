@@ -1,0 +1,288 @@
+'use client'
+
+import Link from 'next/link'
+import {
+  ArrowLeft,
+  Users,
+  FileText,
+  Plus,
+  Calendar,
+  Clock,
+  Hash,
+  Mail,
+  User
+} from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { PATH } from '@/lib/constants'
+import {
+  ClassDetail,
+  StudentInClass,
+  ClassExamItem,
+  PaginationMeta
+} from '@/lib/types'
+import { formatDate, formatDateTime, getExamStatus } from '@/lib/utils'
+
+interface ClassDetailViewProps {
+  classDetail: ClassDetail
+  students: StudentInClass[]
+  studentPagination?: PaginationMeta
+  exams: ClassExamItem[]
+  currentStudentPage: number
+}
+
+const EXAM_STATUS_CONFIG = {
+  upcoming: {
+    label: 'Sắp diễn ra',
+    className:
+      'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+  },
+  in_progress: {
+    label: 'Đang diễn ra',
+    className:
+      'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+  },
+  ended: {
+    label: 'Đã kết thúc',
+    className:
+      'bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20'
+  },
+  draft: {
+    label: 'Nháp',
+    className:
+      'bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20'
+  }
+}
+
+function ExamStatusBadge({ exam }: { exam: ClassExamItem }) {
+  const statusKey = !exam.isPublished
+    ? 'draft'
+    : getExamStatus(exam.startTime, exam.endTime)
+  const { label, className } = EXAM_STATUS_CONFIG[statusKey]
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${className}`}
+    >
+      <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
+      {label}
+    </span>
+  )
+}
+
+export function ClassDetailView({
+  classDetail,
+  students,
+  studentPagination,
+  exams,
+  currentStudentPage
+}: ClassDetailViewProps) {
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href={PATH.TEACHER_CLASSES}>
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              {classDetail.classCode}
+            </h1>
+            <p className="text-muted-foreground">
+              Học kỳ {classDetail.semester} · Tạo ngày{' '}
+              {formatDate(classDetail.createdAt)}
+            </p>
+          </div>
+        </div>
+        <Link href={PATH.TEACHER_CREATE_EXAM(classDetail.id)}>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Tạo bài thi
+          </Button>
+        </Link>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+              <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">
+                {studentPagination?.total || students.length}
+              </p>
+              <p className="text-sm text-muted-foreground">Sinh viên</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10">
+              <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">
+                {exams.length}
+              </p>
+              <p className="text-sm text-muted-foreground">Bài thi</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Exams section */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Bài thi
+          </h2>
+        </div>
+
+        {exams.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border py-10 text-center">
+            <FileText className="mx-auto h-8 w-8 text-muted-foreground/40" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Chưa có bài thi nào
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {exams.map((exam) => (
+              <Link key={exam.id} href={PATH.TEACHER_EXAM_QUESTIONS(exam.id)}>
+                <div className="group flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                        {exam.title}
+                      </h3>
+                      <ExamStatusBadge exam={exam} />
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {formatDateTime(exam.startTime)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {exam.durationMinutes} phút
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Students section */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" />
+          Danh sách sinh viên
+        </h2>
+
+        {students.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border py-10 text-center">
+            <Users className="mx-auto h-8 w-8 text-muted-foreground/40" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Chưa có sinh viên nào
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Hash className="inline h-3 w-3 mr-1" />
+                    STT
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <User className="inline h-3 w-3 mr-1" />
+                    Họ tên
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Mail className="inline h-3 w-3 mr-1" />
+                    Email
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((student, index) => (
+                  <tr
+                    key={student.id}
+                    className="border-b border-border/50 transition-colors hover:bg-muted/30"
+                  >
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {(currentStudentPage - 1) * 10 + index + 1}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {student.fullName}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {student.email}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {studentPagination &&
+          studentPagination.total > studentPagination.size && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <p className="text-xs text-muted-foreground mr-4">
+                Trang {currentStudentPage}/
+                {Math.ceil(studentPagination.total / studentPagination.size)} ·
+                Tổng: {studentPagination.total} sinh viên
+              </p>
+              <Link
+                href={`?studentPage=${currentStudentPage - 1}`}
+                className={
+                  currentStudentPage <= 1
+                    ? 'pointer-events-none opacity-50'
+                    : ''
+                }
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentStudentPage <= 1}
+                >
+                  Trước
+                </Button>
+              </Link>
+              <Link
+                href={`?studentPage=${currentStudentPage + 1}`}
+                className={
+                  currentStudentPage >=
+                  Math.ceil(studentPagination.total / studentPagination.size)
+                    ? 'pointer-events-none opacity-50'
+                    : ''
+                }
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    currentStudentPage >=
+                    Math.ceil(studentPagination.total / studentPagination.size)
+                  }
+                >
+                  Tiếp
+                </Button>
+              </Link>
+            </div>
+          )}
+      </section>
+    </div>
+  )
+}

@@ -1,3 +1,3 @@
-export * from './path'
-export * from './endpoint'
-export * from './common'
+export * from '@/lib/constants/path'
+export * from '@/lib/constants/endpoint'
+export * from '@/lib/constants/common'

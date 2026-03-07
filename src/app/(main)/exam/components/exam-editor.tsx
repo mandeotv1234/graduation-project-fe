@@ -50,7 +50,7 @@ export default function ExamEditor({ question }: ExamEditorProps) {
               size="sm"
               className="h-7 sm:h-8 gap-1 sm:gap-2 bg-primary hover:bg-primary/90 text-primary-foreground border-0 px-2 sm:px-3 text-xs sm:text-sm"
               onClick={() => {
-                console.log('code', code)
+                // TODO: Implement query execution API call
               }}
             >
               <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />

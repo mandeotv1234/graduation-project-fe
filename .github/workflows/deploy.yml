@@ -2,7 +2,7 @@ name: Deploy to EC2 with Docker Hub
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: ['develop']
 
 jobs:
   build-and-deploy:
@@ -39,11 +39,11 @@ jobs:
             echo ${{ env.DOCKER_PASSWORD }} | docker login -u ${{ env.DOCKER_USERNAME }} --password-stdin            
             docker stop web-fe || true
             docker rm web-fe || true
-            
+
             docker rmi ${{ env.DOCKER_USERNAME }}/graduation-project-fe:latest || true
-            
+
             docker pull ${{ env.DOCKER_USERNAME }}/graduation-project-fe:latest
-            
+
             docker run -d \
               --name web-fe \
               --restart always \

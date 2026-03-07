@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import ExamHeader from './exam-header'
-import QuestionList from './question-list'
-import ExamEditor from './exam-editor'
-import ExamBottomPanel from './exam-bottom-panel'
+import ExamHeader from '@/app/(main)/exam/components/exam-header'
+import QuestionList from '@/app/(main)/exam/components/question-list'
+import ExamEditor from '@/app/(main)/exam/components/exam-editor'
+import ExamBottomPanel from '@/app/(main)/exam/components/exam-bottom-panel'
 import { ResizablePanel } from '@/components/shared'
 import { Question, TableSchema } from '@/lib/types'
 

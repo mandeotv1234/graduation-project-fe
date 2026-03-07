@@ -1,2 +1,4 @@
-export * from './auth.action'
-export * from './exam.action'
+export * from '@/lib/actions/auth.action'
+export * from '@/lib/actions/exam.action'
+export * from '@/lib/actions/student-exam.action'
+export * from '@/lib/actions/teacher.action'

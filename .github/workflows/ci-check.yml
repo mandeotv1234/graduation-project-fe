@@ -2,7 +2,7 @@ name: CI Quality Check
 
 on:
   pull_request:
-    branches: [ "develop" ]
+    branches: ['develop']
 
 jobs:
   check-quality:
