@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PATH, PRIVATE_PATH, PUBLIC_PATH } from './lib/constants'
-import { getCookie } from './lib/utils'
+import { PATH, PRIVATE_PATH, PUBLIC_PATH } from '@/lib/constants'
+import { getCookie } from '@/lib/utils'
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
@@ -23,7 +23,7 @@ export async function proxy(request: NextRequest) {
     // Try to refresh - import dynamically to avoid circular deps
     try {
       const { refreshNewAccessToken } = await import(
-        './lib/actions/auth.action'
+        '@/lib/actions/auth.action'
       )
       const newAccessToken = await refreshNewAccessToken()
       if (newAccessToken.data) {

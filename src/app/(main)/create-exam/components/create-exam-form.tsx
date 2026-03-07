@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import CreateExamHeader from './create-exam-header'
-import ExamBasicInfo from './exam-basic-info'
-import ExamDescriptionEditor from './exam-description-editor'
-import ExamSchemaEditor from './exam-schema-editor'
-import ExamSampleDataTable from './exam-sample-data-table'
-import ExamFileUpload from './exam-file-upload'
+import CreateExamHeader from '@/app/(main)/create-exam/components/create-exam-header'
+import ExamBasicInfo from '@/app/(main)/create-exam/components/exam-basic-info'
+import ExamDescriptionEditor from '@/app/(main)/create-exam/components/exam-description-editor'
+import ExamSchemaEditor from '@/app/(main)/create-exam/components/exam-schema-editor'
+import ExamSampleDataTable from '@/app/(main)/create-exam/components/exam-sample-data-table'
+import ExamFileUpload from '@/app/(main)/create-exam/components/exam-file-upload'
 import { ExamFormData } from '@/lib/types/create-exam.type'
 import { toast } from 'sonner'
 

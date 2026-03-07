@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PATH } from '@/lib/constants'
 
-import { useLogin } from '../hooks/use-login'
+import { useLogin } from '@/app/(auth)/login/hooks/use-login'
 
 export function LoginForm() {
   const { register, handleSubmit, errors, isLoading, onSubmit } = useLogin()

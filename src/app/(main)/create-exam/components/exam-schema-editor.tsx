@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
 import { SchemaTab } from '@/lib/types/create-exam.type'
-import SchemaEditorModal from './schema-editor-modal'
+import SchemaEditorModal from '@/app/(main)/create-exam/components/schema-editor-modal'
 
 interface ExamSchemaEditorProps {
   schema: string

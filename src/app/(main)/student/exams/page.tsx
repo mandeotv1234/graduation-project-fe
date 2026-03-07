@@ -1,5 +1,5 @@
 import { getEnrolledExams } from '@/lib/actions'
-import { ExamList } from './components/exam-list'
+import { ExamList } from '@/app/(main)/student/exams/components/exam-list'
 
 export default async function StudentExamsPage() {
   const response = await getEnrolledExams()

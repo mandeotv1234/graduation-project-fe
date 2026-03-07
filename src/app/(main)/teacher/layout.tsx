@@ -1,4 +1,4 @@
-import { TeacherHeader } from './components/teacher-header'
+import { TeacherHeader } from '@/app/(main)/teacher/components/teacher-header'
 
 export default function TeacherLayout({
   children

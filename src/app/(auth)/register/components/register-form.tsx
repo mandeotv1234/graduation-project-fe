@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PATH } from '@/lib/constants'
 
-import { useRegister } from '../hooks/use-register'
+import { useRegister } from '@/app/(auth)/register/hooks/use-register'
 
 export function RegisterForm() {
   const { register, handleSubmit, errors, isLoading, onSubmit } = useRegister()

@@ -5,7 +5,7 @@ import {
   getClassExams
 } from '@/lib/actions'
 import { PATH } from '@/lib/constants'
-import { ClassDetailView } from './components/class-detail-view'
+import { ClassDetailView } from '@/app/(main)/teacher/classes/[classId]/components/class-detail-view'
 
 interface ClassDetailPageProps {
   params: Promise<{ classId: string }>

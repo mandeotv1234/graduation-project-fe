@@ -1,5 +1,5 @@
 import { getSchemaTemplates } from '@/lib/actions'
-import { SchemaTemplatesView } from './components/schema-templates-view'
+import { SchemaTemplatesView } from '@/app/(main)/teacher/schema-templates/components/schema-templates-view'
 
 export default async function SchemaTemplatesPage() {
   const response = await getSchemaTemplates()

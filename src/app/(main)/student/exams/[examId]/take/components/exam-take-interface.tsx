@@ -1,15 +1,15 @@
 'use client'
 
 import { ExamQuestionItem, StudentExamDetail } from '@/lib/types'
-import { useExamTake } from '../hooks/use-exam-take'
-import { ExamTakeHeader } from './exam-take-header'
-import { QuestionSidebar } from './question-sidebar'
-import { QuestionPanel } from './question-panel'
-import { QuestionNavigation } from './question-navigation'
-import { SqlEditorPanel } from './sql-editor-panel'
-import { ResultPanel } from './result-panel'
-import { ConfirmSubmitDialog } from './confirm-submit-dialog'
-import { SubmitResultDialog } from './submit-result-dialog'
+import { useExamTake } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-take'
+import { ExamTakeHeader } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-header'
+import { QuestionSidebar } from '@/app/(main)/student/exams/[examId]/take/components/question-sidebar'
+import { QuestionPanel } from '@/app/(main)/student/exams/[examId]/take/components/question-panel'
+import { QuestionNavigation } from '@/app/(main)/student/exams/[examId]/take/components/question-navigation'
+import { SqlEditorPanel } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel'
+import { ResultPanel } from '@/app/(main)/student/exams/[examId]/take/components/result-panel'
+import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog'
+import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog'
 
 interface ExamTakeInterfaceProps {
   exam: StudentExamDetail

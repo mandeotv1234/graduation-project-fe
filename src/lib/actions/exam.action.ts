@@ -1,6 +1,6 @@
 'use server'
 
-import { ApiResponse, Question } from '../types'
+import { ApiResponse, Question } from '@/lib/types'
 
 const mockQuestions: Question[] = [
   {

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getExamQuestionsByExamId } from '@/lib/actions'
 import { PATH } from '@/lib/constants'
-import { ExamQuestionsView } from './components/exam-questions-view'
+import { ExamQuestionsView } from '@/app/(main)/teacher/exams/[examId]/questions/components/exam-questions-view'
 
 interface ExamQuestionsPageProps {
   params: Promise<{ examId: string }>

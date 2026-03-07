@@ -1,5 +1,5 @@
 import { getClasses } from '@/lib/actions'
-import { ClassesList } from './components/classes-list'
+import { ClassesList } from '@/app/(main)/teacher/classes/components/classes-list'
 
 interface ClassesPageProps {
   searchParams: Promise<{ page?: string }>
