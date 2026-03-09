@@ -23,5 +23,17 @@ const tables = [
 
 export default async function ExamPage() {
   const questionRes = await getExamQuestions()
-  return <ExamInterface questions={questionRes.data || []} tables={tables} />
+
+  // TODO: Get examId from route params and student info from session
+  const examId = 1
+
+  return (
+    <ExamInterface
+      examId={examId}
+      questions={questionRes.data || []}
+      tables={tables}
+      studentId="SV001"
+      studentName="Nguyễn Văn A"
+    />
+  )
 }

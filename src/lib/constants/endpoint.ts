@@ -12,6 +12,11 @@ export const ENDPOINTS = Object.freeze({
   EXAM_EXECUTE_SQL: (examId: number) => `/exams/${examId}/execute-sql`,
   EXAM_SUBMIT: (examId: number) => `/exams/${examId}/submit`,
 
+  // Anti-Cheating
+  EXAM_START_SESSION: (examId: number) => `/exams/${examId}/start-session`,
+  EXAM_REPORT_VIOLATION: (examId: number) => `/exams/${examId}/violations`,
+  EXAM_TIME: (examId: number) => `/exams/${examId}/time`,
+
   // Teacher - Classes
   CLASSES: '/classes',
   CLASS_DETAIL: (classId: number) => `/classes/${classId}`,

@@ -55,6 +55,24 @@ export function SqlEditor({
       fontFamily: geistMono.style.fontFamily
     })
 
+    // Block clipboard actions (Ctrl+C, Ctrl+V, Ctrl+X)
+    const isMac = navigator.platform.toUpperCase().includes('MAC')
+    const ctrlOrCmd = isMac ? monaco.KeyMod.WinCtrl : monaco.KeyMod.CtrlCmd
+    // Block Ctrl+C
+    editor.addCommand(ctrlOrCmd | monaco.KeyCode.KEY_C, () => {})
+    // Block Ctrl+V
+    editor.addCommand(ctrlOrCmd | monaco.KeyCode.KEY_V, () => {})
+    // Block Ctrl+X
+    editor.addCommand(ctrlOrCmd | monaco.KeyCode.KEY_X, () => {})
+
+    // Block right-click context menu
+    editor.onMouseDown((e) => {
+      if (e.event.rightButton) {
+        e.event.preventDefault?.()
+        e.event.stopPropagation?.()
+      }
+    })
+
     // Add keyboard shortcuts
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash, () => {
       editor.getAction('editor.action.commentLine')?.run()
