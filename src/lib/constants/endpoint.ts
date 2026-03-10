@@ -28,5 +28,13 @@ export const ENDPOINTS = Object.freeze({
   CREATE_EXAM_QUESTION: (examId: number) => `/exams/${examId}/questions`,
 
   // Teacher - Schema Templates
-  SCHEMA_TEMPLATES: '/schema-templates'
+  SCHEMA_TEMPLATES: '/schema-templates',
+
+  // Teacher - Notifications
+  NOTIFICATIONS: '/notifications',
+  NOTIFICATIONS_UNREAD_COUNT: '/notifications/unread-count',
+  NOTIFICATION_READ: (id: number) => `/notifications/${id}/read`,
+  NOTIFICATIONS_READ_ALL: '/notifications/read-all',
+  NOTIFICATION_DELETE: (id: number) => `/notifications/${id}`,
+  NOTIFICATIONS_DELETE_ALL: '/notifications'
 })

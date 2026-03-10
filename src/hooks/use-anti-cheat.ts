@@ -190,7 +190,7 @@ export function useAntiCheat({
     }
   }, [enabled, recordViolation, dispatch])
 
-  // 3. Chặn Copy / Cut / Paste / Right Click
+  // 3. Chặn Copy / Cut / Paste / Right Click (chặn nhưng KHÔNG tính vi phạm)
   useEffect(() => {
     if (!enabled) return
 
@@ -210,25 +210,22 @@ export function useAntiCheat({
     const handleCopy = (e: ClipboardEvent) => {
       if (isEditingField(e.target)) return
       e.preventDefault()
-      recordViolation(ViolationType.COPY)
+      // Đã chặn rồi — không tính vi phạm
     }
 
     const handleCut = (e: ClipboardEvent) => {
       if (isEditingField(e.target)) return
       e.preventDefault()
-      recordViolation(ViolationType.COPY)
     }
 
     const handlePaste = (e: ClipboardEvent) => {
       if (isEditingField(e.target)) return
       e.preventDefault()
-      recordViolation(ViolationType.PASTE)
     }
 
     const handleContextMenu = (e: MouseEvent) => {
       if (isEditingField(e.target)) return
       e.preventDefault()
-      recordViolation(ViolationType.RIGHT_CLICK)
     }
 
     document.addEventListener('copy', handleCopy)
@@ -242,7 +239,7 @@ export function useAntiCheat({
       document.removeEventListener('paste', handlePaste)
       document.removeEventListener('contextmenu', handleContextMenu)
     }
-  }, [enabled, recordViolation])
+  }, [enabled])
 
   // 4. Chặn phím tắt nguy hiểm
   useEffect(() => {
@@ -263,11 +260,16 @@ export function useAntiCheat({
       const isMac = navigator.platform.toUpperCase().includes('MAC')
       const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey
 
-      const blockedCombos = [
+      // Phím tắt chỉ chặn (không tính vi phạm) — copy/paste/cut/select-all
+      const blockOnlyCombos = [
         { key: 'c', ctrl: true },
         { key: 'v', ctrl: true },
         { key: 'x', ctrl: true },
-        { key: 'a', ctrl: true },
+        { key: 'a', ctrl: true }
+      ]
+
+      // Phím tắt nguy hiểm — chặn VÀ tính vi phạm (DevTools, save, print, view-source)
+      const violationCombos = [
         { key: 's', ctrl: true },
         { key: 'u', ctrl: true },
         { key: 'p', ctrl: true },
@@ -276,21 +278,29 @@ export function useAntiCheat({
         { key: 'F12', ctrl: false }
       ]
 
-      for (const combo of blockedCombos) {
+      // Check block-only combos first (copy/paste inside editor is allowed)
+      for (const combo of blockOnlyCombos) {
+        const keyMatch = e.key.toLowerCase() === combo.key.toLowerCase()
+        const ctrlMatch = combo.ctrl ? ctrlOrCmd : true
+
+        if (keyMatch && ctrlMatch) {
+          // Allow inside editor
+          if (isEditingField(e.target)) return
+          e.preventDefault()
+          e.stopPropagation()
+          // Đã chặn — không tính vi phạm
+          return
+        }
+      }
+
+      // Check violation combos
+      for (const combo of violationCombos) {
         const keyMatch =
           e.key.toLowerCase() === combo.key.toLowerCase() || e.key === combo.key
         const ctrlMatch = combo.ctrl ? ctrlOrCmd : true
         const shiftMatch = combo.shift ? e.shiftKey : true
 
         if (keyMatch && ctrlMatch && shiftMatch) {
-          // Allow copy/paste/undo/redo/cut inside editor
-          if (
-            isEditingField(e.target) &&
-            ['c', 'v', 'x', 'a', 'z', 'y'].includes(combo.key.toLowerCase())
-          ) {
-            return
-          }
-
           e.preventDefault()
           e.stopPropagation()
 

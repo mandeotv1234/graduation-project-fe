@@ -81,7 +81,7 @@ export interface ClassExamItem {
 
 // POST /api/exams → CreateExamRequestDto
 export interface CreateExamRequest {
-  templateId: number
+  templateId?: number | null
   classId: number
   title: string
   durationMinutes: number

@@ -1,6 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-import { ViolationType } from '@/lib/constants/violation'
+import {
+  ViolationType,
+  MAX_VIOLATIONS_BEFORE_SUBMIT
+} from '@/lib/constants/violation'
 import { ViolationEntry } from '@/lib/types'
 
 interface AntiCheatState {
@@ -35,13 +38,19 @@ const antiCheatSlice = createSlice({
         timestamp: string
       }>
     ) {
+      // Don't track beyond max violations (exam already auto-submitted)
+      if (state.totalViolations >= MAX_VIOLATIONS_BEFORE_SUBMIT) return
+
       const violation: ViolationEntry = {
         ...action.payload,
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         synced: false
       }
       state.violations.push(violation)
-      state.totalViolations += 1
+      state.totalViolations = Math.min(
+        state.totalViolations + 1,
+        MAX_VIOLATIONS_BEFORE_SUBMIT
+      )
     },
     markViolationSynced(state, action: PayloadAction<string>) {
       const violation = state.violations.find((v) => v.id === action.payload)
