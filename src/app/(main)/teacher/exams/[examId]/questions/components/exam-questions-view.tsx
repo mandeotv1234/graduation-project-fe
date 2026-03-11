@@ -9,8 +9,7 @@ import {
   Award,
   CheckCircle,
   Save,
-  X,
-  Code
+  X
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -53,38 +52,35 @@ export function ExamQuestionsView({
 
   // Form state
   const [content, setContent] = useState('')
-  const [correctQuery, setCorrectQuery] = useState('')
   const [points, setPoints] = useState(1)
   const [orderIndex, setOrderIndex] = useState(questions.length + 1)
   const [questionType, setQuestionType] = useState('CREATE_TABLE')
-  const [verifyScript, setVerifyScript] = useState('')
+  // removed correctQuery and verifyScript fields per GRAD-30
 
   const resetForm = () => {
     setContent('')
-    setCorrectQuery('')
     setPoints(1)
     setOrderIndex(questions.length + 2)
     setQuestionType('CREATE_TABLE')
-    setVerifyScript('')
     setShowAddForm(false)
   }
 
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!content.trim() || !correctQuery.trim()) {
-      toast.error('Vui lòng nhập nội dung và câu truy vấn đúng')
+    if (!content.trim()) {
+      toast.error('Vui lòng nhập nội dung câu hỏi')
       return
     }
 
     const result = await callApi(
       createExamQuestion(examId, {
         content,
-        correctQuery,
         points,
         orderIndex,
         questionType,
-        verifyScript: verifyScript || undefined
+        // backend still expects correctQuery field; send empty string since UI no longer collects it
+        correctQuery: ''
       })
     )
 
@@ -207,33 +203,7 @@ export function ExamQuestionsView({
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Code className="h-4 w-4 text-primary" />
-              Câu truy vấn đúng <span className="text-destructive">*</span>
-            </label>
-            <textarea
-              value={correctQuery}
-              onChange={(e) => setCorrectQuery(e.target.value)}
-              rows={3}
-              placeholder="SELECT * FROM ..."
-              className="flex w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Verify Script (tùy chọn)
-            </label>
-            <textarea
-              value={verifyScript}
-              onChange={(e) => setVerifyScript(e.target.value)}
-              rows={2}
-              placeholder="Script kiểm tra cho TRIGGER/FUNCTION/SP..."
-              className="flex w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </div>
+          {/* correctQuery and verifyScript removed per GRAD-30 */}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={resetForm}>
@@ -287,14 +257,7 @@ export function ExamQuestionsView({
                     {q.content}
                   </p>
 
-                  <details className="group">
-                    <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                      Xem đáp án
-                    </summary>
-                    <pre className="mt-2 overflow-auto rounded-lg bg-muted/50 p-3 text-xs font-mono text-foreground">
-                      {q.correctQuery}
-                    </pre>
-                  </details>
+                  {/* answer view removed per GRAD-30 */}
                 </div>
 
                 <CheckCircle className="h-5 w-5 shrink-0 text-emerald-500" />
