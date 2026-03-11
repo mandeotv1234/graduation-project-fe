@@ -41,17 +41,18 @@ export function ResultPanel({ result }: ResultPanelProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-4 border-b border-border bg-card px-4 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Kết quả
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border bg-muted/40 px-4 sm:px-5 py-2 sm:py-3">
+        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Kết quả chạy
         </span>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Hash className="h-3 w-3" />
+        <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs font-medium text-muted-foreground bg-background px-2.5 sm:px-3 py-1.5 rounded-md border border-border shadow-sm w-fit">
+          <span className="flex items-center gap-1 sm:gap-1.5 shrink-0 text-emerald-600 dark:text-emerald-400">
+            <Hash className="h-3.5 w-3.5" />
             {result.rowCount} dòng
           </span>
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
+          <div className="w-px h-3 bg-border" />
+          <span className="flex items-center gap-1 sm:gap-1.5 shrink-0 text-blue-600 dark:text-blue-400">
+            <Clock className="h-3.5 w-3.5" />
             {result.executionTimeMs}ms
           </span>
         </div>

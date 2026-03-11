@@ -26,13 +26,16 @@ export function QuestionSidebar({
   onSelect
 }: QuestionSidebarProps) {
   return (
-    <div className="hidden w-64 shrink-0 overflow-auto border-r border-border bg-card/50 lg:block">
-      <div className="p-4">
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Danh sách câu hỏi
+    <div className="hidden w-[280px] shrink-0 overflow-auto border-r border-border bg-card/40 lg:block scrollbar-thin">
+      <div className="p-5">
+        <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+          <span>Danh sách câu hỏi</span>
+          <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px]">
+            {questions.length}
+          </span>
         </h3>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {questions.map((q, index) => {
             const isActive = index === currentIndex
             const hasAnswer = !!answers[q.id]?.trim()
@@ -42,35 +45,52 @@ export function QuestionSidebar({
                 key={q.id}
                 onClick={() => onSelect(index)}
                 className={cn(
-                  'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-all duration-200',
+                  'flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-all duration-200 group relative overflow-hidden',
                   isActive
-                    ? 'bg-primary/10 text-primary shadow-sm'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    ? 'bg-primary/5 border border-primary/20 shadow-sm'
+                    : 'border border-transparent hover:bg-muted/60 hover:border-border/50'
                 )}
               >
+                {isActive && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl" />
+                )}
                 <span
                   className={cn(
-                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors',
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all shadow-sm',
                     isActive
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-primary text-primary-foreground scale-110 shadow-primary/20'
                       : hasAnswer
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                        : 'bg-muted text-muted-foreground'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : 'bg-secondary text-muted-foreground group-hover:bg-muted-foreground/10'
                   )}
                 >
                   {q.orderIndex}
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">Câu {q.orderIndex}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {QUESTION_TYPE_LABELS[q.questionType] || q.questionType} ·{' '}
-                    {q.points}đ
+                  <p
+                    className={cn(
+                      'truncate font-medium transition-colors',
+                      isActive
+                        ? 'text-primary'
+                        : 'text-foreground group-hover:text-primary/80'
+                    )}
+                  >
+                    Câu {q.orderIndex}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                    <span className="inline-block max-w-[80px] truncate">
+                      {QUESTION_TYPE_LABELS[q.questionType] || q.questionType}
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-border" />
+                    <span>{q.points}đ</span>
                   </p>
                 </div>
 
                 {hasAnswer && (
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                  </div>
                 )}
               </button>
             )

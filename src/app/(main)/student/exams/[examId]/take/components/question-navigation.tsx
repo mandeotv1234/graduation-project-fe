@@ -52,7 +52,7 @@ export function QuestionNavigation({
       </div>
 
       {/* Mobile question grid (visible on small screens where sidebar is hidden) */}
-      <div className="flex flex-wrap gap-1.5 lg:hidden">
+      <div className="flex flex-wrap gap-1.5 lg:hidden max-h-[140px] overflow-y-auto scrollbar-thin p-1 rounded-lg border border-border/50 bg-background/50">
         {questions.map((q, index) => {
           const isActive = index === currentIndex
           const hasAnswer = !!answers[q.id]?.trim()
@@ -61,12 +61,12 @@ export function QuestionNavigation({
             <button
               key={q.id}
               onClick={() => onNavigate(index)}
-              className={`flex h-9 w-9 items-center justify-center rounded-lg text-xs font-bold transition-all duration-200 ${
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all duration-200 ${
                 isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30 ring-offset-1 ring-offset-background'
                   : hasAnswer
                     ? 'bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 dark:text-emerald-400'
-                    : 'bg-muted text-muted-foreground hover:bg-accent'
+                    : 'bg-muted text-muted-foreground hover:bg-accent border border-transparent'
               }`}
             >
               {q.orderIndex}

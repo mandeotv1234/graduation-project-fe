@@ -16,6 +16,7 @@ import { ResultPanel } from '@/app/(main)/student/exams/[examId]/take/components
 import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog'
 import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog'
 import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal'
+import { ResizablePanel } from '@/components/shared/resizable-panel'
 
 interface ExamTakeInterfaceProps {
   exam: StudentExamDetail
@@ -36,7 +37,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     examTake.handleConfirmSubmit()
   }, [examTake])
 
-  const { setServerTime } = useExamTimer({
+  const { setServerTime, remainingSeconds } = useExamTimer({
     examId: exam.examId,
     initialSeconds,
     enabled: sessionStarted
@@ -144,10 +145,11 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   return (
     <>
       <ViolationWarningModal />
-      <div className="flex h-[calc(100vh-theme(spacing.16))] flex-col overflow-hidden">
+      <div className="flex h-[calc(100dvh-65px)] flex-col overflow-hidden">
         <ExamTakeHeader
           answeredCount={examTake.answeredCount}
           totalQuestions={questions.length}
+          remainingSeconds={remainingSeconds}
           isLoading={examTake.isLoading}
           onSubmit={examTake.handleRequestSubmit}
         />
@@ -162,17 +164,17 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
           />
 
           {/* Main content */}
-          <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
+          <div className="flex flex-1 flex-col overflow-hidden md:flex-row bg-muted/20">
             {/* Left: Question description + Navigation */}
-            <div className="flex flex-1 flex-col overflow-hidden border-r border-border">
-              <div className="flex-1 overflow-auto p-6">
+            <div className="flex flex-col md:w-[45%] lg:w-[35%] xl:w-[30%] flex-1 md:flex-none overflow-hidden border-b md:border-b-0 md:border-r border-border bg-background shadow-sm z-10">
+              <div className="flex-1 overflow-auto p-4 sm:p-5 lg:p-6 scrollbar-thin">
                 {examTake.currentQuestion && (
                   <QuestionPanel question={examTake.currentQuestion} />
                 )}
               </div>
 
               {/* Question navigation bar */}
-              <div className="shrink-0 border-t border-border bg-card/50 px-6 py-3">
+              <div className="shrink-0 border-t border-border bg-muted/10 px-4 py-3 sm:px-5 lg:px-6">
                 <QuestionNavigation
                   questions={questions}
                   currentIndex={examTake.currentQuestionIndex}
@@ -183,23 +185,29 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
             </div>
 
             {/* Right: SQL Editor + Result */}
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="flex-1 overflow-hidden border-b border-border">
-                {examTake.currentQuestion && (
-                  <SqlEditorPanel
-                    value={examTake.answers[examTake.currentQuestion.id] || ''}
-                    onChange={(val: string) =>
-                      examTake.updateAnswer(examTake.currentQuestion.id, val)
-                    }
-                    onExecute={examTake.handleExecuteSql}
-                    isLoading={examTake.isLoading}
-                  />
-                )}
-              </div>
+            <div className="flex flex-1 flex-col overflow-hidden bg-background">
+              <ResizablePanel defaultSize={60} minSize={20} maxSize={80}>
+                {/* Editor Section */}
+                <div className="flex h-full flex-col">
+                  {examTake.currentQuestion && (
+                    <SqlEditorPanel
+                      value={
+                        examTake.answers[examTake.currentQuestion.id] || ''
+                      }
+                      onChange={(val: string) =>
+                        examTake.updateAnswer(examTake.currentQuestion.id, val)
+                      }
+                      onExecute={examTake.handleExecuteSql}
+                      isLoading={examTake.isLoading}
+                    />
+                  )}
+                </div>
 
-              <div className="h-64 overflow-auto">
-                <ResultPanel result={examTake.sqlResult} />
-              </div>
+                {/* Result Section */}
+                <div className="flex h-full flex-col bg-background">
+                  <ResultPanel result={examTake.sqlResult} />
+                </div>
+              </ResizablePanel>
             </div>
           </div>
         </div>
