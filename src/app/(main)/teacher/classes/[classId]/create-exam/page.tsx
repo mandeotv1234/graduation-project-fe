@@ -39,11 +39,9 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!templateId) return
-
     const result = await callApi(
       createExam({
-        templateId: Number(templateId),
+        templateId: templateId ? Number(templateId) : null,
         classId: classIdNum,
         title,
         durationMinutes,
@@ -93,13 +91,17 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground flex items-center gap-2">
               <Database className="h-4 w-4 text-primary" />
-              Schema Template <span className="text-destructive">*</span>
+              Schema Template{' '}
+              <span className="text-muted-foreground font-normal text-xs">
+                (Không bắt buộc)
+              </span>
             </label>
             <select
               value={templateId}
-              onChange={(e) => setTemplateId(Number(e.target.value))}
+              onChange={(e) =>
+                setTemplateId(e.target.value ? Number(e.target.value) : '')
+              }
               className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              required
             >
               <option value="">Chọn schema template</option>
               {templates.map((t) => (

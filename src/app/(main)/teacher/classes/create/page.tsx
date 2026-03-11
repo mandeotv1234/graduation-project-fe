@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2, Save, UserPlus } from 'lucide-react'
+import * as XLSX from 'xlsx'
+import Papa from 'papaparse'
+import { ArrowLeft, Plus, Trash2, Save, UserPlus, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -27,6 +29,130 @@ export default function CreateClassPage() {
 
   const removeStudent = (index: number) => {
     setStudents((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const processData = (data: unknown[]) => {
+    if (data.length < 2) {
+      toast.error('File không có dữ liệu hợp lệ')
+      return
+    }
+
+    let headerRowIdx = 0
+    let mssvColIdx = -1
+    let nameColIdx = -1
+
+    // Tìm dòng header
+    for (let i = 0; i < Math.min(10, data.length); i++) {
+      const row = data[i]
+      if (!row || !Array.isArray(row)) continue
+
+      row.forEach((cell, colIdx) => {
+        const val = String(cell || '')
+          .toLowerCase()
+          .trim()
+        if (
+          val.includes('mssv') ||
+          val.includes('mã sv') ||
+          val.includes('mã sinh viên') ||
+          val === 'id'
+        ) {
+          mssvColIdx = colIdx
+        }
+        if (
+          val.includes('tên') ||
+          val.includes('họ và tên') ||
+          val.includes('họ tên') ||
+          val === 'name'
+        ) {
+          nameColIdx = colIdx
+        }
+      })
+
+      if (mssvColIdx !== -1 && nameColIdx !== -1) {
+        headerRowIdx = i
+        break
+      }
+    }
+
+    if (mssvColIdx === -1 || nameColIdx === -1) {
+      // Fallback mặc định cột 0 là MSSV, cột 1 là Họ Tên nếu không tìm thấy header rõ ràng
+      mssvColIdx = 0
+      nameColIdx = 1
+    }
+
+    const newStudents: CreateClassStudentInfo[] = []
+
+    for (let i = headerRowIdx + 1; i < data.length; i++) {
+      const row = data[i]
+      if (!row || !Array.isArray(row)) continue
+
+      const mssv = String(row[mssvColIdx] || '').trim()
+      const name = String(row[nameColIdx] || '').trim()
+
+      if (mssv && name) {
+        newStudents.push({ studentId: mssv, fullName: name })
+      }
+    }
+
+    if (newStudents.length > 0) {
+      setStudents((prev) => {
+        // Khử trùng lặp và loại bỏ các trường rỗng
+        const currentValid = prev.filter((s) => s.studentId && s.fullName)
+
+        // Chỉ thêm những sinh viên chưa có trong danh sách (dựa vào MSSV)
+        const map = new Map(currentValid.map((s) => [s.studentId, s]))
+        newStudents.forEach((s) => map.set(s.studentId, s))
+
+        return Array.from(map.values())
+      })
+      toast.success(`Đã nhập ${newStudents.length} sinh viên từ file`)
+    } else {
+      toast.error('Không tìm thấy dữ liệu sinh viên hợp lệ trong file')
+    }
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || ''
+
+    if (fileExt === 'csv') {
+      Papa.parse(file, {
+        complete: (results) => {
+          processData(results.data as unknown[])
+        },
+        error: (error) => {
+          console.error('Lỗi phân tích CSV:', error)
+          toast.error('Lỗi khi đọc file CSV. Vui lòng kiểm tra lại định dạng.')
+        },
+        skipEmptyLines: true,
+        encoding: 'UTF-8' // Đảm bảo đọc chuẩn font cho CSV
+      })
+    } else {
+      // Cho file xlsx, xls
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        try {
+          const arrayBuffer = evt.target?.result
+          const wb = XLSX.read(arrayBuffer, { type: 'array' })
+          const wsname = wb.SheetNames[0]
+          const ws = wb.Sheets[wsname]
+          const data = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 })
+
+          processData(data)
+        } catch (error) {
+          console.error('Lỗi khi đọc file Excel:', error)
+          toast.error(
+            'Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng.'
+          )
+        }
+      }
+      reader.readAsArrayBuffer(file)
+    }
+
+    // Reset file input
+    e.target.value = ''
   }
 
   const updateStudent = (
@@ -121,21 +247,47 @@ export default function CreateClassPage() {
 
         {/* Students */}
         <div className="rounded-xl border border-border bg-card p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-primary" />
-              Danh sách sinh viên ({students.length})
-            </h2>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addStudent}
-              className="gap-1.5"
-            >
-              <Plus className="h-4 w-4" />
-              Thêm
-            </Button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-primary" />
+                Danh sách sinh viên ({students.length})
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Nhập tay hoặc tải lên file dữ liệu (.xlsx, .csv)
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                accept=".xlsx, .xls, .csv"
+                id="file-upload"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                asChild
+                className="gap-1.5 cursor-pointer"
+              >
+                <label htmlFor="file-upload">
+                  <Upload className="h-4 w-4" />
+                  Nhập từ file
+                </label>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addStudent}
+                className="gap-1.5"
+              >
+                <Plus className="h-4 w-4" />
+                Thêm 1
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-3">

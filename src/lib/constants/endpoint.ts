@@ -12,6 +12,11 @@ export const ENDPOINTS = Object.freeze({
   EXAM_EXECUTE_SQL: (examId: number) => `/exams/${examId}/execute-sql`,
   EXAM_SUBMIT: (examId: number) => `/exams/${examId}/submit`,
 
+  // Anti-Cheating
+  EXAM_START_SESSION: (examId: number) => `/exams/${examId}/start-session`,
+  EXAM_REPORT_VIOLATION: (examId: number) => `/exams/${examId}/violations`,
+  EXAM_TIME: (examId: number) => `/exams/${examId}/time`,
+
   // Teacher - Classes
   CLASSES: '/classes',
   CLASS_DETAIL: (classId: number) => `/classes/${classId}`,
@@ -23,5 +28,13 @@ export const ENDPOINTS = Object.freeze({
   CREATE_EXAM_QUESTION: (examId: number) => `/exams/${examId}/questions`,
 
   // Teacher - Schema Templates
-  SCHEMA_TEMPLATES: '/schema-templates'
+  SCHEMA_TEMPLATES: '/schema-templates',
+
+  // Teacher - Notifications
+  NOTIFICATIONS: '/notifications',
+  NOTIFICATIONS_UNREAD_COUNT: '/notifications/unread-count',
+  NOTIFICATION_READ: (id: number) => `/notifications/${id}/read`,
+  NOTIFICATIONS_READ_ALL: '/notifications/read-all',
+  NOTIFICATION_DELETE: (id: number) => `/notifications/${id}`,
+  NOTIFICATIONS_DELETE_ALL: '/notifications'
 })

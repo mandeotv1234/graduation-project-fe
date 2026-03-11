@@ -6,6 +6,7 @@ import { LogOut, GraduationCap, BookOpen, Database } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from '@/components/shared/mode-toggle'
+import { TeacherNotificationBell } from '@/app/(main)/teacher/components/teacher-notification-bell'
 import { PATH } from '@/lib/constants'
 import { logout } from '@/lib/actions'
 import { cn } from '@/lib/utils'
@@ -64,6 +65,7 @@ export function TeacherHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <TeacherNotificationBell />
           <ModeToggle />
           <Button
             variant="ghost"
