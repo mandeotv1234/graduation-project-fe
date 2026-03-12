@@ -47,60 +47,59 @@ function ExamStatusBadge({ status }: { status: string }) {
 function ExamCard({ exam }: { exam: StudentExamListItem }) {
   const status = getExamStatus(exam.startTime, exam.endTime)
   const isAccessible = status === 'in_progress'
-
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
-      {/* Gradient accent */}
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+    <Link href={PATH.STUDENT_EXAM_TAKE(exam.examId)}>
+      <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
+        {/* Gradient accent */}
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex-1 space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
-                {exam.title}
-              </h3>
-              <ExamStatusBadge status={status} />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <CalendarDays className="h-4 w-4" />
-              <span>Bắt đầu: {formatDateTime(exam.startTime)}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4" />
-              <span>Kết thúc: {formatDateTime(exam.endTime)}</span>
-            </div>
-            {exam.durationMinutes && (
-              <div className="flex items-center gap-1.5">
-                <Timer className="h-4 w-4" />
-                <span>{exam.durationMinutes} phút</span>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex-1 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <FileText className="h-5 w-5" />
               </div>
-            )}
-          </div>
-        </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                  {exam.title}
+                </h3>
+                <ExamStatusBadge status={status} />
+              </div>
+            </div>
 
-        <div className="shrink-0">
-          {isAccessible ? (
-            <Link href={PATH.STUDENT_EXAM_TAKE(exam.examId)}>
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4" />
+                <span>Bắt đầu: {formatDateTime(exam.startTime)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4" />
+                <span>Kết thúc: {formatDateTime(exam.endTime)}</span>
+              </div>
+              {exam.durationMinutes && (
+                <div className="flex items-center gap-1.5">
+                  <Timer className="h-4 w-4" />
+                  <span>{exam.durationMinutes} phút</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="shrink-0">
+            {isAccessible ? (
               <Button className="gap-2">
                 Vào thi
                 <ArrowRight className="h-4 w-4" />
               </Button>
-            </Link>
-          ) : (
-            <Button variant="outline" disabled>
-              {status === 'upcoming' ? 'Chưa mở' : 'Đã kết thúc'}
-            </Button>
-          )}
+            ) : (
+              <Button variant="outline" disabled>
+                {status === 'upcoming' ? 'Chưa mở' : 'Đã kết thúc'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 

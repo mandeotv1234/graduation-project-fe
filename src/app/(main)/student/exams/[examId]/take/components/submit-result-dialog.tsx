@@ -28,7 +28,7 @@ export function SubmitResultDialog({
   const isPassed = Number(percentage) >= 50
 
   return (
-    <div className="flex min-h-[calc(100vh-theme(spacing.16))] items-center justify-center p-6">
+    <div className="flex min-h-[calc(100dvh-65px)] items-center justify-center p-6">
       <div className="w-full max-w-2xl space-y-8">
         {/* Score card */}
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">

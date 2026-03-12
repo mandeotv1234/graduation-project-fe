@@ -22,22 +22,25 @@ export function SqlEditorPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          SQL Editor
+      <div className="flex items-center justify-between border-b border-border bg-card px-4 sm:px-5 py-2 sm:py-3 shadow-sm z-10">
+        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+          <span>{`</>`}</span>
+          <span className="hidden sm:inline">SQL Editor</span>
         </span>
         <Button
-          size="sm"
           onClick={onExecute}
           disabled={isLoading}
-          className="gap-1.5"
+          className="h-8 px-3 sm:h-9 sm:px-4 text-xs sm:text-sm gap-1.5 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
         >
           <Play className="h-3.5 w-3.5" />
-          {isLoading ? 'Đang chạy...' : 'Chạy SQL'}
+          <span className="hidden sm:inline">
+            {isLoading ? 'Đang chạy...' : 'Chạy SQL'}
+          </span>
+          <span className="sm:hidden">{isLoading ? '...' : 'Chạy'}</span>
         </Button>
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 bg-background">
         <Editor
           height="100%"
           defaultLanguage="sql"
