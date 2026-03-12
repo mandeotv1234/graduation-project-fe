@@ -1,4 +1,5 @@
 import qs from 'qs'
+import { redirect } from 'next/navigation'
 import { ApiResponse, RefreshTokenResponse } from '@/lib/types'
 import { getCookie, setCookie, toExpiryDate } from '@/lib/utils'
 import { ENDPOINTS, COOKIE_BASE_OPTIONS } from '@/lib/constants'
@@ -11,27 +12,18 @@ type RequestOptions = RequestInit & {
 
 export class ApiClient {
   private baseURL: string
-
-  /**
-   * Singleton refresh promise — ensures only one refresh request
-   * is in-flight at any time, even when multiple 401 responses
-   * arrive concurrently.
-   */
   private refreshPromise: Promise<string | null> | null = null
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
   }
 
-  // ───────────────────────── core fetch ─────────────────────────
-
   private async fetchWithToken(
     endpoint: string,
-    options: RequestOptions,
+    options: RequestOptions = {},
     token?: string
   ): Promise<Response> {
-    const { queries, headers } = options
-
+    const { queries, headers: extraHeaders } = options
     const accessToken = token ?? (await getCookie('accessToken'))
 
     const queryString = queries
@@ -40,31 +32,29 @@ export class ApiClient {
 
     const url = `${this.baseURL}${endpoint}${queryString}`
 
+    const mergedHeaders: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(extraHeaders ?? {})
+    }
+
+    const restOptions = Object.fromEntries(
+      Object.entries(options).filter(
+        ([key]) => key !== 'headers' && key !== 'queries'
+      )
+    ) as RequestInit
+
     const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        ...(headers ?? {})
-      },
+      headers: mergedHeaders,
       credentials: 'include',
-      ...options
+      ...restOptions
     }
 
     return fetch(url, config)
   }
 
-  // ───────────────────── token refresh ──────────────────────────
-
-  /**
-   * Attempt to refresh the access token using the stored refresh token.
-   * Returns the new access token on success, or null on failure.
-   * Uses a singleton promise to deduplicate concurrent refresh calls.
-   */
   private async attemptRefresh(): Promise<string | null> {
-    // If a refresh is already in progress, wait for it
-    if (this.refreshPromise) {
-      return this.refreshPromise
-    }
+    if (this.refreshPromise) return this.refreshPromise
 
     this.refreshPromise = (async () => {
       try {
@@ -83,17 +73,19 @@ export class ApiClient {
         const body = (await res.json()) as ApiResponse<RefreshTokenResponse>
         if (!body.data?.accessToken) return null
 
-        // Persist the new access token
-        await setCookie('accessToken', body.data.accessToken, {
-          expires: toExpiryDate(body.data.accessTokenExpiresAt),
-          ...COOKIE_BASE_OPTIONS
-        })
+        try {
+          await setCookie('accessToken', body.data.accessToken, {
+            expires: toExpiryDate(body.data.accessTokenExpiresAt),
+            ...COOKIE_BASE_OPTIONS
+          })
+        } catch {
+          // cookie write not allowed in Server Component render context
+        }
 
         return body.data.accessToken
       } catch {
         return null
       } finally {
-        // Allow future refreshes
         this.refreshPromise = null
       }
     })()
@@ -101,17 +93,37 @@ export class ApiClient {
     return this.refreshPromise
   }
 
-  // ──────────────────────── request ─────────────────────────────
+  private async clearAuthSession(): Promise<void> {
+    try {
+      await Promise.all([
+        setCookie('accessToken', '', { maxAge: 0, path: '/' }),
+        setCookie('refreshToken', '', { maxAge: 0, path: '/' }),
+        setCookie('userRole', '', { maxAge: 0, path: '/' })
+      ])
+    } catch {
+      // cookie write not allowed in read-only context
+    }
+  }
+
+  private async handleSessionExpired(): Promise<never> {
+    await this.clearAuthSession()
+
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+      throw new Error('SESSION_EXPIRED')
+    }
+
+    redirect('/login')
+  }
 
   async request(
     endpoint: string,
     options: RequestOptions = {}
   ): Promise<Response> {
     const res = await this.fetchWithToken(endpoint, options)
+    const isTokenError = res.status === 401 || res.status === 403
 
-    // If 401 → try to refresh and retry ONCE
-    if (res.status === 401) {
-      // Don't attempt refresh on auth endpoints themselves
+    if (isTokenError) {
       const isAuthEndpoint =
         endpoint === ENDPOINTS.LOGIN ||
         endpoint === ENDPOINTS.REFRESH_TOKEN ||
@@ -119,14 +131,18 @@ export class ApiClient {
 
       if (!isAuthEndpoint) {
         const newToken = await this.attemptRefresh()
+
         if (newToken) {
-          // Retry the original request with the fresh token
           const retryRes = await this.fetchWithToken(
             endpoint,
             options,
             newToken
           )
+
           if (!retryRes.ok) {
+            if (retryRes.status === 401 || retryRes.status === 403) {
+              await this.handleSessionExpired()
+            }
             let errorBody: string
             try {
               const errorJson = await retryRes.json()
@@ -142,15 +158,11 @@ export class ApiClient {
           return retryRes
         }
 
-        // Refresh failed — redirect to login (server-side safe)
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
-        }
+        await this.handleSessionExpired()
       }
     }
 
     if (!res.ok) {
-      // Safely parse error body — some responses (e.g. 204, 401) may have empty body
       let errorBody: string
       try {
         const errorJson = await res.json()
@@ -167,9 +179,6 @@ export class ApiClient {
     return res
   }
 
-  /**
-   * Safely parse JSON from response. Handles empty bodies (204 No Content).
-   */
   private async parseJson<T>(res: Response): Promise<ApiResponse<T>> {
     const text = await res.text()
     if (!text) {
