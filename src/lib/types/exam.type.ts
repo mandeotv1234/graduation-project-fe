@@ -100,3 +100,67 @@ export interface SubmitExamResponse {
   submittedAt: string
   questionResults: QuestionResultItem[]
 }
+
+// ===== Exam Specification Types =====
+
+// GET/PUT /api/exams/{examId}/specification
+
+export interface SpecAttribute {
+  id?: number
+  attributeName: string
+  dataType: string
+  description: string
+  isPrimaryKey: boolean
+  isNullable: boolean
+  orderIndex: number
+}
+
+export interface SpecEntity {
+  id?: number
+  entityName: string
+  displayName: string
+  description: string
+  orderIndex: number
+  attributes: SpecAttribute[]
+}
+
+export interface ExamSpecification {
+  id?: number
+  templateId?: number
+  title: string
+  description: string
+  entities: SpecEntity[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateExamQuestionBatch {
+  content: string
+  difficultyLevel?: number
+  points: number
+  orderIndex?: number
+  questionType: string
+}
+
+export interface CreateExamQuestionsBatchRequest {
+  questions: CreateExamQuestionBatch[]
+}
+
+export interface SaveExamSpecificationRequest {
+  title: string
+  description: string
+  entities: {
+    entityName: string
+    displayName: string
+    description: string
+    orderIndex: number
+    attributes: {
+      attributeName: string
+      dataType: string
+      description: string
+      isPrimaryKey: boolean
+      isNullable: boolean
+      orderIndex: number
+    }[]
+  }[]
+}

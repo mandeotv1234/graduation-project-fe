@@ -2,7 +2,6 @@ export const PATH = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
-  EXAM: '/exam',
 
   // Student paths
   STUDENT_EXAMS: '/student/exams',
@@ -17,9 +16,11 @@ export const PATH = {
     `/teacher/classes/${classId}/create-exam`,
   TEACHER_EXAM_QUESTIONS: (examId: number) =>
     `/teacher/exams/${examId}/questions`,
+  TEACHER_EXAM_SPECIFICATION: (examId: number) =>
+    `/teacher/exams/${examId}/specification`,
   TEACHER_SCHEMA_TEMPLATES: '/teacher/schema-templates'
 }
 
-export const PRIVATE_PATH = [PATH.EXAM, '/student', '/teacher']
+export const PRIVATE_PATH = ['/student', '/teacher']
 
 export const PUBLIC_PATH = [PATH.LOGIN, PATH.REGISTER]

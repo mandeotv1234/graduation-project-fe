@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef } from 'react'
 import { reportViolation } from '@/lib/actions/anti-cheat.action'
 import {
   MAX_VIOLATIONS_BEFORE_SUBMIT,
-  MAX_VIOLATIONS_BEFORE_WARNING,
   VIOLATION_LABELS,
   ViolationType
 } from '@/lib/constants/violation'
@@ -21,14 +20,9 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 interface UseAntiCheatOptions {
   examId: number
   enabled?: boolean
-  onForceSubmit?: () => void
 }
 
-export function useAntiCheat({
-  examId,
-  enabled = true,
-  onForceSubmit
-}: UseAntiCheatOptions) {
+export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
   const dispatch = useAppDispatch()
   const { totalViolations, isFullscreen } = useAppSelector(
     (state) => state.antiCheat
@@ -40,9 +34,6 @@ export function useAntiCheat({
 
   const isFullscreenRef = useRef(isFullscreen)
   isFullscreenRef.current = isFullscreen
-
-  const onForceSubmitRef = useRef(onForceSubmit)
-  onForceSubmitRef.current = onForceSubmit
 
   const devtoolsCheckRef = useRef<NodeJS.Timeout | null>(null)
   const devtoolsDetectedRef = useRef(false) // Tránh spam khi DevTools luôn mở
@@ -68,7 +59,7 @@ export function useAntiCheat({
 
       dispatch(addViolation({ type, detail: violationDetail, timestamp }))
 
-      // Gửi lên Backend (fire-and-forget)
+      // Gửi lên Backend
       try {
         const result = await reportViolation(examId, {
           violationType: type,
@@ -77,37 +68,35 @@ export function useAntiCheat({
         if (result.data) {
           dispatch(markViolationSynced(result.data.violationId.toString()))
 
-          // Backend quyết định auto-submit
+          const count = result.data.violationCount
+
+          // BE đã tự submit rồi → chỉ hiển thị modal, KHÔNG gọi FE submit
           if (result.data.autoSubmitted) {
             dispatch(
               showWarning(
-                'Bạn đã vi phạm quá nhiều lần. Bài thi sẽ được nộp tự động!'
+                `Bạn đã vi phạm ${count}/${MAX_VIOLATIONS_BEFORE_SUBMIT} lần. Bài thi đã được nộp tự động!`
               )
             )
-            setTimeout(() => onForceSubmitRef.current?.(), 3000)
+            // Không gọi onForceSubmit — BE đã xử lý rồi
             return
           }
+
+          // Hiển thị warning ngay lập tức sau mỗi vi phạm (dùng count từ BE)
+          dispatch(
+            showWarning(
+              `Cảnh báo vi phạm! Bạn đã vi phạm ${count}/${MAX_VIOLATIONS_BEFORE_SUBMIT} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
+            )
+          )
         } else {
           console.error('[AntiCheat] Backend did not return violation data')
         }
       } catch (err) {
         console.error('[AntiCheat] Failed to sync violation to backend', err)
-        // Sync thất bại — violation đã được lưu local
-      }
-
-      // FE-side check (backup nếu BE response chưa về)
-      const newTotal = totalRef.current
-      if (newTotal >= MAX_VIOLATIONS_BEFORE_SUBMIT) {
+        // Sync thất bại — vẫn hiện warning dựa trên FE count
+        const newTotal = totalRef.current
         dispatch(
           showWarning(
-            'Bạn đã vi phạm quá nhiều lần. Bài thi sẽ được nộp tự động!'
-          )
-        )
-        setTimeout(() => onForceSubmitRef.current?.(), 3000)
-      } else if (newTotal >= MAX_VIOLATIONS_BEFORE_WARNING) {
-        dispatch(
-          showWarning(
-            `Cảnh báo! Bạn đã vi phạm ${newTotal} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần, bài thi sẽ bị nộp tự động.`
+            `Cảnh báo vi phạm! Bạn đã vi phạm ${newTotal} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
           )
         )
       }
@@ -260,56 +249,71 @@ export function useAntiCheat({
       const isMac = navigator.platform.toUpperCase().includes('MAC')
       const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey
 
-      // Phím tắt chỉ chặn (không tính vi phạm) — copy/paste/cut/select-all
-      const blockOnlyCombos = [
+      // Phím tắt chỉ chặn (không tính vi phạm)
+      // Bao gồm: copy/paste/cut/select-all, DevTools shortcuts, save, print, view-source
+      // và các phím Alt/F-key có thể vô tình nhấn
+      const blockOnlyCombos: {
+        key: string
+        ctrl: boolean
+        shift?: boolean
+        alt?: boolean
+        fn?: boolean
+      }[] = [
+        // Copy / Cut / Paste / Select-all
         { key: 'c', ctrl: true },
         { key: 'v', ctrl: true },
         { key: 'x', ctrl: true },
-        { key: 'a', ctrl: true }
-      ]
-
-      // Phím tắt nguy hiểm — chặn VÀ tính vi phạm (DevTools, save, print, view-source)
-      const violationCombos = [
-        { key: 's', ctrl: true },
-        { key: 'u', ctrl: true },
-        { key: 'p', ctrl: true },
+        { key: 'a', ctrl: true },
+        // DevTools
+        { key: 'F12', ctrl: false },
         { key: 'i', ctrl: true, shift: true },
         { key: 'j', ctrl: true, shift: true },
-        { key: 'F12', ctrl: false }
+        { key: 'c', ctrl: true, shift: true },
+        // Save / Print / View-source
+        { key: 's', ctrl: true },
+        { key: 'p', ctrl: true },
+        { key: 'u', ctrl: true },
+        // Function keys that may be accidentally pressed
+        { key: 'F1', ctrl: false },
+        { key: 'F3', ctrl: false },
+        { key: 'F4', ctrl: false },
+        { key: 'F5', ctrl: false },
+        { key: 'F6', ctrl: false },
+        { key: 'F7', ctrl: false },
+        { key: 'F8', ctrl: false },
+        { key: 'F9', ctrl: false },
+        { key: 'F10', ctrl: false },
+        { key: 'F11', ctrl: false },
+        // Alt key combinations (vô tình nhấn)
+        { key: 'Alt', ctrl: false }
       ]
 
-      // Check block-only combos first (copy/paste inside editor is allowed)
-      for (const combo of blockOnlyCombos) {
-        const keyMatch = e.key.toLowerCase() === combo.key.toLowerCase()
-        const ctrlMatch = combo.ctrl ? ctrlOrCmd : true
-
-        if (keyMatch && ctrlMatch) {
-          // Allow inside editor
-          if (isEditingField(e.target)) return
-          e.preventDefault()
-          e.stopPropagation()
-          // Đã chặn — không tính vi phạm
-          return
-        }
+      // Check block-only combos (bao gồm Alt key)
+      // Xử lý đặc biệt cho phím Alt độc lập
+      if (e.key === 'Alt' || e.altKey) {
+        e.preventDefault()
+        e.stopPropagation()
+        return
       }
 
-      // Check violation combos
-      for (const combo of violationCombos) {
+      for (const combo of blockOnlyCombos) {
         const keyMatch =
-          e.key.toLowerCase() === combo.key.toLowerCase() || e.key === combo.key
+          e.key === combo.key || e.key.toLowerCase() === combo.key.toLowerCase()
         const ctrlMatch = combo.ctrl ? ctrlOrCmd : true
-        const shiftMatch = combo.shift ? e.shiftKey : true
+        const shiftMatch = combo.shift ? e.shiftKey : !combo.shift || true
 
         if (keyMatch && ctrlMatch && shiftMatch) {
+          // Allow copy/paste/cut/select-all inside editor
+          const copyPasteKeys = ['c', 'v', 'x', 'a']
+          if (
+            copyPasteKeys.includes(combo.key.toLowerCase()) &&
+            combo.ctrl &&
+            isEditingField(e.target)
+          )
+            return
           e.preventDefault()
           e.stopPropagation()
-
-          const modLabel = ctrlOrCmd ? (isMac ? '⌘' : 'Ctrl') : ''
-          const shiftLabel = e.shiftKey ? '+Shift' : ''
-          recordViolation(
-            ViolationType.SHORTCUT_BLOCKED,
-            `Phím tắt bị chặn: ${modLabel}${shiftLabel}+${e.key}`
-          )
+          // Chỉ chặn — không tính vi phạm
           return
         }
       }

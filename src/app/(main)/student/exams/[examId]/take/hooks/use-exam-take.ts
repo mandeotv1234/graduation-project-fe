@@ -66,13 +66,6 @@ export function useExamTake(
 
     if (response.data) {
       setSqlResult(response.data)
-      if (response.data.errorMessage) {
-        toast.error(response.data.errorMessage)
-      } else {
-        toast.success(
-          `Thực thi thành công (${response.data.executionTimeMs}ms, ${response.data.rowCount} dòng)`
-        )
-      }
     }
   }, [currentQuestion, answers, exam.examId, callApi])
 

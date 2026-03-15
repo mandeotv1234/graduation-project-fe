@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, Send, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, Send, ShieldAlert, Loader2 } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -128,7 +128,11 @@ export function ConfirmSubmitDialog({
                 : 'bg-emerald-600 hover:bg-emerald-700'
             }
           >
-            <Send className="mr-2 h-4 w-4" />
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="mr-2 h-4 w-4" />
+            )}
             {isLoading ? 'Đang nộp bài...' : 'Nộp bài ngay'}
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -31,5 +31,5 @@ export const VIOLATION_SEVERITY: Record<
   [ViolationType.SHORTCUT_BLOCKED]: 'low'
 }
 
-export const MAX_VIOLATIONS_BEFORE_WARNING = 2
-export const MAX_VIOLATIONS_BEFORE_SUBMIT = 3
+export const MAX_VIOLATIONS_BEFORE_WARNING = 90
+export const MAX_VIOLATIONS_BEFORE_SUBMIT = 100

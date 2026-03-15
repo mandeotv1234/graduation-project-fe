@@ -1,13 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bell,
   AlertTriangle,
   Trash2,
   CheckCheck,
   Loader2,
-  X
+  X,
+  BellOff
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -33,7 +34,6 @@ import { VIOLATION_LABELS, ViolationType } from '@/lib/constants/violation'
 import type { ViolationNotification, TeacherNotificationDto } from '@/lib/types'
 import {
   getNotifications,
-  getUnreadNotificationCount,
   markNotificationRead,
   markAllNotificationsRead,
   deleteNotification,
@@ -85,10 +85,59 @@ function mapWsToItem(payload: ViolationNotification): NotificationItem {
   }
 }
 
+// ─── Active toast tracking (module-level) ────────────────────────────
+const activeToastIds = new Set<string | number>()
+const DISMISS_ALL_TOAST_ID = 'dismiss-all-violations'
+const STACK_THRESHOLD = 3 // show dismiss-all after this many toasts
+
+function syncDismissAllToast() {
+  const count = activeToastIds.size
+
+  if (count >= STACK_THRESHOLD) {
+    // Upsert a sticky "dismiss all" toast above the stack
+    toast.custom(
+      () => (
+        <div className="flex w-[360px] items-center justify-between gap-3 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950 px-4 py-2.5 shadow-xl">
+          <div className="flex items-center gap-2 min-w-0">
+            <BellOff className="h-4 w-4 shrink-0 text-orange-500" />
+            <span className="text-xs font-semibold text-orange-700 dark:text-orange-300 truncate">
+              {count} thông báo vi phạm đang hiển thị
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              // Dismiss all individual toasts
+              activeToastIds.forEach((id) => toast.dismiss(id))
+              activeToastIds.clear()
+              toast.dismiss(DISMISS_ALL_TOAST_ID)
+            }}
+            className="shrink-0 flex items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-orange-600 transition-colors"
+          >
+            <X className="h-3 w-3" />
+            Xóa hết
+          </button>
+        </div>
+      ),
+      {
+        id: DISMISS_ALL_TOAST_ID,
+        duration: Infinity,
+        position: 'top-right'
+      }
+    )
+  } else {
+    // Fewer than threshold — remove the dismiss-all banner if it exists
+    toast.dismiss(DISMISS_ALL_TOAST_ID)
+  }
+}
+
 // ─── Toast-style popup (Facebook-like) ────────────────────────────────
 function showViolationToast(item: NotificationItem) {
   const label =
     VIOLATION_LABELS[item.violationType as ViolationType] || item.violationType
+
+  const toastId = `violation-${item.examId}-${item.violationCount}-${Date.now()}`
+  activeToastIds.add(toastId)
+  syncDismissAllToast()
 
   toast.custom(
     (id) => (
@@ -126,7 +175,11 @@ function showViolationToast(item: NotificationItem) {
 
         {/* Close */}
         <button
-          onClick={() => toast.dismiss(id)}
+          onClick={() => {
+            activeToastIds.delete(id)
+            syncDismissAllToast()
+            toast.dismiss(id)
+          }}
           className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <X className="h-3.5 w-3.5" />
@@ -134,8 +187,17 @@ function showViolationToast(item: NotificationItem) {
       </div>
     ),
     {
+      id: toastId,
       duration: 5000,
-      position: 'top-right'
+      position: 'top-right',
+      onDismiss: () => {
+        activeToastIds.delete(toastId)
+        syncDismissAllToast()
+      },
+      onAutoClose: () => {
+        activeToastIds.delete(toastId)
+        syncDismissAllToast()
+      }
     }
   )
 }
@@ -143,8 +205,13 @@ function showViolationToast(item: NotificationItem) {
 // ─── Main Component ──────────────────────────────────────────────────
 export function TeacherNotificationBell() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
   const [open, setOpen] = useState(false)
+
+  // Single source of truth — derived from notifications array
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications]
+  )
   const [deleteId, setDeleteId] = useState<string | number | null>(null)
   const [showDeleteAll, setShowDeleteAll] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -157,16 +224,7 @@ export function TeacherNotificationBell() {
   const PAGE_SIZE = 15
 
   // ─── Fetch unread count from API ──────────────────────────────────
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const res = await getUnreadNotificationCount()
-      if (res.data) {
-        setUnreadCount(res.data.unreadCount)
-      }
-    } catch {
-      // silent — will be refreshed on next interval
-    }
-  }, [])
+  // (No longer needed — unreadCount is derived from notifications array)
 
   // ─── Fetch notifications page from API ────────────────────────────
   const fetchNotificationsPage = useCallback(
@@ -178,9 +236,6 @@ export function TeacherNotificationBell() {
 
         setNotifications((prev) => {
           if (replace) {
-            // On first page replace, also sync unread count from loaded items
-            const unread = items.filter((n) => !n.read).length
-            setUnreadCount((cur) => Math.max(cur, unread))
             return items
           }
           // Merge: avoid duplicates by DB id
@@ -211,15 +266,16 @@ export function TeacherNotificationBell() {
   useEffect(() => {
     if (initialFetched.current) return
     initialFetched.current = true
-    fetchUnreadCount()
     fetchNotificationsPage(1, true)
-  }, [fetchUnreadCount, fetchNotificationsPage])
+  }, [fetchNotificationsPage])
 
-  // ─── Poll unread count every 30s ──────────────────────────────────
+  // ─── Poll first page every 30s to stay in sync ───────────────────
   useEffect(() => {
-    const interval = setInterval(fetchUnreadCount, 30_000)
+    const interval = setInterval(() => {
+      fetchNotificationsPage(1, true)
+    }, 30_000)
     return () => clearInterval(interval)
-  }, [fetchUnreadCount])
+  }, [fetchNotificationsPage])
 
   // ─── Load more on scroll ──────────────────────────────────────────
   const handleScroll = useCallback(() => {
@@ -242,8 +298,17 @@ export function TeacherNotificationBell() {
       try {
         const payload = JSON.parse(message.body) as ViolationNotification
         const newItem = mapWsToItem(payload)
-        setNotifications((prev) => [newItem, ...prev].slice(0, 200))
-        setUnreadCount((c) => c + 1)
+        setNotifications((prev) => {
+          // Dedup: skip if a notification with same examId+studentId+violationCount already exists
+          const isDuplicate = prev.some(
+            (n) =>
+              n.examId === newItem.examId &&
+              n.violationCount === newItem.violationCount &&
+              n.studentName === newItem.studentName
+          )
+          if (isDuplicate) return prev
+          return [newItem, ...prev].slice(0, 200)
+        })
 
         // Show Facebook-style toast popup
         showViolationToast(newItem)
@@ -285,7 +350,6 @@ export function TeacherNotificationBell() {
       wasOpenRef.current = false
       if (unreadCount > 0) {
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-        setUnreadCount(0)
         markAllNotificationsRead().catch(() => {})
       }
     }
@@ -301,9 +365,6 @@ export function TeacherNotificationBell() {
     if (!item) return
 
     setNotifications((prev) => prev.filter((n) => n.id !== id))
-    if (!item.read) {
-      setUnreadCount((c) => Math.max(0, c - 1))
-    }
 
     if (item.persisted && typeof id === 'number') {
       try {
@@ -318,7 +379,6 @@ export function TeacherNotificationBell() {
   const handleDeleteAll = async () => {
     setShowDeleteAll(false)
     setNotifications([])
-    setUnreadCount(0)
     try {
       await deleteAllNotifications()
       toast.success('Đã xóa tất cả thông báo')
@@ -409,7 +469,6 @@ export function TeacherNotificationBell() {
                     setNotifications((prev) =>
                       prev.map((n) => ({ ...n, read: true }))
                     )
-                    setUnreadCount(0)
                     markAllNotificationsRead()
                   }}
                   className="h-7 px-2 text-xs text-muted-foreground hover:text-primary"
@@ -464,7 +523,6 @@ export function TeacherNotificationBell() {
                             n.id === notification.id ? { ...n, read: true } : n
                           )
                         )
-                        setUnreadCount((c) => Math.max(0, c - 1))
                         if (
                           notification.persisted &&
                           typeof notification.id === 'number'
@@ -536,8 +594,7 @@ export function TeacherNotificationBell() {
                 {/* Loading indicator */}
                 {loading && (
                   <div className="flex items-center justify-center py-4 text-muted-foreground">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <span className="text-xs">Đang tải...</span>
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   </div>
                 )}
 

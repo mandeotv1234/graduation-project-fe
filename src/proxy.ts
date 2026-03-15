@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PATH, PRIVATE_PATH, PUBLIC_PATH } from '@/lib/constants'
+import { PATH, PRIVATE_PATH, PUBLIC_PATH, ROLES } from '@/lib/constants'
 import { ApiResponse, RefreshTokenResponse } from '@/lib/types'
+import { decodeJwtPayload } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 const REFRESH_ENDPOINT = '/auth/refresh'
@@ -42,7 +43,27 @@ async function refreshAccessToken(
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // ── If already authenticated, redirect away from public auth pages ──
   if (PUBLIC_PATH.some((path) => pathname.startsWith(path))) {
+    const accessToken = request.cookies.get('accessToken')?.value
+    const refreshToken = request.cookies.get('refreshToken')?.value
+    if (accessToken || refreshToken) {
+      // Decode role from token to redirect to the correct default page
+      const decoded = accessToken ? decodeJwtPayload(accessToken) : null
+      const role = decoded?.role
+      let redirectTo: string
+      switch (role) {
+        case ROLES.STUDENT:
+          redirectTo = PATH.STUDENT_EXAMS
+          break
+        case ROLES.TEACHER:
+          redirectTo = PATH.TEACHER_CLASSES
+          break
+        default:
+          redirectTo = PATH.STUDENT_EXAMS
+      }
+      return NextResponse.redirect(new URL(redirectTo, request.url))
+    }
     return NextResponse.next()
   }
 

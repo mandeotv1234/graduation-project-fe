@@ -1,9 +1,14 @@
 'use client'
 
-import { ExamQuestionItem, StudentExamDetail } from '@/lib/types'
+import {
+  ExamQuestionItem,
+  StudentExamDetail,
+  ExamSpecification
+} from '@/lib/types'
 import { useExamTake } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-take'
 import { useEffect, useState, useCallback } from 'react'
 import { startExamSession, getExamTime } from '@/lib/actions/anti-cheat.action'
+import { getExamSpecification } from '@/lib/actions'
 import { useAntiCheat } from '@/hooks/use-anti-cheat'
 import { useExamTimer } from '@/hooks/use-exam-timer'
 import { useExamSocket } from '@/hooks/use-exam-socket'
@@ -12,11 +17,14 @@ import { QuestionSidebar } from '@/app/(main)/student/exams/[examId]/take/compon
 import { QuestionPanel } from '@/app/(main)/student/exams/[examId]/take/components/question-panel'
 import { QuestionNavigation } from '@/app/(main)/student/exams/[examId]/take/components/question-navigation'
 import { SqlEditorPanel } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel'
+import type { SchemaTable } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel'
 import { ResultPanel } from '@/app/(main)/student/exams/[examId]/take/components/result-panel'
 import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog'
 import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog'
 import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal'
 import { ResizablePanel } from '@/components/shared/resizable-panel'
+import { SpecificationPanel } from '@/app/(main)/student/exams/[examId]/take/components/specification-panel'
+import { PageSpinner } from '@/components/shared'
 
 interface ExamTakeInterfaceProps {
   exam: StudentExamDetail
@@ -29,6 +37,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   const [initialSeconds, setInitialSeconds] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editorSchema, setEditorSchema] = useState<SchemaTable[]>([])
 
   // Exam logic hooks (always called, never conditionally)
   const examTake = useExamTake(exam, questions)
@@ -44,8 +53,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   })
   useAntiCheat({
     examId: exam.examId,
-    enabled: sessionStarted,
-    onForceSubmit: handleForceSubmit
+    enabled: sessionStarted
   })
   useExamSocket({
     examId: exam.examId,
@@ -53,6 +61,26 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     onForceSubmit: handleForceSubmit,
     onTimeSync: setServerTime
   })
+
+  // Fetch exam specification to provide schema IntelliSense in SQL editor
+  useEffect(() => {
+    getExamSpecification(exam.examId)
+      .then((res) => {
+        const spec: ExamSpecification | null = res.data ?? null
+        if (!spec) return
+        const tables: SchemaTable[] = spec.entities.map((entity) => ({
+          tableName: entity.entityName,
+          columns: entity.attributes.map((attr) => ({
+            name: attr.attributeName,
+            type: attr.dataType
+          }))
+        }))
+        setEditorSchema(tables)
+      })
+      .catch(() => {
+        /* silent – IntelliSense just won't have schema context */
+      })
+  }, [exam.examId])
 
   // Only conditionally render UI, never call hooks conditionally
   useEffect(() => {
@@ -119,11 +147,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   }, [exam.examId])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        Đang tải phiên thi...
-      </div>
-    )
+    return <PageSpinner label="Đang tải phiên thi..." />
   }
   if (error) {
     return (
@@ -155,6 +179,9 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         />
 
         <div className="flex flex-1 overflow-hidden">
+          {/* DB Specification panel (collapsible) */}
+          <SpecificationPanel examId={exam.examId} />
+
           {/* Question sidebar (large screens) */}
           <QuestionSidebar
             questions={questions}
@@ -199,6 +226,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                       }
                       onExecute={examTake.handleExecuteSql}
                       isLoading={examTake.isLoading}
+                      schema={editorSchema}
                     />
                   )}
                 </div>

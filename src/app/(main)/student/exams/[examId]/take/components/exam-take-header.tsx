@@ -1,6 +1,6 @@
 'use client'
 
-import { Send, CheckCircle, Clock } from 'lucide-react'
+import { Send, CheckCircle, Clock, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ExamTakeHeaderProps {
@@ -73,11 +73,15 @@ export function ExamTakeHeader({
         disabled={isLoading}
         className="h-9 px-3 sm:h-10 sm:px-6 gap-1.5 sm:gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm transition-all hover:shadow-md"
       >
-        <Send className="h-4 w-4" />
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Send className="h-4 w-4" />
+        )}
         <span className="hidden sm:inline">
           {isLoading ? 'Đang xử lý...' : 'Nộp bài ngay'}
         </span>
-        <span className="sm:hidden">{isLoading ? '...' : 'Nộp'}</span>
+        <span className="sm:hidden">{isLoading ? '' : 'Nộp'}</span>
       </Button>
     </div>
   )

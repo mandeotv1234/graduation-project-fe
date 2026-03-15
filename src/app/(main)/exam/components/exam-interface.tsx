@@ -65,8 +65,7 @@ export default function ExamInterface({
 
   useAntiCheat({
     examId,
-    enabled: sessionStarted,
-    onForceSubmit: handleForceSubmit
+    enabled: sessionStarted
   })
 
   useExamSocket({
