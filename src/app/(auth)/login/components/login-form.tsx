@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -73,7 +74,14 @@ export function LoginForm() {
           className="h-11 w-full rounded-lg text-base font-semibold"
           disabled={isLoading}
         >
-          {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Đang đăng nhập...
+            </>
+          ) : (
+            'Đăng nhập'
+          )}
         </Button>
       </form>
 

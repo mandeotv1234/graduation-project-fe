@@ -13,10 +13,9 @@ import {
   ClassExamItem,
   CreateExamRequest,
   CreateExamResponse,
-  CreateExamQuestionRequest,
-  ExamQuestionItem,
   SchemaTemplate,
-  CreateSchemaTemplateRequest
+  CreateSchemaTemplateRequest,
+  ExamSpecification
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -76,16 +75,6 @@ export async function createExam(
   return apiClient.post<CreateExamResponse>(ENDPOINTS.CREATE_EXAM, data)
 }
 
-export async function createExamQuestion(
-  examId: number,
-  data: CreateExamQuestionRequest
-): Promise<ApiResponse<ExamQuestionItem>> {
-  return apiClient.post<ExamQuestionItem>(
-    ENDPOINTS.CREATE_EXAM_QUESTION(examId),
-    data
-  )
-}
-
 // ===== Schema Templates =====
 
 export async function getSchemaTemplates(): Promise<
@@ -94,6 +83,25 @@ export async function getSchemaTemplates(): Promise<
   return apiClient.get<SchemaTemplate[]>(ENDPOINTS.SCHEMA_TEMPLATES, {
     cache: 'no-store'
   })
+}
+
+export async function getSpecificationByTemplateId(
+  templateId: number
+): Promise<ApiResponse<ExamSpecification>> {
+  try {
+    return await apiClient.get<ExamSpecification>(
+      ENDPOINTS.SCHEMA_TEMPLATE_SPECIFICATION(templateId),
+      {
+        cache: 'no-store'
+      }
+    )
+  } catch {
+    return {
+      data: undefined,
+      code: 'NOT_FOUND',
+      message: 'No specification found for this template'
+    }
+  }
 }
 
 export async function createSchemaTemplate(

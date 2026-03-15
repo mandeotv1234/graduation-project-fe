@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Database, Save, X, Calendar, Code } from 'lucide-react'
+import { Plus, Database, Save, X, Calendar, Code, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -143,8 +143,17 @@ export function SchemaTemplatesView({
               Hủy
             </Button>
             <Button type="submit" disabled={isLoading} className="gap-2">
-              <Save className="h-4 w-4" />
-              {isLoading ? 'Đang tạo...' : 'Tạo template'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang tạo...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Tạo template
+                </>
+              )}
             </Button>
           </div>
         </form>

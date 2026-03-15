@@ -5,7 +5,15 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import Papa from 'papaparse'
-import { ArrowLeft, Plus, Trash2, Save, UserPlus, Upload } from 'lucide-react'
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Save,
+  UserPlus,
+  Upload,
+  Loader2
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -135,7 +143,8 @@ export default function CreateClassPage() {
       reader.onload = (evt) => {
         try {
           const arrayBuffer = evt.target?.result
-          const wb = XLSX.read(arrayBuffer, { type: 'array' })
+          // Đảm bảo đọc chuẩn font UTF-8 cho file Excel (tương tự CSV)
+          const wb = XLSX.read(arrayBuffer, { type: 'array', codepage: 65001 })
           const wsname = wb.SheetNames[0]
           const ws = wb.Sheets[wsname]
           const data = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 })
@@ -290,6 +299,81 @@ export default function CreateClassPage() {
             </div>
           </div>
 
+          {/* File Import Guide */}
+          <div className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                📋 Hướng dẫn nhập file CSV hoặc Excel
+              </p>
+              <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
+                File của bạn phải có 2 cột với header (dòng đầu tiên). Hệ thống
+                sẽ tự nhận diện cột MSSV và Họ tên.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-amber-900 dark:text-amber-200">
+                ✓ Các tên cột được hỗ trợ:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-amber-800 dark:text-amber-300">
+                <div>
+                  <span className="font-semibold">Cột MSSV:</span>
+                  <div className="pl-2 space-y-0.5">
+                    <div>• MSSV</div>
+                    <div>• Mã SV</div>
+                    <div>• Mã sinh viên</div>
+                    <div>• ID</div>
+                  </div>
+                </div>
+                <div>
+                  <span className="font-semibold">Cột Họ tên:</span>
+                  <div className="pl-2 space-y-0.5">
+                    <div>• Tên</div>
+                    <div>• Họ và tên</div>
+                    <div>• Họ tên</div>
+                    <div>• Name</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-amber-900 dark:text-amber-200">
+                📊 Ví dụ định dạng file:
+              </p>
+              <div className="bg-white dark:bg-zinc-900 rounded p-3 overflow-x-auto text-[11px] font-mono text-amber-900 dark:text-amber-100 border border-amber-200 dark:border-amber-800">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-amber-200 dark:border-amber-800">
+                      <td className="px-2 py-1 font-semibold">MSSV</td>
+                      <td className="px-2 py-1 font-semibold">Họ và tên</td>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[10px]">
+                    <tr>
+                      <td className="px-2 py-0.5">22120201</td>
+                      <td className="px-2 py-0.5">Nguyễn Văn A</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-0.5">22120202</td>
+                      <td className="px-2 py-0.5">Trần Thị B</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-0.5">22120203</td>
+                      <td className="px-2 py-0.5">Lê Hoàng C</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <p className="text-xs text-amber-800 dark:text-amber-300">
+              💡 <span className="font-semibold">Mẹo:</span> Hệ thống sẽ bỏ qua
+              dòng trống và tự động phát hiện header. Nếu file có thêm cột khác,
+              hệ thống chỉ lấy dữ liệu từ 2 cột MSSV và Họ tên.
+            </p>
+          </div>
+
           <div className="space-y-3">
             {students.map((student, index) => (
               <div
@@ -334,8 +418,17 @@ export default function CreateClassPage() {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isLoading} className="gap-2 px-6">
-            <Save className="h-4 w-4" />
-            {isLoading ? 'Đang tạo...' : 'Tạo lớp học'}
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang tạo...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Tạo lớp học
+              </>
+            )}
           </Button>
         </div>
       </form>
