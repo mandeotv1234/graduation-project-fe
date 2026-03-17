@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches:
-      - develop
+      - feature/GRAD-50-Implement-changes-related-to-APIs-in-the-specification-for-the-frontend
 
 env:
   REGISTRY: registry.digitalocean.com/graduation
@@ -15,7 +15,6 @@ jobs:
     timeout-minutes: 30
 
     steps:
-
       - name: Checkout repo
         uses: actions/checkout@v4
 
@@ -64,7 +63,7 @@ jobs:
               -u ${{ secrets.DO_REGISTRY_TOKEN }} \
               -p ${{ secrets.DO_REGISTRY_TOKEN }}
 
-            cd /root
+            cd /root/app
 
             docker-compose pull frontend
             docker-compose up -d frontend

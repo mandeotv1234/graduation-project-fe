@@ -1,9 +1,6 @@
-import { getSchemaTemplates } from '@/lib/actions'
-import { SchemaTemplatesView } from '@/app/(main)/teacher/schema-templates/components/schema-templates-view'
+﻿import { redirect } from 'next/navigation'
+import { PATH } from '@/lib/constants'
 
-export default async function SchemaTemplatesPage() {
-  const response = await getSchemaTemplates()
-  const templates = response.data || []
-
-  return <SchemaTemplatesView initialTemplates={templates} />
+export default function LegacySpecificationsRedirectPage() {
+  redirect(PATH.TEACHER_SPECIFICATIONS)
 }

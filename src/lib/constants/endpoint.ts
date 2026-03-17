@@ -27,10 +27,9 @@ export const ENDPOINTS = Object.freeze({
   CREATE_EXAM: '/exams',
   CREATE_EXAM_QUESTION: (examId: number) => `/exams/${examId}/questions`,
 
-  // Teacher - Schema Templates
-  SCHEMA_TEMPLATES: '/schema-templates',
-  SCHEMA_TEMPLATE_SPECIFICATION: (templateId: number) =>
-    `/schema-templates/${templateId}/specification`,
+  // Teacher - Specifications
+  SPECIFICATIONS: '/specifications',
+  SPECIFICATIONS_V2: '/specifications/v2',
 
   // Exam Specification (teacher: POST, student: GET)
   EXAM_SPECIFICATION: (examId: number) => `/exams/${examId}/specification`,

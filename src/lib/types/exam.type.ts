@@ -126,8 +126,9 @@ export interface SpecEntity {
 
 export interface ExamSpecification {
   id?: number
-  templateId?: number
-  title: string
+  name: string
+  // backward-compat for old payloads
+  title?: string
   description: string
   entities: SpecEntity[]
   createdAt?: string
@@ -147,7 +148,8 @@ export interface CreateExamQuestionsBatchRequest {
 }
 
 export interface SaveExamSpecificationRequest {
-  title: string
+  name: string
+  title?: string
   description: string
   entities: {
     entityName: string
