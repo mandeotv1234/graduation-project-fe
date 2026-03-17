@@ -1,4 +1,4 @@
-export const PATH = {
+﻿export const PATH = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
@@ -18,7 +18,7 @@ export const PATH = {
     `/teacher/exams/${examId}/questions`,
   TEACHER_EXAM_SPECIFICATION: (examId: number) =>
     `/teacher/exams/${examId}/specification`,
-  TEACHER_SCHEMA_TEMPLATES: '/teacher/schema-templates'
+  TEACHER_SPECIFICATIONS: '/teacher/specifications'
 }
 
 export const PRIVATE_PATH = ['/student', '/teacher']

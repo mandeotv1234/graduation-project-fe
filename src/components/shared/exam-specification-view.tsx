@@ -247,7 +247,7 @@ export function ExamSpecificationView({
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-primary shrink-0" />
           <h3 className="font-bold text-sm text-foreground leading-tight">
-            {specification.title}
+            {specification.name ?? specification.title}
           </h3>
         </div>
         {specification.description && (

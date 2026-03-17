@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -130,7 +130,6 @@ function EntityForm({
 
   return (
     <div className="rounded-xl border-2 border-border bg-card shadow-sm">
-      {/* Entity header */}
       <div className="flex items-center gap-2 p-3 border-b border-border bg-muted/20">
         <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
         <button
@@ -180,18 +179,16 @@ function EntityForm({
 
       {expanded && (
         <div className="p-3 space-y-3">
-          {/* Entity description */}
           <textarea
             value={entity.description}
             onChange={(e) =>
               onChange({ ...entity, description: e.target.value })
             }
-            placeholder="Mô tả tàn từ, ràng buộc, ghi chú cho bảng này..."
+            placeholder="Mô tả, ràng buộc, ghi chú cho bảng này..."
             rows={2}
             className="flex w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
           />
 
-          {/* Attributes */}
           <div className="rounded-lg border border-border overflow-hidden">
             <div className="grid grid-cols-[2fr_2fr_3fr_auto_auto_auto] gap-0 bg-muted/40 border-b border-border">
               {['Thuộc tính', 'Kiểu dữ liệu', 'Mô tả', 'PK', 'NULL', ''].map(
@@ -211,7 +208,6 @@ function EntityForm({
                 key={attrIdx}
                 className={`grid grid-cols-[2fr_2fr_3fr_auto_auto_auto] gap-0 border-b border-border last:border-0 items-center ${attr.isPrimaryKey ? 'bg-amber-500/5' : attrIdx % 2 === 0 ? '' : 'bg-muted/5'}`}
               >
-                {/* Attribute name */}
                 <div className="px-2 py-1.5">
                   <div className="flex items-center gap-1">
                     {attr.isPrimaryKey && (
@@ -228,7 +224,6 @@ function EntityForm({
                   </div>
                 </div>
 
-                {/* Data type */}
                 <div className="px-2 py-1.5">
                   <input
                     list={`dt-list-${entityIdx}-${attrIdx}`}
@@ -246,7 +241,6 @@ function EntityForm({
                   </datalist>
                 </div>
 
-                {/* Description */}
                 <div className="px-2 py-1.5">
                   <input
                     value={attr.description}
@@ -258,7 +252,6 @@ function EntityForm({
                   />
                 </div>
 
-                {/* PK checkbox */}
                 <div className="px-2 py-1.5 flex justify-center">
                   <input
                     type="checkbox"
@@ -271,7 +264,6 @@ function EntityForm({
                   />
                 </div>
 
-                {/* Nullable checkbox */}
                 <div className="px-2 py-1.5 flex justify-center">
                   <input
                     type="checkbox"
@@ -284,7 +276,6 @@ function EntityForm({
                   />
                 </div>
 
-                {/* Remove attribute */}
                 <div className="px-1 py-1.5 flex justify-center">
                   <button
                     type="button"
@@ -300,7 +291,6 @@ function EntityForm({
             ))}
           </div>
 
-          {/* Add attribute */}
           <Button
             type="button"
             variant="outline"
@@ -317,10 +307,6 @@ function EntityForm({
   )
 }
 
-// ────────────────────────────────────────────────────────────────
-// Main component
-// ────────────────────────────────────────────────────────────────
-
 interface ExamSpecificationEditorProps {
   examId: number
   initialSpecification?: ExamSpecification | null
@@ -335,7 +321,9 @@ export function ExamSpecificationEditor({
 
   const [preview, setPreview] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
-  const [title, setTitle] = useState(initialSpecification?.title ?? '')
+  const [name, setName] = useState(
+    initialSpecification?.name ?? initialSpecification?.title ?? ''
+  )
   const [description, setDescription] = useState(
     initialSpecification?.description ?? ''
   )
@@ -366,14 +354,14 @@ export function ExamSpecificationEditor({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!title.trim()) {
-      toast.error('Vui lòng nhập tiêu đề đặc tả')
+    if (!name.trim()) {
+      toast.error('Vui lòng nhập tên đặc tả')
       return
     }
 
     for (const entity of entities) {
       if (!entity.entityName.trim()) {
-        toast.error('Vui lòng nhập tên bảng cho tất cả các thực thể')
+        toast.error('Vui lòng nhập tên bảng cho tất cả thực thể')
         return
       }
       for (const attr of entity.attributes) {
@@ -387,7 +375,8 @@ export function ExamSpecificationEditor({
     }
 
     const payload: SaveExamSpecificationRequest = {
-      title,
+      name,
+      title: name,
       description,
       entities: entities.map((e, ei) => ({
         entityName: e.entityName,
@@ -412,18 +401,17 @@ export function ExamSpecificationEditor({
     }
   }
 
-  const previewSpec: ExamSpecification = { title, description, entities }
+  const previewSpec: ExamSpecification = { name, description, entities }
 
   return (
     <div className="space-y-6">
-      {/* Info banner */}
       {!justSaved && (
         <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4">
           <div className="flex items-start gap-3">
             <Database className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                Đặc tả đã được tự động sinh từ Schema Template
+                Đặc tả đã được tự động sinh từ Specification
               </p>
               <p className="text-xs text-blue-700 dark:text-blue-300">
                 Bạn có thể xem lại và chỉnh sửa đặc tả này trước khi tiếp tục
@@ -434,7 +422,6 @@ export function ExamSpecificationEditor({
         </div>
       )}
 
-      {/* Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -470,14 +457,11 @@ export function ExamSpecificationEditor({
       </div>
 
       {preview ? (
-        /* ── Preview mode ── */
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <ExamSpecificationView specification={previewSpec} />
         </div>
       ) : (
-        /* ── Editor mode ── */
         <form onSubmit={handleSave} className="space-y-5">
-          {/* Title & description */}
           <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
             <h2 className="text-sm font-semibold text-foreground">
               Thông tin chung
@@ -485,11 +469,11 @@ export function ExamSpecificationEditor({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">
-                  Tiêu đề đặc tả <span className="text-destructive">*</span>
+                  Tên đặc tả <span className="text-destructive">*</span>
                 </label>
                 <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="VD: Mô tả cơ sở dữ liệu quản lý phim"
                   className="flex h-9 w-full rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   required
@@ -509,7 +493,6 @@ export function ExamSpecificationEditor({
             </div>
           </div>
 
-          {/* Entities */}
           <div className="space-y-3">
             {entities.map((entity, idx) => (
               <EntityForm
@@ -523,7 +506,6 @@ export function ExamSpecificationEditor({
             ))}
           </div>
 
-          {/* Add entity */}
           <Button
             type="button"
             variant="outline"
@@ -534,7 +516,6 @@ export function ExamSpecificationEditor({
             Thêm bảng
           </Button>
 
-          {/* Save */}
           <div className="flex items-center justify-between pt-2">
             {justSaved && (
               <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-500">

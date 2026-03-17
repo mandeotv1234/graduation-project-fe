@@ -13,9 +13,8 @@ import {
   ClassExamItem,
   CreateExamRequest,
   CreateExamResponse,
-  SchemaTemplate,
-  CreateSchemaTemplateRequest,
-  ExamSpecification
+  SpecificationResponse,
+  CreateSpecificationRequest
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -75,37 +74,21 @@ export async function createExam(
   return apiClient.post<CreateExamResponse>(ENDPOINTS.CREATE_EXAM, data)
 }
 
-// ===== Schema Templates =====
+// ===== Specifications =====
 
-export async function getSchemaTemplates(): Promise<
-  ApiResponse<SchemaTemplate[]>
+export async function getSpecifications(): Promise<
+  ApiResponse<SpecificationResponse[]>
 > {
-  return apiClient.get<SchemaTemplate[]>(ENDPOINTS.SCHEMA_TEMPLATES, {
+  return apiClient.get<SpecificationResponse[]>(ENDPOINTS.SPECIFICATIONS, {
     cache: 'no-store'
   })
 }
 
-export async function getSpecificationByTemplateId(
-  templateId: number
-): Promise<ApiResponse<ExamSpecification>> {
-  try {
-    return await apiClient.get<ExamSpecification>(
-      ENDPOINTS.SCHEMA_TEMPLATE_SPECIFICATION(templateId),
-      {
-        cache: 'no-store'
-      }
-    )
-  } catch {
-    return {
-      data: undefined,
-      code: 'NOT_FOUND',
-      message: 'No specification found for this template'
-    }
-  }
-}
-
-export async function createSchemaTemplate(
-  data: CreateSchemaTemplateRequest
-): Promise<ApiResponse<SchemaTemplate>> {
-  return apiClient.post<SchemaTemplate>(ENDPOINTS.SCHEMA_TEMPLATES, data)
+export async function createSpecification(
+  data: CreateSpecificationRequest
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.post<SpecificationResponse>(
+    ENDPOINTS.SPECIFICATIONS_V2,
+    data
+  )
 }

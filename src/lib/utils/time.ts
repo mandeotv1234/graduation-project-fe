@@ -1,28 +1,18 @@
-/**
+﻿/**
  * Parse a date string from backend (Java LocalDateTime) into a Date object.
- *
- * Java's LocalDateTime serializes WITHOUT timezone (e.g. "2026-03-04T12:33:58.4437").
- * According to ISO 8601, date-only strings are UTC, but date-time without zone
- * should be treated as local. However, some browsers treat "T" format as UTC.
- *
- * To ensure consistent "local time" interpretation, we replace 'T' with ' '
- * which forces JS to parse as local time in all browsers.
+ * Returns Invalid Date when input is nullish.
  */
-export function parseBackendDate(dateStr: string): Date {
-  // "2026-03-04T12:33:58.4437" → "2026-03-04 12:33:58.4437"
-  // JS Date with space separator = local time (all browsers)
-  // JS Date with 'T' separator = UTC in many browsers
+export function parseBackendDate(dateStr?: string | null): Date {
+  if (!dateStr) return new Date(NaN)
   const localStr = dateStr.replace('T', ' ')
   return new Date(localStr)
 }
 
 /**
  * Convert a backend date string to a cookie-compatible Date expiry.
- * Uses parseBackendDate for correct timezone handling.
  */
-export function toExpiryDate(dateStr: string): Date {
+export function toExpiryDate(dateStr?: string | null): Date {
   const date = parseBackendDate(dateStr)
-  // Sanity check — if parsing fails, set 1 hour from now
   if (isNaN(date.getTime())) {
     return new Date(Date.now() + 60 * 60 * 1000)
   }
@@ -31,10 +21,11 @@ export function toExpiryDate(dateStr: string): Date {
 
 /**
  * Format a backend date string to Vietnamese short date (dd/MM/yyyy).
- * Uses parseBackendDate for consistent timezone handling with Java LocalDateTime.
  */
-export function formatDate(dateStr: string): string {
-  return parseBackendDate(dateStr).toLocaleDateString('vi-VN', {
+export function formatDate(dateStr?: string | null): string {
+  const date = parseBackendDate(dateStr)
+  if (isNaN(date.getTime())) return '-'
+  return date.toLocaleDateString('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
@@ -43,10 +34,11 @@ export function formatDate(dateStr: string): string {
 
 /**
  * Format a backend date string to Vietnamese date + time (dd/MM/yyyy HH:mm).
- * Uses parseBackendDate for consistent timezone handling with Java LocalDateTime.
  */
-export function formatDateTime(dateStr: string): string {
-  return parseBackendDate(dateStr).toLocaleString('vi-VN', {
+export function formatDateTime(dateStr?: string | null): string {
+  const date = parseBackendDate(dateStr)
+  if (isNaN(date.getTime())) return '-'
+  return date.toLocaleString('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -56,14 +48,21 @@ export function formatDateTime(dateStr: string): string {
 }
 
 /**
- * Get exam status based on start/end time from backend (Java LocalDateTime strings).
+ * Get exam status based on start/end time from backend.
  */
 export type ExamStatus = 'upcoming' | 'in_progress' | 'ended'
 
-export function getExamStatus(startTime: string, endTime: string): ExamStatus {
+export function getExamStatus(
+  startTime?: string | null,
+  endTime?: string | null
+): ExamStatus {
   const now = new Date()
   const start = parseBackendDate(startTime)
   const end = parseBackendDate(endTime)
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return 'upcoming'
+  }
 
   if (now < start) return 'upcoming'
   if (now > end) return 'ended'

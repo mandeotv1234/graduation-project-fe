@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
@@ -17,13 +17,9 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { PATH } from '@/lib/constants'
-import {
-  createExam,
-  getSchemaTemplates,
-  getSpecificationByTemplateId
-} from '@/lib/actions'
+import { createExam, getSpecifications } from '@/lib/actions'
 import { useApi } from '@/hooks/use-api'
-import { ExamSpecification } from '@/lib/types'
+import { ExamSpecification, SpecificationResponse } from '@/lib/types'
 import { ExamSpecificationView } from '@/components/shared'
 
 interface CreateExamPageProps {
@@ -36,50 +32,35 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
   const router = useRouter()
   const { callApi, isLoading } = useApi()
 
-  // Specifications as primary data — templateId is just a FK inside each spec
-  const [specifications, setSpecifications] = useState<ExamSpecification[]>([])
+  const [specifications, setSpecifications] = useState<SpecificationResponse[]>(
+    []
+  )
   const [loadingSpecs, setLoadingSpecs] = useState(true)
 
   const [title, setTitle] = useState('')
-  // Selected spec drives everything — templateId is derived from spec.templateId
   const [selectedSpecId, setSelectedSpecId] = useState<number | ''>('')
-  const [selectedSpec, setSelectedSpec] = useState<ExamSpecification | null>(
-    null
-  )
+  const [selectedSpec, setSelectedSpec] =
+    useState<SpecificationResponse | null>(null)
   const [showSpecPreview, setShowSpecPreview] = useState(false)
 
   const [durationMinutes, setDurationMinutes] = useState(60)
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
 
-  // Load all templates → fetch their specifications → use specs as primary list
   useEffect(() => {
     async function fetchSpecifications() {
       setLoadingSpecs(true)
-      const templatesRes = await getSchemaTemplates()
-      if (!templatesRes.data) {
+      const specificationsRes = await getSpecifications()
+      if (!specificationsRes.data) {
         setLoadingSpecs(false)
         return
       }
-
-      const specResults = await Promise.all(
-        templatesRes.data.map((template) =>
-          getSpecificationByTemplateId(template.id)
-        )
-      )
-
-      // Collect only specifications that exist
-      const specs: ExamSpecification[] = specResults
-        .filter((r) => r.data != null)
-        .map((r) => r.data!)
-
-      setSpecifications(specs)
+      setSpecifications(specificationsRes.data)
       setLoadingSpecs(false)
     }
     fetchSpecifications()
   }, [])
 
-  // When user picks a specification → sync selectedSpec
   const handleSelectSpec = (specId: number | '') => {
     setSelectedSpecId(specId)
     setShowSpecPreview(false)
@@ -94,11 +75,11 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedSpec?.templateId) return
+    if (!selectedSpec?.id) return
 
     const result = await callApi(
       createExam({
-        templateId: selectedSpec.templateId, // derived from chosen specification
+        specificationId: selectedSpec.id,
         classId: classIdNum,
         title,
         durationMinutes,
@@ -112,6 +93,28 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
       router.push(PATH.TEACHER_EXAM_SPECIFICATION(result.data.id))
     }
   }
+
+  const selectedSpecPreview: ExamSpecification | null = selectedSpec
+    ? {
+        id: selectedSpec.id,
+        name: selectedSpec.name,
+        description: selectedSpec.description ?? '',
+        entities: (selectedSpec.entities ?? []).map((entity) => ({
+          entityName: entity.entityName,
+          displayName: entity.displayName ?? entity.entityName,
+          description: entity.description ?? '',
+          orderIndex: entity.orderIndex,
+          attributes: (entity.attributes ?? []).map((attribute) => ({
+            attributeName: attribute.attributeName,
+            dataType: attribute.dataType,
+            description: attribute.description ?? '',
+            isPrimaryKey: attribute.isPrimaryKey,
+            isNullable: attribute.isNullable,
+            orderIndex: attribute.orderIndex
+          }))
+        }))
+      }
+    : null
 
   return (
     <div className="space-y-8">
@@ -131,7 +134,6 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
 
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
         <div className="rounded-xl border border-border bg-card p-6 space-y-5">
-          {/* Exam title */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
               Tiêu đề bài thi <span className="text-destructive">*</span>
@@ -146,12 +148,11 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
             />
           </div>
 
-          {/* Specification selector */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
-                Chọn Đặc tả CSDL <span className="text-destructive">*</span>
+                Chọn đặc tả CSDL <span className="text-destructive">*</span>
               </div>
               {selectedSpec && (
                 <button
@@ -181,8 +182,7 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
               </div>
             ) : specifications.length === 0 ? (
               <div className="rounded-lg border border-dashed border-amber-400 bg-amber-50 dark:bg-amber-950/20 p-4 text-sm text-amber-800 dark:text-amber-300">
-                Chưa có đặc tả nào. Bạn cần tạo Schema Template trước để sinh
-                đặc tả.
+                Chưa có đặc tả nào. Bạn cần tạo specification trước.
               </div>
             ) : (
               <div className="relative">
@@ -199,7 +199,7 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
                   <option value="">-- Chọn đặc tả CSDL --</option>
                   {specifications.map((spec) => (
                     <option key={spec.id} value={spec.id}>
-                      {spec.title}
+                      {spec.name ?? `Specification #${spec.id}`}
                     </option>
                   ))}
                 </select>
@@ -209,21 +209,19 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
 
             <p className="text-xs text-muted-foreground">
               Đặc tả mô tả các bảng và cột của CSDL mà sinh viên sẽ thao tác
-              trong bài thi. Schema Template (DDL script) tương ứng sẽ được dùng
-              để tạo CSDL thực cho mỗi sinh viên.
+              trong bài thi.
             </p>
 
             <Link
-              href={PATH.TEACHER_SCHEMA_TEMPLATES}
+              href={PATH.TEACHER_SPECIFICATIONS}
               className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
             >
               <Plus className="h-3.5 w-3.5" />
-              Tạo Schema Template mới (để có đặc tả mới)
+              Tạo specification mới
             </Link>
           </div>
 
-          {/* Specification inline preview */}
-          {showSpecPreview && selectedSpec && (
+          {showSpecPreview && selectedSpecPreview && (
             <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -237,14 +235,16 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
                   onClick={() => setShowSpecPreview(false)}
                   className="text-muted-foreground hover:text-foreground text-xs"
                 >
-                  ✕ Đóng
+                  Đóng
                 </button>
               </div>
-              <ExamSpecificationView specification={selectedSpec} compact />
+              <ExamSpecificationView
+                specification={selectedSpecPreview}
+                compact
+              />
             </div>
           )}
 
-          {/* Duration */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
               Thời lượng (phút) <span className="text-destructive">*</span>
@@ -259,7 +259,6 @@ export default function CreateExamPage({ params }: CreateExamPageProps) {
             />
           </div>
 
-          {/* Time window */}
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">

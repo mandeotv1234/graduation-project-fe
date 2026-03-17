@@ -68,7 +68,7 @@ export interface StudentInClass {
 // GET /api/classes/{classId}/exams → CreateExamResponseDto (reused)
 export interface ClassExamItem {
   id: number
-  templateId: number
+  specificationId: number
   classId: number
   creatorId: number
   title: string
@@ -81,7 +81,7 @@ export interface ClassExamItem {
 
 // POST /api/exams → CreateExamRequestDto
 export interface CreateExamRequest {
-  templateId?: number | null
+  specificationId: number
   classId: number
   title: string
   durationMinutes: number
@@ -92,7 +92,7 @@ export interface CreateExamRequest {
 
 export interface CreateExamResponse {
   id: number
-  templateId: number
+  specificationId: number
   classId: number
   creatorId: number
   title: string
@@ -114,21 +114,48 @@ export interface CreateExamQuestionRequest {
   verifyScript?: string
 }
 
-// ===== Schema Template Types =====
+// ===== Specification Types =====
 
-// GET /api/schema-templates → SchemaTemplateResponseDto
-export interface SchemaTemplate {
+export interface SpecificationDataset {
+  name: string
+  dataScript: string
+  orderIndex: number
+  isActive: boolean
+}
+
+export interface SpecificationEntityAttribute {
+  attributeName: string
+  dataType: string
+  description?: string
+  isPrimaryKey: boolean
+  isNullable: boolean
+  orderIndex: number
+}
+
+export interface SpecificationEntity {
+  entityName: string
+  displayName?: string
+  description?: string
+  orderIndex: number
+  attributes: SpecificationEntityAttribute[]
+}
+
+export interface SpecificationResponse {
   id: number
   name: string
   ddlScript: string
-  defaultDataScript: string
-  createdBy: number
-  createdAt: string
+  description?: string
+  entities: SpecificationEntity[]
+  datasets: SpecificationDataset[]
+  createdBy?: number
+  createdAt?: string
+  updatedAt?: string
 }
 
-// POST /api/schema-templates → CreateSchemaTemplateRequestDto
-export interface CreateSchemaTemplateRequest {
+export interface CreateSpecificationRequest {
   name: string
   ddlScript: string
-  defaultDataScript?: string
+  description?: string
+  entities: SpecificationEntity[]
+  datasets: SpecificationDataset[]
 }
