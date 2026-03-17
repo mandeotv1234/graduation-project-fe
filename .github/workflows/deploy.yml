@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches:
-      - feature/GRAD-50-Implement-changes-related-to-APIs-in-the-specification-for-the-frontend
+      - develop
 
 env:
   REGISTRY: registry.digitalocean.com/graduation
