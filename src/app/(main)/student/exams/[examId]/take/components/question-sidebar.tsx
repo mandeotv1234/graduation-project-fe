@@ -8,6 +8,7 @@ interface QuestionSidebarProps {
   currentIndex: number
   answers: Record<number, string>
   onSelect: (index: number) => void
+  header?: React.ReactNode
 }
 
 const QUESTION_TYPE_LABELS: Record<string, string> = {
@@ -23,12 +24,14 @@ export function QuestionSidebar({
   questions,
   currentIndex,
   answers,
-  onSelect
+  onSelect,
+  header
 }: QuestionSidebarProps) {
   return (
-    <div className="hidden w-[280px] shrink-0 overflow-auto border-r border-border bg-card/40 lg:block scrollbar-thin">
-      <div className="p-5">
-        <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+    <div className="hidden w-[180px] xl:w-[200px] shrink-0 overflow-auto border-r border-border bg-card/40 lg:block scrollbar-thin">
+      <div className="p-2">
+        {header ? <div className="mb-3">{header}</div> : null}
+        <h3 className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
           <span>Danh sách câu hỏi</span>
           <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px]">
             {questions.length}
@@ -45,7 +48,7 @@ export function QuestionSidebar({
                 key={q.id}
                 onClick={() => onSelect(index)}
                 className={cn(
-                  'flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-all duration-200 group relative overflow-hidden',
+                  'flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm transition-all duration-200 group relative overflow-hidden',
                   isActive
                     ? 'bg-primary/5 border border-primary/20 shadow-sm'
                     : 'border border-transparent hover:bg-muted/60 hover:border-border/50'
@@ -56,7 +59,7 @@ export function QuestionSidebar({
                 )}
                 <span
                   className={cn(
-                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all shadow-sm',
+                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all shadow-sm',
                     isActive
                       ? 'bg-primary text-primary-foreground scale-110 shadow-primary/20'
                       : hasAnswer
@@ -79,7 +82,7 @@ export function QuestionSidebar({
                     Câu {q.orderIndex}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                    <span className="inline-block max-w-[80px] truncate">
+                    <span className="inline-block max-w-[64px] truncate">
                       {QUESTION_TYPE_LABELS[q.questionType] || q.questionType}
                     </span>
                     <span className="w-1 h-1 rounded-full bg-border" />

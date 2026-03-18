@@ -20,6 +20,9 @@ export function ViolationWarningModal() {
   const { isWarningVisible, warningMessage, totalViolations } = useAppSelector(
     (state) => state.antiCheat
   )
+  const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
+
+  if (isDev) return null
 
   const isForceSubmit = totalViolations >= MAX_VIOLATIONS_BEFORE_SUBMIT
   const severity =

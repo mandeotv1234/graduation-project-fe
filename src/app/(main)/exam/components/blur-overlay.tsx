@@ -9,8 +9,9 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 export function BlurOverlay() {
   const dispatch = useAppDispatch()
   const { isBlurred } = useAppSelector((state) => state.antiCheat)
+  const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
 
-  if (!isBlurred) return null
+  if (isDev || !isBlurred) return null
 
   const handleReturnToExam = async () => {
     try {
@@ -23,7 +24,7 @@ export function BlurOverlay() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/90 backdrop-blur-xl">
       <div className="mx-4 max-w-md space-y-6 text-center">
         <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
           <AlertTriangle className="size-10 text-red-600" />

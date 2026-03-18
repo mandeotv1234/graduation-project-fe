@@ -87,8 +87,8 @@ export function ConfirmSubmitDialog({
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 hasUnanswered
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-400'
-                  : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                  ? 'bg-linear-to-r from-amber-500 to-amber-400'
+                  : 'bg-linear-to-r from-emerald-500 to-emerald-400'
               }`}
               style={{
                 width: `${

@@ -43,16 +43,10 @@ export function QuestionPanel({ question }: QuestionPanelProps) {
   return (
     <div className="space-y-5">
       <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-            {question.orderIndex}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl font-semibold text-foreground">
             Câu {question.orderIndex}
           </h2>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
           <span
             className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium ${typeConfig.color}`}
           >
@@ -66,7 +60,7 @@ export function QuestionPanel({ question }: QuestionPanelProps) {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-muted/30 p-4">
+      <div className="p-0">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Đề bài
         </h3>

@@ -23,6 +23,9 @@ interface UseAntiCheatOptions {
 }
 
 export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
+  const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
+  const antiCheatEnabled = enabled && !isDev
+
   const dispatch = useAppDispatch()
   const { totalViolations, isFullscreen } = useAppSelector(
     (state) => state.antiCheat
@@ -44,6 +47,7 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
   // Record violation — stable callback (không phụ thuộc totalViolations)
   const recordViolation = useCallback(
     async (type: ViolationType, detail?: string) => {
+      if (!antiCheatEnabled) return
       const now = Date.now()
       // Rate limiting: Prevent spamming violations if events fire wildly (e.g. 50 times/sec)
       if (now - lastViolationTimeRef.current < 2000) {
@@ -101,12 +105,12 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
         )
       }
     },
-    [dispatch, examId] // Stable deps — không có totalViolations
+    [dispatch, examId, antiCheatEnabled] // Stable deps — không có totalViolations
   )
 
   // 1. Phát hiện chuyển tab / thu nhỏ trình duyệt (debounced — tránh duplicate)
   useEffect(() => {
-    if (!enabled) return
+    if (!antiCheatEnabled) return
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -157,11 +161,11 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
       window.removeEventListener('focus', handleFocus)
       if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current)
     }
-  }, [enabled, recordViolation, dispatch])
+  }, [antiCheatEnabled, recordViolation, dispatch])
 
   // 2. Phát hiện thoát fullscreen
   useEffect(() => {
-    if (!enabled) return
+    if (!antiCheatEnabled) return
 
     const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!document.fullscreenElement
@@ -177,11 +181,11 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }
-  }, [enabled, recordViolation, dispatch])
+  }, [antiCheatEnabled, recordViolation, dispatch])
 
   // 3. Chặn Copy / Cut / Paste / Right Click (chặn nhưng KHÔNG tính vi phạm)
   useEffect(() => {
-    if (!enabled) return
+    if (!antiCheatEnabled) return
 
     // Hàm kiểm tra xem target có phải là input field hoặc monaco editor không
     const isEditingField = (target: EventTarget | null) => {
@@ -228,11 +232,11 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
       document.removeEventListener('paste', handlePaste)
       document.removeEventListener('contextmenu', handleContextMenu)
     }
-  }, [enabled])
+  }, [antiCheatEnabled])
 
   // 4. Chặn phím tắt nguy hiểm
   useEffect(() => {
-    if (!enabled) return
+    if (!antiCheatEnabled) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const isEditingField = (target: EventTarget | null) => {
@@ -323,11 +327,11 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true)
     }
-  }, [enabled, recordViolation])
+  }, [antiCheatEnabled, recordViolation])
 
   // 5. Phát hiện DevTools (heuristic — chỉ ghi 1 lần cho đến khi đóng)
   useEffect(() => {
-    if (!enabled) return
+    if (!antiCheatEnabled) return
 
     const checkDevTools = () => {
       const widthThreshold = window.outerWidth - window.innerWidth > 160
@@ -349,20 +353,22 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
         clearInterval(devtoolsCheckRef.current)
       }
     }
-  }, [enabled, recordViolation])
+  }, [antiCheatEnabled, recordViolation])
 
   // Request fullscreen
   const requestFullscreen = useCallback(async () => {
+    if (!antiCheatEnabled) return
     try {
       await document.documentElement.requestFullscreen()
       dispatch(setFullscreen(true))
     } catch {
       console.warn('[AntiCheat] Fullscreen request denied')
     }
-  }, [dispatch])
+  }, [dispatch, antiCheatEnabled])
 
   // Exit fullscreen
   const exitFullscreen = useCallback(async () => {
+    if (!antiCheatEnabled) return
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen()
@@ -371,7 +377,7 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
     } catch {
       console.warn('[AntiCheat] Exit fullscreen failed')
     }
-  }, [dispatch])
+  }, [dispatch, antiCheatEnabled])
 
   return {
     recordViolation,

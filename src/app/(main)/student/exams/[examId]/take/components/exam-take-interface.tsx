@@ -12,19 +12,19 @@ import { getExamSpecification } from '@/lib/actions'
 import { useAntiCheat } from '@/hooks/use-anti-cheat'
 import { useExamTimer } from '@/hooks/use-exam-timer'
 import { useExamSocket } from '@/hooks/use-exam-socket'
-import { ExamTakeHeader } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-header'
 import { QuestionSidebar } from '@/app/(main)/student/exams/[examId]/take/components/question-sidebar'
 import { QuestionPanel } from '@/app/(main)/student/exams/[examId]/take/components/question-panel'
-import { QuestionNavigation } from '@/app/(main)/student/exams/[examId]/take/components/question-navigation'
 import { SqlEditorPanel } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel'
 import type { SchemaTable } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel'
-import { ResultPanel } from '@/app/(main)/student/exams/[examId]/take/components/result-panel'
+import { ExamTakeBottomPanel } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-bottom-panel'
 import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog'
 import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog'
 import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal'
 import { ResizablePanel } from '@/components/shared/resizable-panel'
-import { SpecificationPanel } from '@/app/(main)/student/exams/[examId]/take/components/specification-panel'
 import { PageSpinner } from '@/components/shared'
+import type { ExecuteSqlResponse } from '@/lib/types'
+import { Button } from '@/components/ui/button'
+import { Clock, Send } from 'lucide-react'
 
 interface ExamTakeInterfaceProps {
   exam: StudentExamDetail
@@ -38,6 +38,8 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editorSchema, setEditorSchema] = useState<SchemaTable[]>([])
+  const [schemaMeta, setSchemaMeta] =
+    useState<ExecuteSqlResponse['schema']>(null)
 
   // Exam logic hooks (always called, never conditionally)
   const examTake = useExamTake(exam, questions)
@@ -81,6 +83,34 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         /* silent – IntelliSense just won't have schema context */
       })
   }, [exam.examId])
+
+  const handleExecuteSqlAndRefreshSchema = useCallback(async () => {
+    const res = await examTake.handleExecuteSql()
+
+    const schema = res?.schema
+    if (!schema || schema.length === 0) return
+
+    setSchemaMeta(schema)
+    setEditorSchema(
+      schema.map((table) => ({
+        tableName: table.tableName,
+        columns: table.columns.map((col) => ({
+          name: col.columnName,
+          type: col.dataType
+        }))
+      }))
+    )
+  }, [examTake])
+
+  const formatTime = useCallback((seconds: number): string => {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = Math.floor(seconds % 60)
+    if (h > 0) {
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    }
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }, [])
 
   // Only conditionally render UI, never call hooks conditionally
   useEffect(() => {
@@ -169,72 +199,92 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   return (
     <>
       <ViolationWarningModal />
-      <div className="flex h-[calc(100dvh-65px)] flex-col overflow-hidden">
-        <ExamTakeHeader
-          answeredCount={examTake.answeredCount}
-          totalQuestions={questions.length}
-          remainingSeconds={remainingSeconds}
-          isLoading={examTake.isLoading}
-          onSubmit={examTake.handleRequestSubmit}
-        />
-
-        <div className="flex flex-1 overflow-hidden">
-          {/* DB Specification panel (collapsible) */}
-          <SpecificationPanel examId={exam.examId} />
-
-          {/* Question sidebar (large screens) */}
+      <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Left: Question sidebar */}
           <QuestionSidebar
             questions={questions}
             currentIndex={examTake.currentQuestionIndex}
             answers={examTake.answers}
             onSelect={examTake.goToQuestion}
+            header={null}
           />
 
-          {/* Main content */}
-          <div className="flex flex-1 flex-col overflow-hidden md:flex-row bg-muted/20">
-            {/* Left: Question description + Navigation */}
-            <div className="flex flex-col md:w-[45%] lg:w-[35%] xl:w-[30%] flex-1 md:flex-none overflow-hidden border-b md:border-b-0 md:border-r border-border bg-background shadow-sm z-10">
-              <div className="flex-1 overflow-auto p-4 sm:p-5 lg:p-6 scrollbar-thin">
-                {examTake.currentQuestion && (
-                  <QuestionPanel question={examTake.currentQuestion} />
-                )}
-              </div>
-
-              {/* Question navigation bar */}
-              <div className="shrink-0 border-t border-border bg-muted/10 px-4 py-3 sm:px-5 lg:px-6">
-                <QuestionNavigation
-                  questions={questions}
-                  currentIndex={examTake.currentQuestionIndex}
-                  answers={examTake.answers}
-                  onNavigate={examTake.goToQuestion}
-                />
+          {/* Right: Prompt + Editor + Bottom panel */}
+          <div className="relative flex flex-1 min-w-0 flex-col overflow-hidden">
+            {/* Floating mini status (top-right) */}
+            <div className="pointer-events-none absolute right-3 top-3 z-40">
+              <div className="pointer-events-auto w-[220px] rounded-xl border border-border bg-background/85 backdrop-blur px-3 py-2 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-foreground">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{formatTime(remainingSeconds)}</span>
+                  </div>
+                  <Button
+                    onClick={examTake.handleRequestSubmit}
+                    disabled={examTake.isLoading}
+                    size="sm"
+                    className="h-7 px-2 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Nộp
+                  </Button>
+                </div>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary border border-border/50">
+                  <div
+                    className="h-full rounded-full bg-linear-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
+                    style={{
+                      width: `${
+                        questions.length > 0
+                          ? (examTake.answeredCount / questions.length) * 100
+                          : 0
+                      }%`
+                    }}
+                  />
+                </div>
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  {examTake.answeredCount}/{questions.length} câu
+                </div>
               </div>
             </div>
 
-            {/* Right: SQL Editor + Result */}
-            <div className="flex flex-1 flex-col overflow-hidden bg-background">
-              <ResizablePanel defaultSize={60} minSize={20} maxSize={80}>
-                {/* Editor Section */}
-                <div className="flex h-full flex-col">
-                  {examTake.currentQuestion && (
-                    <SqlEditorPanel
-                      value={
-                        examTake.answers[examTake.currentQuestion.id] || ''
-                      }
-                      onChange={(val: string) =>
-                        examTake.updateAnswer(examTake.currentQuestion.id, val)
-                      }
-                      onExecute={examTake.handleExecuteSql}
-                      isLoading={examTake.isLoading}
-                      schema={editorSchema}
-                    />
-                  )}
+            {/* Prompt (compact) */}
+            <div className="shrink-0 border-b border-border bg-background px-4 py-3 sm:px-6">
+              {examTake.currentQuestion ? (
+                <div className="max-w-5xl">
+                  <QuestionPanel question={examTake.currentQuestion} />
                 </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Chọn một câu hỏi để bắt đầu
+                </div>
+              )}
+            </div>
 
-                {/* Result Section */}
-                <div className="flex h-full flex-col bg-background">
-                  <ResultPanel result={examTake.sqlResult} />
-                </div>
+            {/* Editor + Bottom Panel with Resizer */}
+            <div className="flex-1 min-h-0 min-w-0 overflow-hidden bg-background">
+              <ResizablePanel defaultSize={65} minSize={30} maxSize={85}>
+                {examTake.currentQuestion ? (
+                  <SqlEditorPanel
+                    value={examTake.answers[examTake.currentQuestion.id] || ''}
+                    onChange={(val: string) =>
+                      examTake.updateAnswer(examTake.currentQuestion.id, val)
+                    }
+                    onExecute={handleExecuteSqlAndRefreshSchema}
+                    isLoading={examTake.isLoading}
+                    schema={editorSchema}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    Chọn một câu hỏi để bắt đầu
+                  </div>
+                )}
+
+                <ExamTakeBottomPanel
+                  schema={editorSchema}
+                  result={examTake.sqlResult}
+                  schemaMeta={schemaMeta}
+                />
               </ResizablePanel>
             </div>
           </div>

@@ -66,7 +66,9 @@ export function useExamTake(
 
     if (response.data) {
       setSqlResult(response.data)
+      return response.data
     }
+    return null
   }, [currentQuestion, answers, exam.examId, callApi])
 
   // Open confirmation dialog instead of window.confirm

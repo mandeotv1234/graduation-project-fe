@@ -30,6 +30,7 @@ export function SqlEditorPanel({
   isLoading,
   schema = []
 }: SqlEditorPanelProps) {
+  const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
   const { resolvedTheme } = useTheme()
   const [editorLoading, setEditorLoading] = useState(true)
   const completionDisposable = useRef<monacoType.IDisposable | null>(null)
@@ -478,30 +479,23 @@ export function SqlEditorPanel({
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-border bg-card px-4 sm:px-5 py-2 sm:py-3 shadow-sm z-10">
-        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-          <span>{`</>`}</span>
-          <span className="hidden sm:inline">SQL Editor</span>
-        </span>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center justify-end border-b border-border bg-card px-3 sm:px-4 py-2 z-10">
         <Button
           onClick={onExecute}
           disabled={isLoading}
-          className="h-8 px-3 sm:h-9 sm:px-4 text-xs sm:text-sm gap-1.5 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+          className="h-8 px-3 text-xs gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
         >
           {isLoading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
             <Play className="h-3.5 w-3.5" />
           )}
-          <span className="hidden sm:inline">
-            {isLoading ? 'Đang chạy...' : 'Chạy SQL'}
-          </span>
-          <span className="sm:hidden">{isLoading ? '' : 'Chạy'}</span>
+          {isLoading ? 'Đang chạy...' : 'Chạy SQL'}
         </Button>
       </div>
 
-      <div className="flex-1 bg-background relative">
+      <div className="flex-1 min-h-0 bg-background relative">
         {editorLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-20 backdrop-blur-sm">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -516,17 +510,19 @@ export function SqlEditorPanel({
           beforeMount={handleBeforeMount}
           onMount={(editor) => {
             setEditorLoading(false)
-            // Disable Monaco's own context menu
-            editor.updateOptions({ contextmenu: false })
-            // Also block browser-level right-click on the DOM node
-            const editorDom = editor.getDomNode()
-            if (editorDom) {
-              editorDom.addEventListener('contextmenu', (e) =>
-                e.preventDefault()
-              )
-              editorDom.addEventListener('mousedown', (e: MouseEvent) => {
-                if (e.button === 2) e.preventDefault()
-              })
+            if (!isDev) {
+              // Disable Monaco's own context menu
+              editor.updateOptions({ contextmenu: false })
+              // Also block browser-level right-click on the DOM node
+              const editorDom = editor.getDomNode()
+              if (editorDom) {
+                editorDom.addEventListener('contextmenu', (e) =>
+                  e.preventDefault()
+                )
+                editorDom.addEventListener('mousedown', (e: MouseEvent) => {
+                  if (e.button === 2) e.preventDefault()
+                })
+              }
             }
           }}
           options={{
