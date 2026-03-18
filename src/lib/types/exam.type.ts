@@ -66,6 +66,18 @@ export interface ExecuteSqlResponse {
   rowCount: number
   executionTimeMs: number
   errorMessage: string | null
+  schema?: Array<{
+    tableName: string
+    columns: Array<{
+      columnName: string
+      dataType: string
+      primaryKey: boolean
+      foreignKey?: boolean
+      referencesTable?: string | null
+      referencesColumn?: string | null
+      nullable: boolean
+    }>
+  }> | null
 }
 
 // POST /api/exams/{examId}/submit → SubmitExamRequestDto / SubmitExamResponseDto

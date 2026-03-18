@@ -11,7 +11,7 @@ interface SpecificationPanelProps {
 }
 
 export function SpecificationPanel({ examId }: SpecificationPanelProps) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [spec, setSpec] = useState<ExamSpecification | null>(null)
   const [loading, setLoading] = useState(true)
 

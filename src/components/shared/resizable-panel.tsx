@@ -64,7 +64,10 @@ export function ResizablePanel({
   return (
     <div ref={containerRef} className="flex flex-col h-full overflow-hidden">
       {/* Top Panel */}
-      <div className="overflow-hidden" style={{ height: `${topSize}%` }}>
+      <div
+        className="min-h-0 overflow-hidden"
+        style={{ height: `${topSize}%` }}
+      >
         {children[0]}
       </div>
 
@@ -79,7 +82,10 @@ export function ResizablePanel({
       </div>
 
       {/* Bottom Panel */}
-      <div className="overflow-hidden" style={{ height: `${100 - topSize}%` }}>
+      <div
+        className="min-h-0 overflow-hidden"
+        style={{ height: `${100 - topSize}%` }}
+      >
         {children[1]}
       </div>
     </div>
