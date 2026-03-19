@@ -58,6 +58,9 @@ const antiCheatSlice = createSlice({
         violation.synced = true
       }
     },
+    setTotalViolations(state, action: PayloadAction<number>) {
+      state.totalViolations = action.payload
+    },
     setFullscreen(state, action: PayloadAction<boolean>) {
       state.isFullscreen = action.payload
     },
@@ -84,6 +87,7 @@ const antiCheatSlice = createSlice({
 export const {
   addViolation,
   markViolationSynced,
+  setTotalViolations,
   setFullscreen,
   showWarning,
   hideWarning,

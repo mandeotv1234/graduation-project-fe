@@ -92,16 +92,8 @@ export interface ClassExamItem {
 }
 
 // POST /api/exams → CreateExamRequestDto
-export interface ExamSettings {
-  preventCopyPaste?: boolean
-  forceFullscreen?: boolean
-  trackTabSwitch?: boolean
-  autoSubmitOnViolation?: boolean
-  allowReview?: boolean
-  scoreDisplayMode?: string
-  allowOvertime?: boolean
-  gradingMethod?: string
-}
+// ExamSettings is defined in exam.type.ts
+import { ExamSettings } from './exam.type'
 
 export interface CreateExamRequest {
   specificationId: number

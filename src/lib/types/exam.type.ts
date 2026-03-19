@@ -29,12 +29,31 @@ export interface StudentExamListItem {
 }
 
 // GET /api/exams/{examId} → GetStudentExamResponseDto
+export interface ExamSettings {
+  preventCopyPaste?: boolean
+  forceFullscreen?: boolean
+  trackTabSwitch?: boolean
+  autoSubmitOnViolation?: boolean
+  allowReview?: boolean
+  scoreDisplayMode?: string
+  allowOvertime?: boolean
+  gradingMethod?: string
+}
+
 export interface StudentExamDetail {
   examId: number
   classId: number
+  title: string
   durationMinutes: number
   startTime: string
   endTime: string
+  serverTime?: string
+  status?: string
+  secondsUntilStart?: number
+  description?: string
+  maxAttempts?: number
+  lateThreshold?: number
+  settings?: ExamSettings
 }
 
 // GET /api/exams/{examId}/questions → ExamQuestionResponseDto

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -33,6 +33,7 @@ export function useExamTake(
   )
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const isSubmittingRef = useRef(false)
 
   const currentQuestion = questions[currentQuestionIndex]
 
@@ -78,6 +79,8 @@ export function useExamTake(
 
   // Actually submit the exam (called from confirmation dialog)
   const handleConfirmSubmit = useCallback(async () => {
+    if (isSubmittingRef.current || isSubmitted) return
+    isSubmittingRef.current = true
     setShowConfirmDialog(false)
 
     const submitData = {
@@ -87,13 +90,18 @@ export function useExamTake(
       }))
     }
 
-    const response = await callApi(submitExam(exam.examId, submitData))
+    try {
+      const response = await callApi(submitExam(exam.examId, submitData))
 
-    if (response.data) {
-      setSubmitResult(response.data)
-      setIsSubmitted(true)
+      if (response.data) {
+        setSubmitResult(response.data)
+        setIsSubmitted(true)
+      }
+    } finally {
+      // Allow retry if failed (or just keep it locked if success)
+      isSubmittingRef.current = false
     }
-  }, [questions, answers, exam.examId, callApi])
+  }, [questions, answers, exam.examId, callApi, isSubmitted])
 
   const handleBackToExams = useCallback(() => {
     router.push(PATH.STUDENT_EXAMS)
