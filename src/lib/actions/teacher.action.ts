@@ -7,6 +7,7 @@ import {
   PaginatedApiResponse,
   ClassListItem,
   ClassDetail,
+  ClassTeacher,
   CreateClassRequest,
   CreateClassResponse,
   StudentInClass,
@@ -14,7 +15,8 @@ import {
   CreateExamRequest,
   CreateExamResponse,
   SpecificationResponse,
-  CreateSpecificationRequest
+  CreateSpecificationRequest,
+  AddTeacherToClassRequest
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -64,6 +66,28 @@ export async function getClassExams(
   return apiClient.get<ClassExamItem[]>(ENDPOINTS.CLASS_EXAMS(classId), {
     cache: 'no-store'
   })
+}
+
+export async function getClassTeachers(
+  classId: number
+): Promise<ApiResponse<ClassTeacher[]>> {
+  return apiClient.get<ClassTeacher[]>(ENDPOINTS.CLASS_TEACHERS(classId), {
+    cache: 'no-store'
+  })
+}
+
+export async function addTeacherToClass(
+  classId: number,
+  data: AddTeacherToClassRequest
+): Promise<ApiResponse<null>> {
+  return apiClient.post<null>(ENDPOINTS.CLASS_TEACHERS(classId), data)
+}
+
+export async function removeTeacherFromClass(
+  classId: number,
+  teacherId: number
+): Promise<ApiResponse<null>> {
+  return apiClient.delete<null>(ENDPOINTS.CLASS_TEACHER(classId, teacherId))
 }
 
 // ===== Exams =====
