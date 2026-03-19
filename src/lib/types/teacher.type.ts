@@ -92,6 +92,17 @@ export interface ClassExamItem {
 }
 
 // POST /api/exams → CreateExamRequestDto
+export interface ExamSettings {
+  preventCopyPaste?: boolean
+  forceFullscreen?: boolean
+  trackTabSwitch?: boolean
+  autoSubmitOnViolation?: boolean
+  allowReview?: boolean
+  scoreDisplayMode?: string
+  allowOvertime?: boolean
+  gradingMethod?: string
+}
+
 export interface CreateExamRequest {
   specificationId: number
   classId: number
@@ -99,6 +110,10 @@ export interface CreateExamRequest {
   durationMinutes: number
   startTime?: string
   endTime?: string
+  description?: string
+  maxAttempts?: number
+  lateThreshold?: number
+  settings?: ExamSettings
   isPublished?: boolean
 }
 
