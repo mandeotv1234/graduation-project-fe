@@ -92,6 +92,9 @@ export interface ClassExamItem {
 }
 
 // POST /api/exams → CreateExamRequestDto
+// ExamSettings is defined in exam.type.ts
+import { ExamSettings } from './exam.type'
+
 export interface CreateExamRequest {
   specificationId: number
   classId: number
@@ -99,6 +102,10 @@ export interface CreateExamRequest {
   durationMinutes: number
   startTime?: string
   endTime?: string
+  description?: string
+  maxAttempts?: number
+  lateThreshold?: number
+  settings?: ExamSettings
   isPublished?: boolean
 }
 

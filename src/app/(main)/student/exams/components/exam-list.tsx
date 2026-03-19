@@ -48,7 +48,7 @@ function ExamCard({ exam }: { exam: StudentExamListItem }) {
   const status = getExamStatus(exam.startTime, exam.endTime)
   const isAccessible = status === 'in_progress'
   return (
-    <Link href={PATH.STUDENT_EXAM_TAKE(exam.examId)}>
+    <Link href={PATH.STUDENT_EXAM_TAKE(exam.examId)} className="block">
       <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
         {/* Gradient accent */}
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />

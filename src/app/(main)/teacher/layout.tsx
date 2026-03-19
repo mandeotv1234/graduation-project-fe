@@ -8,7 +8,7 @@ export default function TeacherLayout({
   return (
     <div className="min-h-screen bg-background">
       <TeacherHeader />
-      <main className="mx-auto px-4 sm:px-6 lg:px-8">{children}</main>
+      <main className="mx-auto px-4 sm:px-6 lg:px-8 py-4">{children}</main>
     </div>
   )
 }

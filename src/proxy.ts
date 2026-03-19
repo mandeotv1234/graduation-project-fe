@@ -102,7 +102,7 @@ export async function proxy(request: NextRequest) {
   const response = NextResponse.redirect(new URL(pathname, request.url))
   response.cookies.set('accessToken', tokenData.accessToken, {
     httpOnly: true,
-    sameSite: 'strict',
+    sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     expires: parseExpiryDate(tokenData.accessTokenExpiresAt)

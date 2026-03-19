@@ -10,6 +10,7 @@ interface UseExamTimerOptions {
   syncIntervalMs?: number
   onTimeUp?: () => void
   enabled?: boolean
+  allowOvertime?: boolean
 }
 
 export function useExamTimer({
@@ -17,10 +18,12 @@ export function useExamTimer({
   initialSeconds = 0,
   syncIntervalMs = 30_000,
   onTimeUp,
-  enabled = true
+  enabled = true,
+  allowOvertime = false
 }: UseExamTimerOptions) {
   const [remainingSeconds, setRemainingSeconds] = useState(initialSeconds)
   const [isExpired, setIsExpired] = useState(false)
+  const [hasInitialized, setHasInitialized] = useState(false)
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const onTimeUpRef = useRef(onTimeUp)
@@ -28,23 +31,21 @@ export function useExamTimer({
     onTimeUpRef.current = onTimeUp
   }, [onTimeUp])
 
-  // Khi initialSeconds thay đổi (session started), cập nhật timer
+  // When initialSeconds changes (session started), update the timer
   useEffect(() => {
-    if (initialSeconds > 0) {
+    if (initialSeconds > 0 && !hasInitialized) {
       setRemainingSeconds(initialSeconds)
+      setHasInitialized(true)
     }
-  }, [initialSeconds])
+  }, [initialSeconds, hasInitialized])
 
   // Sync from backend (authoritative server time)
   const syncTime = useCallback(async () => {
     try {
       const result = await getExamTime(examId)
       if (result.data) {
-        setRemainingSeconds(Math.max(0, result.data.remainingSeconds))
-        if (result.data.expired) {
-          setIsExpired(true)
-          onTimeUpRef.current?.()
-        }
+        setRemainingSeconds(result.data.remainingSeconds)
+        setHasInitialized(true)
       }
     } catch {
       // Sync failed — continue with local countdown
@@ -53,22 +54,25 @@ export function useExamTimer({
 
   // Manual sync (can be called from useExamSocket onTimeSync)
   const setServerTime = useCallback((seconds: number) => {
-    setRemainingSeconds(Math.max(0, seconds))
-    if (seconds <= 0) {
+    setRemainingSeconds(seconds)
+    setHasInitialized(true)
+  }, [])
+
+  // Watch remainingSeconds to safely trigger onTimeUp (outside render/updater phase)
+  useEffect(() => {
+    if (remainingSeconds <= 0 && !isExpired && enabled && hasInitialized) {
       setIsExpired(true)
       onTimeUpRef.current?.()
     }
-  }, [])
+  }, [remainingSeconds, isExpired, enabled, hasInitialized])
 
-  // Local countdown (visual only — chỉ chạy khi enabled)
+  // Local countdown (visual only — runs only when enabled)
   useEffect(() => {
-    if (isExpired || !enabled) return
+    if ((isExpired && !allowOvertime) || !enabled || !hasInitialized) return
 
     const timer = setInterval(() => {
       setRemainingSeconds((prev) => {
-        if (prev <= 1) {
-          setIsExpired(true)
-          onTimeUpRef.current?.()
+        if (prev <= 0 && !allowOvertime) {
           return 0
         }
         return prev - 1
@@ -76,9 +80,9 @@ export function useExamTimer({
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isExpired, enabled])
+  }, [isExpired, enabled, allowOvertime, hasInitialized])
 
-  // Periodic server sync (chỉ sync khi enabled)
+  // Periodic server sync (only sync when enabled)
   useEffect(() => {
     if (!enabled) return
 

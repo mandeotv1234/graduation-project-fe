@@ -23,6 +23,7 @@ import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-wa
 import { ResizablePanel } from '@/components/shared/resizable-panel'
 import { PageSpinner } from '@/components/shared'
 import type { ExecuteSqlResponse } from '@/lib/types'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Clock, Send } from 'lucide-react'
 
@@ -45,21 +46,27 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   const examTake = useExamTake(exam, questions)
 
   const handleForceSubmit = useCallback(() => {
+    toast.info('Đã hết thời gian làm bài, hệ thống đang nộp bài tự động...')
     examTake.handleConfirmSubmit()
   }, [examTake])
+
+  const examActive = sessionStarted && !examTake.isSubmitted
 
   const { setServerTime, remainingSeconds } = useExamTimer({
     examId: exam.examId,
     initialSeconds,
-    enabled: sessionStarted
+    enabled: examActive,
+    allowOvertime: exam.settings?.allowOvertime,
+    onTimeUp: !exam.settings?.allowOvertime ? handleForceSubmit : undefined
   })
   useAntiCheat({
     examId: exam.examId,
-    enabled: sessionStarted
+    enabled: examActive,
+    settings: exam.settings
   })
   useExamSocket({
     examId: exam.examId,
-    enabled: sessionStarted,
+    enabled: examActive,
     onForceSubmit: handleForceSubmit,
     onTimeSync: setServerTime
   })
@@ -103,13 +110,17 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   }, [examTake])
 
   const formatTime = useCallback((seconds: number): string => {
-    const h = Math.floor(seconds / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = Math.floor(seconds % 60)
+    const sAbs = Math.abs(seconds)
+    const h = Math.floor(sAbs / 3600)
+    const m = Math.floor((sAbs % 3600) / 60)
+    const s = Math.floor(sAbs % 60)
+    let text = ''
     if (h > 0) {
-      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+      text = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    } else {
+      text = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
     }
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    return seconds < 0 ? `-${text}` : text
   }, [])
 
   // Only conditionally render UI, never call hooks conditionally

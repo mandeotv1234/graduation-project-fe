@@ -11,18 +11,26 @@ import {
 import {
   addViolation,
   markViolationSynced,
+  setTotalViolations,
   setBlurred,
   setFullscreen,
   showWarning
 } from '@/lib/redux/slices/anti-cheat.slice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 
+import { ExamSettings } from '@/lib/types'
+
 interface UseAntiCheatOptions {
   examId: number
   enabled?: boolean
+  settings?: ExamSettings
 }
 
-export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
+export function useAntiCheat({
+  examId,
+  enabled = true,
+  settings
+}: UseAntiCheatOptions) {
   const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
   const antiCheatEnabled = enabled && !isDev
 
@@ -31,7 +39,7 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
     (state) => state.antiCheat
   )
 
-  // Dùng refs để tránh re-create callback → tránh re-register event listeners
+  // Use refs to keep stable callback references and avoid re-registering event listeners
   const totalRef = useRef(totalViolations)
   totalRef.current = totalViolations
 
@@ -39,12 +47,12 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
   isFullscreenRef.current = isFullscreen
 
   const devtoolsCheckRef = useRef<NodeJS.Timeout | null>(null)
-  const devtoolsDetectedRef = useRef(false) // Tránh spam khi DevTools luôn mở
-  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Debounce blur/visibility
+  const devtoolsDetectedRef = useRef(false) // Prevent spam when DevTools stays open
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Debounce blur/visibility events
 
   const lastViolationTimeRef = useRef(0)
 
-  // Record violation — stable callback (không phụ thuộc totalViolations)
+  // Record violation — stable callback (does not depend on totalViolations)
   const recordViolation = useCallback(
     async (type: ViolationType, detail?: string) => {
       if (!antiCheatEnabled) return
@@ -56,14 +64,14 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
       }
       lastViolationTimeRef.current = now
 
-      console.warn(`[AntiCheat] Ghi nhận vi phạm: ${type}`, detail)
+      console.warn(`[AntiCheat] Violation recorded: ${type}`, detail)
 
       const timestamp = new Date().toISOString()
       const violationDetail = detail || VIOLATION_LABELS[type]
 
       dispatch(addViolation({ type, detail: violationDetail, timestamp }))
 
-      // Gửi lên Backend
+      // Send to backend
       try {
         const result = await reportViolation(examId, {
           violationType: type,
@@ -74,48 +82,67 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
 
           const count = result.data.violationCount
 
-          // BE đã tự submit rồi → chỉ hiển thị modal, KHÔNG gọi FE submit
+          // Sync local state count with backend (which tracks it per attempt)
+          dispatch(setTotalViolations(count))
+
+          // Backend already auto-submitted — only show modal, DO NOT trigger FE submit
           if (result.data.autoSubmitted) {
             dispatch(
               showWarning(
                 `Bạn đã vi phạm ${count}/${MAX_VIOLATIONS_BEFORE_SUBMIT} lần. Bài thi đã được nộp tự động!`
               )
             )
-            // Không gọi onForceSubmit — BE đã xử lý rồi
+            // Do not call onForceSubmit — backend already handled it
             return
           }
 
-          // Hiển thị warning ngay lập tức sau mỗi vi phạm (dùng count từ BE)
-          dispatch(
-            showWarning(
-              `Cảnh báo vi phạm! Bạn đã vi phạm ${count}/${MAX_VIOLATIONS_BEFORE_SUBMIT} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
+          // Show warning immediately after each violation (using count from backend)
+          if (settings?.autoSubmitOnViolation) {
+            dispatch(
+              showWarning(
+                `Cảnh báo vi phạm! Bạn đã vi phạm ${count}/${MAX_VIOLATIONS_BEFORE_SUBMIT} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
+              )
             )
-          )
+          } else {
+            dispatch(
+              showWarning(
+                `Cảnh báo vi phạm! Hành vi gian lận (chuyển tab, thoát toàn màn hình, v.v) đã bị hệ thống ghi nhận lần thứ ${count}.`
+              )
+            )
+          }
         } else {
           console.error('[AntiCheat] Backend did not return violation data')
         }
       } catch (err) {
         console.error('[AntiCheat] Failed to sync violation to backend', err)
-        // Sync thất bại — vẫn hiện warning dựa trên FE count
+        // Sync failed — still show warning based on local FE count
         const newTotal = totalRef.current
-        dispatch(
-          showWarning(
-            `Cảnh báo vi phạm! Bạn đã vi phạm ${newTotal} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
+        if (settings?.autoSubmitOnViolation) {
+          dispatch(
+            showWarning(
+              `Cảnh báo vi phạm! Bạn đã vi phạm ${newTotal} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
+            )
           )
-        )
+        } else {
+          dispatch(
+            showWarning(
+              `Cảnh báo vi phạm! Hệ thống ghi nhận bạn đã vi phạm ${newTotal} lần.`
+            )
+          )
+        }
       }
     },
-    [dispatch, examId, antiCheatEnabled] // Stable deps — không có totalViolations
+    [dispatch, examId, antiCheatEnabled, settings?.autoSubmitOnViolation] // Stable deps — no totalViolations
   )
 
-  // 1. Phát hiện chuyển tab / thu nhỏ trình duyệt (debounced — tránh duplicate)
+  // 1. Detect tab switch / browser minimize (debounced — prevent duplicates)
   useEffect(() => {
-    if (!antiCheatEnabled) return
+    if (!antiCheatEnabled || settings?.trackTabSwitch === false) return
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
         // Only trigger blur violation if the document is genuinely hidden (vs just losing focus to an alert/iframe)
-        // Debounce: nếu blur đã fire trước đó, skip
+        // Debounce: if blur already fired before this, skip it
         if (blurTimeoutRef.current) {
           clearTimeout(blurTimeoutRef.current)
           blurTimeoutRef.current = null
@@ -128,15 +155,12 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
     }
 
     const handleBlur = () => {
-      // Debounce: đợi 200ms, nếu visibilitychange fire trước thì skip blur
+      // Debounce: wait 500ms — if visibilitychange fires first, skip blur
       blurTimeoutRef.current = setTimeout(() => {
         // Ensure that the document actually lost focus, not just active element changing to something internal
         if (!document.hasFocus() && !document.hidden) {
-          // Chỉ ghi nếu visibilitychange chưa ghi
-          recordViolation(
-            ViolationType.TAB_SWITCH,
-            'Cửa sổ trình duyệt mất focus'
-          )
+          // Only record if visibilitychange hasn't already recorded
+          recordViolation(ViolationType.TAB_SWITCH, 'Browser window lost focus')
           dispatch(setBlurred(true))
         }
         blurTimeoutRef.current = null
@@ -161,11 +185,11 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
       window.removeEventListener('focus', handleFocus)
       if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current)
     }
-  }, [antiCheatEnabled, recordViolation, dispatch])
+  }, [antiCheatEnabled, recordViolation, dispatch, settings?.trackTabSwitch])
 
-  // 2. Phát hiện thoát fullscreen
+  // 2. Detect fullscreen exit
   useEffect(() => {
-    if (!antiCheatEnabled) return
+    if (!antiCheatEnabled || settings?.forceFullscreen === false) return
 
     const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!document.fullscreenElement
@@ -183,15 +207,15 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
     }
   }, [antiCheatEnabled, recordViolation, dispatch])
 
-  // 3. Chặn Copy / Cut / Paste / Right Click (chặn nhưng KHÔNG tính vi phạm)
+  // 3. Block Copy / Cut / Paste / Right Click (block only — NOT counted as violation)
   useEffect(() => {
-    if (!antiCheatEnabled) return
+    if (!antiCheatEnabled || settings?.preventCopyPaste === false) return
 
-    // Hàm kiểm tra xem target có phải là input field hoặc monaco editor không
+    // Check if the target is an input field or Monaco editor
     const isEditingField = (target: EventTarget | null) => {
       if (!target) return false
       const el = target as HTMLElement
-      // Monaco Editor sử dụng textareas với class inputarea
+      // Monaco Editor uses textareas with class 'inputarea'
       return (
         el.tagName === 'INPUT' ||
         el.tagName === 'TEXTAREA' ||
@@ -203,7 +227,7 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
     const handleCopy = (e: ClipboardEvent) => {
       if (isEditingField(e.target)) return
       e.preventDefault()
-      // Đã chặn rồi — không tính vi phạm
+      // Blocked — not counted as violation
     }
 
     const handleCut = (e: ClipboardEvent) => {
@@ -232,11 +256,11 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
       document.removeEventListener('paste', handlePaste)
       document.removeEventListener('contextmenu', handleContextMenu)
     }
-  }, [antiCheatEnabled])
+  }, [antiCheatEnabled, settings?.preventCopyPaste])
 
-  // 4. Chặn phím tắt nguy hiểm
+  // 4. Block dangerous keyboard shortcuts
   useEffect(() => {
-    if (!antiCheatEnabled) return
+    if (!antiCheatEnabled || settings?.preventCopyPaste === false) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const isEditingField = (target: EventTarget | null) => {
@@ -253,9 +277,9 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
       const isMac = navigator.platform.toUpperCase().includes('MAC')
       const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey
 
-      // Phím tắt chỉ chặn (không tính vi phạm)
-      // Bao gồm: copy/paste/cut/select-all, DevTools shortcuts, save, print, view-source
-      // và các phím Alt/F-key có thể vô tình nhấn
+      // Shortcuts to block only (not counted as violation)
+      // Includes: copy/paste/cut/select-all, DevTools shortcuts, save, print, view-source
+      // and Alt/F-key combos that may be pressed accidentally
       const blockOnlyCombos: {
         key: string
         ctrl: boolean
@@ -288,12 +312,12 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
         { key: 'F9', ctrl: false },
         { key: 'F10', ctrl: false },
         { key: 'F11', ctrl: false },
-        // Alt key combinations (vô tình nhấn)
+        // Alt key combinations (accidental press)
         { key: 'Alt', ctrl: false }
       ]
 
-      // Check block-only combos (bao gồm Alt key)
-      // Xử lý đặc biệt cho phím Alt độc lập
+      // Check block-only combos (including standalone Alt key)
+      // Special handling for standalone Alt key
       if (e.key === 'Alt' || e.altKey) {
         e.preventDefault()
         e.stopPropagation()
@@ -317,7 +341,7 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
             return
           e.preventDefault()
           e.stopPropagation()
-          // Chỉ chặn — không tính vi phạm
+          // Block only — not counted as violation
           return
         }
       }
@@ -329,7 +353,7 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
     }
   }, [antiCheatEnabled, recordViolation])
 
-  // 5. Phát hiện DevTools (heuristic — chỉ ghi 1 lần cho đến khi đóng)
+  // 5. Detect DevTools (heuristic — record only once until closed)
   useEffect(() => {
     if (!antiCheatEnabled) return
 
@@ -342,7 +366,7 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
         devtoolsDetectedRef.current = true
         recordViolation(ViolationType.DEVTOOLS_OPEN)
       } else if (!isOpen) {
-        devtoolsDetectedRef.current = false // Reset khi đóng DevTools
+        devtoolsDetectedRef.current = false // Reset when DevTools is closed
       }
     }
 
@@ -357,14 +381,14 @@ export function useAntiCheat({ examId, enabled = true }: UseAntiCheatOptions) {
 
   // Request fullscreen
   const requestFullscreen = useCallback(async () => {
-    if (!antiCheatEnabled) return
+    if (!antiCheatEnabled || settings?.forceFullscreen === false) return
     try {
       await document.documentElement.requestFullscreen()
       dispatch(setFullscreen(true))
     } catch {
       console.warn('[AntiCheat] Fullscreen request denied')
     }
-  }, [dispatch, antiCheatEnabled])
+  }, [dispatch, antiCheatEnabled, settings?.forceFullscreen])
 
   // Exit fullscreen
   const exitFullscreen = useCallback(async () => {
