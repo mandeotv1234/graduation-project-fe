@@ -21,7 +21,7 @@ export interface PaginatedApiResponse<T> {
 export interface ClassListItem {
   id: number
   classCode: string
-  teacherId: number
+  creatorId: number
   semester: string
   createdAt: string
 }
@@ -30,7 +30,7 @@ export interface ClassListItem {
 export interface ClassDetail {
   id: number
   classCode: string
-  teacherId: number
+  creatorId: number
   semester: string
   createdAt: string
 }
@@ -51,8 +51,20 @@ export interface CreateClassResponse {
   id: number
   classCode: string
   semester: string
-  teacherId: number
+  creatorId: number
   createdAt: string
+}
+
+export interface ClassTeacher {
+  id: number
+  email: string
+  fullName: string
+  addedAt: string
+  isCreator: boolean
+}
+
+export interface AddTeacherToClassRequest {
+  email: string
 }
 
 // GET /api/classes/{classId}/students → GetStudentsInClassResponseDto

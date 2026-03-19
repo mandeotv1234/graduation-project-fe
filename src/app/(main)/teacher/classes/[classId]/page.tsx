@@ -2,10 +2,12 @@ import { redirect } from 'next/navigation'
 import {
   getClassDetail,
   getStudentsInClass,
-  getClassExams
+  getClassExams,
+  getClassTeachers
 } from '@/lib/actions'
 import { PATH } from '@/lib/constants'
 import { ClassDetailView } from '@/app/(main)/teacher/classes/[classId]/components/class-detail-view'
+import { getCookie, decodeJwtPayload } from '@/lib/utils'
 
 interface ClassDetailPageProps {
   params: Promise<{ classId: string }>
@@ -19,15 +21,19 @@ export default async function ClassDetailPage({
   const { classId } = await params
   const { studentPage } = await searchParams
   const classIdNum = Number(classId)
+  const accessToken = await getCookie('accessToken')
+  const decodedToken = accessToken ? decodeJwtPayload(accessToken) : null
+  const currentTeacherId = decodedToken?.uid ?? null
 
   if (isNaN(classIdNum)) {
     redirect(PATH.TEACHER_CLASSES)
   }
 
-  const [classRes, studentsRes, examsRes] = await Promise.all([
+  const [classRes, studentsRes, examsRes, teachersRes] = await Promise.all([
     getClassDetail(classIdNum),
     getStudentsInClass(classIdNum, Number(studentPage) || 1, 10),
-    getClassExams(classIdNum)
+    getClassExams(classIdNum),
+    getClassTeachers(classIdNum)
   ])
 
   if (!classRes.data) {
@@ -37,6 +43,8 @@ export default async function ClassDetailPage({
   return (
     <ClassDetailView
       classDetail={classRes.data}
+      teachers={teachersRes.data || []}
+      currentTeacherId={currentTeacherId}
       students={studentsRes.data || []}
       studentPagination={studentsRes.meta?.pagination}
       exams={examsRes.data || []}

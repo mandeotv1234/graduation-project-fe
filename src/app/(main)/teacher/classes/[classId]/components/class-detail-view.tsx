@@ -15,9 +15,11 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { ClassTeachersSection } from '@/app/(main)/teacher/classes/[classId]/components/class-teachers-section'
 import { PATH } from '@/lib/constants'
 import {
   ClassDetail,
+  ClassTeacher,
   StudentInClass,
   ClassExamItem,
   PaginationMeta
@@ -26,6 +28,8 @@ import { formatDate, formatDateTime, getExamStatus } from '@/lib/utils'
 
 interface ClassDetailViewProps {
   classDetail: ClassDetail
+  teachers: ClassTeacher[]
+  currentTeacherId: number | null
   students: StudentInClass[]
   studentPagination?: PaginationMeta
   exams: ClassExamItem[]
@@ -73,6 +77,8 @@ function ExamStatusBadge({ exam }: { exam: ClassExamItem }) {
 
 export function ClassDetailView({
   classDetail,
+  teachers,
+  currentTeacherId,
   students,
   studentPagination,
   exams,
@@ -107,7 +113,7 @@ export function ClassDetailView({
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
@@ -118,6 +124,19 @@ export function ClassDetailView({
                 {studentPagination?.total || students.length}
               </p>
               <p className="text-sm text-muted-foreground">Sinh viên</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+              <User className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">
+                {teachers.length}
+              </p>
+              <p className="text-sm text-muted-foreground">Giáo viên</p>
             </div>
           </div>
         </div>
@@ -135,6 +154,13 @@ export function ClassDetailView({
           </div>
         </div>
       </div>
+
+      <ClassTeachersSection
+        classId={classDetail.id}
+        creatorId={classDetail.creatorId}
+        currentTeacherId={currentTeacherId}
+        teachers={teachers}
+      />
 
       {/* Exams section */}
       <section className="space-y-4">
