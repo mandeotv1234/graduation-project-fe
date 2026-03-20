@@ -167,7 +167,9 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
             <label className="flex items-start sm:items-center gap-3 cursor-pointer group bg-background py-4">
               <Checkbox
                 checked={agreed}
-                onCheckedChange={(checked) => setAgreed(checked === true)}
+                onCheckedChange={(checked: boolean | 'indeterminate') =>
+                  setAgreed(checked === true)
+                }
                 className="mt-0.5 sm:mt-0 h-5 w-5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
               <span className="text-sm text-foreground font-medium select-none group-hover:text-primary transition-colors leading-tight">
