@@ -1,4 +1,4 @@
-﻿export const PATH = {
+export const PATH = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
@@ -7,6 +7,7 @@
   STUDENT_EXAMS: '/student/exams',
   STUDENT_EXAM_DETAIL: (examId: number) => `/student/exams/${examId}`,
   STUDENT_EXAM_TAKE: (examId: number) => `/student/exams/${examId}/take`,
+  STUDENT_EXAM_DOING: (examId: number) => `/student/exams/${examId}/take/doing`,
 
   // Teacher paths
   TEACHER_CLASSES: '/teacher/classes',

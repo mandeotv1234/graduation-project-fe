@@ -43,6 +43,7 @@ export interface ExamSettings {
 export interface StudentExamDetail {
   examId: number
   classId: number
+  className?: string
   title: string
   durationMinutes: number
   startTime: string
