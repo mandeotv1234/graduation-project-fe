@@ -187,7 +187,14 @@
 
 .react-flow__node {
   max-width: 288px;
-  background-color: #f5f7fa;
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.06);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease;
 }
 
 .react-flow__attribution a {
@@ -202,7 +209,7 @@
 
 /* Edge look */
 .react-flow__edge-path {
-  stroke: #b1b1b6;
+  stroke: var(--muted-foreground);
   stroke-width: 1.25px;
 }
 
@@ -241,22 +248,30 @@
 
 /* Table node */
 .table {
-  background-color: #fff;
+  background-color: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table--interactive {
+  cursor: pointer;
+  user-select: none;
 }
 
 .table__name {
   position: relative;
   padding: 8px;
   border: 0;
-  border-radius: 4px 4px 0 0;
+  border-radius: 12px 12px 0 0;
   font-weight: 700;
   text-align: center;
+  color: var(--card-foreground);
 }
 
 .table__columns {
-  border: 1px solid #cbd2d9;
+  border: 1px solid var(--border);
   border-top: 0;
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 12px 12px;
 }
 
 /* Column row */
@@ -280,7 +295,14 @@
 }
 
 .column-name:hover {
-  background-color: #efefef;
+  background-color: var(--secondary);
+}
+
+/* Hover affordance */
+.react-flow__node:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.1);
+  border-color: var(--ring);
 }
 
 .key-icon {

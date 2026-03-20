@@ -42,6 +42,24 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   const [schemaMeta, setSchemaMeta] =
     useState<ExecuteSqlResponse['schema']>(null)
 
+  const applySchemaMeta = useCallback(
+    (schema: ExecuteSqlResponse['schema']) => {
+      setSchemaMeta(schema)
+      setEditorSchema(
+        schema
+          ? schema.map((table) => ({
+              tableName: table.tableName,
+              columns: table.columns.map((col) => ({
+                name: col.columnName,
+                type: col.dataType
+              }))
+            }))
+          : []
+      )
+    },
+    []
+  )
+
   // Exam logic hooks (always called, never conditionally)
   const examTake = useExamTake(exam, questions)
 
@@ -97,17 +115,8 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     const schema = res?.schema
     if (!schema || schema.length === 0) return
 
-    setSchemaMeta(schema)
-    setEditorSchema(
-      schema.map((table) => ({
-        tableName: table.tableName,
-        columns: table.columns.map((col) => ({
-          name: col.columnName,
-          type: col.dataType
-        }))
-      }))
-    )
-  }, [examTake])
+    applySchemaMeta(schema)
+  }, [examTake, applySchemaMeta])
 
   const formatTime = useCallback((seconds: number): string => {
     const sAbs = Math.abs(seconds)
@@ -295,6 +304,8 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                   schema={editorSchema}
                   result={examTake.sqlResult}
                   schemaMeta={schemaMeta}
+                  examId={exam.examId}
+                  onSchemaMetaChange={applySchemaMeta}
                 />
               </ResizablePanel>
             </div>
