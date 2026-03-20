@@ -7,7 +7,7 @@ import {
 } from '@/lib/types'
 import { useExamTake } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-take'
 import { useEffect, useState, useCallback } from 'react'
-import { startExamSession, getExamTime } from '@/lib/actions/anti-cheat.action'
+import { getExamTime } from '@/lib/actions/anti-cheat.action'
 import { getExamSpecification } from '@/lib/actions'
 import { useAntiCheat } from '@/hooks/use-anti-cheat'
 import { useExamTimer } from '@/hooks/use-exam-timer'
@@ -138,20 +138,14 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       setLoading(true)
       setError(null)
       try {
-        const sessionRes = await startExamSession(exam.examId)
-        if (sessionRes.data && sessionRes.data.sessionStarted) {
-          if (sessionRes.data.remainingSeconds > 0) {
-            setInitialSeconds(sessionRes.data.remainingSeconds)
-          } else {
-            // Fallback: get exam time
-            const timeRes = await getExamTime(exam.examId)
-            if (timeRes.data && timeRes.data.remainingSeconds > 0) {
-              setInitialSeconds(timeRes.data.remainingSeconds)
-            }
-          }
+        const timeRes = await getExamTime(exam.examId)
+        if (timeRes.data && timeRes.data.remainingSeconds > 0) {
+          setInitialSeconds(timeRes.data.remainingSeconds)
           setSessionStarted(true)
         } else {
-          setError(sessionRes.data?.message || 'Không thể bắt đầu phiên thi.')
+          setError(
+            timeRes.message || 'Phiên thi đã kết thúc hoặc không tồn tại.'
+          )
         }
       } catch (err) {
         // Re-throw Next.js redirects to prevent them from being swallowed
