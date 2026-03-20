@@ -44,3 +44,17 @@ export interface RegisterResponse {
   email: string
   fullName: string
 }
+
+export interface GoogleLoginRequest {
+  code: string
+  redirectUri: string
+  rememberMe: boolean
+}
+
+export interface GoogleCodeResponse {
+  code: string
+}
+
+export interface MicrosoftLoginRequest {
+  idToken: string
+}
