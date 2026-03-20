@@ -127,6 +127,8 @@ export class ApiClient {
       const isAuthEndpoint =
         endpoint === ENDPOINTS.LOGIN ||
         endpoint === ENDPOINTS.REFRESH_TOKEN ||
+        endpoint === ENDPOINTS.LOGIN_OAUTH ||
+        endpoint === ENDPOINTS.LOGIN_MICROSOFT ||
         endpoint === ENDPOINTS.LOGOUT
 
       if (!isAuthEndpoint) {

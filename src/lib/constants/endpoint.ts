@@ -1,6 +1,8 @@
 export const ENDPOINTS = Object.freeze({
   // Auth
   LOGIN: '/auth/login',
+  LOGIN_OAUTH: '/auth/google',
+  LOGIN_MICROSOFT: '/auth/microsoft',
   REGISTER: '/auth/register',
   REFRESH_TOKEN: '/auth/refresh',
   LOGOUT: '/auth/logout',
