@@ -9,15 +9,19 @@ import type { SchemaTable } from '@/app/(main)/student/exams/[examId]/take/compo
 import { SchemaFlow } from '@/app/(main)/student/exams/[examId]/take/components/schema-flow'
 
 interface ExamTakeBottomPanelProps {
+  examId: number
   schema: SchemaTable[]
   result: ExecuteSqlResponse | null
   schemaMeta?: ExecuteSqlResponse['schema']
+  onSchemaMetaChange: (schema: ExecuteSqlResponse['schema']) => void
 }
 
 export function ExamTakeBottomPanel({
+  examId,
   schema,
   result,
-  schemaMeta
+  schemaMeta,
+  onSchemaMetaChange
 }: ExamTakeBottomPanelProps) {
   const schemaForDisplay =
     schemaMeta && schemaMeta.length > 0
@@ -70,7 +74,11 @@ export function ExamTakeBottomPanel({
 
         <TabsContent value="schema" className="flex-1 p-0 m-0 min-h-0">
           {schemaMeta && schemaMeta.length > 0 ? (
-            <SchemaFlow schemaMeta={schemaMeta} />
+            <SchemaFlow
+              examId={examId}
+              schemaMeta={schemaMeta}
+              onSchemaMetaChange={onSchemaMetaChange}
+            />
           ) : schemaForDisplay.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
               <Database className="w-8 h-8 opacity-20" />

@@ -9,6 +9,6 @@ export type UserRole = (typeof ROLES)[keyof typeof ROLES]
 export const COOKIE_BASE_OPTIONS = {
   httpOnly: true,
   sameSite: 'lax' as const,
-  secure: process.env.NODE_ENV === 'production',
+  secure: false, // TODO: Change to true in production
   path: '/'
 }

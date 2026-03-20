@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Background,
   Handle,
@@ -17,6 +17,30 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import type { ExecuteSqlResponse } from '@/lib/types'
+import { executeSql } from '@/lib/actions'
+import { useApi } from '@/hooks/use-api'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Spinner } from '@/components/shared'
+import { Eye, RotateCcw, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 type HandleSide = 'left' | 'right'
 type EdgeConfig = {
@@ -102,7 +126,7 @@ export function KeyIcon() {
 
 const TableNode = memo(({ data }: NodeProps<Node<TableNodeData>>) => {
   return (
-    <div className="table">
+    <div className="table table--interactive">
       <div
         className="table__name"
         style={{ backgroundColor: data.schemaColor }}
@@ -248,13 +272,103 @@ function buildInitial(schemaMeta: ExecuteSqlResponse['schema']) {
 }
 
 export function SchemaFlow({
-  schemaMeta
+  schemaMeta,
+  examId,
+  onSchemaMetaChange
 }: {
   schemaMeta: ExecuteSqlResponse['schema']
+  examId: number
+  onSchemaMetaChange: (schema: ExecuteSqlResponse['schema']) => void
 }) {
   const initial = useMemo(() => buildInitial(schemaMeta), [schemaMeta])
   const [nodes, setNodes] = useNodesState(initial.nodes)
   const [edges, setEdges] = useEdgesState(initial.edges)
+
+  const { callApi } = useApi()
+
+  const [tableDialogOpen, setTableDialogOpen] = useState(false)
+  const [selectedTable, setSelectedTable] = useState<string | null>(null)
+  const [rowsLoading, setRowsLoading] = useState(false)
+  const [rowsError, setRowsError] = useState<string | null>(null)
+  const [rows, setRows] = useState<Record<string, unknown>[]>([])
+  const [columns, setColumns] = useState<string[]>([])
+  const [rowCount, setRowCount] = useState(0)
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  function escapeMsIdentifier(identifier: string) {
+    return identifier.replaceAll(']', ']]')
+  }
+
+  function quoteMsTableName(tableName: string) {
+    return `[${escapeMsIdentifier(tableName)}]`
+  }
+
+  function buildSelectTopSql(tableName: string, limit: number) {
+    return `SELECT TOP ${limit} * FROM ${quoteMsTableName(tableName)}`
+  }
+
+  function buildDropSql(tableName: string) {
+    return `DROP TABLE IF EXISTS ${quoteMsTableName(tableName)}`
+  }
+
+  const refreshRows = useCallback(
+    async (tableName: string) => {
+      setRowsLoading(true)
+      setRowsError(null)
+      setRows([])
+      setColumns([])
+      setRowCount(0)
+
+      try {
+        const sql = buildSelectTopSql(tableName, 50)
+        const response = await callApi(executeSql(examId, { sql }), false)
+
+        if (!response.data) {
+          setRowsError(response.message || 'Không có dữ liệu')
+          return
+        }
+
+        if (response.data.errorMessage) {
+          setRowsError(response.data.errorMessage)
+          return
+        }
+
+        const nextRows = response.data.resultSet ?? []
+        setRows(nextRows)
+        setRowCount(response.data.rowCount ?? nextRows.length)
+        if (nextRows.length > 0) {
+          setColumns(Object.keys(nextRows[0]))
+        } else {
+          setColumns([])
+        }
+      } finally {
+        setRowsLoading(false)
+      }
+    },
+    [callApi, examId]
+  )
+
+  useEffect(() => {
+    if (!tableDialogOpen || !selectedTable) return
+
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        await refreshRows(selectedTable)
+      } catch (err) {
+        if (cancelled) return
+        if (err instanceof Error) setRowsError(err.message)
+        else setRowsError('Không thể tải dữ liệu bảng')
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [refreshRows, selectedTable, tableDialogOpen])
 
   useEffect(() => {
     setNodes(initial.nodes)
@@ -284,9 +398,199 @@ export function SchemaFlow({
         snapGrid={[16, 16]}
         nodesConnectable={false}
         onNodesChange={onNodesChange}
+        onNodeClick={(event, node) => {
+          event.stopPropagation()
+          const id = String(node.id)
+          setSelectedTable(id)
+          setDeleteDialogOpen(false)
+          setTableDialogOpen(true)
+        }}
       >
         <Background color="#aaa" gap={16} />
       </ReactFlow>
+
+      <Dialog
+        open={tableDialogOpen}
+        onOpenChange={(open) => {
+          setTableDialogOpen(open)
+          if (!open) {
+            setSelectedTable(null)
+            setRowsError(null)
+            setDeleteDialogOpen(false)
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-3">
+              <span className="font-mono text-base">
+                {selectedTable ?? 'Table'}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    if (!selectedTable) return
+                    void refreshRows(selectedTable)
+                  }}
+                  disabled={rowsLoading}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Làm mới
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  disabled={rowsLoading}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Xóa bảng
+                </Button>
+              </div>
+            </DialogTitle>
+            <DialogDescription>
+              Xem tối đa 50 dòng trong bảng.
+            </DialogDescription>
+          </DialogHeader>
+
+          {rowsLoading ? (
+            <div className="flex items-center gap-3 py-6">
+              <Spinner />
+              <span className="text-sm text-muted-foreground">
+                Đang tải dữ liệu...
+              </span>
+            </div>
+          ) : rowsError ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+              <div className="flex items-start gap-3">
+                <Eye className="mt-0.5 h-5 w-5 text-destructive" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-destructive">
+                    Lỗi tải dữ liệu
+                  </p>
+                  <pre className="whitespace-pre-wrap text-xs text-destructive/80">
+                    {rowsError}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          ) : columns.length > 0 ? (
+            <ScrollArea className="h-[420px] mt-3 rounded-md border border-border/60 bg-background">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    {columns.map((c) => (
+                      <th
+                        key={c}
+                        className="px-3 py-2 text-left font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap sticky top-0 z-10 bg-muted/70 backdrop-blur"
+                      >
+                        {c}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, idx) => (
+                    <tr
+                      key={idx}
+                      className="border-b border-border/50 transition-colors hover:bg-muted/30"
+                    >
+                      {columns.map((c) => (
+                        <td
+                          key={c}
+                          className="px-3 py-2 whitespace-nowrap max-w-[220px] overflow-hidden text-ellipsis"
+                          title={String(row[c] ?? '')}
+                        >
+                          {row[c] === null || row[c] === undefined ? (
+                            <span className="italic text-muted-foreground">
+                              NULL
+                            </span>
+                          ) : (
+                            String(row[c])
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ScrollArea>
+          ) : (
+            <div className="mt-3 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+              Không có dữ liệu (hoặc bảng trống).
+              {rowCount > 0 ? ` Tổng dòng: ${rowCount}.` : ''}
+            </div>
+          )}
+
+          <div className="mt-3 text-[11px] text-muted-foreground">
+            Dòng hiển thị: {rows.length} / {Math.max(rowCount, rows.length)}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa bảng trong DB?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này sẽ chạy lệnh SQL DROP TABLE trong schema thi của
+              bạn. Nếu không thành công, hệ thống sẽ báo lỗi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting || !selectedTable}
+              onClick={async () => {
+                if (!selectedTable) return
+
+                setDeleting(true)
+
+                try {
+                  const sql = buildDropSql(selectedTable)
+                  const response = await callApi(
+                    executeSql(examId, { sql }),
+                    false
+                  )
+
+                  if (!response.data) {
+                    const msg = response.message || 'Không thể xóa bảng'
+                    toast.error(msg)
+                    return
+                  }
+
+                  if (response.data.errorMessage) {
+                    const msg = response.data.errorMessage
+                    toast.error(msg)
+                    return
+                  }
+
+                  onSchemaMetaChange(response.data.schema ?? null)
+                  setDeleteDialogOpen(false)
+                  setTableDialogOpen(false)
+                  setSelectedTable(null)
+                } catch (err) {
+                  let msg = 'Không thể xóa bảng'
+                  if (err instanceof Error) msg = err.message
+                  toast.error(msg)
+                } finally {
+                  setDeleting(false)
+                }
+              }}
+            >
+              {deleting ? 'Đang xóa...' : 'Xóa thật'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
