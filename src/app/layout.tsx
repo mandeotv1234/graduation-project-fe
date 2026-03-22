@@ -6,6 +6,7 @@ import { ReduxProvider } from '@/lib/redux'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/shared/theme-provider'
 import { AuthProviders } from '@/components/shared/auth-providers'
+import { TeacherNotificationHandler } from '@/components/shared/teacher-notification-handler'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -43,6 +44,7 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
+              <TeacherNotificationHandler />
               {children}
               <Toaster
                 position="bottom-right"

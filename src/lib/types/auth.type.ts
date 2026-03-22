@@ -58,3 +58,11 @@ export interface GoogleCodeResponse {
 export interface MicrosoftLoginRequest {
   idToken: string
 }
+
+export interface User {
+  id: number
+  email: string
+  fullName: string
+  role: string
+  studentId?: string
+}

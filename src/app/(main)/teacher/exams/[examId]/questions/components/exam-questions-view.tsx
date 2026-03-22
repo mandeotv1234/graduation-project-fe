@@ -6,12 +6,17 @@ import {
   Plus,
   Hash,
   Award,
-  CheckCircle,
   Save,
   X,
   Database,
   Trash2,
-  Loader2
+  Loader2,
+  Code2,
+  Terminal,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Users
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -65,9 +70,11 @@ export function ExamQuestionsView({
     const newQuestion: QuestionFormState = {
       id: Date.now().toString(),
       content: '',
+      correctQuery: '',
+      verifyScript: '',
       points: 1,
       orderIndex: questions.length + pendingQuestions.length + 1,
-      questionType: 'CREATE_TABLE',
+      questionType: 'SELECT_QUERY',
       difficultyLevel: 1
     }
     setPendingQuestions((prev) => [...prev, newQuestion])
@@ -106,6 +113,8 @@ export function ExamQuestionsView({
     // Prepare batch request (excluding the temporary id)
     const questionsToCreate = pendingQuestions.map((q) => ({
       content: q.content,
+      correctQuery: q.correctQuery,
+      verifyScript: q.verifyScript,
       points: q.points,
       orderIndex: q.orderIndex,
       questionType: q.questionType,
@@ -151,6 +160,12 @@ export function ExamQuestionsView({
               <Button variant="outline" className="gap-2">
                 <Database className="h-4 w-4" />
                 Đặc tả CSDL
+              </Button>
+            </Link>
+            <Link href={`/teacher/exams/${examId}/results`}>
+              <Button variant="outline" className="gap-2">
+                <Users className="h-4 w-4" />
+                Xem kết quả
               </Button>
             </Link>
             <Button
@@ -231,82 +246,145 @@ export function ExamQuestionsView({
                 </thead>
                 <tbody>
                   {pendingQuestions.map((q, idx) => (
-                    <tr
-                      key={q.id}
-                      className={`border-b border-border last:border-0 ${
-                        idx % 2 === 0 ? '' : 'bg-muted/10'
-                      }`}
-                    >
-                      <td className="px-3 py-2 text-muted-foreground font-medium">
-                        {idx + 1}
-                      </td>
-                      <td className="px-3 py-2">
-                        <textarea
-                          value={q.content}
-                          onChange={(e) =>
-                            updateQuestion(q.id, { content: e.target.value })
-                          }
-                          placeholder="Mô tả yêu cầu câu hỏi..."
-                          className="w-full rounded border border-border bg-background px-2 py-1 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                          rows={2}
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <select
-                          value={q.questionType}
-                          onChange={(e) =>
-                            updateQuestion(q.id, {
-                              questionType: e.target.value
-                            })
-                          }
-                          className="w-full rounded border border-border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        >
-                          {QUESTION_TYPES.map((t) => (
-                            <option key={t.value} value={t.value}>
-                              {t.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          value={q.points}
-                          onChange={(e) =>
-                            updateQuestion(q.id, {
-                              points: Number(e.target.value)
-                            })
-                          }
-                          min={0.5}
-                          step={0.5}
-                          className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          value={q.difficultyLevel ?? 1}
-                          onChange={(e) =>
-                            updateQuestion(q.id, {
-                              difficultyLevel: Number(e.target.value)
-                            })
-                          }
-                          min={1}
-                          max={5}
-                          className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => removeQuestion(q.id)}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded hover:bg-destructive/10 transition-colors"
-                          title="Xóa"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </button>
-                      </td>
-                    </tr>
+                    <>
+                      <tr
+                        key={q.id}
+                        className={`border-b border-border ${
+                          idx % 2 === 0 ? '' : 'bg-muted/10'
+                        }`}
+                      >
+                        <td className="px-3 py-4 text-muted-foreground font-medium align-top">
+                          {idx + 1}
+                        </td>
+                        <td className="px-3 py-4 align-top">
+                          <textarea
+                            value={q.content}
+                            onChange={(e) =>
+                              updateQuestion(q.id, {
+                                content: e.target.value
+                              })
+                            }
+                            placeholder="Mô tả yêu cầu câu hỏi..."
+                            className="w-full rounded border border-border bg-background px-2 py-1 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                            rows={3}
+                          />
+                        </td>
+                        <td className="px-3 py-4 align-top">
+                          <select
+                            value={q.questionType}
+                            onChange={(e) =>
+                              updateQuestion(q.id, {
+                                questionType: e.target.value
+                              })
+                            }
+                            className="w-full rounded border border-border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          >
+                            {QUESTION_TYPES.map((t) => (
+                              <option key={t.value} value={t.value}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-4 align-top text-center">
+                          <input
+                            type="number"
+                            value={q.points}
+                            onChange={(e) =>
+                              updateQuestion(q.id, {
+                                points: Number(e.target.value)
+                              })
+                            }
+                            min={0.5}
+                            step={0.5}
+                            className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          />
+                        </td>
+                        <td className="px-3 py-4 align-top text-center">
+                          <input
+                            type="number"
+                            value={q.difficultyLevel ?? 1}
+                            onChange={(e) =>
+                              updateQuestion(q.id, {
+                                difficultyLevel: Number(e.target.value)
+                              })
+                            }
+                            min={1}
+                            max={5}
+                            className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          />
+                        </td>
+                        <td className="px-3 py-4 text-center align-top">
+                          <button
+                            type="button"
+                            onClick={() => removeQuestion(q.id)}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded hover:bg-destructive/10 transition-colors"
+                            title="Xóa"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </button>
+                        </td>
+                      </tr>
+                      <tr
+                        className={`border-b border-border last:border-0 ${
+                          idx % 2 === 0 ? '' : 'bg-muted/10'
+                        }`}
+                      >
+                        <td colSpan={1} />
+                        <td colSpan={5} className="px-3 pb-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                <Code2 className="h-3 w-3" />
+                                Đáp án (Correct Query)
+                              </label>
+                              <textarea
+                                value={q.correctQuery}
+                                onChange={(e) =>
+                                  updateQuestion(q.id, {
+                                    correctQuery: e.target.value
+                                  })
+                                }
+                                placeholder="Nhập SQL đáp án hoặc để trống để AI tự gen..."
+                                className="w-full rounded border border-border bg-background px-2 py-1.5 font-mono text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                                rows={3}
+                              />
+                              {!q.correctQuery && (
+                                <div className="flex items-center gap-1 text-[10px] text-primary italic">
+                                  <Sparkles className="h-2.5 w-2.5" />
+                                  AI sẽ tự động tạo đáp án dựa trên nội dung đề
+                                  bài
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                <Terminal className="h-3 w-3" />
+                                Script kiểm thử (Verify Script)
+                              </label>
+                              <textarea
+                                value={q.verifyScript}
+                                onChange={(e) =>
+                                  updateQuestion(q.id, {
+                                    verifyScript: e.target.value
+                                  })
+                                }
+                                placeholder="Nhập script kiểm thử hoặc để trống để AI tự gen..."
+                                className="w-full rounded border border-border bg-background px-2 py-1.5 font-mono text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                                rows={3}
+                              />
+                              {!q.verifyScript && (
+                                <div className="flex items-center gap-1 text-[10px] text-primary italic">
+                                  <Sparkles className="h-2.5 w-2.5" />
+                                  AI sẽ tự động tạo script dựa trên nội dung đề
+                                  bài
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </>
                   ))}
                 </tbody>
               </table>
@@ -365,39 +443,85 @@ export function ExamQuestionsView({
       ) : (
         <div className="space-y-3">
           {questions.map((q) => (
-            <div
-              key={q.id}
-              className="rounded-xl border border-border bg-card p-5 transition-all hover:shadow-sm"
-            >
-              <div className="flex items-start gap-4">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-                  {q.orderIndex}
-                </span>
+            <QuestionItem key={q.id} question={q} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
-                <div className="min-w-0 flex-1 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${QUESTION_TYPE_COLORS[q.questionType] || 'bg-muted text-muted-foreground'}`}
-                    >
-                      {q.questionType}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                      <Award className="h-3 w-3" />
-                      {q.points}đ
-                    </span>
-                  </div>
+function QuestionItem({ question }: { question: ExamQuestionItem }) {
+  const [isExpanded, setIsExpanded] = useState(false)
 
-                  <p className="text-sm text-foreground whitespace-pre-wrap">
-                    {q.content}
-                  </p>
+  return (
+    <div className="rounded-xl border border-border bg-card transition-all hover:shadow-sm">
+      <div className="p-5">
+        <div className="flex items-start gap-4">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+            {question.orderIndex}
+          </span>
 
-                  {/* answer view removed per GRAD-30 */}
-                </div>
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${QUESTION_TYPE_COLORS[question.questionType] || 'bg-muted text-muted-foreground'}`}
+              >
+                {question.questionType}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                <Award className="h-3 w-3" />
+                {question.points}đ
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Hash className="h-3 w-3" />
+                Độ khó: {question.difficultyLevel}
+              </span>
+            </div>
 
-                <CheckCircle className="h-5 w-5 shrink-0 text-emerald-500" />
+            <p className="text-sm text-foreground whitespace-pre-wrap">
+              {question.content}
+            </p>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-8 w-8 p-0"
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="border-t border-border bg-muted/30 p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <Code2 className="h-3.5 w-3.5" />
+                Đáp án (Correct Query)
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
+                {question.correctQuery || '-- Không có đáp án'}
               </div>
             </div>
-          ))}
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <Terminal className="h-3.5 w-3.5" />
+                Script kiểm thử (Verify Script)
+              </div>
+              <div className="rounded-lg border border-border bg-background p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
+                {question.verifyScript || '-- Không có script'}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

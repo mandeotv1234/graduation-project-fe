@@ -8,7 +8,8 @@ import {
   MicrosoftLoginRequest,
   RefreshTokenResponse,
   RegisterFormValues,
-  RegisterResponse
+  RegisterResponse,
+  User
 } from '@/lib/types'
 import {
   setCookie,
@@ -166,4 +167,8 @@ export async function logout(): Promise<void> {
       clearMsal(window.sessionStorage)
     }
   }
+}
+
+export async function getMe(): Promise<ApiResponse<User>> {
+  return await apiClient.get<User>(ENDPOINTS.USER_ME)
 }

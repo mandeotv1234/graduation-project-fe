@@ -32,6 +32,7 @@ export function useExamTake(
     null
   )
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isGrading, setIsGrading] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const isSubmittingRef = useRef(false)
 
@@ -91,11 +92,19 @@ export function useExamTake(
     }
 
     try {
-      const response = await callApi(submitExam(exam.examId, submitData))
+      const response = await callApi(submitExam(exam.examId, submitData), false)
 
       if (response.data) {
-        setSubmitResult(response.data)
-        setIsSubmitted(true)
+        if (response.data.status === 'COMPLETED') {
+          setSubmitResult(response.data)
+          setIsSubmitted(true)
+        } else {
+          // ACCEPTED or PENDING
+          setIsGrading(true)
+          toast.success(
+            'Bài thi đã được nộp thành công. Vui lòng đợi trong giây lát để hệ thống chấm điểm...'
+          )
+        }
       }
     } finally {
       // Allow retry if failed (or just keep it locked if success)
@@ -117,7 +126,11 @@ export function useExamTake(
     answers,
     sqlResult,
     submitResult,
+    setSubmitResult,
     isSubmitted,
+    setIsSubmitted,
+    isGrading,
+    setIsGrading,
     isLoading,
     answeredCount,
     unansweredCount,
