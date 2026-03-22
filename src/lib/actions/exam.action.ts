@@ -1,6 +1,15 @@
 'use server'
 
-import { ApiResponse, Question } from '@/lib/types'
+import { apiClient } from '@/lib/api'
+import {
+  ApiResponse,
+  Question,
+  TeacherExamDetail,
+  UpdateExamRequest,
+  CreateExamRequest,
+  CreateExamResponse
+} from '@/lib/types'
+import { ENDPOINTS } from '@/lib/constants'
 
 const mockQuestions: Question[] = [
   {
@@ -97,4 +106,23 @@ export async function getExamQuestions(): Promise<ApiResponse<Question[]>> {
     code: '200',
     message: 'Fetched exam questions successfully'
   }
+}
+
+export async function getTeacherExamDetail(
+  examId: number
+): Promise<ApiResponse<TeacherExamDetail>> {
+  return apiClient.get<TeacherExamDetail>(`/exams/${examId}/teacher-detail`)
+}
+
+export async function updateExam(
+  examId: number,
+  data: UpdateExamRequest
+): Promise<ApiResponse<TeacherExamDetail>> {
+  return apiClient.put<TeacherExamDetail>(`/exams/${examId}`, data)
+}
+
+export async function createExam(
+  data: CreateExamRequest
+): Promise<ApiResponse<CreateExamResponse>> {
+  return apiClient.post<CreateExamResponse>(ENDPOINTS.CREATE_EXAM, data)
 }

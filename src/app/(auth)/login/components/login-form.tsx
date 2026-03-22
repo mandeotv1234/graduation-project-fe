@@ -116,15 +116,15 @@ export function LoginForm() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-rows-2 gap-4">
         <Button
           variant="outline"
           className="group relative h-12 overflow-hidden rounded-xl border-border/60 bg-background/50 px-4 font-semibold transition-all hover:border-primary/50 hover:bg-background hover:shadow-md active:scale-95"
           onClick={() => onGoogleLogin()}
           disabled={isLoading}
         >
-          <GoogleIcon className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
-          <span>Google</span>
+          <GoogleIcon className="mr-1 h-5 w-5 transition-transform group-hover:scale-110" />
+          <span>Đăng nhập với Google</span>
         </Button>
         <Button
           variant="outline"
@@ -132,8 +132,8 @@ export function LoginForm() {
           onClick={onMicrosoftLogin}
           disabled={isLoading}
         >
-          <MicrosoftIcon className="mr-3 h-5 w-5 transition-transform group-hover:scale-110" />
-          <span>Microsoft</span>
+          <MicrosoftIcon className="mr-1 h-5 w-5 transition-transform group-hover:scale-110" />
+          <span>Đăng nhập với Microsoft</span>
         </Button>
       </div>
     </div>

@@ -7,8 +7,27 @@ import {
   ExamSpecification,
   SaveExamSpecificationRequest,
   CreateExamQuestionsBatchRequest,
-  ExamQuestionItem
+  ExamQuestionItem,
+  SpecificationResponse,
+  CreateSpecificationRequest
 } from '@/lib/types'
+
+export async function getSpecifications(): Promise<
+  ApiResponse<SpecificationResponse[]>
+> {
+  return apiClient.get<SpecificationResponse[]>(ENDPOINTS.SPECIFICATIONS, {
+    cache: 'no-store'
+  })
+}
+
+export async function createSpecification(
+  data: CreateSpecificationRequest
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.post<SpecificationResponse>(
+    ENDPOINTS.SPECIFICATIONS_V2,
+    data
+  )
+}
 
 export async function getExamSpecification(
   examId: number
