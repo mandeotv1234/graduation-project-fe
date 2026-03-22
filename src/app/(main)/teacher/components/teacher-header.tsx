@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 const NAV_ITEMS = [
   { label: 'Lớp học', href: PATH.TEACHER_CLASSES, icon: BookOpen },
   {
-    label: 'Specifications',
+    label: 'Đặc Tả CSDL',
     href: PATH.TEACHER_SPECIFICATIONS,
     icon: Database
   }

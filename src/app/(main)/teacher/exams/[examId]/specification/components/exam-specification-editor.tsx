@@ -15,20 +15,19 @@ import {
   Eye,
   EyeOff,
   Database,
-  Loader2,
-  ArrowRight
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { saveExamSpecification } from '@/lib/actions'
 import { useApi } from '@/hooks/use-api'
-import { PATH } from '@/lib/constants'
 import {
   ExamSpecification,
   SaveExamSpecificationRequest,
   SpecEntity,
-  SpecAttribute
+  SpecAttribute,
+  SpecDataset
 } from '@/lib/types'
 import { ExamSpecificationView } from '@/components/shared/exam-specification-view'
 
@@ -310,20 +309,23 @@ function EntityForm({
 interface ExamSpecificationEditorProps {
   examId: number
   initialSpecification?: ExamSpecification | null
+  readOnly?: boolean
 }
 
 export function ExamSpecificationEditor({
   examId,
-  initialSpecification
+  initialSpecification,
+  readOnly = false
 }: ExamSpecificationEditorProps) {
   const router = useRouter()
   const { callApi, isLoading } = useApi()
 
-  const [preview, setPreview] = useState(false)
+  const [preview, setPreview] = useState(readOnly)
   const [justSaved, setJustSaved] = useState(false)
   const [name, setName] = useState(
     initialSpecification?.name ?? initialSpecification?.title ?? ''
   )
+  const ddlScript = initialSpecification?.ddlScript ?? ''
   const [description, setDescription] = useState(
     initialSpecification?.description ?? ''
   )
@@ -334,6 +336,11 @@ export function ExamSpecificationEditor({
         )
       : [emptyEntity(1)]
   )
+  const datasets: SpecDataset[] = initialSpecification?.datasets?.length
+    ? [...initialSpecification.datasets].sort(
+        (a, b) => a.orderIndex - b.orderIndex
+      )
+    : []
 
   const updateEntity = useCallback((idx: number, updated: SpecEntity) => {
     setEntities((prev) => prev.map((e, i) => (i === idx ? updated : e)))
@@ -358,7 +365,6 @@ export function ExamSpecificationEditor({
       toast.error('Vui lòng nhập tên đặc tả')
       return
     }
-
     for (const entity of entities) {
       if (!entity.entityName.trim()) {
         toast.error('Vui lòng nhập tên bảng cho tất cả thực thể')
@@ -373,11 +379,17 @@ export function ExamSpecificationEditor({
         }
       }
     }
-
     const payload: SaveExamSpecificationRequest = {
       name,
       title: name,
+      ddlScript,
       description,
+      datasets: datasets.map((dataset, index) => ({
+        name: dataset.name.trim(),
+        dataScript: dataset.dataScript,
+        isActive: dataset.isActive,
+        orderIndex: index + 1
+      })),
       entities: entities.map((e, ei) => ({
         entityName: e.entityName,
         displayName: e.displayName,
@@ -401,11 +413,17 @@ export function ExamSpecificationEditor({
     }
   }
 
-  const previewSpec: ExamSpecification = { name, description, entities }
+  const previewSpec: ExamSpecification = {
+    name,
+    ddlScript,
+    description,
+    entities,
+    datasets
+  }
 
   return (
     <div className="space-y-6">
-      {!justSaved && (
+      {!justSaved && !readOnly && (
         <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4">
           <div className="flex items-start gap-3">
             <Database className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
@@ -438,27 +456,33 @@ export function ExamSpecificationEditor({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setPreview((v) => !v)}
-            className="gap-2"
-          >
-            {preview ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-            {preview ? 'Chỉnh sửa' : 'Xem trước'}
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPreview((v) => !v)}
+              className="gap-2"
+            >
+              {preview ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+              {preview ? 'Chỉnh sửa' : 'Xem trước'}
+            </Button>
+          </div>
+        )}
       </div>
 
-      {preview ? (
+      {preview || readOnly ? (
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <ExamSpecificationView specification={previewSpec} />
+          <ExamSpecificationView
+            specification={previewSpec}
+            showDdlScript={false}
+            showDatasets={false}
+          />
         </div>
       ) : (
         <form onSubmit={handleSave} className="space-y-5">
@@ -466,7 +490,7 @@ export function ExamSpecificationEditor({
             <h2 className="text-sm font-semibold text-foreground">
               Thông tin chung
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">
                   Tên đặc tả <span className="text-destructive">*</span>
@@ -541,18 +565,6 @@ export function ExamSpecificationEditor({
                   </>
                 )}
               </Button>
-              {justSaved && (
-                <Button
-                  type="button"
-                  onClick={() =>
-                    router.push(PATH.TEACHER_EXAM_QUESTIONS(examId))
-                  }
-                  className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-                >
-                  Tiếp tục tạo câu hỏi
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              )}
             </div>
           </div>
         </form>

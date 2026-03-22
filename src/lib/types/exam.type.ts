@@ -156,13 +156,22 @@ export interface SpecEntity {
   attributes: SpecAttribute[]
 }
 
+export interface SpecDataset {
+  name: string
+  dataScript: string
+  orderIndex: number
+  isActive: boolean
+}
+
 export interface ExamSpecification {
   id?: number
   name: string
   // backward-compat for old payloads
   title?: string
+  ddlScript?: string
   description: string
   entities: SpecEntity[]
+  datasets?: SpecDataset[]
   createdAt?: string
   updatedAt?: string
 }
@@ -182,7 +191,14 @@ export interface CreateExamQuestionsBatchRequest {
 export interface SaveExamSpecificationRequest {
   name: string
   title?: string
+  ddlScript?: string
   description: string
+  datasets?: {
+    name: string
+    dataScript: string
+    orderIndex: number
+    isActive: boolean
+  }[]
   entities: {
     entityName: string
     displayName: string

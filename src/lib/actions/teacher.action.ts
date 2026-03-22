@@ -85,3 +85,51 @@ export async function removeTeacherFromClass(
 ): Promise<ApiResponse<null>> {
   return apiClient.delete<null>(ENDPOINTS.CLASS_TEACHER(classId, teacherId))
 }
+
+// ===== Exams =====
+
+export async function createExam(
+  data: CreateExamRequest
+): Promise<ApiResponse<CreateExamResponse>> {
+  return apiClient.post<CreateExamResponse>(ENDPOINTS.CREATE_EXAM, data)
+}
+
+// ===== Specifications =====
+
+export async function getSpecifications(): Promise<
+  ApiResponse<SpecificationResponse[]>
+> {
+  return apiClient.get<SpecificationResponse[]>(ENDPOINTS.SPECIFICATIONS, {
+    cache: 'no-store'
+  })
+}
+
+export async function getSpecificationDetail(
+  specificationId: number
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.get<SpecificationResponse>(
+    ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
+    {
+      cache: 'no-store'
+    }
+  )
+}
+
+export async function createSpecification(
+  data: CreateSpecificationRequest
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.post<SpecificationResponse>(
+    ENDPOINTS.SPECIFICATIONS_V2,
+    data
+  )
+}
+
+export async function updateSpecification(
+  specificationId: number,
+  data: CreateSpecificationRequest
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.put<SpecificationResponse>(
+    ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
+    data
+  )
+}

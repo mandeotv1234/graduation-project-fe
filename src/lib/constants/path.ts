@@ -19,8 +19,12 @@ export const PATH = {
     `/teacher/exams/${examId}/questions`,
   TEACHER_EXAM_SPECIFICATION: (examId: number) =>
     `/teacher/exams/${examId}/specification`,
-  TEACHER_EDIT_EXAM: (examId: number) => `/teacher/exams/${examId}/edit`,
-  TEACHER_SPECIFICATIONS: '/teacher/specifications'
+  TEACHER_EXAM_SPECIFICATION_PREVIEW: (examId: number) =>
+    `/teacher/exams/${examId}/specification?mode=preview`,
+  TEACHER_SPECIFICATIONS: '/teacher/specifications',
+  TEACHER_SPECIFICATION_EDIT: (specificationId: number) =>
+    `/teacher/specifications/${specificationId}/edit`,
+  TEACHER_EDIT_EXAM: (examId: number) => `/teacher/exams/${examId}/edit`
 }
 
 export const PRIVATE_PATH = ['/student', '/teacher']
