@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import {
   getClassDetail,
@@ -12,6 +13,30 @@ import { getCookie, decodeJwtPayload } from '@/lib/utils'
 interface ClassDetailPageProps {
   params: Promise<{ classId: string }>
   searchParams: Promise<{ studentPage?: string }>
+}
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ classId: string }>
+}): Promise<Metadata> {
+  const { classId } = await params
+  const classIdNum = Number(classId)
+
+  if (isNaN(classIdNum)) {
+    return { title: 'Lớp học' }
+  }
+
+  try {
+    const classRes = await getClassDetail(classIdNum)
+    const classCode = classRes.data?.classCode
+
+    return {
+      title: classCode ? `Lớp ${classCode}` : `Lớp ${classId}`
+    }
+  } catch {
+    return { title: `Lớp ${classId}` }
+  }
 }
 
 export default async function ClassDetailPage({

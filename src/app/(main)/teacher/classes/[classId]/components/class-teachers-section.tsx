@@ -10,6 +10,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -40,6 +47,7 @@ export function ClassTeachersSection({
   const router = useRouter()
   const { callApi, isLoading } = useApi()
   const [email, setEmail] = useState('')
+  const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false)
   const [teacherToRemove, setTeacherToRemove] = useState<ClassTeacher | null>(
     null
   )
@@ -70,6 +78,7 @@ export function ClassTeachersSection({
 
     if (result.code === 'OK') {
       setEmail('')
+      setIsAddTeacherModalOpen(false)
       router.refresh()
     }
   }
@@ -100,38 +109,54 @@ export function ClassTeachersSection({
             và bài thi. Chỉ người tạo lớp mới có quyền gỡ giáo viên ra khỏi lớp.
           </p>
         </div>
-        <Badge variant="outline" className="shrink-0">
-          {teachers.length} giáo viên
-        </Badge>
+        <Button
+          type="button"
+          variant="outline"
+          className="shrink-0 gap-2"
+          onClick={() => setIsAddTeacherModalOpen(true)}
+        >
+          <UserPlus className="h-4 w-4" />
+          Thêm giáo viên
+        </Button>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5">
-        <form
-          onSubmit={handleAddTeacher}
-          className="flex flex-col gap-3 sm:flex-row"
-        >
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Nhập email giảng viên, ví dụ tdthao@fit.hcmus.edu.vn"
-            disabled={isLoading}
-            className="h-10"
-          />
-          <Button
-            type="submit"
-            className="gap-2 sm:min-w-40"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <UserPlus className="h-4 w-4" />
-            )}
-            Thêm giáo viên
-          </Button>
-        </form>
-      </div>
+      <Dialog
+        open={isAddTeacherModalOpen}
+        onOpenChange={(open) => {
+          if (!isLoading) {
+            setIsAddTeacherModalOpen(open)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Thêm giáo viên vào lớp</DialogTitle>
+            <DialogDescription>
+              Nhập email tài khoản giảng viên để cấp quyền quản lý lớp và bài
+              thi.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleAddTeacher} className="space-y-3">
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Nhập email giảng viên, ví dụ tdthao@fit.hcmus.edu.vn"
+              disabled={isLoading}
+              className="h-10"
+            />
+            <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
+              Thêm giáo viên
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-3">
         {sortedTeachers.map((teacher) => {

@@ -18,7 +18,10 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Graduation Project',
+  title: {
+    default: 'Graduation Project',
+    template: '%s | Graduation Project'
+  },
   description: 'Graduation Project'
 }
 

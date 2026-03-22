@@ -1,46 +1,33 @@
-'use client'
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 
-import { use } from 'react'
-import { useRouter } from 'next/navigation'
 import { PATH } from '@/lib/constants'
-import { createExam } from '@/lib/actions'
-import { useApi } from '@/hooks/use-api'
-import { ExamForm } from '@/app/(main)/teacher/exams/components/exam-form'
-import { ExamFormValues } from '@/app/(main)/teacher/exams/components/exam-form-schema'
+import CreateExamPageClient from '@/app/(main)/teacher/classes/[classId]/create-exam/components/create-exam-page'
+import { getClassDetail } from '@/lib/actions'
 
 interface CreateExamPageProps {
   params: Promise<{ classId: string }>
 }
 
-export default function CreateExamPage({ params }: CreateExamPageProps) {
-  const { classId } = use(params)
+export async function generateMetadata({
+  params
+}: CreateExamPageProps): Promise<Metadata> {
+  const { classId } = await params
+  const classRes = await getClassDetail(Number(classId))
+  const classCode = classRes.data?.classCode
+
+  return {
+    title: `Tạo bài thi - Lớp ${classCode || classId}`
+  }
+}
+
+export default async function CreateExamPage({ params }: CreateExamPageProps) {
+  const { classId } = await params
   const classIdNum = Number(classId)
-  const router = useRouter()
-  const { callApi, isLoading } = useApi()
 
-  const onSubmit = async (data: ExamFormValues) => {
-    // Treat empty string dates as undefined
-    const payload = {
-      ...data,
-      classId: classIdNum,
-      startTime: data.startTime || undefined,
-      endTime: data.endTime || undefined
-    }
-
-    const result = await callApi(createExam(payload))
-
-    if (result.data) {
-      router.push(PATH.TEACHER_EXAM_QUESTIONS(result.data.id))
-    }
+  if (isNaN(classIdNum)) {
+    redirect(PATH.TEACHER_CLASSES)
   }
 
-  return (
-    <ExamForm
-      onSubmit={onSubmit}
-      isLoading={isLoading}
-      title="Tạo bài thi mới"
-      submitLabel="Tạo bài thi"
-      backPath={PATH.TEACHER_CLASS_DETAIL(classIdNum)}
-    />
-  )
+  return <CreateExamPageClient classId={classId} />
 }

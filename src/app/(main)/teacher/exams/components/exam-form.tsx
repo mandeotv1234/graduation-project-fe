@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import {
-  ArrowLeft,
   Save,
   Database,
   Loader2,
@@ -37,7 +36,6 @@ interface ExamFormProps {
   isLoading: boolean
   title: string
   submitLabel: string
-  backPath: string
 }
 
 export function ExamForm({
@@ -45,8 +43,7 @@ export function ExamForm({
   onSubmit,
   isLoading,
   title,
-  submitLabel,
-  backPath
+  submitLabel
 }: ExamFormProps) {
   const [specifications, setSpecifications] = useState<SpecificationResponse[]>(
     []
@@ -148,11 +145,6 @@ export function ExamForm({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-4 mb-2">
-            <Link href={backPath}>
-              <Button variant="ghost" size="icon" className="-ml-2">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
               {title}
             </h1>

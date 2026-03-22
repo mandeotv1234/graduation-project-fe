@@ -1,5 +1,11 @@
+import type { Metadata } from 'next'
+
 import { getClasses } from '@/lib/actions'
 import { ClassesList } from '@/app/(main)/teacher/classes/components/classes-list'
+
+export const metadata: Metadata = {
+  title: 'Lớp học'
+}
 
 interface ClassesPageProps {
   searchParams: Promise<{ page?: string }>

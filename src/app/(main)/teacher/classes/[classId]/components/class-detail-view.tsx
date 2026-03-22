@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import {
-  ArrowLeft,
   Users,
   FileText,
   Plus,
@@ -89,12 +88,7 @@ export function ClassDetailView({
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href={PATH.TEACHER_CLASSES}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+        <div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
               {classDetail.classCode}

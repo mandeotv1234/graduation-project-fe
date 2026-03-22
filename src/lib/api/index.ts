@@ -5,6 +5,7 @@ import { getCookie, setCookie, toExpiryDate } from '@/lib/utils'
 import { ENDPOINTS, COOKIE_BASE_OPTIONS } from '@/lib/constants'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
+const SSR_API_TRACE = process.env.SSR_API_TRACE === 'true'
 
 type RequestOptions = RequestInit & {
   queries?: Record<string, string | number>
@@ -16,6 +17,54 @@ export class ApiClient {
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
+  }
+
+  private shouldTrace() {
+    return SSR_API_TRACE && typeof window === 'undefined'
+  }
+
+  private trace(message: string, payload?: Record<string, unknown>) {
+    if (!this.shouldTrace()) {
+      return
+    }
+
+    if (payload) {
+      console.log(`[ApiClient] ${message}`, payload)
+      return
+    }
+
+    console.log(`[ApiClient] ${message}`)
+  }
+
+  private previewBody(value: unknown) {
+    if (value === undefined || value === null) {
+      return undefined
+    }
+
+    const text = typeof value === 'string' ? value : JSON.stringify(value)
+    return text.length > 800 ? `${text.slice(0, 800)}...` : text
+  }
+
+  private async traceResponse(response: Response, stage: string, url: string) {
+    if (!this.shouldTrace()) {
+      return
+    }
+
+    let bodyPreview: string | undefined
+
+    try {
+      const raw = await response.clone().text()
+      bodyPreview = raw ? this.previewBody(raw) : undefined
+    } catch {
+      bodyPreview = undefined
+    }
+
+    this.trace(stage, {
+      status: response.status,
+      ok: response.ok,
+      url,
+      bodyPreview
+    })
   }
 
   private async fetchWithToken(
@@ -49,6 +98,12 @@ export class ApiClient {
       credentials: 'include',
       ...restOptions
     }
+
+    this.trace('request', {
+      method: config.method ?? 'GET',
+      url,
+      body: this.previewBody(config.body)
+    })
 
     return fetch(url, config)
   }
@@ -120,7 +175,14 @@ export class ApiClient {
     endpoint: string,
     options: RequestOptions = {}
   ): Promise<Response> {
+    const { queries } = options
+    const queryString = queries
+      ? qs.stringify(queries, { addQueryPrefix: true })
+      : ''
+    const requestUrl = `${this.baseURL}${endpoint}${queryString}`
+
     const res = await this.fetchWithToken(endpoint, options)
+    await this.traceResponse(res, 'response', requestUrl)
     const isTokenError = res.status === 401 || res.status === 403
 
     if (isTokenError) {
@@ -140,6 +202,7 @@ export class ApiClient {
             options,
             newToken
           )
+          await this.traceResponse(retryRes, 'response-retry', requestUrl)
 
           if (!retryRes.ok) {
             if (retryRes.status === 401 || retryRes.status === 403) {

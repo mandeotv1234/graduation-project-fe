@@ -1,10 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft,
   Plus,
   Hash,
   Award,
@@ -54,7 +52,6 @@ export function ExamQuestionsView({
   examId,
   initialQuestions
 }: ExamQuestionsViewProps) {
-  const router = useRouter()
   const { callApi, isLoading } = useApi()
   const [questions, setQuestions] = useState(initialQuestions)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -137,16 +134,13 @@ export function ExamQuestionsView({
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+        <div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Quản lý câu hỏi
             </h1>
             <p className="text-muted-foreground">
-              Bài thi #{examId} · {questions.length} câu · {totalPoints} điểm
+              {questions.length} câu hỏi · Tổng điểm: {totalPoints}đ
             </p>
           </div>
         </div>
