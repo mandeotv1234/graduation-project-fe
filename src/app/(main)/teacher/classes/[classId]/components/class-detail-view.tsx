@@ -11,7 +11,8 @@ import {
   Hash,
   Mail,
   User,
-  Database
+  Database,
+  Settings
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -181,44 +182,61 @@ export function ClassDetailView({
         ) : (
           <div className="space-y-3">
             {exams.map((exam) => (
-              <div key={exam.id} className="flex items-center gap-2">
+              <div
+                key={exam.id}
+                className="group flex items-center gap-2 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm"
+              >
                 <Link
                   href={PATH.TEACHER_EXAM_QUESTIONS(exam.id)}
                   className="flex-1 min-w-0"
                 >
-                  <div className="group flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
-                          {exam.title}
-                        </h3>
-                        <ExamStatusBadge exam={exam} />
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {formatDateTime(exam.startTime)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {exam.durationMinutes} phút
-                        </span>
-                      </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-foreground group-hover:text-primary transition-colors truncate">
+                        {exam.title}
+                      </h3>
+                      <ExamStatusBadge exam={exam} />
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {formatDateTime(exam.startTime)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {exam.durationMinutes} phút
+                      </span>
                     </div>
                   </div>
                 </Link>
-                <Link
-                  href={PATH.TEACHER_EXAM_SPECIFICATION(exam.id)}
-                  title="Đặc tả CSDL"
-                >
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-[72px] w-10 rounded-xl shrink-0"
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link
+                    href={PATH.TEACHER_EXAM_SPECIFICATION(exam.id)}
+                    title="Đặc tả CSDL"
                   >
-                    <Database className="h-4 w-4" />
-                  </Button>
-                </Link>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 rounded-lg border-border hover:border-primary/30 hover:bg-accent"
+                    >
+                      <Database className="h-4 w-4" />
+                    </Button>
+                  </Link>
+
+                  <Link
+                    href={PATH.TEACHER_EDIT_EXAM(exam.id)}
+                    title="Cài đặt bài thi"
+                  >
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 rounded-lg border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
             ))}
           </div>

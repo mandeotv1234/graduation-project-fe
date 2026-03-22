@@ -19,6 +19,7 @@ export const PATH = {
     `/teacher/exams/${examId}/questions`,
   TEACHER_EXAM_SPECIFICATION: (examId: number) =>
     `/teacher/exams/${examId}/specification`,
+  TEACHER_EDIT_EXAM: (examId: number) => `/teacher/exams/${examId}/edit`,
   TEACHER_SPECIFICATIONS: '/teacher/specifications'
 }
 

@@ -1,3 +1,5 @@
+import { ExamSettings } from './exam.type'
+
 // ===== Pagination Types =====
 export interface PaginationMeta {
   page: number
@@ -93,7 +95,6 @@ export interface ClassExamItem {
 
 // POST /api/exams → CreateExamRequestDto
 // ExamSettings is defined in exam.type.ts
-import { ExamSettings } from './exam.type'
 
 export interface CreateExamRequest {
   specificationId: number
@@ -120,6 +121,36 @@ export interface CreateExamResponse {
   endTime: string
   isPublished: boolean
   createdAt: string
+}
+
+// GET /api/exams/{examId}/teacher-detail
+export interface TeacherExamDetail {
+  id: number
+  classId: number
+  title: string
+  specificationId: number
+  durationMinutes: number
+  startTime: string | null
+  endTime: string | null
+  description?: string
+  isPublished: boolean
+  maxAttempts: number
+  lateThreshold: number
+  settings: ExamSettings
+}
+
+// PUT /api/exams/{examId}
+export interface UpdateExamRequest {
+  title: string
+  specificationId: number
+  durationMinutes: number
+  startTime: string | null
+  endTime: string | null
+  description?: string
+  isPublished: boolean
+  maxAttempts: number
+  lateThreshold: number
+  settings: ExamSettings
 }
 
 // POST /api/exams/{examId}/questions → CreateExamQuestionRequestDto
