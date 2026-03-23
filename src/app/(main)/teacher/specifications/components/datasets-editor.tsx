@@ -115,9 +115,9 @@ export function DatasetsEditor({
               <textarea
                 value={dataset.dataScript}
                 onChange={(e) => onUpdate(index, 'dataScript', e.target.value)}
-                rows={4}
+                rows={8}
                 placeholder="INSERT INTO ...;"
-                className="flex w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs placeholder:text-muted-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-[220px] w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs placeholder:text-muted-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </article>
           ))}

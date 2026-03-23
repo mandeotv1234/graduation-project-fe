@@ -1,7 +1,8 @@
-﻿'use client'
+'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
-import { Database, Plus } from 'lucide-react'
+import { Database, PencilLine, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import {
   SpecificationEntityAttribute
 } from '@/lib/types'
 import { SpecificationForm } from '@/app/(main)/teacher/specifications/components/specification-form'
+import { PATH } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 
 interface SpecificationsViewProps {
@@ -267,7 +269,7 @@ export function SpecificationsView({
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Specifications
+            Đặc Tả CSDL
           </h1>
           <p className="text-muted-foreground">
             Quản lý đặc tả CSDL cho bài thi
@@ -277,13 +279,14 @@ export function SpecificationsView({
         {!showForm && (
           <Button onClick={() => setShowForm(true)} className="gap-2">
             <Plus className="h-4 w-4" />
-            Tạo specification
+            Tạo đặc tả CSDL
           </Button>
         )}
       </div>
 
       {showForm && (
         <SpecificationForm
+          mode="create"
           isLoading={isLoading}
           name={name}
           ddlScript={ddlScript}
@@ -313,10 +316,10 @@ export function SpecificationsView({
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
           <Database className="h-10 w-10 text-muted-foreground/40" />
           <h3 className="mt-4 text-lg font-semibold text-foreground">
-            Chưa có specification nào
+            Chưa có đặc tả CSDL nào
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Tạo specification đầu tiên để sử dụng trong bài thi.
+            Tạo đặc tả CSDL đầu tiên để sử dụng trong bài thi.
           </p>
         </div>
       ) : (
@@ -326,7 +329,7 @@ export function SpecificationsView({
               key={spec.id}
               className="group rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
             >
-              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+              <h3 className="font-semibold text-foreground transition-colors group-hover:text-primary">
                 {spec.name}
               </h3>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -339,9 +342,18 @@ export function SpecificationsView({
                 </p>
               )}
 
-              <pre className="mt-3 max-h-56 overflow-auto rounded-lg bg-muted/50 p-3 text-xs font-mono text-foreground">
-                {spec.ddlScript}
-              </pre>
+              <div className="mt-4 flex items-center justify-end">
+                <Link href={PATH.TEACHER_SPECIFICATION_EDIT(spec.id)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Chỉnh sửa đặc tả CSDL"
+                  >
+                    <PencilLine className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
             </div>
           ))}
         </div>

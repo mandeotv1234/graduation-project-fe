@@ -85,3 +85,5 @@ export async function removeTeacherFromClass(
 ): Promise<ApiResponse<null>> {
   return apiClient.delete<null>(ENDPOINTS.CLASS_TEACHER(classId, teacherId))
 }
+
+// ===== Exams =====

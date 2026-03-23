@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { Code2, Database, FileText, Loader2, Save, X } from 'lucide-react'
 
@@ -12,6 +12,7 @@ import { EntitiesEditor } from '@/app/(main)/teacher/specifications/components/e
 import { DatasetsEditor } from '@/app/(main)/teacher/specifications/components/datasets-editor'
 
 interface SpecificationFormProps {
+  mode: 'create' | 'edit'
   isLoading: boolean
   name: string
   ddlScript: string
@@ -50,6 +51,7 @@ interface SpecificationFormProps {
 }
 
 export function SpecificationForm({
+  mode,
   isLoading,
   name,
   ddlScript,
@@ -73,6 +75,8 @@ export function SpecificationForm({
   onRemoveDataset,
   onMoveDataset
 }: SpecificationFormProps) {
+  const isEditMode = mode === 'edit'
+
   return (
     <form
       onSubmit={onSubmit}
@@ -84,10 +88,12 @@ export function SpecificationForm({
           <div className="space-y-1">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
               <Database className="h-5 w-5 text-primary" />
-              Tạo specification mới
+              {isEditMode ? 'Chỉnh sửa đặc tả CSDL' : 'Tạo đặc tả CSDL mới'}
             </h2>
             <p className="text-xs text-muted-foreground">
-              Điền thông tin cơ bản, sau đó thêm entities và datasets.
+              {isEditMode
+                ? 'Cập nhật thông tin cơ bản, entities và datasets.'
+                : 'Điền thông tin cơ bản, sau đó thêm entities và datasets.'}
             </p>
           </div>
           <Button
@@ -115,7 +121,7 @@ export function SpecificationForm({
           <div className="space-y-1.5 md:col-span-2">
             <label className="flex items-center gap-2 text-sm font-medium text-foreground">
               <FileText className="h-4 w-4 text-primary" />
-              Tên specification <span className="text-destructive">*</span>
+              Tên đặc tả CSDL <span className="text-destructive">*</span>
             </label>
             <input
               type="text"
@@ -186,12 +192,12 @@ export function SpecificationForm({
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Đang tạo...
+              {isEditMode ? 'Đang lưu...' : 'Đang tạo...'}
             </>
           ) : (
             <>
               <Save className="h-4 w-4" />
-              Tạo specification
+              {isEditMode ? 'Lưu chỉnh sửa' : 'Tạo đặc tả CSDL'}
             </>
           )}
         </Button>

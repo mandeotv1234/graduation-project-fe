@@ -24,6 +24,7 @@ export default async function ExamSpecificationPage({
     <ExamSpecificationEditor
       examId={examIdNum}
       initialSpecification={specification}
+      readOnly
     />
   )
 }

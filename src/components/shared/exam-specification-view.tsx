@@ -6,6 +6,8 @@ import { Database, Key, Link2 } from 'lucide-react'
 interface ExamSpecificationViewProps {
   specification: ExamSpecification
   compact?: boolean
+  showDdlScript?: boolean
+  showDatasets?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -164,35 +166,35 @@ function EntityCard({
                   )}
                 </div>
 
-                {/* Attribute name */}
-                <span
-                  className={`min-w-0 shrink-0 font-mono text-xs font-semibold ${
-                    isPK
-                      ? 'text-amber-700 dark:text-amber-400 underline decoration-dotted underline-offset-2'
-                      : fk
-                        ? 'text-blue-700 dark:text-blue-400 underline decoration-dotted underline-offset-2'
-                        : 'text-foreground'
-                  }`}
-                >
-                  {attr.attributeName}
-                </span>
-
-                {/* Spacer */}
-                <span className="flex-1" />
-
-                {/* Data type chip */}
-                <span
-                  className={`shrink-0 font-mono text-[11px] ${dtColor(attr.dataType)}`}
-                >
-                  {attr.dataType}
-                </span>
-
-                {/* NOT NULL / NULL tag */}
-                {!attr.isNullable && (
-                  <span className="shrink-0 rounded px-1 py-0 text-[9px] font-bold bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
-                    NN
+                <div className="grid min-w-0 flex-1 grid-cols-[minmax(120px,1.2fr)_minmax(120px,0.9fr)_minmax(140px,1fr)_auto] items-start gap-2 text-[11px]">
+                  <span
+                    className={`min-w-0 font-mono text-xs font-semibold ${
+                      isPK
+                        ? 'text-amber-700 dark:text-amber-400 underline decoration-dotted underline-offset-2'
+                        : fk
+                          ? 'text-blue-700 dark:text-blue-400 underline decoration-dotted underline-offset-2'
+                          : 'text-foreground'
+                    }`}
+                  >
+                    {attr.attributeName}
                   </span>
-                )}
+
+                  <span
+                    className={`min-w-0 font-mono ${dtColor(attr.dataType)}`}
+                  >
+                    {attr.dataType}
+                  </span>
+
+                  <span className="min-w-0 leading-relaxed text-muted-foreground">
+                    {attr.description || '-'}
+                  </span>
+
+                  {!attr.isNullable && (
+                    <span className="shrink-0 rounded px-1 py-0 text-[9px] font-bold bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
+                      NN
+                    </span>
+                  )}
+                </div>
               </div>
             )
           })}
@@ -233,7 +235,9 @@ function EntityCard({
 // ---------------------------------------------------------------------------
 export function ExamSpecificationView({
   specification,
-  compact = false
+  compact = false,
+  showDdlScript = true,
+  showDatasets = true
 }: ExamSpecificationViewProps) {
   const sorted = [...(specification.entities ?? [])].sort(
     (a, b) => a.orderIndex - b.orderIndex
@@ -256,6 +260,53 @@ export function ExamSpecificationView({
           </p>
         )}
       </div>
+
+      {showDdlScript && specification.ddlScript && (
+        <div className="rounded-lg border border-border bg-card p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            DDL Script
+          </p>
+          <pre className="max-h-56 overflow-auto rounded-md bg-muted/40 p-3 text-[11px] font-mono whitespace-pre-wrap text-foreground">
+            {specification.ddlScript}
+          </pre>
+        </div>
+      )}
+
+      {showDatasets && !!specification.datasets?.length && (
+        <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Datasets
+          </p>
+          {specification.datasets
+            ?.slice()
+            .sort((a, b) => a.orderIndex - b.orderIndex)
+            .map((dataset, index) => (
+              <div
+                key={`${dataset.name}-${dataset.orderIndex}-${index}`}
+                className="rounded-md border border-border bg-muted/20 p-2 space-y-1"
+              >
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="font-semibold text-foreground">
+                    {dataset.name}
+                  </span>
+                  <span className="text-muted-foreground">
+                    #{dataset.orderIndex}
+                  </span>
+                  {!dataset.isActive && (
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      Inactive
+                    </span>
+                  )}
+                </div>
+                {dataset.dataScript && (
+                  <pre className="max-h-40 overflow-auto rounded bg-background p-2 text-[11px] font-mono whitespace-pre-wrap text-foreground">
+                    {dataset.dataScript}
+                  </pre>
+                )}
+              </div>
+            ))}
+        </div>
+      )}
 
       {/* ── Relation summary legend ── */}
       {relations.length > 0 && !compact && (

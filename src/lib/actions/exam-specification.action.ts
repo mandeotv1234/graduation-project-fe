@@ -66,3 +66,24 @@ export async function createExamQuestionsBatch(
 > {
   return apiClient.post(ENDPOINTS.EXAM_CREATE_BATCH_QUESTIONS(examId), data)
 }
+
+export async function getSpecificationDetail(
+  specificationId: number
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.get<SpecificationResponse>(
+    ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
+    {
+      cache: 'no-store'
+    }
+  )
+}
+
+export async function updateSpecification(
+  specificationId: number,
+  data: CreateSpecificationRequest
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.put<SpecificationResponse>(
+    ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
+    data
+  )
+}
