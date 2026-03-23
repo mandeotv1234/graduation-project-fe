@@ -35,6 +35,7 @@
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
+  --color-header-background: var(--header-background);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --radius-sm: calc(var(--radius) - 4px);
@@ -45,7 +46,8 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #ffffff;
+  --background: #f6f7f9;
+  --header-background: #ffffff;
   --foreground: #020617;
   /* slate-950 */
   --card: #ffffff;
@@ -93,6 +95,7 @@
 .dark {
   --background: #020617;
   /* slate-950 */
+  --header-background: #020617;
   --foreground: #f8fafc;
   /* slate-50 */
   --card: #0f172a;

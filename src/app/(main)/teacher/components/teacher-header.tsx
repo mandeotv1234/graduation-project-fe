@@ -30,7 +30,7 @@ export function TeacherHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
+    <header className="sticky top-0 z-50 border-b border-border bg-header-background/80 backdrop-blur-lg">
       <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href={PATH.TEACHER_CLASSES}

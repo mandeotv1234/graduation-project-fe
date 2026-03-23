@@ -1,17 +1,10 @@
-'use client'
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 
-import { use, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { PATH } from '@/lib/constants'
-import { getTeacherExamDetail, updateExam } from '@/lib/actions'
-import { useApi } from '@/hooks/use-api'
-import { ExamForm } from '@/app/(main)/teacher/exams/components/exam-form'
-import {
-  ExamFormInput,
-  ExamFormValues
-} from '@/app/(main)/teacher/exams/components/exam-form-schema'
-import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { getTeacherExamDetail } from '@/lib/actions'
+import { EditExamComponent } from '@/app/(main)/teacher/exams/[examId]/edit/components/edit-exam-component'
+import { ExamFormInput } from '@/app/(main)/teacher/exams/components/exam-form-schema'
 
 interface EditExamPageProps {
   params: Promise<{ examId: string }>
@@ -22,88 +15,88 @@ type InitialData = Partial<ExamFormInput> & {
   classId: number
 }
 
-export default function EditExamPage({ params }: EditExamPageProps) {
-  const { examId } = use(params)
+function toBoolean(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    if (value === 1) return true
+    if (value === 0) return false
+    return undefined
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'true' || normalized === '1') return true
+    if (normalized === 'false' || normalized === '0') return false
+  }
+
+  return undefined
+}
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ examId: string }>
+}): Promise<Metadata> {
+  const { examId } = await params
   const examIdNum = Number(examId)
-  const router = useRouter()
-  const { callApi, isLoading } = useApi()
-  const [initialData, setInitialData] = useState<InitialData | undefined>(
-    undefined
-  )
-  const [isFetching, setIsFetching] = useState(true)
 
-  useEffect(() => {
-    async function fetchExamDetail() {
-      try {
-        const response = await getTeacherExamDetail(examIdNum)
-        if (response.data) {
-          // Map backend response to form values
-          const data = response.data
-          setInitialData({
-            id: data.id,
-            classId: data.classId,
-            title: data.title,
-            specificationId: data.specificationId,
-            durationMinutes: data.durationMinutes,
-            startTime: data.startTime ? data.startTime.substring(0, 16) : '',
-            endTime: data.endTime ? data.endTime.substring(0, 16) : '',
-            description: data.description || '',
-            isPublished: data.isPublished,
-            maxAttempts: data.maxAttempts,
-            lateThreshold: data.lateThreshold,
-            settings: data.settings || {}
-          })
-        } else {
-          toast.error('Không tìm thấy thông tin bài thi')
-          router.back()
-        }
-      } catch (error) {
-        console.error('Error fetching exam detail:', error)
-        toast.error('Có lỗi xảy ra khi tải thông tin bài thi')
-        router.back()
-      } finally {
-        setIsFetching(false)
-      }
-    }
-    fetchExamDetail()
-  }, [examIdNum, router])
-
-  const onSubmit = async (data: ExamFormValues) => {
-    // Treat empty string dates as undefined/null for backend
-    const payload = {
-      ...data,
-      startTime: data.startTime || null,
-      endTime: data.endTime || null
-    }
-
-    const result = await callApi(updateExam(examIdNum, payload), false)
-
-    if (result.code === '200' || result.code === 'OK') {
-      toast.success('Cập nhật bài thi thành công')
-      // Determine back path - could be class detail if we had classId,
-      // but for now let's just go back or to a sensible default
-      router.back()
-    }
+  if (isNaN(examIdNum)) {
+    return { title: 'Chỉnh sửa bài thi' }
   }
 
-  if (isFetching) {
-    return (
-      <div className="flex h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    )
+  try {
+    const examRes = await getTeacherExamDetail(examIdNum)
+    const examTitle = examRes.data?.title
+
+    return {
+      title: examTitle ? `Chỉnh sửa ${examTitle}` : 'Chỉnh sửa bài thi'
+    }
+  } catch {
+    return { title: 'Chỉnh sửa bài thi' }
+  }
+}
+
+export default async function EditExamPage({ params }: EditExamPageProps) {
+  const { examId } = await params
+  const examIdNum = Number(examId)
+
+  if (isNaN(examIdNum)) {
+    redirect(PATH.TEACHER_CLASSES)
   }
 
-  if (!initialData) return null
+  const response = await getTeacherExamDetail(examIdNum)
 
-  return (
-    <ExamForm
-      initialData={initialData}
-      onSubmit={onSubmit}
-      isLoading={isLoading}
-      title="Chỉnh sửa bài thi"
-      submitLabel="Lưu thay đổi"
-      backPath={PATH.TEACHER_CLASS_DETAIL(initialData.classId)}
-    />
-  )
+  if (!response.data) {
+    redirect(PATH.TEACHER_CLASSES)
+  }
+
+  const data = response.data
+  const dataRecord = data as unknown as Record<string, unknown>
+  const normalizedIsPublished =
+    toBoolean(data.isPublished) ??
+    toBoolean(dataRecord.published) ??
+    toBoolean(dataRecord.is_published) ??
+    toBoolean(dataRecord.ispuhlished) ??
+    toBoolean(dataRecord.isPuhlished) ??
+    true
+
+  const initialData: InitialData = {
+    id: data.id,
+    classId: data.classId,
+    title: data.title,
+    specificationId: data.specificationId,
+    durationMinutes: data.durationMinutes,
+    startTime: data.startTime ? data.startTime.substring(0, 16) : '',
+    endTime: data.endTime ? data.endTime.substring(0, 16) : '',
+    description: data.description || '',
+    isPublished: normalizedIsPublished,
+    maxAttempts: data.maxAttempts,
+    lateThreshold: data.lateThreshold,
+    settings: data.settings || {}
+  }
+
+  return <EditExamComponent examIdNum={examIdNum} initialData={initialData} />
 }
