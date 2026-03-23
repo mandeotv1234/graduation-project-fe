@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches:
-      - develop
+      - feature/GRAD-69-Implement-create-question-flow-for-frontend
 
 env:
   REGISTRY: registry.digitalocean.com/graduation
@@ -18,18 +18,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build NextJS
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-        run: npm run build
 
       - name: Login DigitalOcean Registry
         uses: docker/login-action@v3
@@ -38,10 +26,26 @@ jobs:
           username: ${{ secrets.DO_REGISTRY_TOKEN }}
           password: ${{ secrets.DO_REGISTRY_TOKEN }}
 
+      - name: Debug Secrets
+        run: |
+          echo "Kiểm tra xem Github Secret có rỗng không:"
+          echo "API_URL có độ dài: ${#NEXT_PUBLIC_API_URL_SECRET}"
+          echo "GOOGLE_CLIENT_ID có độ dài: ${#GOOGLE_CLIENT_ID_SECRET}"
+        env:
+          NEXT_PUBLIC_API_URL_SECRET: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          GOOGLE_CLIENT_ID_SECRET: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+
       - name: Build Docker Image
         run: |
           docker build \
-            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --build-arg NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}" \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}" \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_SECRET="${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET }}" \
+            --build-arg NEXT_PUBLIC_AZURE_AD_CLIENT_ID="${{ secrets.NEXT_PUBLIC_AZURE_AD_CLIENT_ID }}" \
+            --build-arg NEXT_PUBLIC_AZURE_AD_TENANT_ID="${{ secrets.NEXT_PUBLIC_AZURE_AD_TENANT_ID }}" \
+            --build-arg NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}" \
+            --build-arg NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
+            --build-arg AZURE_AD_CLIENT_SECRET="${{ secrets.AZURE_AD_CLIENT_SECRET }}" \
             -t $REGISTRY/$IMAGE_NAME:latest .
 
       - name: Push Image
@@ -58,9 +62,7 @@ jobs:
             docker login registry.digitalocean.com \
               -u ${{ secrets.DO_REGISTRY_TOKEN }} \
               -p ${{ secrets.DO_REGISTRY_TOKEN }}
-
             cd /root/app
-
             docker-compose pull frontend
             docker-compose rm -sf frontend || true
             docker-compose up -d --no-deps frontend

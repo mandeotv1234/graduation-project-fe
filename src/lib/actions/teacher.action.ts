@@ -12,10 +12,6 @@ import {
   CreateClassResponse,
   StudentInClass,
   ClassExamItem,
-  CreateExamRequest,
-  CreateExamResponse,
-  SpecificationResponse,
-  CreateSpecificationRequest,
   AddTeacherToClassRequest,
   TeacherExamResult
 } from '@/lib/types'
@@ -92,31 +88,6 @@ export async function removeTeacherFromClass(
 }
 
 // ===== Exams =====
-
-export async function createExam(
-  data: CreateExamRequest
-): Promise<ApiResponse<CreateExamResponse>> {
-  return apiClient.post<CreateExamResponse>(ENDPOINTS.CREATE_EXAM, data)
-}
-
-// ===== Specifications =====
-
-export async function getSpecifications(): Promise<
-  ApiResponse<SpecificationResponse[]>
-> {
-  return apiClient.get<SpecificationResponse[]>(ENDPOINTS.SPECIFICATIONS, {
-    cache: 'no-store'
-  })
-}
-
-export async function createSpecification(
-  data: CreateSpecificationRequest
-): Promise<ApiResponse<SpecificationResponse>> {
-  return apiClient.post<SpecificationResponse>(
-    ENDPOINTS.SPECIFICATIONS_V2,
-    data
-  )
-}
 
 export async function getExamResults(
   examId: number
