@@ -15,6 +15,7 @@ export const PATH = {
   TEACHER_CREATE_CLASS: '/teacher/classes/create',
   TEACHER_CREATE_EXAM: (classId: number) =>
     `/teacher/classes/${classId}/create-exam`,
+  TEACHER_EXAM_DETAIL: (examId: number) => `/teacher/exams/${examId}`,
   TEACHER_EXAM_QUESTIONS: (examId: number) =>
     `/teacher/exams/${examId}/questions`,
   TEACHER_EXAM_SPECIFICATION: (examId: number) =>

@@ -181,7 +181,7 @@ export function ClassDetailView({
                 className="group flex items-center gap-2 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm"
               >
                 <Link
-                  href={PATH.TEACHER_EXAM_QUESTIONS(exam.id)}
+                  href={PATH.TEACHER_EXAM_DETAIL(exam.id)}
                   className="flex-1 min-w-0"
                 >
                   <div className="space-y-1">
@@ -252,7 +252,7 @@ export function ClassDetailView({
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border">
+          <div className="overflow-hidden rounded-xl bg-card border border-border">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">

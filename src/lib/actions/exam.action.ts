@@ -111,7 +111,9 @@ export async function getExamQuestions(): Promise<ApiResponse<Question[]>> {
 export async function getTeacherExamDetail(
   examId: number
 ): Promise<ApiResponse<TeacherExamDetail>> {
-  return apiClient.get<TeacherExamDetail>(`/exams/${examId}/teacher-detail`)
+  return apiClient.get<TeacherExamDetail>(`/exams/${examId}/teacher-detail`, {
+    cache: 'no-store'
+  })
 }
 
 export async function updateExam(

@@ -144,7 +144,7 @@ export function ExamForm({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-4 mb-2">
+          <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
               {title}
             </h1>
@@ -173,7 +173,7 @@ export function ExamForm({
         className="grid grid-cols-1 lg:grid-cols-3 gap-8"
       >
         {/* Left Column (Span 2) */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-8 mb-8">
           {/* Section 1: Thông tin cơ bản */}
           <section className="bg-card rounded-xl border border-border p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">

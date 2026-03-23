@@ -128,6 +128,24 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
     ]
   },
   {
+    id: 'teacher-exam-detail',
+    kind: 'template',
+    template: '/teacher/exams/:examId',
+    crumbs: [
+      HOME_CRUMB,
+      {
+        label: ':classLabel',
+        href: '/teacher/classes/:classId',
+        clickable: true
+      },
+      {
+        label: ':examTitle',
+        href: '/teacher/exams/:examId',
+        clickable: false
+      }
+    ]
+  },
+  {
     id: 'teacher-exam-tabs',
     kind: 'regex',
     pattern: /^\/teacher\/exams\/(\d+)\/(questions|specification|edit)$/,
@@ -146,7 +164,11 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
           href: '/teacher/classes/:classId',
           clickable: true
         },
-        { label: ':examTitle', clickable: false },
+        {
+          label: ':examTitle',
+          clickable: true,
+          href: '/teacher/exams/:examId'
+        },
         {
           label: tabLabelMap[params.tab] ?? params.tab,
           href: `/teacher/exams/${params.examId}/${params.tab}`,

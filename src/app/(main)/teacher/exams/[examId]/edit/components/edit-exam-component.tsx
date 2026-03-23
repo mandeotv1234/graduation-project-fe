@@ -16,15 +16,15 @@ type InitialData = Partial<ExamFormInput> & {
   classId: number
 }
 
-interface EditExamPageClientProps {
+interface EditExamComponentProps {
   examIdNum: number
   initialData: InitialData
 }
 
-export function EditExamPageClient({
+export function EditExamComponent({
   examIdNum,
   initialData
-}: EditExamPageClientProps) {
+}: EditExamComponentProps) {
   const router = useRouter()
   const { callApi, isLoading } = useApi()
 
