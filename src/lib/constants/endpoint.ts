@@ -6,6 +6,7 @@ export const ENDPOINTS = Object.freeze({
   REGISTER: '/auth/register',
   REFRESH_TOKEN: '/auth/refresh',
   LOGOUT: '/auth/logout',
+  USER_ME: '/users/me',
 
   // Student - Exams
   ENROLLED_EXAMS: '/exams/enrolled',
@@ -41,6 +42,7 @@ export const ENDPOINTS = Object.freeze({
   // Exam Specification (teacher: POST, student: GET)
   EXAM_SPECIFICATION: (examId: number) => `/exams/${examId}/specification`,
   EXAM_CREATE_BATCH_QUESTIONS: (examId: number) => `/exams/${examId}/questions`,
+  EXAM_RESULTS: (examId: number) => `/exams/${examId}/results`,
 
   // Teacher - Notifications
   NOTIFICATIONS: '/notifications',

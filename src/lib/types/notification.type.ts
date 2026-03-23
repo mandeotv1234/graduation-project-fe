@@ -19,3 +19,21 @@ export interface TeacherNotificationDto {
 export interface UnreadCountDto {
   unreadCount: number
 }
+
+// WebSocket Grading Results
+export interface GradingNotificationDto {
+  examId: number
+  examName?: string
+  studentId: number
+  studentName?: string
+  studentEmail?: string
+  totalScore?: number
+  score?: number // compat
+  maxScore?: number
+  correctCount?: number
+  totalQuestions?: number
+  status: 'COMPLETED' | 'FAILED'
+  gradedAt?: string
+  reason?: string
+  message?: string // Teacher friendly message
+}

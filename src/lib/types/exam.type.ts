@@ -122,15 +122,32 @@ export interface QuestionResultItem {
   executionTimeMs: number
 }
 
+export type GradingStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
+
 export interface SubmitExamResponse {
   examId: number
   studentId: number
+  submittedAt: string
+  status: GradingStatus
+  // Fields present when status is COMPLETED
+  totalScore?: number
+  maxScore?: number
+  totalQuestions?: number
+  correctCount?: number
+  questionResults?: QuestionResultItem[]
+}
+
+export interface TeacherExamResult {
+  studentId: number
+  studentName: string
+  studentEmail: string
+  attemptNumber: number
   totalScore: number
   maxScore: number
-  totalQuestions: number
   correctCount: number
+  totalQuestions: number
+  status: GradingStatus
   submittedAt: string
-  questionResults: QuestionResultItem[]
 }
 
 // ===== Exam Specification Types =====
@@ -178,6 +195,8 @@ export interface ExamSpecification {
 
 export interface CreateExamQuestionBatch {
   content: string
+  correctQuery: string
+  verifyScript: string
   difficultyLevel?: number
   points: number
   orderIndex?: number

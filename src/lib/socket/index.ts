@@ -81,3 +81,57 @@ export function subscribeToExamViolations(
 
   return () => subscription.unsubscribe()
 }
+
+/**
+ * Subscribe to grading results for a specific exam (Student).
+ * Backend sends to: /topic/exam/{examId}/grading-result
+ */
+export function subscribeToGradingResult(
+  examId: number,
+  callback: (notification: unknown) => void
+): (() => void) | undefined {
+  const client = getStompClient()
+  if (!client?.connected) return undefined
+
+  const subscription = client.subscribe(
+    `/topic/exam/${examId}/grading-result`,
+    (message: IMessage) => {
+      try {
+        const payload = JSON.parse(message.body)
+        callback(payload)
+      } catch {
+        console.error('[STOMP] Failed to parse grading result notification')
+      }
+    }
+  )
+
+  return () => subscription.unsubscribe()
+}
+
+/**
+ * Subscribe to grading results for a specific exam (Teacher).
+ * Backend sends to: /topic/teacher/exam/{examId}/grading-result
+ */
+export function subscribeToTeacherGradingResult(
+  examId: number,
+  callback: (notification: unknown) => void
+): (() => void) | undefined {
+  const client = getStompClient()
+  if (!client?.connected) return undefined
+
+  const subscription = client.subscribe(
+    `/topic/teacher/exam/${examId}/grading-result`,
+    (message: IMessage) => {
+      try {
+        const payload = JSON.parse(message.body)
+        callback(payload)
+      } catch {
+        console.error(
+          '[STOMP] Failed to parse teacher grading result notification'
+        )
+      }
+    }
+  )
+
+  return () => subscription.unsubscribe()
+}

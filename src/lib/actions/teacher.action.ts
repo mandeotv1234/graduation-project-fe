@@ -12,7 +12,8 @@ import {
   CreateClassResponse,
   StudentInClass,
   ClassExamItem,
-  AddTeacherToClassRequest
+  AddTeacherToClassRequest,
+  TeacherExamResult
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -87,3 +88,11 @@ export async function removeTeacherFromClass(
 }
 
 // ===== Exams =====
+
+export async function getExamResults(
+  examId: number
+): Promise<ApiResponse<TeacherExamResult[]>> {
+  return apiClient.get<TeacherExamResult[]>(ENDPOINTS.EXAM_RESULTS(examId), {
+    cache: 'no-store'
+  })
+}

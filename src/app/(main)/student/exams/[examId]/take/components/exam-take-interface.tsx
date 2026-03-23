@@ -3,12 +3,14 @@
 import {
   ExamQuestionItem,
   StudentExamDetail,
-  ExamSpecification
+  ExamSpecification,
+  SubmitExamResponse
 } from '@/lib/types'
 import { useExamTake } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-take'
 import { useEffect, useState, useCallback } from 'react'
 import { getExamTime } from '@/lib/actions/anti-cheat.action'
-import { getExamSpecification } from '@/lib/actions'
+import { getExamSpecification, getMe } from '@/lib/actions'
+import { User as UserType } from '@/lib/types'
 import { useAntiCheat } from '@/hooks/use-anti-cheat'
 import { useExamTimer } from '@/hooks/use-exam-timer'
 import { useExamSocket } from '@/hooks/use-exam-socket'
@@ -25,7 +27,7 @@ import { PageSpinner } from '@/components/shared'
 import type { ExecuteSqlResponse } from '@/lib/types'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Clock, Send } from 'lucide-react'
+import { Clock, Send, User } from 'lucide-react'
 
 interface ExamTakeInterfaceProps {
   exam: StudentExamDetail
@@ -35,6 +37,7 @@ interface ExamTakeInterfaceProps {
 export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   // Always call hooks at the top
   const [sessionStarted, setSessionStarted] = useState(false)
+  const [user, setUser] = useState<UserType | null>(null)
   const [initialSeconds, setInitialSeconds] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -86,7 +89,23 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     examId: exam.examId,
     enabled: examActive,
     onForceSubmit: handleForceSubmit,
-    onTimeSync: setServerTime
+    onTimeSync: setServerTime,
+    onGradingResult: (rawResult: unknown) => {
+      const result = rawResult as {
+        status: string
+        reason?: string
+      } & SubmitExamResponse
+      if (result.status === 'COMPLETED') {
+        examTake.setSubmitResult(result)
+        examTake.setIsGrading(false)
+        examTake.setIsSubmitted(true)
+      } else if (result.status === 'FAILED') {
+        toast.error(
+          'Chấm bài thất bại: ' + (result.reason || 'Lỗi không xác định')
+        )
+        examTake.setIsGrading(false)
+      }
+    }
   })
 
   // Fetch exam specification to provide schema IntelliSense in SQL editor
@@ -138,7 +157,14 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       setLoading(true)
       setError(null)
       try {
-        const timeRes = await getExamTime(exam.examId)
+        // Fetch user info in parallel
+        const [timeRes, userRes] = await Promise.all([
+          getExamTime(exam.examId),
+          getMe()
+        ])
+
+        if (userRes.data) setUser(userRes.data)
+
         if (timeRes.data && timeRes.data.remainingSeconds > 0) {
           setInitialSeconds(timeRes.data.remainingSeconds)
           setSessionStarted(true)
@@ -213,6 +239,25 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   return (
     <>
       <ViolationWarningModal />
+      {examTake.isGrading && (
+        <div className="fixed inset-0 z-100 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="relative h-16 w-16">
+              <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+              <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">
+                Hệ thống đang chấm bài...
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                Vui lòng không thoát trang web này. Kết quả sẽ hiển thị ngay khi
+                hoàn tất.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Left: Question sidebar */}
@@ -226,38 +271,55 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
 
           {/* Right: Prompt + Editor + Bottom panel */}
           <div className="relative flex flex-1 min-w-0 flex-col overflow-hidden">
-            {/* Floating mini status (top-right) */}
-            <div className="pointer-events-none absolute right-3 top-3 z-40">
-              <div className="pointer-events-auto w-[220px] rounded-xl border border-border bg-background/85 backdrop-blur px-3 py-2 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-foreground">
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+            {/* Top Header Bar */}
+            <div className="shrink-0 flex items-center justify-between border-b border-border bg-card px-4 py-2 sm:px-6 z-10">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold overflow-hidden">
+                  {user?.fullName?.charAt(0) || <User className="h-4 w-4" />}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-semibold text-foreground truncate">
+                    {user?.fullName || 'Đang tải...'}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate font-medium">
+                    {user?.studentId || user?.email || '...'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <div className="hidden sm:flex flex-col items-end">
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Tiến độ: {examTake.answeredCount}/{questions.length} câu
+                  </div>
+                  <div className="h-1.5 w-32 overflow-hidden rounded-full bg-secondary border border-border/50">
+                    <div
+                      className="h-full rounded-full bg-linear-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
+                      style={{
+                        width: `${
+                          questions.length > 0
+                            ? (examTake.answeredCount / questions.length) * 100
+                            : 0
+                        }%`
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 text-sm font-mono font-semibold text-foreground bg-primary/5 px-3 py-1.5 rounded-md border border-primary/10">
+                    <Clock className="h-4 w-4 text-primary" />
                     <span>{formatTime(remainingSeconds)}</span>
                   </div>
                   <Button
                     onClick={examTake.handleRequestSubmit}
                     disabled={examTake.isLoading}
                     size="sm"
-                    className="h-7 px-2 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="h-8 px-4 text-sm gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                   >
-                    <Send className="h-3.5 w-3.5" />
-                    Nộp
+                    <Send className="h-4 w-4" />
+                    Nộp bài
                   </Button>
-                </div>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary border border-border/50">
-                  <div
-                    className="h-full rounded-full bg-linear-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
-                    style={{
-                      width: `${
-                        questions.length > 0
-                          ? (examTake.answeredCount / questions.length) * 100
-                          : 0
-                      }%`
-                    }}
-                  />
-                </div>
-                <div className="mt-1 text-[10px] text-muted-foreground">
-                  {examTake.answeredCount}/{questions.length} câu
                 </div>
               </div>
             </div>

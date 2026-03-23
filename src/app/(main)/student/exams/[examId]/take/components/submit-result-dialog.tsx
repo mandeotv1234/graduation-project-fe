@@ -20,10 +20,10 @@ export function SubmitResultDialog({
   result,
   onBack
 }: SubmitResultDialogProps) {
+  const totalScore = result.totalScore ?? 0
+  const maxScore = result.maxScore ?? 0
   const percentage =
-    result.maxScore > 0
-      ? ((result.totalScore / result.maxScore) * 100).toFixed(1)
-      : '0'
+    maxScore > 0 ? ((totalScore / maxScore) * 100).toFixed(1) : '0'
 
   const isPassed = Number(percentage) >= 50
 
@@ -60,7 +60,7 @@ export function SubmitResultDialog({
             <div className="mt-6 flex items-center justify-center gap-8">
               <div className="text-center">
                 <p className="text-4xl font-extrabold text-foreground">
-                  {result.totalScore}/{result.maxScore}
+                  {totalScore}/{maxScore}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">Điểm số</p>
               </div>
@@ -74,7 +74,7 @@ export function SubmitResultDialog({
               <div className="h-12 w-px bg-border" />
               <div className="text-center">
                 <p className="text-4xl font-extrabold text-foreground">
-                  {result.correctCount}/{result.totalQuestions}
+                  {result.correctCount ?? 0}/{result.totalQuestions ?? 0}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">Đúng</p>
               </div>
@@ -89,7 +89,7 @@ export function SubmitResultDialog({
               </h3>
             </div>
 
-            {result.questionResults.map((qr) => (
+            {(result.questionResults || []).map((qr) => (
               <div
                 key={qr.questionId}
                 className="flex items-center justify-between px-8 py-3"

@@ -12,22 +12,26 @@ interface UseExamSocketOptions {
   enabled?: boolean
   onForceSubmit?: () => void
   onTimeSync?: (remainingSeconds: number) => void
+  onGradingResult?: (result: unknown) => void
 }
 
 export function useExamSocket({
   examId,
   enabled = true,
   onForceSubmit,
-  onTimeSync
+  onTimeSync,
+  onGradingResult
 }: UseExamSocketOptions) {
   const dispatch = useAppDispatch()
   const isConnected = useRef(false)
   const subsRef = useRef<Array<() => void>>([])
   const onForceSubmitRef = useRef(onForceSubmit)
   const onTimeSyncRef = useRef(onTimeSync)
+  const onGradingResultRef = useRef(onGradingResult)
 
   onForceSubmitRef.current = onForceSubmit
   onTimeSyncRef.current = onTimeSync
+  onGradingResultRef.current = onGradingResult
 
   const cleanupSubs = () => {
     subsRef.current.forEach((unsub) => {
@@ -108,6 +112,21 @@ export function useExamSocket({
       )
 
       subsRef.current.push(() => subConflict.unsubscribe())
+
+      // Subscribe to grading results
+      const subGrading = client.subscribe(
+        `/topic/exam/${examId}/grading-result`,
+        (message) => {
+          try {
+            const payload = JSON.parse(message.body)
+            onGradingResultRef.current?.(payload)
+          } catch {
+            console.error('[ExamSocket] Failed to parse grading result')
+          }
+        }
+      )
+
+      subsRef.current.push(() => subGrading.unsubscribe())
     }
 
     connectStomp({
