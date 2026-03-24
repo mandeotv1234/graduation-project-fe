@@ -178,6 +178,24 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
     }
   },
   {
+    id: 'specification-edit',
+    kind: 'template',
+    template: '/teacher/specifications/:specificationId/edit',
+    crumbs: [
+      HOME_CRUMB,
+      {
+        label: 'Đặc tả',
+        href: '/teacher/specifications',
+        clickable: true
+      },
+      {
+        label: ':specificationName',
+        href: '/teacher/specifications/:specificationId/edit',
+        clickable: false
+      }
+    ]
+  },
+  {
     id: 'teacher-fallback',
     kind: 'custom',
     match: (pathname) => {

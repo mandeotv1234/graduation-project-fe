@@ -313,3 +313,69 @@
   height: 12px;
   margin-right: 4px;
 }
+
+.editor-container .tiptap table,
+.editor-container .ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  background-color: var(--background);
+  border: 1px solid var(--border) !important;
+}
+.editor-container .tiptap table td,
+.editor-container .tiptap table th,
+.editor-container .ProseMirror table td,
+.editor-container .ProseMirror table th {
+  min-width: 50px;
+  border: 1px solid var(--border) !important;
+  padding: 6px 8px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-weight: 400;
+}
+.editor-container .tiptap table th,
+.editor-container .ProseMirror table th {
+  font-weight: 500;
+  text-align: left;
+  background-color: var(--muted);
+}
+.tiptap .selectedCell:after,
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: '';
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(144, 202, 249, 0.4);
+  pointer-events: none;
+}
+.tiptap .column-resize-handle,
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: var(--primary);
+  pointer-events: none;
+}
+.editor-container .tiptap,
+.editor-container .ProseMirror {
+  min-width: 0;
+}
+.tiptap ul,
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+.tiptap ol,
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+}

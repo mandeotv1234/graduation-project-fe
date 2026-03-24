@@ -78,6 +78,7 @@ export default async function TeacherExamDetailPage({
       hasSpecification={hasSpecification}
       specificationLabel={specificationLabel}
       questions={questions}
+      specification={specRes.data}
     />
   )
 }

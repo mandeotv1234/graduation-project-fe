@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import {
@@ -28,7 +27,7 @@ import { getSpecifications } from '@/lib/actions'
 
 import { examSchema, ExamFormValues, ExamFormInput } from './exam-form-schema'
 import { ToggleField } from './toggle-field'
-import { PATH } from '@/lib/constants'
+import { CreateSpecificationModal } from '@/app/(main)/teacher/specifications/components/create-specification-modal'
 
 interface ExamFormProps {
   initialData?: Partial<ExamFormInput>
@@ -51,6 +50,7 @@ export function ExamForm({
   const [selectedSpec, setSelectedSpec] =
     useState<SpecificationResponse | null>(null)
   const [showSpecPreview, setShowSpecPreview] = useState(false)
+  const [isSpecModalOpen, setIsSpecModalOpen] = useState(false)
 
   const {
     register,
@@ -58,6 +58,7 @@ export function ExamForm({
     control,
     watch,
     reset,
+    setValue,
     formState: { errors }
   } = useForm<ExamFormInput, unknown, ExamFormValues>({
     resolver: zodResolver(examSchema),
@@ -103,6 +104,15 @@ export function ExamForm({
     }
     fetchSpecifications()
   }, [])
+
+  const handleSpecificationCreated = async (newSpec: SpecificationResponse) => {
+    const specificationsRes = await getSpecifications()
+    if (specificationsRes.data) {
+      setSpecifications(specificationsRes.data)
+    }
+    setValue('specificationId', newSpec.id)
+    setIsSpecModalOpen(false)
+  }
 
   const specIdWatch = watch('specificationId')
   useEffect(() => {
@@ -250,12 +260,13 @@ export function ExamForm({
                     <p className="text-xs text-muted-foreground">
                       Sơ đồ CSDL sinh viên sẽ làm bài.
                     </p>
-                    <Link
-                      href={PATH.TEACHER_SPECIFICATIONS}
+                    <button
+                      type="button"
+                      onClick={() => setIsSpecModalOpen(true)}
                       className="text-blue-600 text-xs font-semibold hover:underline flex items-center gap-1"
                     >
                       <Plus className="w-3 h-3" /> Tạo mới
-                    </Link>
+                    </button>
                   </div>
                 </div>
 
@@ -504,6 +515,12 @@ export function ExamForm({
           </section>
         </div>
       </form>
+
+      <CreateSpecificationModal
+        open={isSpecModalOpen}
+        onOpenChange={setIsSpecModalOpen}
+        onSuccess={handleSpecificationCreated}
+      />
     </div>
   )
 }

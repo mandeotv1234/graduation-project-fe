@@ -6,7 +6,8 @@ import {
   getClassDetail,
   getClassExams,
   getClasses,
-  getTeacherExamDetail
+  getTeacherExamDetail,
+  getSpecificationDetail
 } from '@/lib/actions'
 
 type TeacherBreadcrumbSlotProps = {
@@ -29,6 +30,14 @@ function parseClassId(catchAll: string[]) {
 
 function parseExamId(catchAll: string[]) {
   if (catchAll[0] === 'exams' && /^\d+$/.test(catchAll[1] ?? '')) {
+    return catchAll[1]
+  }
+
+  return null
+}
+
+function parseSpecificationId(catchAll: string[]) {
+  if (catchAll[0] === 'specifications' && /^\d+$/.test(catchAll[1] ?? '')) {
     return catchAll[1]
   }
 
@@ -100,10 +109,12 @@ export default async function TeacherBreadcrumbSlot({
 
   const classId = parseClassId(catchAll)
   const examId = parseExamId(catchAll)
+  const specificationId = parseSpecificationId(catchAll)
 
   let classLabel: string | undefined
   let classIdForExam: string | undefined
   let examTitle: string | undefined
+  let specificationName: string | undefined
 
   if (classId) {
     try {
@@ -161,10 +172,22 @@ export default async function TeacherBreadcrumbSlot({
     }
   }
 
+  if (specificationId) {
+    try {
+      const specResponse = await getSpecificationDetail(Number(specificationId))
+      if (specResponse.data) {
+        specificationName = specResponse.data.name
+      }
+    } catch {
+      // fallback
+    }
+  }
+
   const items = resolveTeacherBreadcrumb(pathname, {
     classId: classIdForExam,
     classLabel,
-    examTitle
+    examTitle,
+    specificationName
   }).map((item) => {
     if (item.href === '/teacher/classes/') {
       return {
