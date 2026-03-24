@@ -4,6 +4,7 @@ import { apiClient } from '@/lib/api'
 import {
   ApiResponse,
   Question,
+  TeacherExamMonitorData,
   TeacherExamDetail,
   UpdateExamRequest,
   CreateExamRequest,
@@ -112,6 +113,14 @@ export async function getTeacherExamDetail(
   examId: number
 ): Promise<ApiResponse<TeacherExamDetail>> {
   return apiClient.get<TeacherExamDetail>(`/exams/${examId}/teacher-detail`, {
+    cache: 'no-store'
+  })
+}
+
+export async function getTeacherExamMonitor(
+  examId: number
+): Promise<ApiResponse<TeacherExamMonitorData>> {
+  return apiClient.get<TeacherExamMonitorData>(ENDPOINTS.EXAM_MONITOR(examId), {
     cache: 'no-store'
   })
 }

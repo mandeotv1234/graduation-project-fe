@@ -67,3 +67,16 @@ export interface ViolationNotification {
   autoSubmitted: boolean
   timestamp: string
 }
+
+// GET /api/exams/{examId}/violations?studentId={studentId}
+export interface TeacherExamViolation {
+  id: number
+  examId: number
+  studentId: number
+  attemptNumber?: number | null
+  violationType: string
+  description?: string | null
+  ipAddress?: string | null
+  userAgent?: string | null
+  createdAt: string
+}

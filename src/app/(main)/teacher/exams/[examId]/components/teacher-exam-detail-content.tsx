@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Database, Edit, FileText, ShieldAlert } from 'lucide-react'
+import { Activity, Database, Edit, FileText, ShieldAlert } from 'lucide-react'
 
 import { EditExamModalButton } from '@/app/(main)/teacher/exams/[examId]/components/edit-exam-modal-button'
 import { ExamQuestionsView } from '@/app/(main)/teacher/exams/[examId]/questions/components/exam-questions-view'
@@ -107,6 +107,12 @@ export function TeacherExamDetailContent({
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Link href={PATH.TEACHER_EXAM_MONITOR(exam.id)}>
+              <Button variant="outline" className="gap-2">
+                <Activity className="h-4 w-4" />
+                Giám sát thi
+              </Button>
+            </Link>
             <EditExamModalButton exam={displayExam} onSaved={setDisplayExam} />
           </div>
         </div>
