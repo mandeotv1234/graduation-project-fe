@@ -1,28 +1,26 @@
 'use client'
 
-import Link from 'next/link'
 import {
-  Users,
-  FileText,
-  Plus,
   Calendar,
   Clock,
-  Hash,
-  Mail,
-  User,
   Database,
-  Settings
+  FileText,
+  Plus,
+  Settings,
+  User,
+  Users
 } from 'lucide-react'
+import Link from 'next/link'
 
-import { Button } from '@/components/ui/button'
 import { ClassTeachersSection } from '@/app/(main)/teacher/classes/[classId]/components/class-teachers-section'
+import { Button } from '@/components/ui/button'
 import { PATH } from '@/lib/constants'
 import {
   ClassDetail,
-  ClassTeacher,
-  StudentInClass,
   ClassExamItem,
-  PaginationMeta
+  ClassTeacher,
+  PaginationMeta,
+  StudentInClass
 } from '@/lib/types'
 import { formatDate, formatDateTime, getExamStatus } from '@/lib/utils'
 
@@ -109,7 +107,7 @@ export function ClassDetailView({
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xs bg-surface-container-low p-6 border-b-2 border-primary/10 bg-card p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
               <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -122,7 +120,7 @@ export function ClassDetailView({
             </div>
           </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xs bg-surface-container-low p-6 border-b-2 border-primary/10 bg-card p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
               <User className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -135,7 +133,7 @@ export function ClassDetailView({
             </div>
           </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xs bg-surface-container-low p-6 border-b-2 border-primary/10 bg-card p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10">
               <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
@@ -161,8 +159,7 @@ export function ClassDetailView({
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Bài thi
+            Danh sách bài thi
           </h2>
         </div>
 
@@ -178,7 +175,7 @@ export function ClassDetailView({
             {exams.map((exam) => (
               <div
                 key={exam.id}
-                className="group flex items-center gap-2 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm"
+                className="group flex items-center gap-2 relative overflow-hidden rounded-xs border  bg-card p-6 bg-surface-container-low border-b-2 border-primary/10 transition-all duration-300 hover:border-primary/30 hover:shadow-md"
               >
                 <Link
                   href={PATH.TEACHER_EXAM_DETAIL(exam.id)}
@@ -225,7 +222,7 @@ export function ClassDetailView({
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10 rounded-lg border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+                      className="h-10 w-10 rounded-lg hover:border-primary/30 hover:bg-blue-50"
                     >
                       <Settings className="h-4 w-4" />
                     </Button>
@@ -240,7 +237,6 @@ export function ClassDetailView({
       {/* Students section */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
           Danh sách sinh viên
         </h2>
 
@@ -252,20 +248,17 @@ export function ClassDetailView({
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl bg-card border border-border">
+          <div className="overflow-hidden rounded-xs bg-card border border-border">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <Hash className="inline h-3 w-3 mr-1" />
                     STT
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <User className="inline h-3 w-3 mr-1" />
                     Họ tên
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <Mail className="inline h-3 w-3 mr-1" />
                     Email
                   </th>
                 </tr>

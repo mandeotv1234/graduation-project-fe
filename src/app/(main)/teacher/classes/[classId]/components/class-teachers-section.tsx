@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Mail, Shield, Trash2, UserPlus, Users } from 'lucide-react'
+import { Loader2, Mail, Shield, Trash2, UserPlus } from 'lucide-react'
 
 import { toast } from 'sonner'
 
@@ -101,7 +101,6 @@ export function ClassTeachersSection({
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-semibold text-foreground">
-            <Users className="h-5 w-5 text-primary" />
             Giáo viên phụ trách
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -165,7 +164,7 @@ export function ClassTeachersSection({
           return (
             <div
               key={teacher.id}
-              className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-4 rounded-xs bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">

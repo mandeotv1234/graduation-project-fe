@@ -123,7 +123,8 @@ export function ExamQuestionsView({
     }))
 
     const result = await callApi(
-      createExamQuestionsBatch(examId, { questions: questionsToCreate })
+      createExamQuestionsBatch(examId, { questions: questionsToCreate }),
+      false
     )
 
     if (result.data) {
@@ -146,7 +147,7 @@ export function ExamQuestionsView({
       <div className="flex items-center justify-between">
         <div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
               Danh sách câu hỏi
             </h1>
             <p className="text-muted-foreground">
@@ -450,7 +451,7 @@ function QuestionItem({ question }: { question: ExamQuestionItem }) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <div className="rounded-xl border border-border bg-card transition-all hover:shadow-sm">
+    <div className="rounded-sm shadow-sm bg-card transition-all hover:shadow-md">
       <div className="p-5">
         <div className="flex items-start gap-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
@@ -505,7 +506,7 @@ function QuestionItem({ question }: { question: ExamQuestionItem }) {
                 <Code2 className="h-3.5 w-3.5" />
                 Đáp án (Correct Query)
               </div>
-              <div className="rounded-lg border border-border bg-background p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
+              <div className="rounded-lg bg-outline-variant/50 p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
                 {question.correctQuery || '-- Không có đáp án'}
               </div>
             </div>
@@ -515,7 +516,7 @@ function QuestionItem({ question }: { question: ExamQuestionItem }) {
                 <Terminal className="h-3.5 w-3.5" />
                 Script kiểm thử (Verify Script)
               </div>
-              <div className="rounded-lg border border-border bg-background p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
+              <div className="rounded-lg bg-outline-variant/50 p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
                 {question.verifyScript || '-- Không có script'}
               </div>
             </div>

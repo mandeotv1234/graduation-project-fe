@@ -1,8 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import {
+  Activity,
+  Clock,
+  Database,
+  Edit,
+  FileText,
+  Info,
+  ShieldAlert
+} from 'lucide-react'
 import Link from 'next/link'
-import { Activity, Database, Edit, FileText, ShieldAlert } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 import { EditExamModalButton } from '@/app/(main)/teacher/exams/[examId]/components/edit-exam-modal-button'
 import { ExamQuestionsView } from '@/app/(main)/teacher/exams/[examId]/questions/components/exam-questions-view'
@@ -98,10 +106,10 @@ export function TeacherExamDetailContent({
 
   return (
     <div className="space-y-8">
-      <div className="rounded-xl pt-1 pb-6 mb-1">
+      <div className="p-6 mb-0 bg-primary-container">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="text-4xl font-bold text-sub-primary headline-font leading-tight">
               {displayExam.title}
             </h1>
           </div>
@@ -117,249 +125,219 @@ export function TeacherExamDetailContent({
           </div>
         </div>
       </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card shadow-sm lg:col-span-2 flex flex-col overflow-hidden">
-          <div className="flex items-center gap-3 border-b border-border px-5 py-4 bg-muted/20">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <FileText className="h-4 w-4 text-primary" />
+      <div className="rounded-xs bg-card p-6">
+        <div className="grid gap-4 lg:grid-cols-3 mb-4">
+          <section className="bg-card rounded-xs p-6 lg:col-span-2">
+            <div className="flex items-center gap-2 mb-6">
+              <Info className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-bold text-foreground tracking-tight">
+                Thông tin chung
+              </h3>
             </div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">
-              Thông tin chung
-            </h2>
-          </div>
 
-          <div className="flex-1 p-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-3">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Nhận diện bài thi
-                </h3>
-                <div className="grid gap-3 rounded-xl border border-border bg-muted/20 p-3.5">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Tiêu đề bài thi
-                    </p>
-                    <p className="text-sm font-medium leading-snug text-foreground">
-                      {displayExam.title}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Đặc tả CSDL
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      {specificationLabel}
-                    </p>
-                  </div>
-                </div>
+            <div className="grid grid-cols-2 gap-y-8 gap-x-12">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Bắt đầu
+                </p>
+                <p className="text-foreground font-semibold text-lg">
+                  {formatDateTime(displayExam.startTime)}
+                </p>
               </div>
 
-              <div className="space-y-3">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Khung thời gian
-                </h3>
-                <div className="grid gap-3 rounded-xl border border-border bg-muted/20 p-3.5">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Thời gian bắt đầu
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      {formatDateTime(displayExam.startTime)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Thời gian kết thúc
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      {formatDateTime(displayExam.endTime)}
-                    </p>
-                  </div>
-                </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Kết thúc
+                </p>
+                <p className="text-foreground font-semibold text-lg">
+                  {formatDateTime(displayExam.endTime)}
+                </p>
               </div>
 
-              <div className="sm:col-span-2 grid gap-3 grid-cols-3">
-                <div className="rounded-xl border border-border bg-card p-3 flex flex-col items-center justify-center text-center">
-                  <span className="text-xs text-muted-foreground mb-1">
-                    Thời lượng
-                  </span>
-                  <span className="text-xl font-bold text-foreground">
-                    {displayExam.durationMinutes}{' '}
-                    <span className="text-[11px] font-normal text-muted-foreground">
-                      phút
-                    </span>
-                  </span>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-3 flex flex-col items-center justify-center text-center">
-                  <span className="text-xs text-muted-foreground mb-1">
-                    Số câu hỏi
-                  </span>
-                  <span className="text-xl font-bold text-foreground">
-                    {questionCount}
-                  </span>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-3 flex flex-col items-center justify-center text-center">
-                  <span className="text-xs text-muted-foreground mb-1.5">
-                    Trạng thái
-                  </span>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Thời lượng
+                </p>
+                <p className="text-foreground font-semibold text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary/60" />
+                  {displayExam.durationMinutes} phút
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Số câu hỏi
+                </p>
+                <p className="text-foreground font-semibold text-lg flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary/60" />
+                  {questionCount} câu
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Trạng thái
+                </p>
+                <div className="flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusMeta.className}`}
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusMeta.className}`}
                   >
                     {statusMeta.label}
                   </span>
                 </div>
               </div>
 
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-blue-900 mb-1">
+                  Đặc tả CSDL
+                </p>
+                <p className="text-foreground font-semibold text-lg flex items-center gap-2">
+                  <Database className="h-5 w-5 text-primary/60" />
+                  {specificationLabel}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-8 border-slate-100">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Mô tả và nội quy
+              </p>
               {displayExam.description ? (
-                <div className="sm:col-span-2 space-y-2 pt-1">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Mô tả và nội quy
-                  </h3>
-                  <div className="rounded-xl border border-border bg-muted/10 p-3.5">
-                    <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                      {displayExam.description}
-                    </p>
-                  </div>
+                <div className="bg-muted/30 rounded-lg p-4 italic text-muted-foreground text-sm whitespace-pre-wrap">
+                  {displayExam.description}
                 </div>
               ) : (
-                <div className="sm:col-span-2 space-y-2 pt-1">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Mô tả và nội quy
-                  </h3>
-                  <div className="rounded-xl border border-dashed border-border p-3 flex items-center justify-center bg-transparent">
-                    <span className="text-[13px] text-muted-foreground italic">
-                      Chưa có mô tả và nội quy.
-                    </span>
-                  </div>
+                <div className="bg-muted rounded-xs p-4 italic text-slate-500 text-sm">
+                  Chưa có mô tả và nội quy.
                 </div>
               )}
             </div>
+          </section>
+
+          <div className="space-y-4 border-l border-border pl-4">
+            <div className="rounded-lg bg-card overflow-hidden p-4">
+              <div className="flex items-center gap-2.5 border-b border-border bg-muted/20 px-4 py-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
+                  <Database className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Quy định nộp bài
+                </h2>
+              </div>
+              <div className="p-4">
+                <dl className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Xuất bản ngay
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {yesNo(displayExam.isPublished)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Làm tối đa
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {displayExam.maxAttempts}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Ngưỡng nộp trễ
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {displayExam.lateThreshold} phút
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Tính điểm
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px] truncate pl-2">
+                      {mapGradingMethod(displayExam.settings?.gradingMethod)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Hiện điểm
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px] truncate pl-2">
+                      {mapScoreDisplayMode(
+                        displayExam.settings?.scoreDisplayMode
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            <div className="rounded-lg overflow-hidden p-4">
+              <div className="flex items-center gap-2.5 border-b border-border bg-muted/20 px-4 py-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-rose-500/10">
+                  <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                </div>
+                <h2 className="text-sm font-semibold text-foreground">
+                  Cài đặt chống gian lận
+                </h2>
+              </div>
+              <div className="p-4">
+                <dl className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Chống Copy
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {yesNo(displayExam.settings?.preventCopyPaste)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Toàn màn hình
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {yesNo(displayExam.settings?.forceFullscreen)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Đổi tab
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {yesNo(displayExam.settings?.trackTabSwitch)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Nộp khi vi phạm
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {yesNo(displayExam.settings?.autoSubmitOnViolation)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Xem lại
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {yesNo(displayExam.settings?.allowReview)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Được nộp trễ
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {yesNo(displayExam.settings?.allowOvertime)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2.5 border-b border-border bg-muted/20 px-4 py-3">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
-                <Database className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Quy định nộp bài
-              </h2>
-            </div>
-            <div className="p-4">
-              <dl className="space-y-3 text-sm">
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">
-                    Xuất bản ngay
-                  </dt>
-                  <dd className="font-medium text-foreground text-right text-[13px]">
-                    {yesNo(displayExam.isPublished)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">
-                    Làm tối đa
-                  </dt>
-                  <dd className="font-medium text-foreground text-right text-[13px]">
-                    {displayExam.maxAttempts}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">
-                    Ngưỡng nộp trễ
-                  </dt>
-                  <dd className="font-medium text-foreground text-right text-[13px]">
-                    {displayExam.lateThreshold} phút
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">
-                    Tính điểm
-                  </dt>
-                  <dd className="font-medium text-foreground text-right text-[13px] truncate pl-2">
-                    {mapGradingMethod(displayExam.settings?.gradingMethod)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">
-                    Hiện điểm
-                  </dt>
-                  <dd className="font-medium text-foreground text-right text-[13px] truncate pl-2">
-                    {mapScoreDisplayMode(
-                      displayExam.settings?.scoreDisplayMode
-                    )}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2.5 border-b border-border bg-muted/20 px-4 py-3">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-rose-500/10">
-                <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
-              </div>
-              <h2 className="text-sm font-semibold text-foreground">
-                Cài đặt chống gian lận
-              </h2>
-            </div>
-            <div className="p-4">
-              <dl className="space-y-3 text-sm">
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">
-                    Chống Copy
-                  </dt>
-                  <dd className="font-medium text-foreground text-right text-[13px]">
-                    {yesNo(displayExam.settings?.preventCopyPaste)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">
-                    Toàn màn hình
-                  </dt>
-                  <dd className="font-medium text-foreground text-right text-[13px]">
-                    {yesNo(displayExam.settings?.forceFullscreen)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">Đổi tab</dt>
-                  <dd className="font-medium text-foreground text-right text-[13px]">
-                    {yesNo(displayExam.settings?.trackTabSwitch)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">
-                    Nộp khi vi phạm
-                  </dt>
-                  <dd className="font-medium text-foreground text-right text-[13px]">
-                    {yesNo(displayExam.settings?.autoSubmitOnViolation)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">Xem lại</dt>
-                  <dd className="font-medium text-foreground text-right text-[13px]">
-                    {yesNo(displayExam.settings?.allowReview)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                  <dt className="text-muted-foreground text-[13px]">
-                    Được nộp trễ
-                  </dt>
-                  <dd className="font-medium text-foreground text-right text-[13px]">
-                    {yesNo(displayExam.settings?.allowOvertime)}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-foreground">
+          <h2 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
             Đặc tả đề thi
           </h2>
           {!hasSpecification ? (

@@ -1,7 +1,7 @@
 'use client'
 
 import { ExamSpecification, SpecAttribute, SpecEntity } from '@/lib/types'
-import { Database, Key, Link2, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Database, Key, Link2 } from 'lucide-react'
 import { useState } from 'react'
 
 interface ExamSpecificationViewProps {
@@ -116,7 +116,7 @@ function EntityCard({
   )
 
   return (
-    <div className="rounded-xl border-2 border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xs border-2 border-border bg-card overflow-hidden">
       {/* ── Table header bar ── */}
       <div className="flex items-center gap-2 bg-primary/10 dark:bg-primary/15 px-3 py-2 border-b-2 border-primary/20">
         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/20">
@@ -245,10 +245,10 @@ function CollapsibleSection({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div className="rounded-xs shadow-sm bg-card overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between bg-muted/10 px-4 py-2.5 hover:bg-muted/30 transition-colors"
+        className="flex w-full items-center justify-between bg-muted/20 px-4 py-2.5 hover:bg-muted/80 transition-colors"
       >
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           {title}
@@ -285,15 +285,14 @@ export function ExamSpecificationView({
   return (
     <div className="space-y-4">
       {/* ── Spec header ── */}
-      <div className="rounded-lg border border-border bg-card px-4 py-3 space-y-1">
+      <div className="px-4 py-3 space-y-1">
         <div className="flex items-center gap-2">
-          <Database className="h-4 w-4 text-primary shrink-0" />
           <h3 className="font-bold text-sm text-foreground leading-tight">
             {specification.name ?? specification.title}
           </h3>
         </div>
         {specification.description && (
-          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap pl-6">
+          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
             {specification.description}
           </p>
         )}
@@ -301,7 +300,7 @@ export function ExamSpecificationView({
 
       {showDdlScript && specification.ddlScript && (
         <CollapsibleSection title="DDL Script">
-          <pre className="max-h-56 overflow-auto rounded-md bg-muted/40 p-3 text-[11px] font-mono whitespace-pre-wrap text-foreground">
+          <pre className="max-h-56 overflow-auto rounded-md bg-background p-3 text-[11px] font-mono whitespace-pre-wrap text-foreground">
             {specification.ddlScript}
           </pre>
         </CollapsibleSection>

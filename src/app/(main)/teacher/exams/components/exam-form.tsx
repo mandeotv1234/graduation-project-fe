@@ -180,12 +180,12 @@ export function ExamForm({
       <form
         id="exam-form"
         onSubmit={handleSubmit(onSubmit)}
-        className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-4"
       >
         {/* Left Column (Span 2) */}
-        <div className="lg:col-span-2 space-y-8 mb-8">
+        <div className="lg:col-span-2 space-y-8 mb-1">
           {/* Section 1: Thông tin cơ bản */}
-          <section className="bg-card rounded-xl border border-border p-6 shadow-sm">
+          <section className="bg-card rounded-xs p-6 pb-10 mb-4 lg:col-span-2 shadow-sm">
             <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
               <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
                 <FileText className="w-5 h-5" />
@@ -355,7 +355,7 @@ export function ExamForm({
           </section>
 
           {/* Section 2: Quy định nộp bài & Điểm số */}
-          <section className="bg-card rounded-xl border border-border p-6 shadow-sm">
+          <section className="bg-card rounded-xs p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
               <div className="p-2 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg">
                 <Award className="w-5 h-5" />
@@ -459,7 +459,7 @@ export function ExamForm({
 
         {/* Right Column (Span 1) */}
         <div className="space-y-6">
-          <section className="bg-card rounded-xl border border-border p-6 shadow-sm sticky top-24">
+          <section className="bg-card rounded-xs p-6 sticky top-24 shadow-sm">
             <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
               <div className="p-2 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg">
                 <ShieldAlert className="w-5 h-5" />

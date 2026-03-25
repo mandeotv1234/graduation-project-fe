@@ -55,12 +55,12 @@ const HOME_CRUMB: BreadcrumbCrumbConfig = {
 // Rule configuration for teacher breadcrumb chains.
 // You can add more entries with template, regex, or custom matching logic.
 const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
-  {
-    id: 'teacher-classes',
-    kind: 'template',
-    template: '/teacher/classes',
-    crumbs: [HOME_CRUMB]
-  },
+  // {
+  //   id: 'teacher-classes',
+  //   kind: 'template',
+  //   template: '/teacher/classes',
+  //   crumbs: [HOME_CRUMB]
+  // },
   {
     id: 'teacher-classes-create',
     kind: 'template',
@@ -196,18 +196,18 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
         clickable: false
       }
     ]
-  },
-  {
-    id: 'teacher-fallback',
-    kind: 'custom',
-    match: (pathname) => {
-      if (!pathname.startsWith('/teacher')) {
-        return null
-      }
-      return {}
-    },
-    crumbs: () => [HOME_CRUMB]
   }
+  // {
+  //   id: 'teacher-fallback',
+  //   kind: 'custom',
+  //   match: (pathname) => {
+  //     if (!pathname.startsWith('/teacher')) {
+  //       return null
+  //     }
+  //     return {}
+  //   },
+  //   crumbs: () => [HOME_CRUMB]
+  // }
 ]
 
 function normalizePath(pathname: string) {
