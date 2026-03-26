@@ -1,0 +1,22 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.basicInfoContainer {
+  @apply space-y-3;
+
+  .sectionTitle {
+    @apply text-base font-semibold;
+  }
+
+  .titleField {
+    @apply space-y-2;
+
+    .fieldLabel {
+      @apply text-sm;
+    }
+
+    .titleInput {
+      @apply bg-background border-input;
+    }
+  }
+}

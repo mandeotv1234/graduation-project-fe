@@ -1,0 +1,86 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.sidebarContainer {
+  @apply w-80 bg-sidebar border-l border-sidebar-border hidden lg:flex flex-col shrink-0;
+
+  .tabsContainer {
+    @apply flex-1 flex flex-col;
+
+    .tabsHeader {
+      @apply px-0 pt-0 border-b border-sidebar-border;
+
+      .tabsList {
+        @apply w-full bg-transparent p-0 h-12 rounded-none flex;
+
+        .tabsTrigger {
+          @apply flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-sidebar-accent/50 data-[state=active]:text-primary text-muted-foreground;
+        }
+      }
+    }
+
+    .tabsContent {
+      @apply flex-1 p-0 m-0 min-h-0;
+
+      .scrollArea {
+        @apply h-full;
+
+        .schemaContainer {
+          @apply p-4 space-y-6;
+
+          .tablesSection {
+            @apply space-y-4;
+
+            .sectionTitle {
+              @apply text-xs font-semibold text-muted-foreground uppercase tracking-wider;
+            }
+
+            .tableCard {
+              @apply border border-sidebar-border rounded-md overflow-hidden bg-background;
+
+              .tableHeader {
+                @apply px-3 py-2 border-b border-sidebar-border bg-sidebar-accent flex items-center gap-2;
+
+                .tableIcon {
+                  @apply w-4 h-4 text-primary;
+                }
+
+                .tableName {
+                  @apply font-mono text-sm font-medium text-sidebar-foreground;
+                }
+              }
+
+              .columnsList {
+                @apply p-3 space-y-2;
+
+                .columnItem {
+                  @apply flex justify-between items-center text-xs font-mono group;
+
+                  .columnName {
+                    @apply text-muted-foreground group-hover:text-foreground transition-colors;
+                  }
+
+                  .columnType {
+                    @apply text-muted-foreground;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        .emptyState {
+          @apply h-full flex flex-col items-center justify-center text-muted-foreground text-sm gap-2;
+
+          .emptyIcon {
+            @apply w-8 h-8 opacity-20;
+          }
+
+          .emptyDescription {
+            @apply text-xs text-muted-foreground;
+          }
+        }
+      }
+    }
+  }
+}

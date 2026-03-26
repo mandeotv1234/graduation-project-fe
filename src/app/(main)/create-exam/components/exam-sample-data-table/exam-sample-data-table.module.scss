@@ -1,0 +1,64 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.dataTableContainer {
+  @apply space-y-3;
+
+  .sectionTitle {
+    @apply text-base font-semibold;
+  }
+
+  .tableWrapper {
+    @apply border border-border rounded-md overflow-hidden bg-background;
+
+    .dataTable {
+      @apply w-full text-sm;
+
+      .tableHeader {
+        @apply bg-muted/50 border-b border-border;
+
+        .headerCell {
+          @apply px-4 py-3 text-left font-medium text-foreground;
+        }
+      }
+
+      .tableBody {
+        .tableRow {
+          @apply border-b border-border hover:bg-muted/30 transition-colors;
+
+          &:last-child {
+            @apply border-b-0;
+          }
+
+          .tableCell {
+            @apply px-4 py-3 text-foreground;
+
+            .cellInput {
+              @apply w-full bg-background border border-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/20;
+            }
+          }
+        }
+      }
+    }
+
+    .tableActions {
+      @apply p-3 border-t border-border bg-muted/30 flex justify-between items-center;
+
+      .tableInfo {
+        @apply text-xs text-muted-foreground;
+      }
+
+      .actionButtons {
+        @apply flex gap-2;
+
+        .addRowButton {
+          @apply px-3 py-1 text-xs;
+        }
+
+        .clearButton {
+          @apply px-3 py-1 text-xs text-destructive hover:text-destructive hover:bg-destructive/10;
+        }
+      }
+    }
+  }
+}

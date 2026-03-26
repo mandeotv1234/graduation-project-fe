@@ -1,0 +1,70 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.container {
+  @apply flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4;
+
+  .card {
+    @apply w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-800/50 p-8 shadow-2xl;
+
+    .header {
+      @apply text-center;
+
+      .iconContainer {
+        @apply mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-blue-500/10;
+
+        .headerIcon {
+          @apply size-8 text-blue-400;
+        }
+      }
+
+      .title {
+        @apply text-2xl font-bold text-white;
+      }
+
+      .description {
+        @apply mt-2 text-sm text-slate-400;
+      }
+    }
+
+    .rulesSection {
+      @apply mt-6 space-y-3;
+
+      .ruleItem {
+        @apply flex items-start gap-3 rounded-lg bg-slate-700/50 p-3;
+
+        .ruleIcon {
+          @apply mt-0.5 size-5 shrink-0 text-green-400;
+        }
+
+        .ruleTitle {
+          @apply text-sm font-medium text-white;
+        }
+
+        .ruleDescription {
+          @apply text-xs text-slate-400;
+        }
+      }
+    }
+
+    .errorMessage {
+      @apply mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3;
+
+      .errorText {
+        @apply text-sm text-red-400;
+      }
+    }
+
+    .ctaButton {
+      @apply mt-6 w-full bg-blue-600 text-white hover:bg-blue-700;
+
+      .spinnerIcon {
+        @apply mr-2 size-5 animate-spin;
+      }
+
+      .buttonIcon {
+        @apply mr-2 size-5;
+      }
+    }
+  }
+}

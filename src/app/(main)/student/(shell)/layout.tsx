@@ -1,4 +1,4 @@
-import { StudentHeader } from '@/app/(main)/student/(shell)/components/student-header'
+import { StudentHeader } from '@/app/(main)/student/(shell)/components/student-header/student-header'
 
 export default function StudentShellLayout({
   children

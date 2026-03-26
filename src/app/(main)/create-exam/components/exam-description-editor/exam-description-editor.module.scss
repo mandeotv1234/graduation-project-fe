@@ -1,0 +1,30 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.descriptionEditorContainer {
+  @apply space-y-3;
+
+  .sectionTitle {
+    @apply text-base font-semibold;
+  }
+
+  .fieldLabel {
+    @apply text-sm;
+  }
+
+  .editorToolbar {
+    @apply flex flex-wrap gap-1 p-2 border border-border rounded-t-md bg-muted/50;
+
+    .toolbarButton {
+      @apply h-8 w-8 p-0 rounded hover:bg-muted transition-colors;
+
+      &.active {
+        @apply bg-muted text-primary;
+      }
+    }
+  }
+
+  .editorContent {
+    @apply max-w-none min-h-[120px] px-4 py-3 focus:outline-none bg-background text-foreground border border-border rounded-b-md border-t-0;
+  }
+}

@@ -1,0 +1,54 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.fileUploadContainer {
+  @apply space-y-3;
+
+  .sectionTitle {
+    @apply text-base font-semibold;
+  }
+
+  .uploadArea {
+    @apply border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors bg-muted/20;
+
+    &.dragOver {
+      @apply border-primary bg-primary/5;
+    }
+
+    .uploadIcon {
+      @apply mx-auto h-12 w-12 text-muted-foreground mb-4;
+    }
+
+    .uploadText {
+      @apply text-sm text-muted-foreground mb-2;
+    }
+
+    .uploadButton {
+      @apply px-4;
+    }
+
+    .fileList {
+      @apply mt-4 space-y-2;
+
+      .fileItem {
+        @apply flex items-center justify-between p-2 bg-background border border-border rounded-md;
+
+        .fileInfo {
+          @apply flex items-center space-x-2;
+
+          .fileName {
+            @apply text-sm font-medium truncate max-w-[200px];
+          }
+
+          .fileSize {
+            @apply text-xs text-muted-foreground;
+          }
+        }
+
+        .removeButton {
+          @apply h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10;
+        }
+      }
+    }
+  }
+}

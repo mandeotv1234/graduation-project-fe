@@ -1,0 +1,62 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.editorContainer {
+  @apply h-full flex flex-col bg-background min-w-0 overflow-hidden;
+
+  .questionHeader {
+    @apply px-4 sm:px-6 py-3 sm:py-4 border-b border-border;
+
+    .questionTitle {
+      @apply text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2;
+    }
+
+    .questionDescription {
+      @apply text-muted-foreground leading-relaxed text-sm sm:text-base;
+    }
+  }
+
+  .editorSection {
+    @apply flex-1 flex flex-col overflow-hidden;
+
+    .editorToolbar {
+      @apply flex items-center justify-between px-4 sm:px-6 py-2 bg-card border-b border-border flex-wrap gap-2;
+
+      .editorLabel {
+        @apply text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2;
+      }
+
+      .toolbarButtons {
+        @apply flex gap-1 sm:gap-2;
+
+        .resetButton {
+          @apply h-7 sm:h-8 gap-1 sm:gap-2 text-muted-foreground hover:text-foreground hover:bg-accent px-2 sm:px-3 text-xs sm:text-sm;
+        }
+
+        .runButton {
+          @apply h-7 sm:h-8 gap-1 sm:gap-2 bg-primary hover:bg-primary/90 text-primary-foreground border-0 px-2 sm:px-3 text-xs sm:text-sm;
+        }
+
+        .buttonIcon {
+          @apply w-3 h-3 sm:w-3.5 sm:h-3.5;
+
+          &.runButton {
+            @apply fill-current;
+          }
+        }
+
+        .buttonTextDesktop {
+          @apply hidden sm:inline;
+        }
+
+        .buttonTextMobile {
+          @apply inline sm:hidden;
+        }
+      }
+    }
+
+    .editorContainerInner {
+      @apply flex-1 overflow-hidden px-4 sm:px-6 py-4;
+    }
+  }
+}
