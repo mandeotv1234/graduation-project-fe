@@ -64,8 +64,11 @@ export function QuestionPanel({ question }: QuestionPanelProps) {
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Đề bài
         </h3>
-        <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-          {question.content}
+        <div className="editor-container">
+          <div
+            className="whitespace-pre-wrap text-sm leading-relaxed text-foreground ProseMirror"
+            dangerouslySetInnerHTML={{ __html: question.content || '' }}
+          />
         </div>
       </div>
     </div>

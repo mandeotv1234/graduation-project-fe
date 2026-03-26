@@ -139,6 +139,32 @@ export interface TeacherExamDetail {
   settings: ExamSettings
 }
 
+// GET /api/exams/{examId}/monitor
+export interface TeacherExamMonitorStudent {
+  studentId: number
+  studentEmail: string
+  studentName: string
+  violationCount: number
+  latestViolationType?: string | null
+  latestViolationDescription?: string | null
+  latestViolationAt?: string | null
+  autoSubmitted: boolean
+  status: 'NORMAL' | 'VIOLATING' | 'AUTO_SUBMITTED' | string
+}
+
+export interface TeacherExamMonitorData {
+  examId: number
+  examTitle: string
+  classId: number
+  classCode: string
+  startTime?: string | null
+  endTime?: string | null
+  isPublished: boolean
+  totalStudents: number
+  totalViolators: number
+  students: TeacherExamMonitorStudent[]
+}
+
 // PUT /api/exams/{examId}
 export interface UpdateExamRequest {
   title: string

@@ -7,7 +7,8 @@ import {
   ExamTimeResponse,
   ReportViolationRequest,
   ReportViolationResponse,
-  StartExamSessionResponse
+  StartExamSessionResponse,
+  TeacherExamViolation
 } from '@/lib/types'
 
 function extractErrorMessage(error: unknown): string {
@@ -76,6 +77,28 @@ export async function getExamTime(
       code: 'SERVER_ERROR',
       message: msg,
       data: undefined as unknown as ExamTimeResponse
+    }
+  }
+}
+
+export async function getTeacherExamViolations(
+  examId: number,
+  studentId: number
+): Promise<ApiResponse<TeacherExamViolation[]>> {
+  try {
+    return await apiClient.get<TeacherExamViolation[]>(
+      ENDPOINTS.EXAM_REPORT_VIOLATION(examId),
+      {
+        queries: { studentId },
+        cache: 'no-store'
+      }
+    )
+  } catch (error: unknown) {
+    const msg = extractErrorMessage(error)
+    return {
+      code: 'SERVER_ERROR',
+      message: msg,
+      data: []
     }
   }
 }

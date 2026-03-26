@@ -24,9 +24,12 @@ export default function ExamEditor({ question }: ExamEditorProps) {
         <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">
           {`Câu ${question.id}: ${question.title}`}
         </h1>
-        <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
-          {question.description}
-        </p>
+        <div className="editor-container">
+          <div
+            className="text-muted-foreground leading-relaxed text-sm sm:text-base ProseMirror"
+            dangerouslySetInnerHTML={{ __html: question.description || '' }}
+          />
+        </div>
       </div>
 
       {/* Editor Section - FLEX-1 PATTERN */}

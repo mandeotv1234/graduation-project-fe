@@ -55,12 +55,12 @@ const HOME_CRUMB: BreadcrumbCrumbConfig = {
 // Rule configuration for teacher breadcrumb chains.
 // You can add more entries with template, regex, or custom matching logic.
 const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
-  {
-    id: 'teacher-classes',
-    kind: 'template',
-    template: '/teacher/classes',
-    crumbs: [HOME_CRUMB]
-  },
+  // {
+  //   id: 'teacher-classes',
+  //   kind: 'template',
+  //   template: '/teacher/classes',
+  //   crumbs: [HOME_CRUMB]
+  // },
   {
     id: 'teacher-classes-create',
     kind: 'template',
@@ -148,13 +148,15 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
   {
     id: 'teacher-exam-tabs',
     kind: 'regex',
-    pattern: /^\/teacher\/exams\/(\d+)\/(questions|specification|edit)$/,
+    pattern:
+      /^\/teacher\/exams\/(\d+)\/(questions|specification|edit|monitor)$/,
     paramKeys: ['examId', 'tab'],
     crumbs: ({ params }) => {
       const tabLabelMap: Record<string, string> = {
         questions: 'Câu hỏi',
         specification: 'Đặc tả đề thi',
-        edit: 'Chỉnh sửa thông tin'
+        edit: 'Chỉnh sửa thông tin',
+        monitor: 'Giám sát thi'
       }
 
       return [
@@ -178,16 +180,34 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
     }
   },
   {
-    id: 'teacher-fallback',
-    kind: 'custom',
-    match: (pathname) => {
-      if (!pathname.startsWith('/teacher')) {
-        return null
+    id: 'specification-edit',
+    kind: 'template',
+    template: '/teacher/specifications/:specificationId/edit',
+    crumbs: [
+      HOME_CRUMB,
+      {
+        label: 'Đặc tả',
+        href: '/teacher/specifications',
+        clickable: true
+      },
+      {
+        label: ':specificationName',
+        href: '/teacher/specifications/:specificationId/edit',
+        clickable: false
       }
-      return {}
-    },
-    crumbs: () => [HOME_CRUMB]
+    ]
   }
+  // {
+  //   id: 'teacher-fallback',
+  //   kind: 'custom',
+  //   match: (pathname) => {
+  //     if (!pathname.startsWith('/teacher')) {
+  //       return null
+  //     }
+  //     return {}
+  //   },
+  //   crumbs: () => [HOME_CRUMB]
+  // }
 ]
 
 function normalizePath(pathname: string) {

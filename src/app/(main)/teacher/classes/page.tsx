@@ -23,17 +23,6 @@ export default async function TeacherClassesPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Quản lý lớp học
-          </h1>
-          <p className="text-muted-foreground">
-            Danh sách các lớp học bạn đang phụ trách
-          </p>
-        </div>
-      </div>
-
       <ClassesList
         classes={classes}
         pagination={pagination}

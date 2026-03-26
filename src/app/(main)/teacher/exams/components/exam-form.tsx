@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import {
@@ -28,7 +27,7 @@ import { getSpecifications } from '@/lib/actions'
 
 import { examSchema, ExamFormValues, ExamFormInput } from './exam-form-schema'
 import { ToggleField } from './toggle-field'
-import { PATH } from '@/lib/constants'
+import { CreateSpecificationModal } from '@/app/(main)/teacher/specifications/components/create-specification-modal'
 
 interface ExamFormProps {
   initialData?: Partial<ExamFormInput>
@@ -51,6 +50,7 @@ export function ExamForm({
   const [selectedSpec, setSelectedSpec] =
     useState<SpecificationResponse | null>(null)
   const [showSpecPreview, setShowSpecPreview] = useState(false)
+  const [isSpecModalOpen, setIsSpecModalOpen] = useState(false)
 
   const {
     register,
@@ -58,6 +58,7 @@ export function ExamForm({
     control,
     watch,
     reset,
+    setValue,
     formState: { errors }
   } = useForm<ExamFormInput, unknown, ExamFormValues>({
     resolver: zodResolver(examSchema),
@@ -103,6 +104,15 @@ export function ExamForm({
     }
     fetchSpecifications()
   }, [])
+
+  const handleSpecificationCreated = async (newSpec: SpecificationResponse) => {
+    const specificationsRes = await getSpecifications()
+    if (specificationsRes.data) {
+      setSpecifications(specificationsRes.data)
+    }
+    setValue('specificationId', newSpec.id)
+    setIsSpecModalOpen(false)
+  }
 
   const specIdWatch = watch('specificationId')
   useEffect(() => {
@@ -170,12 +180,12 @@ export function ExamForm({
       <form
         id="exam-form"
         onSubmit={handleSubmit(onSubmit)}
-        className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-4"
       >
         {/* Left Column (Span 2) */}
-        <div className="lg:col-span-2 space-y-8 mb-8">
+        <div className="lg:col-span-2 space-y-8 mb-1">
           {/* Section 1: Thông tin cơ bản */}
-          <section className="bg-card rounded-xl border border-border p-6 shadow-sm">
+          <section className="bg-card rounded-xs p-6 pb-10 mb-4 lg:col-span-2 shadow-sm">
             <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
               <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
                 <FileText className="w-5 h-5" />
@@ -250,12 +260,13 @@ export function ExamForm({
                     <p className="text-xs text-muted-foreground">
                       Sơ đồ CSDL sinh viên sẽ làm bài.
                     </p>
-                    <Link
-                      href={PATH.TEACHER_SPECIFICATIONS}
+                    <button
+                      type="button"
+                      onClick={() => setIsSpecModalOpen(true)}
                       className="text-blue-600 text-xs font-semibold hover:underline flex items-center gap-1"
                     >
                       <Plus className="w-3 h-3" /> Tạo mới
-                    </Link>
+                    </button>
                   </div>
                 </div>
 
@@ -344,7 +355,7 @@ export function ExamForm({
           </section>
 
           {/* Section 2: Quy định nộp bài & Điểm số */}
-          <section className="bg-card rounded-xl border border-border p-6 shadow-sm">
+          <section className="bg-card rounded-xs p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
               <div className="p-2 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg">
                 <Award className="w-5 h-5" />
@@ -448,7 +459,7 @@ export function ExamForm({
 
         {/* Right Column (Span 1) */}
         <div className="space-y-6">
-          <section className="bg-card rounded-xl border border-border p-6 shadow-sm sticky top-24">
+          <section className="bg-card rounded-xs p-6 sticky top-24 shadow-sm">
             <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
               <div className="p-2 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg">
                 <ShieldAlert className="w-5 h-5" />
@@ -504,6 +515,12 @@ export function ExamForm({
           </section>
         </div>
       </form>
+
+      <CreateSpecificationModal
+        open={isSpecModalOpen}
+        onOpenChange={setIsSpecModalOpen}
+        onSuccess={handleSpecificationCreated}
+      />
     </div>
   )
 }

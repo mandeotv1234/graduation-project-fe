@@ -474,7 +474,7 @@ export function SpecificationEditView({
           type="button"
           variant="ghost"
           size="icon"
-          onClick={() => router.push(PATH.TEACHER_SPECIFICATIONS)}
+          onClick={() => router.back()}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import {
   Plus,
@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import { RichTextEditor } from '@/components/shared/rich-text-editor'
 import { createExamQuestionsBatch } from '@/lib/actions'
 import { useApi } from '@/hooks/use-api'
 import { ExamQuestionItem, CreateExamQuestionBatch } from '@/lib/types'
@@ -122,7 +123,8 @@ export function ExamQuestionsView({
     }))
 
     const result = await callApi(
-      createExamQuestionsBatch(examId, { questions: questionsToCreate })
+      createExamQuestionsBatch(examId, { questions: questionsToCreate }),
+      false
     )
 
     if (result.data) {
@@ -145,8 +147,8 @@ export function ExamQuestionsView({
       <div className="flex items-center justify-between">
         <div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Quản lý câu hỏi
+            <h1 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
+              Danh sách câu hỏi
             </h1>
             <p className="text-muted-foreground">
               {questions.length} câu hỏi · Tổng điểm: {totalPoints}đ
@@ -223,13 +225,13 @@ export function ExamQuestionsView({
           {/* Questions table */}
           {pendingQuestions.length > 0 && (
             <div className="overflow-x-auto rounded-lg border border-border bg-muted/20">
-              <table className="w-full text-sm">
+              <table className="w-full table-fixed text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
                     <th className="px-3 py-2 text-left font-semibold w-12">
                       STT
                     </th>
-                    <th className="px-3 py-2 text-left font-semibold flex-1 min-w-[300px]">
+                    <th className="px-3 py-2 text-left font-semibold w-[62%]">
                       Nội dung đề bài
                     </th>
                     <th className="px-3 py-2 text-left font-semibold w-24">
@@ -246,27 +248,21 @@ export function ExamQuestionsView({
                 </thead>
                 <tbody>
                   {pendingQuestions.map((q, idx) => (
-                    <>
-                      <tr
-                        key={q.id}
-                        className={`border-b border-border ${
-                          idx % 2 === 0 ? '' : 'bg-muted/10'
-                        }`}
-                      >
+                    <React.Fragment key={q.id}>
+                      <tr className={`${idx % 2 === 0 ? '' : 'bg-muted/10'}`}>
                         <td className="px-3 py-4 text-muted-foreground font-medium align-top">
                           {idx + 1}
                         </td>
-                        <td className="px-3 py-4 align-top">
-                          <textarea
-                            value={q.content}
-                            onChange={(e) =>
+                        <td className="px-3 py-4 align-top min-w-0">
+                          <RichTextEditor
+                            content={q.content}
+                            onChange={(html) =>
                               updateQuestion(q.id, {
-                                content: e.target.value
+                                content: html
                               })
                             }
                             placeholder="Mô tả yêu cầu câu hỏi..."
-                            className="w-full rounded border border-border bg-background px-2 py-1 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                            rows={3}
+                            minHeight="100px"
                           />
                         </td>
                         <td className="px-3 py-4 align-top">
@@ -334,8 +330,8 @@ export function ExamQuestionsView({
                         <td colSpan={5} className="px-3 pb-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                <Code2 className="h-3 w-3" />
+                              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                                <Code2 className="h-4 w-4" />
                                 Đáp án (Correct Query)
                               </label>
                               <textarea
@@ -358,8 +354,8 @@ export function ExamQuestionsView({
                               )}
                             </div>
                             <div className="space-y-1.5">
-                              <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                <Terminal className="h-3 w-3" />
+                              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                                <Terminal className="h-4 w-4" />
                                 Script kiểm thử (Verify Script)
                               </label>
                               <textarea
@@ -384,7 +380,7 @@ export function ExamQuestionsView({
                           </div>
                         </td>
                       </tr>
-                    </>
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
@@ -455,7 +451,7 @@ function QuestionItem({ question }: { question: ExamQuestionItem }) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <div className="rounded-xl border border-border bg-card transition-all hover:shadow-sm">
+    <div className="rounded-sm shadow-sm bg-card transition-all hover:shadow-md">
       <div className="p-5">
         <div className="flex items-start gap-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
@@ -479,9 +475,12 @@ function QuestionItem({ question }: { question: ExamQuestionItem }) {
               </span>
             </div>
 
-            <p className="text-sm text-foreground whitespace-pre-wrap">
-              {question.content}
-            </p>
+            <div className="editor-container">
+              <div
+                className="text-sm gap-2 text-foreground whitespace-pre-wrap ProseMirror"
+                dangerouslySetInnerHTML={{ __html: question.content || '' }}
+              />
+            </div>
           </div>
 
           <Button
@@ -507,7 +506,7 @@ function QuestionItem({ question }: { question: ExamQuestionItem }) {
                 <Code2 className="h-3.5 w-3.5" />
                 Đáp án (Correct Query)
               </div>
-              <div className="rounded-lg border border-border bg-background p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
+              <div className="rounded-lg bg-outline-variant/50 p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
                 {question.correctQuery || '-- Không có đáp án'}
               </div>
             </div>
@@ -517,7 +516,7 @@ function QuestionItem({ question }: { question: ExamQuestionItem }) {
                 <Terminal className="h-3.5 w-3.5" />
                 Script kiểm thử (Verify Script)
               </div>
-              <div className="rounded-lg border border-border bg-background p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
+              <div className="rounded-lg bg-outline-variant/50 p-3 font-mono text-xs text-foreground overflow-x-auto whitespace-pre">
                 {question.verifyScript || '-- Không có script'}
               </div>
             </div>

@@ -30,7 +30,7 @@ export default function CreateExamPageClient({
     const result = await callApi(createExam(payload))
 
     if (result.data) {
-      router.push(PATH.TEACHER_EXAM_SPECIFICATION(result.data.id))
+      router.push(PATH.TEACHER_EXAM_DETAIL(result.data.id))
     }
   }
 

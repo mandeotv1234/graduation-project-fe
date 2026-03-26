@@ -26,7 +26,7 @@ interface ClassesListProps {
 function ClassCard({ item }: { item: ClassListItem }) {
   return (
     <Link href={PATH.TEACHER_CLASS_DETAIL(item.id)}>
-      <div className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
+      <div className="group relative overflow-hidden rounded-xl border  bg-card p-6 bg-surface-container-low border-b-2 border-primary/10 transition-all duration-300 hover:border-primary/30 hover:shadow-md">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
         <div className="flex items-start justify-between">
@@ -132,8 +132,16 @@ export function ClassesList({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Quản lý lớp học
+          </h1>
+          <p className="text-muted-foreground">
+            Danh sách các lớp học bạn đang phụ trách
+          </p>
+        </div>
         <Link href={PATH.TEACHER_CREATE_CLASS}>
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
