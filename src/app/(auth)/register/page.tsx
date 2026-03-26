@@ -1,4 +1,4 @@
-import { RegisterForm } from '@/app/(auth)/register/components/register-form'
+import { RegisterForm } from '@/app/(auth)/register/components/register-form/register-form'
 
 export default async function RegisterPage() {
   return <RegisterForm />

@@ -1,0 +1,22 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.headerContainer {
+  @apply min-h-16 border-b border-border flex items-center justify-between px-6 bg-card shrink-0;
+
+  .title {
+    @apply text-lg font-bold;
+  }
+
+  .actions {
+    @apply flex items-center gap-4;
+
+    .cancelButton {
+      @apply px-6;
+    }
+
+    .saveButton {
+      @apply bg-primary hover:bg-primary/90 text-primary-foreground px-6;
+    }
+  }
+}

@@ -1,0 +1,46 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.sidebarContainer {
+  @apply w-64 bg-sidebar border-r border-sidebar-border hidden md:flex flex-col shrink-0;
+
+  .sidebarHeader {
+    @apply p-4 border-b border-sidebar-border;
+
+    .examTitle {
+      @apply font-semibold text-sidebar-foreground;
+    }
+
+    .subtitle {
+      @apply text-xs text-muted-foreground mt-1;
+    }
+  }
+
+  .scrollArea {
+    @apply flex-1;
+
+    .questionListContainer {
+      @apply p-4 space-y-2;
+
+      .questionItem {
+        @apply w-full flex items-center gap-3 p-3 rounded-lg transition-all text-sm border;
+
+        &.selected {
+          @apply bg-sidebar-accent border-sidebar-border text-sidebar-accent-foreground shadow-sm;
+        }
+
+        &.unselected {
+          @apply border-transparent text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground;
+        }
+
+        .icon {
+          @apply w-5 h-5;
+        }
+
+        .questionNumber {
+          @apply font-medium;
+        }
+      }
+    }
+  }
+}

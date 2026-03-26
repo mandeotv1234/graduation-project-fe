@@ -1,0 +1,14 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.watermarkContainer {
+  @apply pointer-events-none fixed inset-0 z-50 overflow-hidden select-none;
+
+  .watermarkGrid {
+    @apply absolute inset-[-50%] flex flex-wrap gap-24 -rotate-25 scale-110;
+
+    .watermarkText {
+      @apply text-foreground/3 whitespace-nowrap text-base font-semibold tracking-wider;
+    }
+  }
+}

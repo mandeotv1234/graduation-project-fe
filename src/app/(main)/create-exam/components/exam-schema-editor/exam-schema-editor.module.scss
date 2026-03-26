@@ -1,0 +1,38 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.schemaEditorContainer {
+  @apply space-y-3;
+
+  .sectionTitle {
+    @apply text-base font-semibold;
+  }
+
+  .schemaTabs {
+    @apply space-y-4;
+
+    .tabsList {
+      @apply grid w-full grid-cols-2 bg-muted/50 p-1 rounded-md;
+    }
+
+    .tabContent {
+      @apply space-y-3;
+
+      .schemaTextarea {
+        @apply min-h-[200px] font-mono text-sm bg-background border border-input rounded-md p-3 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20;
+      }
+
+      .tabActions {
+        @apply flex justify-between items-center;
+
+        .schemaInfo {
+          @apply text-xs text-muted-foreground;
+        }
+
+        .editButton {
+          @apply px-4;
+        }
+      }
+    }
+  }
+}

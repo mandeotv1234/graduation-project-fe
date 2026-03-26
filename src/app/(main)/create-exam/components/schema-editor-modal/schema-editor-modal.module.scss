@@ -1,0 +1,38 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.modalContent {
+  @apply max-w-2xl;
+
+  .modalTitle {
+    @apply text-lg font-semibold;
+  }
+
+  .modalDescription {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .schemaField {
+    @apply space-y-2;
+
+    .fieldLabel {
+      @apply text-sm font-medium;
+    }
+
+    .schemaTextarea {
+      @apply font-mono text-sm min-h-[200px] bg-background;
+    }
+  }
+
+  .modalFooter {
+    @apply flex gap-2 justify-end;
+
+    .cancelButton {
+      @apply px-4;
+    }
+
+    .saveButton {
+      @apply px-4;
+    }
+  }
+}

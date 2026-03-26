@@ -1,0 +1,38 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.headerContainer {
+  @apply min-h-16 border-b border-border flex flex-wrap items-center justify-between px-3 sm:px-6 py-2 sm:py-0 bg-card shrink-0 gap-2 sm:gap-0;
+
+  .brandSection {
+    @apply flex items-center gap-2;
+
+    .brandIcon {
+      @apply w-5 h-5 sm:w-6 sm:h-6 text-primary;
+    }
+
+    .brandText {
+      @apply font-bold text-base sm:text-lg;
+    }
+  }
+
+  .headerActions {
+    @apply flex items-center gap-2 sm:gap-4;
+
+    .timerDisplay {
+      @apply flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-mono px-2 sm:px-4 py-1 rounded-md border transition-colors;
+
+      .timerValue {
+        @apply text-base sm:text-xl font-bold leading-none;
+      }
+
+      .timerLabel {
+        @apply text-xs text-muted-foreground uppercase mt-0.5 sm:mt-1 hidden sm:inline;
+      }
+    }
+
+    .submitButton {
+      @apply bg-primary hover:bg-primary/90 text-primary-foreground px-3 sm:px-6 font-medium text-sm;
+    }
+  }
+}

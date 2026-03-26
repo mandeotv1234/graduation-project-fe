@@ -1,0 +1,22 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.interfaceContainer {
+  @apply flex flex-col h-screen bg-background text-foreground font-sans overflow-hidden relative;
+
+  .loadingContainer {
+    @apply flex items-center justify-center h-screen;
+  }
+
+  .errorContainer {
+    @apply flex items-center justify-center h-screen text-red-500;
+  }
+
+  .mainContent {
+    @apply flex flex-1 min-h-0 overflow-hidden;
+
+    .rightPanel {
+      @apply flex-1 min-h-0 min-w-0 overflow-hidden;
+    }
+  }
+}
