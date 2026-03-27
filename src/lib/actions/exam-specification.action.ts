@@ -87,3 +87,72 @@ export async function updateSpecification(
     data
   )
 }
+
+export async function generateGradingRubric(data: {
+  correctQuery: string
+  questionContent: string
+  totalPoints: number
+  enforceExactTotalPoints?: boolean
+  questionType?: string
+  contextQueries?: Array<{
+    questionType?: string
+    content?: string
+    correctQuery: string
+  }>
+}): Promise<ApiResponse<string>> {
+  return apiClient.post<string>(ENDPOINTS.EXAM_GENERATE_RUBRIC, data)
+}
+
+export async function testGradeCreateTable(data: {
+  correctQuery: string
+  studentQuery: string
+  gradingRubric: string
+  totalPoints: number
+}): Promise<
+  ApiResponse<{
+    earnedPoints: number
+    totalPoints: number
+    allPassed: boolean
+    details: { type: string; message: string; points: number }[]
+  }>
+> {
+  return apiClient.post(ENDPOINTS.EXAM_TEST_GRADE, data)
+}
+
+export async function testGradeInsertData(
+  examId: number,
+  data: {
+    correctQuery: string
+    studentQuery: string
+    gradingRubric: string
+    totalPoints: number
+  }
+): Promise<
+  ApiResponse<{
+    earnedPoints: number
+    totalPoints: number
+    allPassed: boolean
+    details: { type: string; message: string; points: number }[]
+  }>
+> {
+  return apiClient.post(ENDPOINTS.EXAM_TEST_GRADE_INSERT(examId), data)
+}
+
+export async function testGradeSelectData(
+  examId: number,
+  data: {
+    studentQuery: string
+    correctQuery?: string
+    gradingRubric: string
+    totalPoints: number
+  }
+): Promise<
+  ApiResponse<{
+    earnedPoints: number
+    totalPoints: number
+    allPassed: boolean
+    details: { type: string; message: string; points: number }[]
+  }>
+> {
+  return apiClient.post(ENDPOINTS.EXAM_TEST_GRADE_SELECT(examId), data)
+}
