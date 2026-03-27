@@ -18,6 +18,7 @@ import { EntitiesEditor } from '@/components/shared/entities-editor'
 import { RichTextEditor } from '@/components/shared/rich-text-editor'
 import { TeacherSchemaDiagram } from '@/components/shared/teacher-schema-diagram'
 import { TeacherSqlEditor } from '@/components/shared/teacher-sql-editor'
+import { ScriptPickerDialog } from '@/app/(main)/create-exam/components/script-picker-dialog'
 import {
   type AttachmentItem,
   BLOCK_REGISTRY,
@@ -35,9 +36,7 @@ import {
   type SqlDmlBlock,
   type TableDescriptionBlock,
   type SchemaDiagramBlock
-} from './common-part-blocks'
-import { mapDatasetBlocksToSavePayload } from './common-part-export.domain'
-import { ScriptPickerDialog } from './script-picker-dialog'
+} from '@/app/(main)/create-exam/components/common-part-blocks'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,8 +49,9 @@ import {
   SpecificationEntityAttribute
 } from '@/lib/types'
 import { toast } from 'sonner'
-import { useSchemaExport } from '../hooks/use-schema-export'
-import { useDatasetExport } from '../hooks/use-dataset-export'
+import { useSchemaExport } from '@/app/(main)/create-exam/hooks/use-schema-export'
+import { useDatasetExport } from '@/app/(main)/create-exam/hooks/use-dataset-export'
+import { mapDatasetBlocksToSavePayload } from '@/app/(main)/create-exam/components/common-part-export.domain'
 
 interface CreateExamFormProps {
   examId?: number
