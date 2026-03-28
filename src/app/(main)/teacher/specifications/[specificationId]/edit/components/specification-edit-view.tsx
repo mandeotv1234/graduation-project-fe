@@ -26,7 +26,7 @@ import {
   SpecificationEntityAttribute,
   SpecificationResponse
 } from '@/lib/types'
-import { DatasetsEditor } from '@/app/(main)/teacher/specifications/components/datasets-editor'
+import { DatasetsEditor } from '@/components/shared'
 
 const DATA_TYPES = [
   'INT',
@@ -355,6 +355,8 @@ export function SpecificationEditView({
     items.map((item, index) => ({
       ...item,
       name: item.name.trim(),
+      isActive: item.isActive ?? true,
+      visibleToStudent: item.visibleToStudent ?? false,
       orderIndex: index + 1
     }))
 
@@ -384,7 +386,8 @@ export function SpecificationEditView({
         name: '',
         dataScript: '',
         orderIndex: prev.length + 1,
-        isActive: true
+        isActive: true,
+        visibleToStudent: true
       }
     ])
   }
@@ -526,7 +529,7 @@ export function SpecificationEditView({
                 onChange={(e) => setDdlScript(e.target.value)}
                 rows={10}
                 placeholder="CREATE TABLE ..."
-                className="flex min-h-[240px] w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-60 w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
           </div>

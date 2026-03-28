@@ -8,8 +8,7 @@ import {
   SpecificationEntity,
   SpecificationEntityAttribute
 } from '@/lib/types'
-import { EntitiesEditor } from '@/app/(main)/teacher/specifications/components/entities-editor'
-import { DatasetsEditor } from '@/app/(main)/teacher/specifications/components/datasets-editor'
+import { EntitiesEditor, DatasetsEditor } from '@/components/shared'
 
 interface SpecificationFormProps {
   mode: 'create' | 'edit'
@@ -82,7 +81,7 @@ export function SpecificationForm({
       onSubmit={onSubmit}
       className="space-y-6 rounded-2xl border border-primary/20 bg-card p-6 shadow-sm"
     >
-      <div className="relative overflow-hidden rounded-xl border border-border/70 bg-gradient-to-r from-primary/10 via-background to-background px-4 py-4">
+      <div className="relative overflow-hidden rounded-xl border border-border/70 bg-linear-to-r from-primary/10 via-background to-background px-4 py-4">
         <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary/10 blur-2xl" />
         <div className="relative flex items-start justify-between gap-3">
           <div className="space-y-1">

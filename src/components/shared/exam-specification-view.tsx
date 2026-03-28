@@ -9,6 +9,7 @@ interface ExamSpecificationViewProps {
   compact?: boolean
   showDdlScript?: boolean
   showDatasets?: boolean
+  inferRelations?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -190,7 +191,7 @@ function EntityCard({
                     {attr.description || '-'}
                   </span>
 
-                  {!attr.isNullable && (
+                  {attr.isNullable === false && (
                     <span className="shrink-0 rounded px-1 py-0 text-[9px] font-bold bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
                       NN
                     </span>
@@ -275,12 +276,21 @@ export function ExamSpecificationView({
   specification,
   compact = false,
   showDdlScript = true,
-  showDatasets = true
+  showDatasets = true,
+  inferRelations = true
 }: ExamSpecificationViewProps) {
   const sorted = [...(specification.entities ?? [])].sort(
     (a, b) => a.orderIndex - b.orderIndex
   )
-  const relations = detectRelations(sorted)
+  const relations = inferRelations ? detectRelations(sorted) : []
+  const hasPrimaryKeys = sorted.some((entity) =>
+    (entity.attributes ?? []).some((attribute) => attribute.isPrimaryKey)
+  )
+  const hasNotNull = sorted.some((entity) =>
+    (entity.attributes ?? []).some(
+      (attribute) => attribute.isNullable === false
+    )
+  )
 
   return (
     <div className="space-y-4">
@@ -326,6 +336,11 @@ export function ExamSpecificationView({
                     <span className="text-muted-foreground">
                       #{dataset.orderIndex}
                     </span>
+                    {dataset.visibleToStudent === false && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">
+                        Ẩn với sinh viên
+                      </span>
+                    )}
                     {!dataset.isActive && (
                       <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                         Inactive
@@ -384,18 +399,24 @@ export function ExamSpecificationView({
         <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mr-1">
           Chú thích:
         </span>
-        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-          <Key className="h-3 w-3 text-amber-500" /> Khóa chính (PK)
-        </span>
-        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-          <Link2 className="h-3 w-3 text-blue-500" /> Khóa ngoại (FK)
-        </span>
-        <span className="flex items-center gap-1 text-[11px]">
-          <span className="rounded px-1 text-[9px] font-bold bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
-            NN
+        {hasPrimaryKeys && (
+          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Key className="h-3 w-3 text-amber-500" /> Khóa chính (PK)
           </span>
-          <span className="text-muted-foreground">NOT NULL</span>
-        </span>
+        )}
+        {relations.length > 0 && (
+          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Link2 className="h-3 w-3 text-blue-500" /> Khóa ngoại (FK)
+          </span>
+        )}
+        {hasNotNull && (
+          <span className="flex items-center gap-1 text-[11px]">
+            <span className="rounded px-1 text-[9px] font-bold bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
+              NN
+            </span>
+            <span className="text-muted-foreground">NOT NULL</span>
+          </span>
+        )}
       </div>
     </div>
   )

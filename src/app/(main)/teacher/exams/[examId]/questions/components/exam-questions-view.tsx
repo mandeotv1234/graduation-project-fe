@@ -166,7 +166,7 @@ export function ExamQuestionsView({
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between pt-4 pb-1">
-        <div>
+        <div className="border-l-4 border-primary/60 pl-3">
           <div>
             <h1 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
               Danh sách câu hỏi

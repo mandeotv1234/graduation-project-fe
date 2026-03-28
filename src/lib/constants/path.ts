@@ -19,6 +19,8 @@ export const PATH = {
   TEACHER_EXAM_MONITOR: (examId: number) => `/teacher/exams/${examId}/monitor`,
   TEACHER_EXAM_QUESTIONS: (examId: number) =>
     `/teacher/exams/${examId}/questions`,
+  TEACHER_EXAM_COMMON_PART: (examId: number) =>
+    `/teacher/exams/${examId}/common-part`,
   TEACHER_EXAM_SPECIFICATION: (examId: number) =>
     `/teacher/exams/${examId}/specification`,
   TEACHER_EXAM_SPECIFICATION_PREVIEW: (examId: number) =>

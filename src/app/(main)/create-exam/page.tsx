@@ -1,5 +1,12 @@
-import CreateExamForm from '@/app/(main)/create-exam/components/create-exam-form'
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+
+import { PATH } from '@/lib/constants'
+
+export const metadata: Metadata = {
+  title: 'Tao de thi chung'
+}
 
 export default function CreateExamPage() {
-  return <CreateExamForm />
+  redirect(PATH.TEACHER_CLASSES)
 }

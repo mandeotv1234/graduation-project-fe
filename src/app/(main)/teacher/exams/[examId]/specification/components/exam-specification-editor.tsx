@@ -1,7 +1,6 @@
-﻿'use client'
+'use client'
 
 import { useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   Plus,
   Save,
@@ -316,7 +315,6 @@ export function ExamSpecificationEditor({
   initialSpecification,
   readOnly = false
 }: ExamSpecificationEditorProps) {
-  const router = useRouter()
   const { callApi, isLoading } = useApi()
 
   const [preview, setPreview] = useState(readOnly)
@@ -384,9 +382,11 @@ export function ExamSpecificationEditor({
       ddlScript,
       description,
       datasets: datasets.map((dataset, index) => ({
+        id: dataset.id,
         name: dataset.name.trim(),
         dataScript: dataset.dataScript,
         isActive: dataset.isActive,
+        visibleToStudent: dataset.visibleToStudent ?? false,
         orderIndex: index + 1
       })),
       entities: entities.map((e, ei) => ({

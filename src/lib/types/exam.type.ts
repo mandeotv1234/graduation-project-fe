@@ -175,10 +175,12 @@ export interface SpecEntity {
 }
 
 export interface SpecDataset {
+  id?: number
   name: string
   dataScript: string
   orderIndex: number
   isActive: boolean
+  visibleToStudent?: boolean
 }
 
 export interface ExamSpecification {
@@ -187,6 +189,7 @@ export interface ExamSpecification {
   // backward-compat for old payloads
   title?: string
   ddlScript?: string
+  ddlVisibleToStudent?: boolean
   description: string
   entities: SpecEntity[]
   datasets?: SpecDataset[]
@@ -347,12 +350,15 @@ export interface SaveExamSpecificationRequest {
   name: string
   title?: string
   ddlScript?: string
+  ddlVisibleToStudent?: boolean
   description: string
   datasets?: {
+    id?: number
     name: string
     dataScript: string
     orderIndex: number
     isActive: boolean
+    visibleToStudent?: boolean
   }[]
   entities: {
     entityName: string
