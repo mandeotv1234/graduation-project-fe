@@ -15,15 +15,15 @@ export function RegisterForm() {
 
   return (
     <div className="space-y-8 rounded-2xl border border-border bg-card p-8 shadow-sm backdrop-blur">
-      <div className="space-y-2 text-center">
-        <p className="text-sm font-medium uppercase tracking-wider text-primary">
-          Bắt đầu với DATN
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Tạo tài khoản mới
+      <div className="space-y-3 text-center">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-primary/80">
+          Kỳ Thi Đánh Giá CSDL
+        </h2>
+        <h1 className="text-3xl font-black tracking-tight text-foreground">
+          Đăng Ký
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Nhập thông tin cá nhân để hoàn tất đăng ký
+        <p className="text-balance text-sm leading-relaxed text-muted-foreground font-medium text-muted-foreground/80">
+          Tạo tài khoản để tham gia kỳ thi lý thuyết và thực hành.
         </p>
       </div>
 

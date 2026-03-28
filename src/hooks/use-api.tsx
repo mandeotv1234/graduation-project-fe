@@ -20,6 +20,7 @@ export function useApi() {
       'Students added successfully': 'Thêm sinh viên thành công!',
       'Assignment updated successfully': 'Cập nhật bài tập thành công!',
       'Operation successful': 'Thao tác thành công!',
+      'Login successful': 'Đăng nhập thành công!',
       Success: 'Thành công!',
 
       // Error messages
