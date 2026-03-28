@@ -82,7 +82,7 @@ export function QuestionSidebar({
                     Câu {q.orderIndex}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                    <span className="inline-block max-w-[64px] truncate">
+                    <span className="inline-block max-w-16 truncate">
                       {QUESTION_TYPE_LABELS[q.questionType] || q.questionType}
                     </span>
                     <span className="w-1 h-1 rounded-full bg-border" />

@@ -84,7 +84,7 @@ export function DatasetsEditor({
                 <label className="flex h-9 items-center gap-1 rounded-md border border-border bg-background px-2 text-xs text-muted-foreground">
                   <input
                     type="checkbox"
-                    checked={dataset.visibleToStudent ?? true}
+                    checked={dataset.visibleToStudent ?? false}
                     onChange={(e) =>
                       onUpdate(index, 'visibleToStudent', e.target.checked)
                     }

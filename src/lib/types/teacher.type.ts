@@ -193,10 +193,12 @@ export interface CreateExamQuestionRequest {
 // ===== Specification Types =====
 
 export interface SpecificationDataset {
+  id?: number
   name: string
   dataScript: string
   orderIndex: number
   isActive: boolean
+  visibleToStudent?: boolean
 }
 
 export interface SpecificationEntityAttribute {
@@ -220,6 +222,7 @@ export interface SpecificationResponse {
   id: number
   name: string
   ddlScript: string
+  ddlVisibleToStudent?: boolean
   description?: string
   entities: SpecificationEntity[]
   datasets: SpecificationDataset[]
@@ -231,6 +234,7 @@ export interface SpecificationResponse {
 export interface CreateSpecificationRequest {
   name: string
   ddlScript: string
+  ddlVisibleToStudent?: boolean
   description?: string
   entities: SpecificationEntity[]
   datasets: SpecificationDataset[]

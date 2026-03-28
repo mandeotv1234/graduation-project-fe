@@ -1,108 +1,809 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import CreateExamHeader from '@/app/(main)/create-exam/components/create-exam-header'
-import ExamBasicInfo from '@/app/(main)/create-exam/components/exam-basic-info'
-import ExamDescriptionEditor from '@/app/(main)/create-exam/components/exam-description-editor'
-import ExamSchemaEditor from '@/app/(main)/create-exam/components/exam-schema-editor'
-import ExamSampleDataTable from '@/app/(main)/create-exam/components/exam-sample-data-table'
-import ExamFileUpload from '@/app/(main)/create-exam/components/exam-file-upload'
-import { ExamFormData } from '@/lib/types/create-exam.type'
+import { useMemo, useState } from 'react'
+import {
+  BookOpenCheck,
+  Eye,
+  EyeOff,
+  FileText,
+  FileUp,
+  PlusCircle,
+  Save,
+  Trash2
+} from 'lucide-react'
+
+import {
+  TeacherSqlEditor,
+  EntitiesEditor,
+  StudentCommonPartView
+} from '@/components/shared'
+import {
+  type AttachmentItem,
+  BLOCK_REGISTRY,
+  type BlockKind,
+  createBlockId,
+  createBlocksFromSpecification,
+  createEmptyAttribute,
+  createEmptyEntity,
+  createInitialBlocks,
+  formatFileSize,
+  normalizeEntities,
+  type ExamBlock,
+  type RichTextBlock,
+  type SqlDdlBlock,
+  type SqlDmlBlock,
+  type TableDescriptionBlock
+} from './common-part-blocks'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useApi } from '@/hooks/use-api'
+import { saveExamSpecification } from '@/lib/actions'
+import { RichTextEditor } from '@/components/shared/rich-text-editor'
+import {
+  ExamSpecification,
+  SaveExamSpecificationRequest,
+  SpecificationEntity,
+  SpecificationEntityAttribute
+} from '@/lib/types'
 import { toast } from 'sonner'
 
-export default function CreateExamForm() {
-  const router = useRouter()
+interface CreateExamFormProps {
+  examId?: number
+  initialSpecification?: ExamSpecification | null
+}
+
+export default function CreateExamForm({
+  examId,
+  initialSpecification
+}: CreateExamFormProps) {
+  const { callApi } = useApi()
+  const normalizedExamId =
+    typeof examId === 'number' && Number.isFinite(examId) && examId > 0
+      ? examId
+      : null
+  const hasValidExamId = normalizedExamId !== null
+  const [showStudentPreview, setShowStudentPreview] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
+  const [blocks, setBlocks] = useState<ExamBlock[]>(() =>
+    initialSpecification
+      ? createBlocksFromSpecification(initialSpecification)
+      : createInitialBlocks()
+  )
 
-  const [formData, setFormData] = useState<ExamFormData>({
-    title: '',
-    description: '',
-    schema: `CREATE TABLE Students (
-  StudentID INT PRIMARY KEY,
-  FirstName VARCHAR(50),
-  LastName VARCHAR(50)
-);`,
-    sampleData: [
-      { studentId: '1', firstName: 'An', lastName: 'Nguyễn' },
-      { studentId: '2', firstName: 'Bình', lastName: 'Lê' },
-      { studentId: '3', firstName: 'Chi', lastName: 'Trần' }
-    ],
-    attachments: []
-  })
+  const visibleBlocks = useMemo(() => {
+    if (!showStudentPreview) {
+      return blocks
+    }
 
-  const handleSave = async () => {
-    // Validation
-    if (!formData.title.trim()) {
-      toast.error('Vui lòng nhập tiêu đề bài tập')
+    return blocks.filter((block) => block.visibleToStudent)
+  }, [blocks, showStudentPreview])
+
+  const updateBlockById = (
+    blockId: string,
+    updater: (block: ExamBlock) => ExamBlock
+  ) => {
+    setBlocks((prev) =>
+      prev.map((item) => (item.id === blockId ? updater(item) : item))
+    )
+  }
+
+  const addBlock = (kind: BlockKind) => {
+    const definition = BLOCK_REGISTRY.find((item) => item.kind === kind)
+    if (!definition) {
       return
     }
 
-    setIsSaving(true)
-    try {
-      // TODO: Replace with real API call (e.g. createExam action)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      toast.success('Đã lưu bài tập thành công!')
-      router.push('/exam')
-    } catch (error) {
-      console.error('Error saving exam:', error)
-      toast.error('Có lỗi xảy ra khi lưu bài tập')
-    } finally {
-      setIsSaving(false)
-    }
+    setBlocks((prev) => [...prev, definition.createBlock()])
+    toast.success(`Đã thêm: ${definition.label}`)
   }
 
-  const handleCancel = () => {
-    router.back()
+  const removeBlock = (blockId: string) => {
+    setBlocks((prev) => prev.filter((item) => item.id !== blockId))
+    toast.success('Đã xóa khối nội dung')
+  }
+
+  const addAttachmentFiles = (blockId: string, fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) {
+      return
+    }
+
+    const newItems: AttachmentItem[] = Array.from(fileList).map((file) => ({
+      id: createBlockId(),
+      name: file.name,
+      size: file.size,
+      type: file.type
+    }))
+
+    updateBlockById(blockId, (block) => {
+      if (block.kind !== 'attachment') {
+        return block
+      }
+
+      return {
+        ...block,
+        data: {
+          files: [...block.data.files, ...newItems]
+        }
+      }
+    })
+  }
+
+  const removeAttachment = (blockId: string, attachmentId: string) => {
+    updateBlockById(blockId, (block) => {
+      if (block.kind !== 'attachment') {
+        return block
+      }
+
+      return {
+        ...block,
+        data: {
+          files: block.data.files.filter((item) => item.id !== attachmentId)
+        }
+      }
+    })
+  }
+
+  const updateTableBlockEntities = (
+    blockId: string,
+    updater: (entities: SpecificationEntity[]) => SpecificationEntity[]
+  ) => {
+    updateBlockById(blockId, (block) => {
+      if (block.kind !== 'table-description') {
+        return block
+      }
+
+      return {
+        ...block,
+        data: {
+          entities: normalizeEntities(updater(block.data.entities))
+        }
+      }
+    })
+  }
+
+  const addTableEntity = (blockId: string) => {
+    updateTableBlockEntities(blockId, (entities) => [
+      ...entities,
+      createEmptyEntity(entities.length + 1)
+    ])
+  }
+
+  const removeTableEntity = (blockId: string, entityIndex: number) => {
+    updateTableBlockEntities(blockId, (entities) =>
+      entities.filter((_, index) => index !== entityIndex)
+    )
+  }
+
+  const moveTableEntity = (
+    blockId: string,
+    entityIndex: number,
+    direction: -1 | 1
+  ) => {
+    updateTableBlockEntities(blockId, (entities) => {
+      const target = entityIndex + direction
+      if (target < 0 || target >= entities.length) {
+        return entities
+      }
+
+      const next = [...entities]
+      ;[next[entityIndex], next[target]] = [next[target], next[entityIndex]]
+      return next
+    })
+  }
+
+  const updateTableEntity = (
+    blockId: string,
+    entityIndex: number,
+    field: keyof SpecificationEntity,
+    value: string
+  ) => {
+    updateTableBlockEntities(blockId, (entities) =>
+      entities.map((entity, index) =>
+        index === entityIndex ? { ...entity, [field]: value } : entity
+      )
+    )
+  }
+
+  const addTableAttribute = (blockId: string, entityIndex: number) => {
+    updateTableBlockEntities(blockId, (entities) =>
+      entities.map((entity, index) => {
+        if (index !== entityIndex) {
+          return entity
+        }
+
+        return {
+          ...entity,
+          attributes: [
+            ...(entity.attributes ?? []),
+            createEmptyAttribute((entity.attributes ?? []).length + 1)
+          ]
+        }
+      })
+    )
+  }
+
+  const updateTableAttribute = (
+    blockId: string,
+    entityIndex: number,
+    attributeIndex: number,
+    field: keyof SpecificationEntityAttribute,
+    value: string | boolean | number
+  ) => {
+    updateTableBlockEntities(blockId, (entities) =>
+      entities.map((entity, eIndex) => {
+        if (eIndex !== entityIndex) {
+          return entity
+        }
+
+        return {
+          ...entity,
+          attributes: (entity.attributes ?? []).map((attribute, aIndex) =>
+            aIndex === attributeIndex
+              ? { ...attribute, [field]: value }
+              : attribute
+          )
+        }
+      })
+    )
+  }
+
+  const removeTableAttribute = (
+    blockId: string,
+    entityIndex: number,
+    attributeIndex: number
+  ) => {
+    updateTableBlockEntities(blockId, (entities) =>
+      entities.map((entity, index) => {
+        if (index !== entityIndex) {
+          return entity
+        }
+
+        const nextAttributes = (entity.attributes ?? []).filter(
+          (_, aIndex) => aIndex !== attributeIndex
+        )
+
+        return {
+          ...entity,
+          attributes: nextAttributes
+        }
+      })
+    )
+  }
+
+  const saveCommonPart = async () => {
+    if (!hasValidExamId || normalizedExamId === null) {
+      toast.error('Không tìm thấy examId để lưu phần đề chung')
+      return
+    }
+
+    const hasUnsupportedAttachments = blocks.some(
+      (block) => block.kind === 'attachment' && block.data.files.length > 0
+    )
+
+    if (hasUnsupportedAttachments) {
+      toast.error(
+        'Khối Hình ảnh/Tài liệu chưa hỗ trợ lưu xuống DB. Vui lòng xóa trước khi lưu.'
+      )
+      return
+    }
+
+    const ddlBlock = blocks.find(
+      (block): block is SqlDdlBlock => block.kind === 'sql-ddl'
+    )
+    const ddlScript = ddlBlock?.data.sql?.trim() ?? ''
+
+    if (!ddlScript) {
+      toast.error('Vui lòng nhập SQL DDL trước khi lưu')
+      return
+    }
+
+    const richTextDescription = blocks
+      .filter((block): block is RichTextBlock => block.kind === 'rich-text')
+      .map((block) => block.data.content?.trim())
+      .filter((content): content is string => Boolean(content))
+      .join('\n\n')
+
+    const tableEntities = blocks
+      .filter(
+        (block): block is TableDescriptionBlock =>
+          block.kind === 'table-description'
+      )
+      .flatMap((block) => block.data.entities ?? [])
+
+    const normalizedTableEntities = normalizeEntities(tableEntities)
+
+    const sanitizedEntities = normalizedTableEntities
+      .map((entity) => ({
+        ...entity,
+        entityName: entity.entityName?.trim() ?? '',
+        displayName: entity.displayName?.trim() ?? '',
+        description: entity.description?.trim() ?? '',
+        attributes: (entity.attributes ?? []).map((attribute) => ({
+          ...attribute,
+          attributeName: attribute.attributeName?.trim() ?? '',
+          dataType: attribute.dataType?.trim() ?? '',
+          description: attribute.description?.trim() ?? ''
+        }))
+      }))
+      .filter((entity) => {
+        const allAttributesEmpty = (entity.attributes ?? []).every(
+          (attribute) => !attribute.attributeName && !attribute.dataType
+        )
+        return entity.entityName.length > 0 || !allAttributesEmpty
+      })
+
+    const hasInvalidEntity = sanitizedEntities.some(
+      (entity) =>
+        !entity.entityName ||
+        (entity.attributes ?? []).length === 0 ||
+        (entity.attributes ?? []).some(
+          (attribute) => !attribute.attributeName || !attribute.dataType
+        )
+    )
+
+    if (hasInvalidEntity) {
+      toast.error('Vui lòng điền đầy đủ tên bảng, cột và kiểu dữ liệu')
+      return
+    }
+
+    const datasetBlocks = blocks.filter(
+      (block): block is SqlDmlBlock => block.kind === 'sql-dml'
+    )
+
+    const payload: SaveExamSpecificationRequest = {
+      name: `Exam #${normalizedExamId} - Common Part`,
+      title: `Exam #${normalizedExamId} - Common Part`,
+      ddlScript,
+      ddlVisibleToStudent: ddlBlock?.visibleToStudent ?? false,
+      description: richTextDescription,
+      entities: sanitizedEntities.map((entity, entityIndex) => ({
+        entityName: entity.entityName,
+        displayName: entity.displayName ?? '',
+        description: entity.description ?? '',
+        orderIndex: entityIndex + 1,
+        attributes: (entity.attributes ?? []).map(
+          (attribute, attributeIndex) => ({
+            attributeName: attribute.attributeName,
+            dataType: attribute.dataType,
+            description: attribute.description ?? '',
+            isPrimaryKey: Boolean(attribute.isPrimaryKey),
+            isNullable: attribute.isNullable !== false,
+            orderIndex: attributeIndex + 1
+          })
+        )
+      })),
+      datasets: datasetBlocks
+        .map((block, index) => ({
+          name: `Dataset ${index + 1}`,
+          dataScript: block.data.sql?.trim() ?? '',
+          orderIndex: index + 1,
+          isActive: true,
+          visibleToStudent: block.visibleToStudent
+        }))
+        .filter((dataset) => dataset.dataScript.length > 0)
+    }
+
+    setIsSaving(true)
+    const result = await callApi(
+      saveExamSpecification(normalizedExamId, payload),
+      false
+    )
+    setIsSaving(false)
+
+    if (!result.data) {
+      return
+    }
+
+    const now = new Date()
+    setLastSavedAt(
+      now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    )
+    toast.success('Đã lưu phần đề chung xuống DB')
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
-      <CreateExamHeader
-        onCancel={handleCancel}
-        onSave={handleSave}
-        isSaving={isSaving}
-      />
+    <div className="min-h-screen text-foreground">
+      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/70">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8 bg-sub-primary">
+          <div className="flex min-w-0 items-center gap-3">
+            <BookOpenCheck className="h-5 w-5 text-primary-container" />
+            <div className="min-w-0">
+              <h1 className="truncate text-base text-primary-container font-semibold sm:text-lg">
+                Tạo đề thi chung
+              </h1>
+              <p className="truncate text-xs text-primary-container">
+                Thiết kế block nội dung cho phần đề chung của bài thi
+              </p>
+            </div>
+          </div>
 
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-4xl mx-auto p-6 pb-8 space-y-6">
-          <ExamBasicInfo
-            title={formData.title}
-            onTitleChange={(title) =>
-              setFormData((prev) => ({ ...prev, title }))
-            }
-          />
-
-          <ExamDescriptionEditor
-            content={formData.description}
-            onContentChange={(description) =>
-              setFormData((prev) => ({ ...prev, description }))
-            }
-          />
-
-          <ExamSchemaEditor
-            schema={formData.schema}
-            onSchemaChange={(schema) =>
-              setFormData((prev) => ({ ...prev, schema }))
-            }
-          />
-
-          <ExamSampleDataTable
-            data={formData.sampleData}
-            onDataChange={(sampleData) =>
-              setFormData((prev) => ({ ...prev, sampleData }))
-            }
-          />
-
-          <ExamFileUpload
-            files={formData.attachments}
-            onFilesChange={(attachments) =>
-              setFormData((prev) => ({ ...prev, attachments }))
-            }
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              className="dark:border-transparent border-transparent bg-muted-foreground text-muted dark:hover:text-muted"
+              type="button"
+              variant={showStudentPreview ? 'default' : 'outline'}
+              onClick={() => setShowStudentPreview((prev) => !prev)}
+            >
+              {showStudentPreview ? 'Thoát xem sinh viên' : 'Xem như sinh viên'}
+            </Button>
+            <Button
+              className="text-on-primary-container bg-primary-container hover:text-muted"
+              type="button"
+              onClick={saveCommonPart}
+              disabled={isSaving}
+            >
+              <Save className="h-4 w-4" />
+              {isSaving ? 'Đang lưu...' : 'Lưu'}
+            </Button>
+          </div>
         </div>
+      </header>
+
+      <div className="relative mx-0 grid min-h-[calc(100vh-72px)] w-full max-w-7xl grid-cols-1 py-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 hidden w-[260px] lg:block bg-sidebar"
+        />
+
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-[260px] right-0 hidden lg:block bg-on-primary-container/10"
+        />
+
+        <aside className="relative z-10 h-view self-start p-4 lg:sticky lg:top-24">
+          <div className="space-y-1 px-1">
+            <h2 className="text-md font-medium text-muted-foreground">
+              Phím chức năng
+            </h2>
+            <p className="text-[11px] text-muted-foreground">
+              Nhấn nút để thêm khối mới vào phần đề chung
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {BLOCK_REGISTRY.map((item) => {
+              const Icon = item.icon
+              return (
+                <Button
+                  key={item.kind}
+                  type="button"
+                  variant="ghost"
+                  className="h-auto w-full items-start justify-start rounded-lg border border-transparent px-3 py-3 text-left hover:border-border hover:bg-accent/70"
+                  onClick={() => addBlock(item.kind)}
+                  disabled={showStudentPreview}
+                >
+                  <Icon className="mt-0.5 h-4 w-4 text-primary" />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-xs font-semibold uppercase tracking-wide">
+                      {item.label}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {item.description}
+                    </span>
+                  </span>
+                </Button>
+              )
+            })}
+          </div>
+        </aside>
+
+        <main className="relative z-10 h-full space-y-6 px-4">
+          {showStudentPreview ? (
+            <StudentCommonPartView blocks={visibleBlocks} />
+          ) : (
+            <>
+              {visibleBlocks.length === 0 && (
+                <section className="border border-dashed bg-card/50 px-6 py-12 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Chưa có khối nội dung hiển thị. Hãy thêm block từ thanh bên.
+                  </p>
+                </section>
+              )}
+
+              {visibleBlocks.map((block) => {
+                const DefinitionIcon =
+                  BLOCK_REGISTRY.find((item) => item.kind === block.kind)
+                    ?.icon || FileText
+
+                return (
+                  <section key={block.id} className="overflow-hidden bg-card">
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 bg-muted/30 px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <DefinitionIcon className="h-4 w-4 shrink-0 text-primary" />
+                        <Input
+                          value={block.title}
+                          onChange={(event) =>
+                            updateBlockById(block.id, (currentBlock) => ({
+                              ...currentBlock,
+                              title: event.target.value
+                            }))
+                          }
+                          className="h-8 min-w-[220px] border-none bg-transparent px-0 text-sm font-semibold shadow-none focus-visible:ring-0"
+                          disabled={showStudentPreview}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {block.canToggleVisibility ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              updateBlockById(block.id, (currentBlock) => ({
+                                ...currentBlock,
+                                visibleToStudent: !currentBlock.visibleToStudent
+                              }))
+                            }
+                            disabled={showStudentPreview}
+                            className="gap-1.5"
+                          >
+                            {block.visibleToStudent ? (
+                              <Eye className="h-3.5 w-3.5" />
+                            ) : (
+                              <EyeOff className="h-3.5 w-3.5" />
+                            )}
+                            {block.visibleToStudent
+                              ? 'Sinh viên xem được'
+                              : 'Ẩn với sinh viên'}
+                          </Button>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] uppercase"
+                          >
+                            Dữ liệu hệ thống
+                          </Badge>
+                        )}
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeBlock(block.id)}
+                          disabled={showStudentPreview}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="p-4 sm:p-5">
+                      {block.kind === 'rich-text' && (
+                        <RichTextEditor
+                          content={block.data.content}
+                          onChange={(content) =>
+                            updateBlockById(block.id, (currentBlock) => {
+                              if (currentBlock.kind !== 'rich-text') {
+                                return currentBlock
+                              }
+
+                              return {
+                                ...currentBlock,
+                                data: {
+                                  content
+                                }
+                              }
+                            })
+                          }
+                          placeholder="Nhập nội dung mô tả bối cảnh..."
+                          minHeight="150px"
+                        />
+                      )}
+
+                      {block.kind === 'attachment' && (
+                        <div className="space-y-3">
+                          <label
+                            className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-center transition-colors hover:bg-muted/60"
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => {
+                              event.preventDefault()
+                              addAttachmentFiles(
+                                block.id,
+                                event.dataTransfer.files
+                              )
+                            }}
+                          >
+                            <FileUp className="mb-2 h-8 w-8 text-muted-foreground" />
+                            <p className="text-sm font-medium">
+                              Kéo thả sơ đồ ER/PDF hoặc nhấn để tải lên
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              PNG, JPG, PDF (không quá 10MB mỗi tệp)
+                            </p>
+                            <input
+                              type="file"
+                              className="hidden"
+                              multiple
+                              accept=".png,.jpg,.jpeg,.pdf"
+                              onChange={(event) =>
+                                addAttachmentFiles(block.id, event.target.files)
+                              }
+                              disabled={showStudentPreview}
+                            />
+                          </label>
+
+                          {block.data.files.length > 0 && (
+                            <div className="space-y-2">
+                              {block.data.files.map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="flex items-center justify-between rounded-md border border-border px-3 py-2"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium">
+                                      {item.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {item.type || 'application/octet-stream'}{' '}
+                                      • {formatFileSize(item.size)}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() =>
+                                      removeAttachment(block.id, item.id)
+                                    }
+                                    disabled={showStudentPreview}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {block.kind === 'sql-ddl' && (
+                        <div className="h-64 overflow-hidden rounded-lg border border-border">
+                          <TeacherSqlEditor
+                            value={block.data.sql}
+                            onChange={(value) =>
+                              updateBlockById(block.id, (currentBlock) => {
+                                if (currentBlock.kind !== 'sql-ddl') {
+                                  return currentBlock
+                                }
+
+                                return {
+                                  ...currentBlock,
+                                  data: {
+                                    sql: value ?? ''
+                                  }
+                                }
+                              })
+                            }
+                            height="100%"
+                            readOnly={showStudentPreview}
+                          />
+                        </div>
+                      )}
+
+                      {block.kind === 'sql-dml' && (
+                        <div className="h-56 overflow-hidden rounded-lg border border-border">
+                          <TeacherSqlEditor
+                            value={block.data.sql}
+                            onChange={(value) =>
+                              updateBlockById(block.id, (currentBlock) => {
+                                if (currentBlock.kind !== 'sql-dml') {
+                                  return currentBlock
+                                }
+
+                                return {
+                                  ...currentBlock,
+                                  data: {
+                                    sql: value ?? ''
+                                  }
+                                }
+                              })
+                            }
+                            height="100%"
+                            readOnly={showStudentPreview}
+                          />
+                        </div>
+                      )}
+
+                      {block.kind === 'table-description' && (
+                        <EntitiesEditor
+                          entities={block.data.entities}
+                          onAddEntity={() =>
+                            showStudentPreview
+                              ? undefined
+                              : addTableEntity(block.id)
+                          }
+                          onRemoveEntity={(entityIndex) =>
+                            showStudentPreview
+                              ? undefined
+                              : removeTableEntity(block.id, entityIndex)
+                          }
+                          onMoveEntity={(entityIndex, direction) =>
+                            showStudentPreview
+                              ? undefined
+                              : moveTableEntity(
+                                  block.id,
+                                  entityIndex,
+                                  direction
+                                )
+                          }
+                          onUpdateEntity={(entityIndex, field, value) =>
+                            showStudentPreview
+                              ? undefined
+                              : updateTableEntity(
+                                  block.id,
+                                  entityIndex,
+                                  field,
+                                  value
+                                )
+                          }
+                          onAddAttribute={(entityIndex) =>
+                            showStudentPreview
+                              ? undefined
+                              : addTableAttribute(block.id, entityIndex)
+                          }
+                          onUpdateAttribute={(
+                            entityIndex,
+                            attributeIndex,
+                            field,
+                            value
+                          ) =>
+                            showStudentPreview
+                              ? undefined
+                              : updateTableAttribute(
+                                  block.id,
+                                  entityIndex,
+                                  attributeIndex,
+                                  field,
+                                  value
+                                )
+                          }
+                          onRemoveAttribute={(entityIndex, attributeIndex) =>
+                            showStudentPreview
+                              ? undefined
+                              : removeTableAttribute(
+                                  block.id,
+                                  entityIndex,
+                                  attributeIndex
+                                )
+                          }
+                        />
+                      )}
+                    </div>
+                  </section>
+                )
+              })}
+
+              {!showStudentPreview && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => addBlock('rich-text')}
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Thêm khối nội dung mới từ thanh bên
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </main>
       </div>
+
+      {lastSavedAt && (
+        <div className="fixed bottom-6 right-6 rounded-lg border border-border/70 bg-card/95 px-4 py-3 shadow-lg backdrop-blur">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Trạng thái hiện tại
+          </p>
+          <p className="text-sm font-semibold text-primary">
+            Đã lưu lúc {lastSavedAt}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
