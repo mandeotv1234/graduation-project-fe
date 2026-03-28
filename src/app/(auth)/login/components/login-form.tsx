@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -23,9 +22,9 @@ export function LoginForm() {
 
   return (
     <div className="space-y-8 rounded-2xl border border-border bg-card/50 p-8 shadow-xl backdrop-blur-md">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Đăng nhập hệ thống
+      <div className="space-y-3 text-center">
+        <h1 className="text-3xl font-black tracking-tight text-foreground">
+          Đăng Nhập
         </h1>
         <p className="text-sm text-muted-foreground">
           Đăng nhập với Google hoặc Microsoft nếu chưa đặt mật khẩu
@@ -41,7 +40,7 @@ export function LoginForm() {
             id="email"
             type="email"
             autoComplete="email"
-            placeholder="name@student.edu.vn"
+            // placeholder="mssv@student.hcmus.edu.vn"
             className="h-11 bg-background/50 focus-visible:ring-primary/30"
             aria-invalid={Boolean(errors.email)}
             aria-describedby="email-error"
@@ -62,12 +61,13 @@ export function LoginForm() {
             <Label htmlFor="password" className="text-sm font-medium">
               Mật khẩu
             </Label>
-            <Link
+            {/* TODO: Add forgot password functionality */}
+            {/* <Link
               href="#"
               className="text-xs font-medium text-primary hover:underline"
             >
               Quên mật khẩu?
-            </Link>
+            </Link> */}
           </div>
           <Input
             id="password"
