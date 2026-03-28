@@ -1,6 +1,11 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { getExamQuestionsByExamId, getTeacherExamDetail } from '@/lib/actions'
+import {
+  getExamQuestionsByExamId,
+  getTeacherExamDetail,
+  getExamSpecification,
+  getTeacherExamTemplateVersions
+} from '@/lib/actions'
 import { PATH } from '@/lib/constants'
 import { ExamQuestionsView } from '@/app/(main)/teacher/exams/[examId]/questions/components/exam-questions-view'
 
@@ -44,8 +49,27 @@ export default async function ExamQuestionsPage({
     redirect(PATH.TEACHER_CLASSES)
   }
 
-  const response = await getExamQuestionsByExamId(examIdNum)
-  const questions = response.data || []
+  const [questionsResponse, templateManagementResponse, specificationResponse] =
+    await Promise.all([
+      getExamQuestionsByExamId(examIdNum),
+      getTeacherExamTemplateVersions(examIdNum),
+      getExamSpecification(examIdNum)
+    ])
+  const questions = questionsResponse.data || []
+  const hasValidSpecification = Boolean(specificationResponse.data)
+  const shareDisabledReason = !hasValidSpecification
+    ? 'Cần tạo đặc tả CSDL trước khi chia sẻ'
+    : questions.length === 0
+      ? 'Cần có ít nhất một câu hỏi trước khi chia sẻ'
+      : undefined
 
-  return <ExamQuestionsView examId={examIdNum} initialQuestions={questions} />
+  return (
+    <ExamQuestionsView
+      examId={examIdNum}
+      initialQuestions={questions}
+      templateManagement={templateManagementResponse.data ?? null}
+      canShareTemplate={hasValidSpecification && questions.length > 0}
+      shareDisabledReason={shareDisabledReason}
+    />
+  )
 }

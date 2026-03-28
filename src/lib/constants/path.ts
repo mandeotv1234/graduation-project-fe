@@ -17,6 +17,8 @@ export const PATH = {
     `/teacher/classes/${classId}/create-exam`,
   TEACHER_EXAM_DETAIL: (examId: number) => `/teacher/exams/${examId}`,
   TEACHER_EXAM_MONITOR: (examId: number) => `/teacher/exams/${examId}/monitor`,
+  TEACHER_EXAM_SETTINGS: (examId: number) =>
+    `/teacher/exams/${examId}/settings`,
   TEACHER_EXAM_QUESTIONS: (examId: number) =>
     `/teacher/exams/${examId}/questions`,
   TEACHER_EXAM_COMMON_PART: (examId: number) =>
@@ -28,7 +30,8 @@ export const PATH = {
   TEACHER_SPECIFICATIONS: '/teacher/specifications',
   TEACHER_SPECIFICATION_EDIT: (specificationId: number) =>
     `/teacher/specifications/${specificationId}/edit`,
-  TEACHER_EDIT_EXAM: (examId: number) => `/teacher/exams/${examId}/edit`
+  TEACHER_EDIT_EXAM: (examId: number) => `/teacher/exams/${examId}/edit`,
+  TEACHER_LIBRARY: '/teacher/library'
 }
 
 export const PRIVATE_PATH = ['/student', '/teacher']

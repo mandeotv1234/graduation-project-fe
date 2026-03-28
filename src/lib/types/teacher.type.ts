@@ -117,10 +117,26 @@ export interface CreateExamResponse {
   creatorId: number
   title: string
   durationMinutes: number
-  startTime: string
-  endTime: string
+  startTime?: string
+  endTime?: string
   isPublished: boolean
   createdAt: string
+  description?: string
+  maxAttempts?: number
+  lateThreshold?: number
+  settings?: ExamSettings
+}
+
+export interface UpdateTeacherExamSettingsRequest {
+  title: string
+  durationMinutes: number
+  startTime?: string
+  endTime?: string
+  description?: string
+  maxAttempts?: number
+  lateThreshold?: number
+  settings?: ExamSettings
+  isPublished?: boolean
 }
 
 // GET /api/exams/{examId}/teacher-detail

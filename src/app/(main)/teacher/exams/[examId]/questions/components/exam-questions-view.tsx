@@ -2,11 +2,14 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Plus,
   Hash,
   Award,
   Save,
+  Share2,
+  Settings,
   X,
   Database,
   Trash2,
@@ -25,12 +28,16 @@ import { Button } from '@/components/ui/button'
 import { RichTextEditor } from '@/components/shared/rich-text-editor'
 import { RubricTestGrader } from './rubric-test-grader'
 import { TeacherSqlEditor } from './teacher-sql-editor'
-import { createExamQuestionsBatch } from '@/lib/actions'
+import {
+  createExamQuestionsBatch,
+  shareExamAsTemplate
+} from '@/lib/actions'
 import { useApi } from '@/hooks/use-api'
 import {
   ExamQuestionItem,
   CreateExamQuestionBatch,
-  GradingRubric
+  GradingRubric,
+  TeacherExamTemplateVersionsResponse
 } from '@/lib/types'
 import { PATH } from '@/lib/constants'
 import { CreateTableRubricEditor } from './create-table-rubric-editor'
@@ -60,6 +67,9 @@ const QUESTION_TYPE_COLORS: Record<string, string> = {
 interface ExamQuestionsViewProps {
   examId: number
   initialQuestions: ExamQuestionItem[]
+  templateManagement: TeacherExamTemplateVersionsResponse | null
+  canShareTemplate: boolean
+  shareDisabledReason?: string
 }
 
 interface QuestionFormState extends CreateExamQuestionBatch {
@@ -69,16 +79,41 @@ interface QuestionFormState extends CreateExamQuestionBatch {
 
 export function ExamQuestionsView({
   examId,
-  initialQuestions
+  initialQuestions,
+  templateManagement,
+  canShareTemplate,
+  shareDisabledReason
 }: ExamQuestionsViewProps) {
   const { callApi, isLoading } = useApi()
+  const router = useRouter()
   const [questions, setQuestions] = useState(initialQuestions)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
+
+  const versions = templateManagement?.versions ?? []
+  const canManage = templateManagement?.canManage ?? false
+  const visibleVersions = versions.filter((version) => version.isVisible)
+  const latestVisibleVersion = visibleVersions[0] ?? null
 
   // Batch form state — multiple questions
   const [pendingQuestions, setPendingQuestions] = useState<QuestionFormState[]>(
     []
   )
+
+  const handleShareAsTemplate = async () => {
+    setIsSharing(true)
+    try {
+      const result = await shareExamAsTemplate({ examId })
+      toast.success(
+        `Đã chia sẻ phiên bản v${result.data?.version ?? '?'} (${result.data?.questionCount ?? 0} câu hỏi)`
+      )
+      router.refresh()
+    } catch {
+      toast.error('Chia sẻ đề thi thất bại')
+    } finally {
+      setIsSharing(false)
+    }
+  }
 
   const addEmptyQuestion = () => {
     const newQuestion: QuestionFormState = {
@@ -171,38 +206,74 @@ export function ExamQuestionsView({
             <h1 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
               Danh sách câu hỏi
             </h1>
-            <p className="text-foreground font-medium">
-              {questions.length} câu hỏi · Tổng điểm: {totalPoints}đ
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+              <p>
+                Bài thi #{examId} · {questions.length} câu · {totalPoints} điểm
+              </p>
+              {latestVisibleVersion && (
+                <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600">
+                  Đang public · v{latestVisibleVersion.version}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {!showAddForm && (
-          <div className="flex items-center gap-2">
-            <Link href={PATH.TEACHER_EXAM_SPECIFICATION(examId)}>
-              <Button variant="outline" className="gap-2">
-                <Database className="h-4 w-4" />
-                Đặc tả CSDL
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <Link href={PATH.TEACHER_EXAM_SPECIFICATION(examId)}>
+                <Button variant="outline" className="gap-2">
+                  <Database className="h-4 w-4" />
+                  Đặc tả CSDL
+                </Button>
+              </Link>
+              <Link href={PATH.TEACHER_EXAM_SETTINGS(examId)}>
+                <Button variant="outline" className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Cài đặt bài thi
+                </Button>
+              </Link>
+              <Link href={`/teacher/exams/${examId}/results`}>
+                <Button variant="outline" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  Xem kết quả
+                </Button>
+              </Link>
+              {canManage && (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleShareAsTemplate}
+                  disabled={isSharing || !canShareTemplate}
+                  title={shareDisabledReason}
+                >
+                  {isSharing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Share2 className="h-4 w-4" />
+                  )}
+                  {versions.length > 0
+                    ? 'Chia sẻ phiên bản mới'
+                    : 'Chia sẻ đề thi'}
+                </Button>
+              )}
+              <Button
+                onClick={() => {
+                  setShowAddForm(true)
+                  if (pendingQuestions.length === 0) {
+                    addEmptyQuestion()
+                  }
+                }}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Thêm câu hỏi
               </Button>
-            </Link>
-            <Link href={`/teacher/exams/${examId}/results`}>
-              <Button variant="outline" className="gap-2">
-                <Users className="h-4 w-4" />
-                Xem kết quả
-              </Button>
-            </Link>
-            <Button
-              onClick={() => {
-                setShowAddForm(true)
-                if (pendingQuestions.length === 0) {
-                  addEmptyQuestion()
-                }
-              }}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Thêm câu hỏi
-            </Button>
+            </div>
+            {canManage && !canShareTemplate && shareDisabledReason && (
+              <p className="text-xs text-destructive">{shareDisabledReason}</p>
+            )}
           </div>
         )}
       </div>

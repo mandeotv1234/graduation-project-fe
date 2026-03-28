@@ -13,7 +13,13 @@ import {
   StudentInClass,
   ClassExamItem,
   AddTeacherToClassRequest,
-  TeacherExamResult
+  TeacherExamResult,
+  CreateExamRequest,
+  CreateExamResponse,
+  UpdateTeacherExamSettingsRequest,
+  TeacherExamTemplateVersionsResponse,
+  SpecificationResponse,
+  CreateSpecificationRequest
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -89,10 +95,79 @@ export async function removeTeacherFromClass(
 
 // ===== Exams =====
 
+export async function createExam(
+  data: CreateExamRequest
+): Promise<ApiResponse<CreateExamResponse>> {
+  return apiClient.post<CreateExamResponse>(ENDPOINTS.CREATE_EXAM, data)
+}
+
+export async function getTeacherExamSettings(
+  examId: number
+): Promise<ApiResponse<CreateExamResponse>> {
+  return apiClient.get<CreateExamResponse>(
+    ENDPOINTS.TEACHER_EXAM_SETTINGS(examId),
+    { cache: 'no-store' }
+  )
+}
+
+export async function updateTeacherExamSettings(
+  examId: number,
+  data: UpdateTeacherExamSettingsRequest
+): Promise<ApiResponse<CreateExamResponse>> {
+  return apiClient.put<CreateExamResponse>(
+    ENDPOINTS.TEACHER_EXAM_SETTINGS(examId),
+    data
+  )
+}
+
+export async function getTeacherExamTemplateVersions(
+  examId: number
+): Promise<ApiResponse<TeacherExamTemplateVersionsResponse>> {
+  return apiClient.get<TeacherExamTemplateVersionsResponse>(
+    ENDPOINTS.TEACHER_EXAM_TEMPLATE_VERSIONS(examId),
+    { cache: 'no-store' }
+  )
+}
+
 export async function getExamResults(
   examId: number
 ): Promise<ApiResponse<TeacherExamResult[]>> {
   return apiClient.get<TeacherExamResult[]>(ENDPOINTS.EXAM_RESULTS(examId), {
     cache: 'no-store'
   })
+}
+
+// ===== Specifications =====
+
+export async function getSpecifications(): Promise<
+  ApiResponse<SpecificationResponse[]>
+> {
+  return apiClient.get<SpecificationResponse[]>(ENDPOINTS.SPECIFICATIONS, {
+    cache: 'no-store'
+  })
+}
+
+export async function createSpecification(
+  data: CreateSpecificationRequest
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.post<SpecificationResponse>(ENDPOINTS.SPECIFICATIONS, data)
+}
+
+export async function getSpecificationDetail(
+  specificationId: number
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.get<SpecificationResponse>(
+    ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
+    { cache: 'no-store' }
+  )
+}
+
+export async function updateSpecification(
+  specificationId: number,
+  data: CreateSpecificationRequest
+): Promise<ApiResponse<SpecificationResponse>> {
+  return apiClient.put<SpecificationResponse>(
+    ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
+    data
+  )
 }
