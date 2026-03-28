@@ -38,7 +38,7 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Spinner } from '@/components/shared'
+import { Spinner } from '@/components/shared/spinner'
 import { Eye, RotateCcw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 

@@ -190,6 +190,8 @@ export interface ExamSpecification {
   title?: string
   ddlScript?: string
   ddlVisibleToStudent?: boolean
+  schemaDiagram?: string
+  schemaDiagramVisibleToStudent?: boolean
   description: string
   entities: SpecEntity[]
   datasets?: SpecDataset[]
@@ -351,6 +353,8 @@ export interface SaveExamSpecificationRequest {
   title?: string
   ddlScript?: string
   ddlVisibleToStudent?: boolean
+  schemaDiagram?: string
+  schemaDiagramVisibleToStudent?: boolean
   description: string
   datasets?: {
     id?: number

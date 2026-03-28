@@ -1,5 +1,5 @@
 import { type ComponentType } from 'react'
-import { Database, FileText, FileUp, Table2 } from 'lucide-react'
+import { Database, FileText, FileUp, Table2, Workflow } from 'lucide-react'
 
 import {
   ExamSpecification,
@@ -13,6 +13,7 @@ export type BlockKind =
   | 'sql-ddl'
   | 'sql-dml'
   | 'table-description'
+  | 'schema-diagram'
 
 interface BlockBase<K extends BlockKind, D> {
   id: string
@@ -38,12 +39,26 @@ export type AttachmentBlock = BlockBase<
 >
 
 export type SqlDdlBlock = BlockBase<'sql-ddl', { sql: string }>
-export type SqlDmlBlock = BlockBase<'sql-dml', { sql: string }>
+export type SqlDmlBlock = BlockBase<
+  'sql-dml',
+  {
+    sql: string
+    tableData?: string
+    displayMode?: 'script' | 'data' | 'both'
+  }
+>
 
 export type TableDescriptionBlock = BlockBase<
   'table-description',
   {
     entities: SpecificationEntity[]
+  }
+>
+
+export type SchemaDiagramBlock = BlockBase<
+  'schema-diagram',
+  {
+    diagramData: string
   }
 >
 
@@ -53,6 +68,7 @@ export type ExamBlock =
   | SqlDdlBlock
   | SqlDmlBlock
   | TableDescriptionBlock
+  | SchemaDiagramBlock
 
 interface BlockDefinition {
   kind: BlockKind
@@ -183,10 +199,8 @@ export const BLOCK_REGISTRY: BlockDefinition[] = [
       visibleToStudent: false,
       canToggleVisibility: true,
       data: {
-        sql: `INSERT INTO Students (StudentID, FullName, Major)
-VALUES
-  (1, 'Nguyen Van A', 'CS'),
-  (2, 'Le Thi B', 'IS');`
+        sql: `INSERT INTO Students (StudentID, FullName, Major)\nVALUES\n  (1, 'Nguyen Van A', 'CS'),\n  (2, 'Le Thi B', 'IS');`,
+        displayMode: 'script'
       }
     })
   },
@@ -203,6 +217,22 @@ VALUES
       canToggleVisibility: true,
       data: {
         entities: []
+      }
+    })
+  },
+  {
+    kind: 'schema-diagram',
+    label: 'Lược đồ CSDL',
+    description: 'Vẽ lược đồ bằng React Flow',
+    icon: Workflow,
+    createBlock: () => ({
+      id: createBlockId(),
+      kind: 'schema-diagram',
+      title: 'Lược đồ cơ sở dữ liệu',
+      visibleToStudent: true,
+      canToggleVisibility: true,
+      data: {
+        diagramData: ''
       }
     })
   }
@@ -254,7 +284,10 @@ export const createBlocksFromSpecification = (
         ? `Mã SQL DML: ${datasetName}`
         : `Mã SQL DML: Dataset ${index + 1}`
       block.data.sql = dataset.dataScript ?? ''
+      // @ts-expect-error - tableData might be returned from backend DTO depending on API spec iteration
+      block.data.tableData = dataset.tableData ?? ''
       block.visibleToStudent = dataset.visibleToStudent ?? false
+      block.data.displayMode = block.data.tableData ? 'data' : 'script'
       return block
     })
 
@@ -300,7 +333,19 @@ export const createBlocksFromSpecification = (
       'table-description'
     ).createBlock() as TableDescriptionBlock
     tableDescriptionBlock.data.entities = meaningfulEntities
+    tableDescriptionBlock.visibleToStudent = true // default
     blocks.push(tableDescriptionBlock)
+  }
+
+  const schemaDiagram = specification.schemaDiagram?.trim() ?? ''
+  if (schemaDiagram) {
+    const diagramBlock = getBlockDefinition(
+      'schema-diagram'
+    ).createBlock() as SchemaDiagramBlock
+    diagramBlock.data.diagramData = schemaDiagram
+    diagramBlock.visibleToStudent =
+      specification.schemaDiagramVisibleToStudent ?? true
+    blocks.push(diagramBlock)
   }
 
   return blocks
