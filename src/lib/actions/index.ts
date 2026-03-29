@@ -1,8 +1,39 @@
 export * from '@/lib/actions/auth.action'
-export * from '@/lib/actions/exam.action'
+export {
+  getExamQuestions,
+  getTeacherExamDetail,
+  getTeacherExamMonitor,
+  updateExam,
+  createExam
+} from '@/lib/actions/exam.action'
 export * from '@/lib/actions/student-exam.action'
-export * from '@/lib/actions/teacher.action'
+export {
+  getClasses,
+  getClassDetail,
+  createClass,
+  getStudentsInClass,
+  getClassExams,
+  getClassTeachers,
+  addTeacherToClass,
+  removeTeacherFromClass,
+  getTeacherExamSettings,
+  updateTeacherExamSettings,
+  getTeacherExamTemplateVersions,
+  getExamResults
+} from '@/lib/actions/teacher.action'
 export * from '@/lib/actions/anti-cheat.action'
 export * from '@/lib/actions/notification.action'
-export * from '@/lib/actions/exam-specification.action'
+export {
+  getSpecifications,
+  createSpecification,
+  getExamSpecification,
+  saveExamSpecification,
+  createExamQuestionsBatch,
+  getSpecificationDetail,
+  updateSpecification,
+  generateGradingRubric,
+  testGradeCreateTable,
+  testGradeInsertData,
+  testGradeSelectData
+} from '@/lib/actions/exam-specification.action'
 export * from '@/lib/actions/library.action'

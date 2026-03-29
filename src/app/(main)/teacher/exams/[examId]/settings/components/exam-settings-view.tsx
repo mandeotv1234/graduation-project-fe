@@ -109,16 +109,22 @@ export function ExamSettingsView({
         <div className="flex flex-col gap-4 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              Quản lý thư viện đề thi
+              Quản trị phiên bản thư viện
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Quản lý các phiên bản đề thi đã public lên thư viện từ bài thi
-              này.
+              Xuất bản phiên bản mới được thực hiện ở trang Câu hỏi. Tại đây,
+              bạn quản lý hiển thị và lịch sử các phiên bản đã đưa lên thư viện.
             </p>
           </div>
 
-          {canManage && visibleVersions.length > 0 && (
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href={PATH.TEACHER_EXAM_QUESTIONS(exam.id)}>
+              <Button variant="outline" className="gap-2">
+                <FileText className="h-4 w-4" />
+                Tới trang câu hỏi
+              </Button>
+            </Link>
+            {canManage && visibleVersions.length > 0 && (
               <Button
                 variant="outline"
                 className="gap-2 text-destructive hover:text-destructive"
@@ -132,16 +138,27 @@ export function ExamSettingsView({
                 )}
                 Ẩn khỏi thư viện
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {versions.length === 0 ? (
-          <div className="py-8 text-sm text-muted-foreground">
-            Bài thi này chưa được chia sẻ lên thư viện.
+          <div className="py-8">
+            <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+              Bài thi này chưa có phiên bản nào trong thư viện. Hãy vào trang
+              Câu hỏi để chia sẻ phiên bản đầu tiên.
+            </div>
           </div>
         ) : (
           <div className="mt-4 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                Tổng phiên bản: {versions.length}
+              </span>
+              <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">
+                Đang hiển thị: {visibleVersions.length}
+              </span>
+            </div>
             {versions.map((version) => (
               <div
                 key={version.templateId}
