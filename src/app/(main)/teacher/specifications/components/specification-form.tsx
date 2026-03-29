@@ -8,7 +8,8 @@ import {
   SpecificationEntity,
   SpecificationEntityAttribute
 } from '@/lib/types'
-import { EntitiesEditor, DatasetsEditor } from '@/components/shared'
+import { DatasetsEditor } from '@/components/shared/datasets-editor'
+import { EntitiesEditor } from '@/components/shared/entities-editor'
 
 interface SpecificationFormProps {
   mode: 'create' | 'edit'

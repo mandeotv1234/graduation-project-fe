@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ExamSpecification, SpecificationResponse } from '@/lib/types'
-import { ExamSpecificationView } from '@/components/shared'
+import { ExamSpecificationView } from '@/components/shared/exam-specification-view'
 import { getSpecifications } from '@/lib/actions'
 
 import { examSchema, ExamFormValues, ExamFormInput } from './exam-form-schema'

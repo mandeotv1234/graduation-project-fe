@@ -1,6 +1,8 @@
 'use client'
 
 import { SpecificationEntity } from '@/lib/types'
+import { DatasetTableView } from '@/components/shared/dataset-table-view'
+import { TeacherSchemaDiagram } from '@/components/shared/teacher-schema-diagram'
 
 type StudentCommonBlock =
   | {
@@ -26,13 +28,19 @@ type StudentCommonBlock =
       id: string
       kind: 'sql-ddl' | 'sql-dml'
       title: string
-      data: { sql: string }
+      data: { sql: string; tableData?: string }
     }
   | {
       id: string
       kind: 'table-description'
       title: string
       data: { entities: SpecificationEntity[] }
+    }
+  | {
+      id: string
+      kind: 'schema-diagram'
+      title: string
+      data: { diagramData: string }
     }
 
 interface StudentCommonPartViewProps {
@@ -216,10 +224,25 @@ export function StudentCommonPartView({
                   </div>
                 )}
 
-                {(block.kind === 'sql-ddl' || block.kind === 'sql-dml') && (
+                {block.kind === 'sql-ddl' && (
                   <pre className="max-h-72 overflow-auto rounded-lg border border-border/60 bg-background p-4 text-xs leading-5 text-foreground">
                     {block.data.sql?.trim() || '-- Chua co noi dung SQL --'}
                   </pre>
+                )}
+
+                {block.kind === 'sql-dml' && (
+                  <div className="w-full">
+                    {block.data.sql ? (
+                      <DatasetTableView
+                        sql={block.data.sql}
+                        tableData={block.data.tableData}
+                      />
+                    ) : (
+                      <p className="text-sm italic text-muted-foreground">
+                        Chưa có dữ liệu mẫu.
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 {block.kind === 'table-description' && (
@@ -237,6 +260,21 @@ export function StudentCommonPartView({
                     ) : (
                       <p className="text-sm italic text-muted-foreground">
                         Chưa có bảng dữ liệu cho phần này.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {block.kind === 'schema-diagram' && (
+                  <div className="h-[500px] w-full">
+                    {block.data.diagramData ? (
+                      <TeacherSchemaDiagram
+                        diagramData={block.data.diagramData}
+                        readOnly
+                      />
+                    ) : (
+                      <p className="text-sm italic text-muted-foreground pt-4">
+                        Chưa có lược đồ cơ sở dữ liệu.
                       </p>
                     )}
                   </div>

@@ -12,7 +12,7 @@ import {
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { StudentCommonPartView } from '@/components/shared'
+import { StudentCommonPartView } from '@/components/shared/student-common-part-view'
 import { EditExamModalButton } from './edit-exam-modal-button'
 import { ExamQuestionsView } from '../questions/components/exam-questions-view'
 import { Button } from '@/components/ui/button'
@@ -153,6 +153,18 @@ export function TeacherExamDetailContent({
         })
       })
 
+    if (
+      specification?.schemaDiagram?.trim() &&
+      specification.schemaDiagramVisibleToStudent === true
+    ) {
+      blocks.push({
+        id: 'common-schema-diagram',
+        kind: 'schema-diagram',
+        title: 'Lược đồ cơ sở dữ liệu',
+        data: { diagramData: specification.schemaDiagram }
+      })
+    }
+
     return blocks
   }, [specification])
 
@@ -184,6 +196,18 @@ export function TeacherExamDetailContent({
           data: { sql: dataset.dataScript }
         })
       })
+
+    if (
+      specification?.schemaDiagram?.trim() &&
+      specification.schemaDiagramVisibleToStudent !== true
+    ) {
+      blocks.push({
+        id: 'hidden-schema-diagram',
+        kind: 'schema-diagram',
+        title: 'Lược đồ cơ sở dữ liệu',
+        data: { diagramData: specification.schemaDiagram }
+      })
+    }
 
     return blocks
   }, [specification])

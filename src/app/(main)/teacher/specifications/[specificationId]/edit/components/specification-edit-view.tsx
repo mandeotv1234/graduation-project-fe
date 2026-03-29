@@ -26,7 +26,7 @@ import {
   SpecificationEntityAttribute,
   SpecificationResponse
 } from '@/lib/types'
-import { DatasetsEditor } from '@/components/shared'
+import { DatasetsEditor } from '@/components/shared/datasets-editor'
 
 const DATA_TYPES = [
   'INT',

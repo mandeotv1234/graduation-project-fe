@@ -23,7 +23,7 @@ import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/co
 import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog'
 import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal'
 import { ResizablePanel } from '@/components/shared/resizable-panel'
-import { PageSpinner } from '@/components/shared'
+import { PageSpinner } from '@/components/shared/spinner'
 import type { ExecuteSqlResponse } from '@/lib/types'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'

@@ -1,22 +1,23 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   BookOpenCheck,
   Eye,
   EyeOff,
   FileText,
   FileUp,
-  PlusCircle,
+  Play,
   Save,
+  Table2,
   Trash2
 } from 'lucide-react'
 
-import {
-  TeacherSqlEditor,
-  EntitiesEditor,
-  StudentCommonPartView
-} from '@/components/shared'
+import { DatasetTableView } from '@/components/shared/dataset-table-view'
+import { EntitiesEditor } from '@/components/shared/entities-editor'
+import { RichTextEditor } from '@/components/shared/rich-text-editor'
+import { TeacherSchemaDiagram } from '@/components/shared/teacher-schema-diagram'
+import { TeacherSqlEditor } from '@/components/shared/teacher-sql-editor'
 import {
   type AttachmentItem,
   BLOCK_REGISTRY,
@@ -32,14 +33,16 @@ import {
   type RichTextBlock,
   type SqlDdlBlock,
   type SqlDmlBlock,
-  type TableDescriptionBlock
+  type TableDescriptionBlock,
+  type SchemaDiagramBlock
 } from './common-part-blocks'
+import { mapDatasetBlocksToSavePayload } from './common-part-export.domain'
+import { ScriptPickerDialog } from './script-picker-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useApi } from '@/hooks/use-api'
-import { saveExamSpecification } from '@/lib/actions'
-import { RichTextEditor } from '@/components/shared/rich-text-editor'
+import { executeSql, saveExamSpecification } from '@/lib/actions'
 import {
   ExamSpecification,
   SaveExamSpecificationRequest,
@@ -47,6 +50,8 @@ import {
   SpecificationEntityAttribute
 } from '@/lib/types'
 import { toast } from 'sonner'
+import { useSchemaExport } from '../hooks/use-schema-export'
+import { useDatasetExport } from '../hooks/use-dataset-export'
 
 interface CreateExamFormProps {
   examId?: number
@@ -71,6 +76,30 @@ export default function CreateExamForm({
       ? createBlocksFromSpecification(initialSpecification)
       : createInitialBlocks()
   )
+
+  const executeSqlInCurrentExam = useCallback(
+    async (sql: string) => {
+      if (!hasValidExamId || normalizedExamId === null) {
+        return undefined
+      }
+
+      const result = await callApi(executeSql(normalizedExamId, { sql }), false)
+      return result.data
+    },
+    [hasValidExamId, normalizedExamId, callApi]
+  )
+
+  const schemaExport = useSchemaExport({
+    blocks,
+    executeSqlInExam: executeSqlInCurrentExam,
+    setBlocks
+  })
+
+  const datasetExport = useDatasetExport({
+    blocks,
+    executeSqlInExam: executeSqlInCurrentExam,
+    setBlocks
+  })
 
   const visibleBlocks = useMemo(() => {
     if (!showStudentPreview) {
@@ -352,11 +381,17 @@ export default function CreateExamForm({
       (block): block is SqlDmlBlock => block.kind === 'sql-dml'
     )
 
+    const diagramBlock = blocks.find(
+      (block): block is SchemaDiagramBlock => block.kind === 'schema-diagram'
+    )
+
     const payload: SaveExamSpecificationRequest = {
       name: `Exam #${normalizedExamId} - Common Part`,
       title: `Exam #${normalizedExamId} - Common Part`,
       ddlScript,
       ddlVisibleToStudent: ddlBlock?.visibleToStudent ?? false,
+      schemaDiagram: diagramBlock?.data.diagramData ?? '',
+      schemaDiagramVisibleToStudent: diagramBlock?.visibleToStudent ?? true,
       description: richTextDescription,
       entities: sanitizedEntities.map((entity, entityIndex) => ({
         entityName: entity.entityName,
@@ -375,14 +410,8 @@ export default function CreateExamForm({
         )
       })),
       datasets: datasetBlocks
-        .map((block, index) => ({
-          name: `Dataset ${index + 1}`,
-          dataScript: block.data.sql?.trim() ?? '',
-          orderIndex: index + 1,
-          isActive: true,
-          visibleToStudent: block.visibleToStudent
-        }))
-        .filter((dataset) => dataset.dataScript.length > 0)
+        ? mapDatasetBlocksToSavePayload(datasetBlocks)
+        : []
     }
 
     setIsSaving(true)
@@ -487,203 +516,233 @@ export default function CreateExamForm({
               )
             })}
           </div>
+
+          <div className="mt-4 space-y-2 border-t border-border/60 pt-4">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Công cụ xuất tự động
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={schemaExport.openSchemaExportDialog}
+              disabled={
+                !hasValidExamId || isSaving || schemaExport.isExportingSchema
+              }
+            >
+              <Play className="h-4 w-4" />
+              Xuất lược đồ
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={datasetExport.openDatasetExportDialog}
+              disabled={
+                !hasValidExamId || isSaving || datasetExport.isExportingDatasets
+              }
+            >
+              <Table2 className="h-4 w-4" />
+              Xuất bảng dữ liệu
+            </Button>
+          </div>
         </aside>
 
         <main className="relative z-10 h-full space-y-6 px-4">
-          {showStudentPreview ? (
-            <StudentCommonPartView blocks={visibleBlocks} />
-          ) : (
-            <>
-              {visibleBlocks.length === 0 && (
-                <section className="border border-dashed bg-card/50 px-6 py-12 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Chưa có khối nội dung hiển thị. Hãy thêm block từ thanh bên.
-                  </p>
-                </section>
-              )}
+          {visibleBlocks.length === 0 && (
+            <section className="border border-dashed bg-card/50 px-6 py-12 text-center">
+              <p className="text-sm text-muted-foreground">
+                Chưa có khối nội dung hiển thị. Hãy thêm block từ thanh bên.
+              </p>
+            </section>
+          )}
 
-              {visibleBlocks.map((block) => {
-                const DefinitionIcon =
-                  BLOCK_REGISTRY.find((item) => item.kind === block.kind)
-                    ?.icon || FileText
+          {visibleBlocks.map((block) => {
+            const DefinitionIcon =
+              BLOCK_REGISTRY.find((item) => item.kind === block.kind)?.icon ||
+              FileText
 
-                return (
-                  <section key={block.id} className="overflow-hidden bg-card">
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 bg-muted/30 px-4 py-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <DefinitionIcon className="h-4 w-4 shrink-0 text-primary" />
-                        <Input
-                          value={block.title}
-                          onChange={(event) =>
-                            updateBlockById(block.id, (currentBlock) => ({
-                              ...currentBlock,
-                              title: event.target.value
-                            }))
-                          }
-                          className="h-8 min-w-[220px] border-none bg-transparent px-0 text-sm font-semibold shadow-none focus-visible:ring-0"
-                          disabled={showStudentPreview}
-                        />
-                      </div>
+            return (
+              <section key={block.id} className="overflow-hidden bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 bg-muted/30 px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <DefinitionIcon className="h-4 w-4 shrink-0 text-primary" />
+                    <Input
+                      value={block.title}
+                      onChange={(event) =>
+                        updateBlockById(block.id, (currentBlock) => ({
+                          ...currentBlock,
+                          title: event.target.value
+                        }))
+                      }
+                      className="h-8 min-w-[220px] border-none bg-transparent px-0 text-sm font-semibold shadow-none focus-visible:ring-0"
+                      disabled={showStudentPreview}
+                    />
+                  </div>
 
-                      <div className="flex items-center gap-2">
-                        {block.canToggleVisibility ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              updateBlockById(block.id, (currentBlock) => ({
-                                ...currentBlock,
-                                visibleToStudent: !currentBlock.visibleToStudent
-                              }))
-                            }
-                            disabled={showStudentPreview}
-                            className="gap-1.5"
-                          >
-                            {block.visibleToStudent ? (
-                              <Eye className="h-3.5 w-3.5" />
-                            ) : (
-                              <EyeOff className="h-3.5 w-3.5" />
-                            )}
-                            {block.visibleToStudent
-                              ? 'Sinh viên xem được'
-                              : 'Ẩn với sinh viên'}
-                          </Button>
+                  <div className="flex items-center gap-2">
+                    {block.canToggleVisibility ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          updateBlockById(block.id, (currentBlock) => ({
+                            ...currentBlock,
+                            visibleToStudent: !currentBlock.visibleToStudent
+                          }))
+                        }
+                        disabled={showStudentPreview}
+                        className="gap-1.5"
+                      >
+                        {block.visibleToStudent ? (
+                          <Eye className="h-3.5 w-3.5" />
                         ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] uppercase"
-                          >
-                            Dữ liệu hệ thống
-                          </Badge>
+                          <EyeOff className="h-3.5 w-3.5" />
                         )}
+                        {block.visibleToStudent
+                          ? 'Sinh viên xem được'
+                          : 'Ẩn với sinh viên'}
+                      </Button>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] uppercase"
+                      >
+                        Dữ liệu hệ thống
+                      </Badge>
+                    )}
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => removeBlock(block.id)}
-                          disabled={showStudentPreview}
-                        >
-                          <Trash2 className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => removeBlock(block.id)}
+                      disabled={showStudentPreview}
+                    >
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                </div>
 
-                    <div className="p-4 sm:p-5">
-                      {block.kind === 'rich-text' && (
-                        <RichTextEditor
-                          content={block.data.content}
-                          onChange={(content) =>
-                            updateBlockById(block.id, (currentBlock) => {
-                              if (currentBlock.kind !== 'rich-text') {
-                                return currentBlock
-                              }
-
-                              return {
-                                ...currentBlock,
-                                data: {
-                                  content
-                                }
-                              }
-                            })
+                <div className="p-4 sm:p-5">
+                  {block.kind === 'rich-text' && (
+                    <RichTextEditor
+                      content={block.data.content}
+                      onChange={(content) =>
+                        updateBlockById(block.id, (currentBlock) => {
+                          if (currentBlock.kind !== 'rich-text') {
+                            return currentBlock
                           }
-                          placeholder="Nhập nội dung mô tả bối cảnh..."
-                          minHeight="150px"
-                        />
-                      )}
 
-                      {block.kind === 'attachment' && (
-                        <div className="space-y-3">
-                          <label
-                            className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-center transition-colors hover:bg-muted/60"
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={(event) => {
-                              event.preventDefault()
-                              addAttachmentFiles(
-                                block.id,
-                                event.dataTransfer.files
-                              )
-                            }}
-                          >
-                            <FileUp className="mb-2 h-8 w-8 text-muted-foreground" />
-                            <p className="text-sm font-medium">
-                              Kéo thả sơ đồ ER/PDF hoặc nhấn để tải lên
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              PNG, JPG, PDF (không quá 10MB mỗi tệp)
-                            </p>
-                            <input
-                              type="file"
-                              className="hidden"
-                              multiple
-                              accept=".png,.jpg,.jpeg,.pdf"
-                              onChange={(event) =>
-                                addAttachmentFiles(block.id, event.target.files)
-                              }
-                              disabled={showStudentPreview}
-                            />
-                          </label>
-
-                          {block.data.files.length > 0 && (
-                            <div className="space-y-2">
-                              {block.data.files.map((item) => (
-                                <div
-                                  key={item.id}
-                                  className="flex items-center justify-between rounded-md border border-border px-3 py-2"
-                                >
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium">
-                                      {item.name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {item.type || 'application/octet-stream'}{' '}
-                                      • {formatFileSize(item.size)}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    onClick={() =>
-                                      removeAttachment(block.id, item.id)
-                                    }
-                                    disabled={showStudentPreview}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-muted-foreground" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {block.kind === 'sql-ddl' && (
-                        <div className="h-64 overflow-hidden rounded-lg border border-border">
-                          <TeacherSqlEditor
-                            value={block.data.sql}
-                            onChange={(value) =>
-                              updateBlockById(block.id, (currentBlock) => {
-                                if (currentBlock.kind !== 'sql-ddl') {
-                                  return currentBlock
-                                }
-
-                                return {
-                                  ...currentBlock,
-                                  data: {
-                                    sql: value ?? ''
-                                  }
-                                }
-                              })
+                          return {
+                            ...currentBlock,
+                            data: {
+                              content
                             }
-                            height="100%"
-                            readOnly={showStudentPreview}
-                          />
+                          }
+                        })
+                      }
+                      placeholder="Nhập nội dung mô tả bối cảnh..."
+                      minHeight="150px"
+                    />
+                  )}
+
+                  {block.kind === 'attachment' && (
+                    <div className="space-y-3">
+                      <label
+                        className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-center transition-colors hover:bg-muted/60"
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={(event) => {
+                          event.preventDefault()
+                          addAttachmentFiles(block.id, event.dataTransfer.files)
+                        }}
+                      >
+                        <FileUp className="mb-2 h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm font-medium">
+                          Kéo thả sơ đồ ER/PDF hoặc nhấn để tải lên
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          PNG, JPG, PDF (không quá 10MB mỗi tệp)
+                        </p>
+                        <input
+                          type="file"
+                          className="hidden"
+                          multiple
+                          accept=".png,.jpg,.jpeg,.pdf"
+                          onChange={(event) =>
+                            addAttachmentFiles(block.id, event.target.files)
+                          }
+                          disabled={showStudentPreview}
+                        />
+                      </label>
+
+                      {block.data.files.length > 0 && (
+                        <div className="space-y-2">
+                          {block.data.files.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between rounded-md border border-border px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium">
+                                  {item.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.type || 'application/octet-stream'} •{' '}
+                                  {formatFileSize(item.size)}
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() =>
+                                  removeAttachment(block.id, item.id)
+                                }
+                                disabled={showStudentPreview}
+                              >
+                                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          ))}
                         </div>
                       )}
+                    </div>
+                  )}
 
-                      {block.kind === 'sql-dml' && (
+                  {block.kind === 'sql-ddl' && (
+                    <div className="h-64 overflow-hidden rounded-lg border border-border">
+                      <TeacherSqlEditor
+                        value={block.data.sql}
+                        onChange={(value) =>
+                          updateBlockById(block.id, (currentBlock) => {
+                            if (currentBlock.kind !== 'sql-ddl') {
+                              return currentBlock
+                            }
+
+                            return {
+                              ...currentBlock,
+                              data: {
+                                sql: value ?? ''
+                              }
+                            }
+                          })
+                        }
+                        height="100%"
+                        readOnly={showStudentPreview}
+                      />
+                    </div>
+                  )}
+
+                  {block.kind === 'sql-dml' && (
+                    <div className="w-full">
+                      {block.data.displayMode === 'data' ? (
+                        <DatasetTableView
+                          sql={block.data.sql}
+                          tableData={block.data.tableData}
+                        />
+                      ) : (
                         <div className="h-56 overflow-hidden rounded-lg border border-border">
                           <TeacherSqlEditor
                             value={block.data.sql}
@@ -692,10 +751,10 @@ export default function CreateExamForm({
                                 if (currentBlock.kind !== 'sql-dml') {
                                   return currentBlock
                                 }
-
                                 return {
                                   ...currentBlock,
                                   data: {
+                                    ...currentBlock.data,
                                     sql: value ?? ''
                                   }
                                 }
@@ -706,91 +765,88 @@ export default function CreateExamForm({
                           />
                         </div>
                       )}
-
-                      {block.kind === 'table-description' && (
-                        <EntitiesEditor
-                          entities={block.data.entities}
-                          onAddEntity={() =>
-                            showStudentPreview
-                              ? undefined
-                              : addTableEntity(block.id)
-                          }
-                          onRemoveEntity={(entityIndex) =>
-                            showStudentPreview
-                              ? undefined
-                              : removeTableEntity(block.id, entityIndex)
-                          }
-                          onMoveEntity={(entityIndex, direction) =>
-                            showStudentPreview
-                              ? undefined
-                              : moveTableEntity(
-                                  block.id,
-                                  entityIndex,
-                                  direction
-                                )
-                          }
-                          onUpdateEntity={(entityIndex, field, value) =>
-                            showStudentPreview
-                              ? undefined
-                              : updateTableEntity(
-                                  block.id,
-                                  entityIndex,
-                                  field,
-                                  value
-                                )
-                          }
-                          onAddAttribute={(entityIndex) =>
-                            showStudentPreview
-                              ? undefined
-                              : addTableAttribute(block.id, entityIndex)
-                          }
-                          onUpdateAttribute={(
-                            entityIndex,
-                            attributeIndex,
-                            field,
-                            value
-                          ) =>
-                            showStudentPreview
-                              ? undefined
-                              : updateTableAttribute(
-                                  block.id,
-                                  entityIndex,
-                                  attributeIndex,
-                                  field,
-                                  value
-                                )
-                          }
-                          onRemoveAttribute={(entityIndex, attributeIndex) =>
-                            showStudentPreview
-                              ? undefined
-                              : removeTableAttribute(
-                                  block.id,
-                                  entityIndex,
-                                  attributeIndex
-                                )
-                          }
-                        />
-                      )}
                     </div>
-                  </section>
-                )
-              })}
+                  )}
 
-              {!showStudentPreview && (
-                <div className="flex justify-center pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => addBlock('rich-text')}
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Thêm khối nội dung mới từ thanh bên
-                  </Button>
+                  {block.kind === 'schema-diagram' && (
+                    <div className="h-[500px] w-full">
+                      <TeacherSchemaDiagram
+                        diagramData={block.data.diagramData}
+                        readOnly={showStudentPreview}
+                        onChange={(newData) => {
+                          updateBlockById(block.id, (b) => {
+                            if (b.kind !== 'schema-diagram') return b
+                            return { ...b, data: { diagramData: newData } }
+                          })
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {block.kind === 'table-description' && (
+                    <EntitiesEditor
+                      entities={block.data.entities}
+                      onAddEntity={() =>
+                        showStudentPreview
+                          ? undefined
+                          : addTableEntity(block.id)
+                      }
+                      onRemoveEntity={(entityIndex) =>
+                        showStudentPreview
+                          ? undefined
+                          : removeTableEntity(block.id, entityIndex)
+                      }
+                      onMoveEntity={(entityIndex, direction) =>
+                        showStudentPreview
+                          ? undefined
+                          : moveTableEntity(block.id, entityIndex, direction)
+                      }
+                      onUpdateEntity={(entityIndex, field, value) =>
+                        showStudentPreview
+                          ? undefined
+                          : updateTableEntity(
+                              block.id,
+                              entityIndex,
+                              field,
+                              value
+                            )
+                      }
+                      onAddAttribute={(entityIndex) =>
+                        showStudentPreview
+                          ? undefined
+                          : addTableAttribute(block.id, entityIndex)
+                      }
+                      onUpdateAttribute={(
+                        entityIndex,
+                        attributeIndex,
+                        field,
+                        value
+                      ) =>
+                        showStudentPreview
+                          ? undefined
+                          : updateTableAttribute(
+                              block.id,
+                              entityIndex,
+                              attributeIndex,
+                              field,
+                              value
+                            )
+                      }
+                      onRemoveAttribute={(entityIndex, attributeIndex) =>
+                        showStudentPreview
+                          ? undefined
+                          : removeTableAttribute(
+                              block.id,
+                              entityIndex,
+                              attributeIndex
+                            )
+                      }
+                    />
+                  )}
                 </div>
-              )}
-            </>
-          )}
+              </section>
+            )
+          })}
         </main>
       </div>
 
@@ -804,6 +860,44 @@ export default function CreateExamForm({
           </p>
         </div>
       )}
+
+      <ScriptPickerDialog
+        open={schemaExport.isSchemaDialogOpen}
+        onOpenChange={schemaExport.setIsSchemaDialogOpen}
+        title="Xuất lược đồ vào đề thi"
+        description="Chọn script có sẵn để chạy hoặc nhập script SQL khác. Sau khi chạy, lược đồ bảng sẽ cập nhật vào khối mô tả dạng bảng trong đề thi."
+        options={schemaExport.schemaScriptOptions}
+        scriptMode={schemaExport.schemaScriptMode}
+        onScriptModeChange={schemaExport.setSchemaScriptMode}
+        selectedScriptId={schemaExport.selectedSchemaScriptId}
+        onSelectedScriptIdChange={schemaExport.setSelectedSchemaScriptId}
+        customScript={schemaExport.customSchemaScript}
+        onCustomScriptChange={schemaExport.setCustomSchemaScript}
+        isExecuting={schemaExport.isExportingSchema}
+        onExecute={schemaExport.exportSchemaToCommonPart}
+        executeLabel="Chạy và xuất lược đồ"
+        executingLabel="Đang chạy..."
+        radioGroupName="schema-script-mode"
+      />
+
+      <ScriptPickerDialog
+        open={datasetExport.isDatasetDialogOpen}
+        onOpenChange={datasetExport.setIsDatasetDialogOpen}
+        title="Xuất bảng dữ liệu vào đề thi"
+        description="Chạy script để tạo dữ liệu, sau đó hệ thống sẽ xuất dữ liệu theo từng bảng thành các block SQL DML trong phần đề chung."
+        options={datasetExport.datasetScriptOptions}
+        scriptMode={datasetExport.datasetScriptMode}
+        onScriptModeChange={datasetExport.setDatasetScriptMode}
+        selectedScriptId={datasetExport.selectedDatasetScriptId}
+        onSelectedScriptIdChange={datasetExport.setSelectedDatasetScriptId}
+        customScript={datasetExport.customDatasetScript}
+        onCustomScriptChange={datasetExport.setCustomDatasetScript}
+        isExecuting={datasetExport.isExportingDatasets}
+        onExecute={datasetExport.exportDatasetsToCommonPart}
+        executeLabel="Chạy và xuất bảng dữ liệu"
+        executingLabel="Đang chạy..."
+        radioGroupName="dataset-script-mode"
+      />
     </div>
   )
 }
