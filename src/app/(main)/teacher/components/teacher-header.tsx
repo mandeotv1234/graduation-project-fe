@@ -2,7 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LogOut, GraduationCap, BookOpen, Database } from 'lucide-react'
+import {
+  LogOut,
+  GraduationCap,
+  BookOpen,
+  Database,
+  Library
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from '@/components/shared/mode-toggle'
@@ -20,6 +26,11 @@ const NAV_ITEMS = [
     label: 'Đặc Tả CSDL',
     href: PATH.TEACHER_SPECIFICATIONS,
     icon: Database
+  },
+  {
+    label: 'Thư viện',
+    href: PATH.TEACHER_LIBRARY,
+    icon: Library
   }
 ]
 

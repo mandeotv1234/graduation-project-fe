@@ -146,6 +146,19 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
     ]
   },
   {
+    id: 'teacher-library',
+    kind: 'template',
+    template: '/teacher/library',
+    crumbs: [
+      HOME_CRUMB,
+      {
+        label: 'Thư viện',
+        href: '/teacher/library',
+        clickable: true
+      }
+    ]
+  },
+  {
     id: 'teacher-exam-tabs',
     kind: 'regex',
     pattern:

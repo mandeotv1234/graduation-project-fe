@@ -2,11 +2,14 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Plus,
   Hash,
   Award,
   Save,
+  Share2,
+  Settings,
   X,
   Database,
   Trash2,
@@ -17,7 +20,8 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
-  Play
+  Play,
+  ArrowRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -25,12 +29,13 @@ import { Button } from '@/components/ui/button'
 import { RichTextEditor } from '@/components/shared/rich-text-editor'
 import { RubricTestGrader } from './rubric-test-grader'
 import { TeacherSqlEditor } from './teacher-sql-editor'
-import { createExamQuestionsBatch } from '@/lib/actions'
+import { createExamQuestionsBatch, shareExamAsTemplate } from '@/lib/actions'
 import { useApi } from '@/hooks/use-api'
 import {
   ExamQuestionItem,
   CreateExamQuestionBatch,
-  GradingRubric
+  GradingRubric,
+  TeacherExamTemplateVersionsResponse
 } from '@/lib/types'
 import { PATH } from '@/lib/constants'
 import { CreateTableRubricEditor } from './create-table-rubric-editor'
@@ -60,6 +65,9 @@ const QUESTION_TYPE_COLORS: Record<string, string> = {
 interface ExamQuestionsViewProps {
   examId: number
   initialQuestions: ExamQuestionItem[]
+  templateManagement: TeacherExamTemplateVersionsResponse | null
+  canShareTemplate: boolean
+  shareDisabledReason?: string
 }
 
 interface QuestionFormState extends CreateExamQuestionBatch {
@@ -67,18 +75,52 @@ interface QuestionFormState extends CreateExamQuestionBatch {
   rubricData?: GradingRubric | null
 }
 
+function formatVersionTimestamp(value?: string) {
+  return value ? new Date(value).toLocaleString('vi-VN') : '-'
+}
+
 export function ExamQuestionsView({
   examId,
-  initialQuestions
+  initialQuestions,
+  templateManagement,
+  canShareTemplate,
+  shareDisabledReason
 }: ExamQuestionsViewProps) {
   const { callApi, isLoading } = useApi()
+  const router = useRouter()
+  const pathname = usePathname()
   const [questions, setQuestions] = useState(initialQuestions)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
+
+  const versions = templateManagement?.versions ?? []
+  const canManage = templateManagement?.canManage ?? false
+  const visibleVersions = versions.filter((version) => version.isVisible)
+  const latestVersion = versions[0] ?? null
+  const latestVisibleVersion = visibleVersions[0] ?? null
+  const recentVersions = versions.slice(0, 3)
+  const isDedicatedQuestionsPage =
+    pathname === PATH.TEACHER_EXAM_QUESTIONS(examId)
 
   // Batch form state — multiple questions
   const [pendingQuestions, setPendingQuestions] = useState<QuestionFormState[]>(
     []
   )
+
+  const handleShareAsTemplate = async () => {
+    setIsSharing(true)
+    try {
+      const result = await shareExamAsTemplate({ examId })
+      toast.success(
+        `Đã chia sẻ phiên bản v${result.data?.version ?? '?'} (${result.data?.questionCount ?? 0} câu hỏi)`
+      )
+      router.refresh()
+    } catch {
+      toast.error('Chia sẻ đề thi thất bại')
+    } finally {
+      setIsSharing(false)
+    }
+  }
 
   const addEmptyQuestion = () => {
     const newQuestion: QuestionFormState = {
@@ -171,41 +213,217 @@ export function ExamQuestionsView({
             <h1 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
               Danh sách câu hỏi
             </h1>
-            <p className="text-foreground font-medium">
-              {questions.length} câu hỏi · Tổng điểm: {totalPoints}đ
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+              <p>
+                Bài thi #{examId} · {questions.length} câu · {totalPoints} điểm
+              </p>
+              {latestVisibleVersion && (
+                <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600">
+                  Đang public · v{latestVisibleVersion.version}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {!showAddForm && (
-          <div className="flex items-center gap-2">
-            <Link href={PATH.TEACHER_EXAM_SPECIFICATION(examId)}>
-              <Button variant="outline" className="gap-2">
-                <Database className="h-4 w-4" />
-                Đặc tả CSDL
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <Link href={PATH.TEACHER_EXAM_SPECIFICATION(examId)}>
+                <Button variant="outline" className="gap-2">
+                  <Database className="h-4 w-4" />
+                  Đặc tả CSDL
+                </Button>
+              </Link>
+              <Link href={PATH.TEACHER_EXAM_SETTINGS(examId)}>
+                <Button variant="outline" className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Cài đặt bài thi
+                </Button>
+              </Link>
+              <Link href={`/teacher/exams/${examId}/results`}>
+                <Button variant="outline" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  Xem kết quả
+                </Button>
+              </Link>
+              {canManage && (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleShareAsTemplate}
+                  disabled={isSharing || !canShareTemplate}
+                  title={shareDisabledReason}
+                >
+                  {isSharing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Share2 className="h-4 w-4" />
+                  )}
+                  {versions.length > 0
+                    ? 'Chia sẻ phiên bản mới'
+                    : 'Chia sẻ đề thi'}
+                </Button>
+              )}
+              <Button
+                onClick={() => {
+                  setShowAddForm(true)
+                  if (pendingQuestions.length === 0) {
+                    addEmptyQuestion()
+                  }
+                }}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Thêm câu hỏi
               </Button>
-            </Link>
-            <Link href={`/teacher/exams/${examId}/results`}>
-              <Button variant="outline" className="gap-2">
-                <Users className="h-4 w-4" />
-                Xem kết quả
-              </Button>
-            </Link>
-            <Button
-              onClick={() => {
-                setShowAddForm(true)
-                if (pendingQuestions.length === 0) {
-                  addEmptyQuestion()
-                }
-              }}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Thêm câu hỏi
-            </Button>
+            </div>
+            {canManage && !canShareTemplate && shareDisabledReason && (
+              <p className="text-xs text-destructive">{shareDisabledReason}</p>
+            )}
           </div>
         )}
       </div>
+
+      {isDedicatedQuestionsPage && (canManage || versions.length > 0) && (
+        <section className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.06] via-card to-card p-5 shadow-sm">
+          <div className="space-y-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-semibold text-foreground">
+                    Phiên bản thư viện
+                  </h2>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      latestVisibleVersion
+                        ? 'bg-emerald-500/10 text-emerald-600'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {latestVisibleVersion
+                      ? `Đang public v${latestVisibleVersion.version}`
+                      : 'Chưa public'}
+                  </span>
+                  {versions.length > 0 && (
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                      {visibleVersions.length}/{versions.length} phiên bản hiển
+                      thị
+                    </span>
+                  )}
+                </div>
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  Theo dõi lịch sử chia sẻ đề thi ngay tại trang câu hỏi. Việc
+                  ẩn hoặc hiện phiên bản vẫn được quản lý trong Cài đặt bài thi.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Link href={PATH.TEACHER_EXAM_SETTINGS(examId)}>
+                  <Button variant="outline" className="gap-2">
+                    <Settings className="h-4 w-4" />
+                    Quản lý tất cả phiên bản
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-border/70 bg-card/80 px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Lần chia sẻ gần nhất
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {formatVersionTimestamp(latestVersion?.createdAt)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {latestVersion?.sharedByName ?? 'Chưa có dữ liệu'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card/80 px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Phiên bản hiển thị
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {visibleVersions.length} phiên bản
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {latestVisibleVersion
+                    ? `Bản công khai mới nhất là v${latestVisibleVersion.version}`
+                    : 'Chưa có phiên bản nào đang hiển thị'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card/80 px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Câu hỏi hiện tại
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {questions.length} câu hỏi
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Tổng {totalPoints} điểm trong đề đang biên soạn
+                </p>
+              </div>
+            </div>
+
+            {recentVersions.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Lịch sử phiên bản gần nhất
+                  </p>
+                  {versions.length > recentVersions.length && (
+                    <p className="text-xs text-muted-foreground">
+                      Hiển thị {recentVersions.length}/{versions.length} phiên
+                      bản gần đây nhất
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  {recentVersions.map((version) => (
+                    <div
+                      key={version.templateId}
+                      className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card/85 px-4 py-3 md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                            v{version.version}
+                          </span>
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              version.isVisible
+                                ? 'bg-emerald-500/10 text-emerald-600'
+                                : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
+                            {version.isVisible ? 'Đang hiển thị' : 'Đã ẩn'}
+                          </span>
+                          <span className="text-sm font-medium text-foreground">
+                            {version.title}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {version.questionCount} câu hỏi ·{' '}
+                          {formatVersionTimestamp(version.createdAt)} ·{' '}
+                          {version.sharedByName}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-card/60 px-4 py-6 text-sm text-muted-foreground">
+                Chưa có phiên bản nào trong thư viện. Sau khi hoàn thiện đề và
+                đặc tả, hãy chia sẻ phiên bản đầu tiên ngay tại đây.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Add questions form (batch) */}
       {showAddForm && (

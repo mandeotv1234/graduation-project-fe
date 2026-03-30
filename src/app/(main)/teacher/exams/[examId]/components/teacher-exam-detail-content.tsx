@@ -20,7 +20,8 @@ import { PATH } from '@/lib/constants'
 import {
   ExamQuestionItem,
   ExamSpecification,
-  TeacherExamDetail
+  TeacherExamDetail,
+  TeacherExamTemplateVersionsResponse
 } from '@/lib/types'
 import { formatDateTime, getExamStatus } from '@/lib/utils'
 
@@ -32,6 +33,9 @@ type TeacherExamDetailContentProps = {
   specificationLabel: string
   questions: ExamQuestionItem[]
   specification?: ExamSpecification
+  templateManagement: TeacherExamTemplateVersionsResponse | null
+  canShareTemplate: boolean
+  shareDisabledReason?: string
 }
 
 type StudentCommonPartBlocks = Parameters<
@@ -94,7 +98,10 @@ export function TeacherExamDetailContent({
   questionCount,
   specificationLabel,
   questions,
-  specification
+  specification,
+  templateManagement,
+  canShareTemplate,
+  shareDisabledReason
 }: TeacherExamDetailContentProps) {
   const [displayExam, setDisplayExam] = useState(exam)
 
@@ -512,7 +519,13 @@ export function TeacherExamDetailContent({
           )}
         </section>
 
-        <ExamQuestionsView examId={exam.id} initialQuestions={questions} />
+        <ExamQuestionsView
+          examId={exam.id}
+          initialQuestions={questions}
+          templateManagement={templateManagement}
+          canShareTemplate={canShareTemplate}
+          shareDisabledReason={shareDisabledReason}
+        />
       </div>
     </div>
   )

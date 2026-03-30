@@ -31,6 +31,9 @@ export const ENDPOINTS = Object.freeze({
 
   // Teacher - Exams
   CREATE_EXAM: '/exams',
+  TEACHER_EXAM_SETTINGS: (examId: number) => `/exams/${examId}/settings`,
+  TEACHER_EXAM_TEMPLATE_VERSIONS: (examId: number) =>
+    `/exams/${examId}/template-versions`,
   CREATE_EXAM_QUESTION: (examId: number) => `/exams/${examId}/questions`,
   EXAM_MONITOR: (examId: number) => `/exams/${examId}/monitor`,
 
@@ -57,5 +60,16 @@ export const ENDPOINTS = Object.freeze({
   NOTIFICATION_READ: (id: number) => `/notifications/${id}/read`,
   NOTIFICATIONS_READ_ALL: '/notifications/read-all',
   NOTIFICATION_DELETE: (id: number) => `/notifications/${id}`,
-  NOTIFICATIONS_DELETE_ALL: '/notifications'
+  NOTIFICATIONS_DELETE_ALL: '/notifications',
+
+  // Library
+  LIBRARY_EXAM_TEMPLATES: '/library/exam-templates',
+  LIBRARY_EXAM_TEMPLATE_VERSIONS: (sourceExamId: number) =>
+    `/library/exam-templates/source/${sourceExamId}/versions`,
+  LIBRARY_EXAM_TEMPLATE_CLONE: (id: number) =>
+    `/library/exam-templates/${id}/clone`,
+  LIBRARY_EXAM_TEMPLATE_VISIBILITY: (id: number) =>
+    `/library/exam-templates/${id}/visibility`,
+  LIBRARY_EXAM_TEMPLATE_LINEAGE_VISIBILITY: (sourceExamId: number) =>
+    `/library/exam-templates/source/${sourceExamId}/visibility`
 })

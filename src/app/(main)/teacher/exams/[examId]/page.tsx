@@ -5,7 +5,8 @@ import {
   getClassDetail,
   getExamQuestionsByExamId,
   getExamSpecification,
-  getTeacherExamDetail
+  getTeacherExamDetail,
+  getTeacherExamTemplateVersions
 } from '@/lib/actions'
 import { TeacherExamDetailContent } from '@/app/(main)/teacher/exams/[examId]/components/teacher-exam-detail-content'
 import { PATH } from '@/lib/constants'
@@ -53,11 +54,13 @@ export default async function TeacherExamDetailPage({
     redirect(PATH.TEACHER_CLASSES)
   }
 
-  const [classRes, questionCountRes, specRes] = await Promise.all([
-    getClassDetail(exam.classId).catch(() => ({ data: undefined })),
-    getExamQuestionsByExamId(examIdNum).catch(() => ({ data: [] })),
-    getExamSpecification(examIdNum).catch(() => ({ data: undefined }))
-  ])
+  const [classRes, questionCountRes, specRes, templateManagementRes] =
+    await Promise.all([
+      getClassDetail(exam.classId).catch(() => ({ data: undefined })),
+      getExamQuestionsByExamId(examIdNum).catch(() => ({ data: [] })),
+      getExamSpecification(examIdNum).catch(() => ({ data: undefined })),
+      getTeacherExamTemplateVersions(examIdNum).catch(() => ({ data: null }))
+    ])
 
   const classLabel = classRes.data?.classCode
     ? `Lop ${classRes.data.classCode}`
@@ -66,6 +69,12 @@ export default async function TeacherExamDetailPage({
   const questions = questionCountRes.data ?? []
   const questionCount = questions.length
   const hasSpecification = Boolean(specRes.data)
+  const canShareTemplate = hasSpecification && questionCount > 0
+  const shareDisabledReason = !hasSpecification
+    ? 'Cần tạo đặc tả CSDL trước khi chia sẻ'
+    : questionCount === 0
+      ? 'Cần có ít nhất một câu hỏi trước khi chia sẻ'
+      : undefined
   const specificationLabel = specRes.data?.name
     ? `${specRes.data.name} (#${specRes.data.id})`
     : `#${exam.specificationId}`
@@ -79,6 +88,9 @@ export default async function TeacherExamDetailPage({
       specificationLabel={specificationLabel}
       questions={questions}
       specification={specRes.data}
+      templateManagement={templateManagementRes.data ?? null}
+      canShareTemplate={canShareTemplate}
+      shareDisabledReason={shareDisabledReason}
     />
   )
 }
