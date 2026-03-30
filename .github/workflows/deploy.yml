@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches:
-      - develop
+      - feature/GRAD-55-Build-exam-library-UI
 
 env:
   REGISTRY: registry.digitalocean.com/graduation
