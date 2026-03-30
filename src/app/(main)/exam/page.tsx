@@ -1,5 +1,5 @@
+import ExamInterface from '@/app/(main)/exam/components/exam-interface/exam-interface'
 import { getExamQuestions } from '@/lib/actions'
-import ExamInterface from '@/app/(main)/exam/components/exam-interface'
 
 const tables = [
   {

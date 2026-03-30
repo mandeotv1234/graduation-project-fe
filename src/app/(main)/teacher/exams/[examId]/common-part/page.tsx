@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
-import CreateExamForm from '@/app/(main)/create-exam/components/create-exam-form'
 import { getExamSpecification, getTeacherExamDetail } from '@/lib/actions'
 import { PATH } from '@/lib/constants'
+import CreateExamForm from '@/app/(main)/create-exam/components/create-exam-form/create-exam-form'
 
 interface TeacherCreateCommonExamPageProps {
   params: Promise<{ examId: string }>

@@ -1,0 +1,82 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.bottomPanelContainer {
+  @apply h-full bg-card border-t border-border flex flex-col overflow-hidden;
+
+  .panelContent {
+    @apply flex-1 flex flex-col min-h-0;
+
+    .schemaInfo {
+      @apply px-0 pt-0 border-b border-border;
+
+      .schemaList {
+        @apply w-full bg-transparent p-0 h-12 rounded-none flex justify-start;
+
+        .schemaTrigger {
+          @apply px-6 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-accent/50 data-[state=active]:text-primary text-muted-foreground;
+        }
+      }
+    }
+
+    .actionButtons {
+      @apply flex-1 p-6 m-0 min-h-0;
+
+      .emptyState {
+        @apply h-full flex flex-col items-center justify-center text-muted-foreground text-sm gap-2;
+
+        .emptyIcon {
+          @apply w-8 h-8 opacity-20;
+        }
+
+        .emptyDescription {
+          @apply text-xs text-muted-foreground;
+        }
+      }
+
+      .scrollArea {
+        @apply h-full;
+
+        .schemaContainer {
+          @apply p-6;
+
+          .tablesGrid {
+            @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+
+            .tableCard {
+              @apply border border-border rounded-md overflow-hidden bg-background;
+
+              .tableHeader {
+                @apply px-3 py-2 border-b border-border bg-card flex items-center gap-2;
+
+                .tableIcon {
+                  @apply w-4 h-4 text-primary;
+                }
+
+                .tableName {
+                  @apply font-mono text-sm font-medium text-foreground;
+                }
+              }
+
+              .columnsList {
+                @apply p-3 space-y-2;
+
+                .columnItem {
+                  @apply flex justify-between items-center text-xs font-mono;
+
+                  .columnName {
+                    @apply text-muted-foreground transition-colors;
+                  }
+
+                  .columnType {
+                    @apply text-muted-foreground;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -22,7 +22,13 @@ export default [
     },
     rules: {
       'prettier/prettier': 'error',
-      'react/react-in-jsx-scope': 'off'
+      'react/react-in-jsx-scope': 'off',
+      // TypeScript rules
+      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-explicit-any': 'error',
+      // General rules
+      'no-unused-vars': 'off',
+      'no-console': 'warn'
     }
   }
 ]

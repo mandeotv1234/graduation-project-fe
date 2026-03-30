@@ -21,13 +21,13 @@ import type { SchemaTable } from '@/app/(main)/student/exams/[examId]/take/compo
 import { ExamTakeBottomPanel } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-bottom-panel'
 import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog'
 import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog'
-import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal'
 import { ResizablePanel } from '@/components/shared/resizable-panel'
 import { PageSpinner } from '@/components/shared/spinner'
 import type { ExecuteSqlResponse } from '@/lib/types'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Clock, Send, User } from 'lucide-react'
+import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal'
 
 interface ExamTakeInterfaceProps {
   exam: StudentExamDetail

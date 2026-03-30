@@ -1,0 +1,90 @@
+@reference 'tailwindcss';
+@reference '../../../../globals.css';
+
+.container {
+  @apply space-y-8 rounded-2xl border border-border bg-card/50 p-8 shadow-xl backdrop-blur-md;
+
+  .header {
+    @apply space-y-2 text-center;
+
+    .title {
+      @apply text-3xl font-bold tracking-tight text-foreground;
+    }
+
+    .subtitle {
+      @apply text-sm text-muted-foreground;
+    }
+  }
+
+  .form {
+    @apply space-y-5;
+
+    .fieldGroup {
+      @apply space-y-2;
+
+      .label {
+        @apply text-sm font-medium;
+      }
+
+      .input {
+        @apply h-11 bg-background/50 focus-visible:ring-primary/30;
+      }
+
+      .errorText {
+        @apply text-xs font-medium text-destructive;
+      }
+    }
+
+    .passwordHeader {
+      @apply flex items-center justify-between;
+
+      .forgotPasswordLink {
+        @apply text-xs font-medium text-primary hover:underline;
+      }
+    }
+  }
+
+  .submitButton {
+    @apply h-12 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-lg transition-all hover:scale-[1.01] hover:shadow-primary/20 active:scale-[0.99];
+
+    .loadingIcon {
+      @apply mr-2 h-5 w-5 animate-spin;
+    }
+  }
+
+  .divider {
+    @apply relative;
+
+    .dividerLineWrapper {
+      @apply absolute inset-0 flex items-center;
+    }
+
+    .dividerLine {
+      @apply w-full border-t border-border/60;
+    }
+
+    .dividerTextWrapper {
+      @apply relative flex justify-center text-xs font-bold uppercase tracking-widest;
+    }
+
+    .dividerText {
+      @apply bg-card px-4 text-muted-foreground/60;
+    }
+  }
+
+  .socialActions {
+    @apply grid grid-rows-2 gap-4;
+
+    .socialButton {
+      @apply relative h-12 overflow-hidden rounded-xl border-border/60 bg-background/50 px-4 font-semibold transition-all hover:border-primary/50 hover:bg-background hover:shadow-md active:scale-95;
+
+      &:hover .socialIcon {
+        @apply scale-110;
+      }
+
+      .socialIcon {
+        @apply mr-1 h-5 w-5 transition-transform;
+      }
+    }
+  }
+}
