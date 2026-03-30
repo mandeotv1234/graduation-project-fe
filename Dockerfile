@@ -5,7 +5,7 @@ FROM base AS deps
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN rm -f package-lock.json && npm install
 
 FROM base AS builder
 WORKDIR /app
