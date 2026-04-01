@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, FieldErrors } from 'react-hook-form'
+import { toast } from 'sonner'
 import {
   Save,
   Database,
@@ -80,7 +81,9 @@ export function ExamForm({
         allowReview: true,
         scoreDisplayMode: 'after_closed',
         allowOvertime: false,
-        gradingMethod: 'highest_score'
+        gradingMethod: 'highest_score',
+        showResultAfterSubmit: false,
+        maxViolations: 3
       },
       ...initialData
     }
@@ -93,7 +96,7 @@ export function ExamForm({
         ...initialData
       })
     }
-  }, [initialData, reset])
+  }, [initialData, reset, specifications.length]) // Re-run when specs load to ensure Select matches
 
   useEffect(() => {
     async function fetchSpecifications() {
@@ -115,8 +118,10 @@ export function ExamForm({
   }
 
   const specIdWatch = watch('specificationId')
+  const autoSubmitOnViolation = watch('settings.autoSubmitOnViolation')
+
   useEffect(() => {
-    if (!specIdWatch) {
+    if (!specIdWatch || Number(specIdWatch) === 0) {
       setSelectedSpec(null)
       setShowSpecPreview(false)
       return
@@ -124,8 +129,36 @@ export function ExamForm({
     const spec =
       specifications.find((s) => s.id === Number(specIdWatch)) ?? null
     setSelectedSpec(spec)
-    setShowSpecPreview(false)
   }, [specIdWatch, specifications])
+
+  const onFormError = (err: FieldErrors<ExamFormInput>) => {
+    const errorValues = Object.values(err)
+    if (errorValues.length > 0) {
+      const firstError = errorValues[0]
+      let message = ''
+
+      if (firstError) {
+        if ('message' in firstError && firstError.message) {
+          message = String(firstError.message)
+        } else if (typeof firstError === 'object') {
+          const nestedValues = Object.values(firstError)
+          const firstNested = nestedValues[0]
+          if (
+            firstNested &&
+            typeof firstNested === 'object' &&
+            'message' in firstNested &&
+            firstNested.message
+          ) {
+            message = String(firstNested.message)
+          }
+        }
+      }
+
+      toast.error(
+        `Lỗi: ${message || 'Vui lòng kiểm tra lại các trường bắt buộc'}`
+      )
+    }
+  }
 
   const selectedSpecPreview: ExamSpecification | null = selectedSpec
     ? {
@@ -179,7 +212,7 @@ export function ExamForm({
 
       <form
         id="exam-form"
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(onSubmit, onFormError)}
         className="grid grid-cols-1 lg:grid-cols-3 gap-4"
       >
         {/* Left Column (Span 2) */}
@@ -453,6 +486,15 @@ export function ExamForm({
                   description="Sinh viên có thể xem lại chi tiết bài làm sau khi có kết quả."
                 />
               </div>
+
+              <div className="pt-2 border-t border-border">
+                <ToggleField
+                  control={control}
+                  name="settings.showResultAfterSubmit"
+                  label="Xem kết quả sau khi nộp bài"
+                  description="Cho phép sinh viên xem ngay kết quả chi tiết từng câu khi vừa nộp bài."
+                />
+              </div>
             </div>
           </section>
         </div>
@@ -501,8 +543,27 @@ export function ExamForm({
                 control={control}
                 name="settings.autoSubmitOnViolation"
                 label="Tự động nộp khi vi phạm"
-                description="Hệ thống tự động thu bài nếu sinh viên vi phạm quá số lần cho phép (mặc định 3). Chỉ hoạt động nếu Giám sát được bật."
+                description="Hệ thống tự động thu bài nếu sinh viên vi phạm quá số lần cho phép. Chỉ hoạt động nếu Giám sát được bật."
               />
+
+              {autoSubmitOnViolation && (
+                <div className="ml-8 mt-4 p-4 border border-border bg-muted/20 rounded-lg">
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Số lần vi phạm tối đa cho phép
+                  </label>
+                  <Input
+                    {...register('settings.maxViolations')}
+                    type="number"
+                    min={1}
+                    className="max-w-[200px] focus-visible:ring-blue-500"
+                  />
+                  {errors.settings?.maxViolations && (
+                    <p className="text-destructive text-xs mt-1">
+                      {errors.settings.maxViolations.message}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="mt-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-start gap-3">
                 <Settings className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />

@@ -69,6 +69,7 @@ export async function getExamTime(
   try {
     console.log('[Server Action] getExamTime', examId)
     return await apiClient.get<ExamTimeResponse>(ENDPOINTS.EXAM_TIME(examId), {
+      queries: { _t: Date.now() },
       cache: 'no-store'
     })
   } catch (error: unknown) {

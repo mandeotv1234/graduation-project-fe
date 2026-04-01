@@ -29,8 +29,8 @@ export function ToggleField<T extends FieldValues>({
             <input
               type="checkbox"
               className="sr-only peer"
-              checked={field.value}
-              onChange={field.onChange}
+              checked={!!field.value}
+              onChange={(e) => field.onChange(e.target.checked)}
               onBlur={field.onBlur}
             />
             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>

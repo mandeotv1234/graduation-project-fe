@@ -20,6 +20,7 @@ import { SqlEditorPanel } from '@/app/(main)/student/exams/[examId]/take/compone
 import type { SchemaTable } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel'
 import { ExamTakeBottomPanel } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-bottom-panel'
 import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog'
+import { ConfirmLeaveDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-leave-dialog'
 import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog'
 import { ResizablePanel } from '@/components/shared/resizable-panel'
 import { PageSpinner } from '@/components/shared/spinner'
@@ -28,6 +29,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Clock, Send, User } from 'lucide-react'
 import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal'
+import styles from './exam-take-interface.module.scss'
 
 interface ExamTakeInterfaceProps {
   exam: StudentExamDetail
@@ -44,6 +46,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   const [editorSchema, setEditorSchema] = useState<SchemaTable[]>([])
   const [schemaMeta, setSchemaMeta] =
     useState<ExecuteSqlResponse['schema']>(null)
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false)
 
   const applySchemaMeta = useCallback(
     (schema: ExecuteSqlResponse['schema']) => {
@@ -107,6 +110,25 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       }
     }
   })
+
+  // 1. Navigation Guard (Back button) - Intercept with Custom Dialog
+  useEffect(() => {
+    if (!examActive) return
+
+    // Push dummy state to intercept first back action
+    window.history.pushState(null, '', window.location.href)
+
+    const handlePopState = () => {
+      setShowLeaveDialog(true)
+      // Immediately push state back so the URL stays on this page while dialog is open
+      window.history.pushState(null, '', window.location.href)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [examActive])
 
   // Fetch exam specification to provide schema IntelliSense in SQL editor
   useEffect(() => {
@@ -231,6 +253,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     return (
       <SubmitResultDialog
         result={examTake.submitResult}
+        showResult={exam.settings?.showResultAfterSubmit}
         onBack={examTake.handleBackToExams}
       />
     )
@@ -240,17 +263,15 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     <>
       <ViolationWarningModal />
       {examTake.isGrading && (
-        <div className="fixed inset-0 z-100 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="relative h-16 w-16">
-              <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-              <div className="absolute inset-0 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loaderContent}>
+            <div className={styles.spinnerBox}>
+              <div className={styles.spinnerBg} />
+              <div className={styles.spinnerFg} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground">
-                Hệ thống đang chấm bài...
-              </h2>
-              <p className="mt-2 text-muted-foreground">
+              <h2 className={styles.title}>Hệ thống đang chấm bài...</h2>
+              <p className={styles.subtitle}>
                 Vui lòng không thoát trang web này. Kết quả sẽ hiển thị ngay khi
                 hoàn tất.
               </p>
@@ -258,8 +279,8 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
           </div>
         </div>
       )}
-      <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className={styles.interfaceContainer}>
+        <div className={styles.mainContent}>
           {/* Left: Question sidebar */}
           <QuestionSidebar
             questions={questions}
@@ -270,31 +291,31 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
           />
 
           {/* Right: Prompt + Editor + Bottom panel */}
-          <div className="relative flex flex-1 min-w-0 flex-col overflow-hidden">
+          <div className={styles.rightPanel}>
             {/* Top Header Bar */}
-            <div className="shrink-0 flex items-center justify-between border-b border-border bg-card px-4 py-2 sm:px-6 z-10">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold overflow-hidden">
+            <div className={styles.headerBar}>
+              <div className={styles.userInfo}>
+                <div className={styles.avatar}>
                   {user?.fullName?.charAt(0) || <User className="h-4 w-4" />}
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-semibold text-foreground truncate">
+                <div className={styles.details}>
+                  <span className={styles.name}>
                     {user?.fullName || 'Đang tải...'}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate font-medium">
+                  <span className={styles.id}>
                     {user?.studentId || user?.email || '...'}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-6">
-                <div className="hidden sm:flex flex-col items-end">
-                  <div className="text-xs text-muted-foreground mb-1">
+              <div className={styles.statusActions}>
+                <div className={styles.progressContainer}>
+                  <div className={styles.progressText}>
                     Tiến độ: {examTake.answeredCount}/{questions.length} câu
                   </div>
-                  <div className="h-1.5 w-32 overflow-hidden rounded-full bg-secondary border border-border/50">
+                  <div className={styles.progressBar}>
                     <div
-                      className="h-full rounded-full bg-linear-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
+                      className={styles.progressFill}
                       style={{
                         width: `${
                           questions.length > 0
@@ -306,8 +327,8 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 text-sm font-mono font-semibold text-foreground bg-primary/5 px-3 py-1.5 rounded-md border border-primary/10">
+                <div className={styles.actions}>
+                  <div className={styles.timer}>
                     <Clock className="h-4 w-4 text-primary" />
                     <span>{formatTime(remainingSeconds)}</span>
                   </div>
@@ -315,7 +336,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                     onClick={examTake.handleRequestSubmit}
                     disabled={examTake.isLoading}
                     size="sm"
-                    className="h-8 px-4 text-sm gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                    className={styles.submitBtn}
                   >
                     <Send className="h-4 w-4" />
                     Nộp bài
@@ -325,20 +346,20 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
             </div>
 
             {/* Prompt (compact) */}
-            <div className="shrink-0 border-b border-border bg-background px-4 py-3 sm:px-6">
+            <div className={styles.questionPrompt}>
               {examTake.currentQuestion ? (
-                <div className="max-w-5xl">
+                <div className={styles.panelWrapper}>
                   <QuestionPanel question={examTake.currentQuestion} />
                 </div>
               ) : (
-                <div className="text-sm text-muted-foreground">
+                <div className={styles.emptyState}>
                   Chọn một câu hỏi để bắt đầu
                 </div>
               )}
             </div>
 
             {/* Editor + Bottom Panel with Resizer */}
-            <div className="flex-1 min-h-0 min-w-0 overflow-hidden bg-background">
+            <div className={styles.editorArea}>
               <ResizablePanel defaultSize={65} minSize={30} maxSize={85}>
                 {examTake.currentQuestion ? (
                   <SqlEditorPanel
@@ -351,7 +372,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                     schema={editorSchema}
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  <div className={styles.emptyStateCenter}>
                     Chọn một câu hỏi để bắt đầu
                   </div>
                 )}
@@ -369,7 +390,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         </div>
       </div>
 
-      {/* Custom confirmation dialog */}
+      {/* Custom confirmation dialogs */}
       <ConfirmSubmitDialog
         open={examTake.showConfirmDialog}
         onOpenChange={examTake.setShowConfirmDialog}
@@ -377,6 +398,17 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         unansweredCount={examTake.unansweredCount}
         totalQuestions={questions.length}
         isLoading={examTake.isLoading}
+      />
+
+      <ConfirmLeaveDialog
+        open={showLeaveDialog}
+        onOpenChange={setShowLeaveDialog}
+        onConfirm={() => {
+          // Force back navigation after user confirms
+          setShowLeaveDialog(false)
+          // Double back usually needed because we pushed one state
+          window.history.go(-2)
+        }}
       />
     </>
   )

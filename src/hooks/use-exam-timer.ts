@@ -33,11 +33,11 @@ export function useExamTimer({
 
   // When initialSeconds changes (session started), update the timer
   useEffect(() => {
-    if (initialSeconds > 0 && !hasInitialized) {
+    if (initialSeconds > 0) {
       setRemainingSeconds(initialSeconds)
       setHasInitialized(true)
     }
-  }, [initialSeconds, hasInitialized])
+  }, [initialSeconds])
 
   // Sync from backend (authoritative server time)
   const syncTime = useCallback(async () => {

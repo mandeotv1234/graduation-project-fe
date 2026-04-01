@@ -62,7 +62,9 @@ export function CreateExamView({
           allowReview: true,
           scoreDisplayMode: 'after_closed',
           allowOvertime: false,
-          gradingMethod: 'highest_score'
+          gradingMethod: 'highest_score',
+          maxViolations: 3,
+          showResultAfterSubmit: false
         }
       }}
       isSubmitting={isLoading}

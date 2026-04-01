@@ -38,6 +38,8 @@ export interface ExamSettings {
   scoreDisplayMode?: string
   allowOvertime?: boolean
   gradingMethod?: string
+  maxViolations?: number
+  showResultAfterSubmit?: boolean
 }
 
 export interface StudentExamDetail {

@@ -31,8 +31,7 @@ export function useAntiCheat({
   enabled = true,
   settings
 }: UseAntiCheatOptions) {
-  const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
-  const antiCheatEnabled = enabled && !isDev
+  const antiCheatEnabled = enabled
 
   const dispatch = useAppDispatch()
   const { totalViolations, isFullscreen } = useAppSelector(
@@ -378,6 +377,26 @@ export function useAntiCheat({
       }
     }
   }, [antiCheatEnabled, recordViolation])
+
+  // 6. Prevent leaving page during active exam
+  useEffect(() => {
+    if (!enabled) return
+
+    // Standard beforeunload for refresh/close
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+      return ''
+    }
+
+    console.log('[AntiCheat] Registering beforeunload guard')
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      console.log('[AntiCheat] Cleaning up beforeunload guard')
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [enabled])
 
   // Request fullscreen
   const requestFullscreen = useCallback(async () => {

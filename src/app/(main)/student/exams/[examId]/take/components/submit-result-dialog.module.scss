@@ -1,0 +1,120 @@
+@reference 'tailwindcss';
+@reference '../../../../../../globals.css';
+
+.dialogOverlay {
+  @apply fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 backdrop-blur-md p-4 sm:p-6 overflow-y-auto;
+}
+
+.resultCard {
+  @apply w-full max-w-4xl bg-card border border-border/50 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-500;
+
+  .header {
+    @apply relative p-8 sm:p-12 text-center overflow-hidden bg-muted/30;
+    
+    .decorativeBg {
+      @apply absolute inset-0 opacity-10 pointer-events-none;
+      background-image: radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0);
+      background-size: 24px 24px;
+    }
+
+    .trophyIcon {
+      @apply relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 shadow-inner;
+    }
+
+    .title {
+      @apply text-4xl sm:text-5xl font-black text-foreground tracking-tight mb-3;
+    }
+
+    .subtitle {
+      @apply text-muted-foreground text-lg max-w-md mx-auto;
+    }
+  }
+
+  .statsGrid {
+    @apply grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border border-y border-border;
+
+    .statItem {
+      @apply p-8 flex flex-col items-center justify-center gap-2 hover:bg-muted/30 transition-colors;
+
+      .value {
+        @apply flex items-baseline gap-1;
+        .big { @apply text-4xl font-black text-foreground; }
+        .small { @apply text-lg font-medium text-muted-foreground; }
+      }
+
+      .label {
+        @apply text-xs font-bold uppercase tracking-widest text-muted-foreground/80;
+      }
+    }
+  }
+
+  .detailsSection {
+    @apply p-6 sm:p-10;
+
+    .sectionHeader {
+      @apply flex items-center gap-3 mb-8;
+      .icon { @apply text-primary h-5 w-5; }
+      .label { @apply text-sm font-black uppercase tracking-tighter text-foreground; }
+      .line { @apply h-px flex-1 bg-border/60; }
+    }
+
+    .questionsGrid {
+      @apply space-y-4;
+    }
+  }
+
+  .footer {
+    @apply p-10 flex flex-col items-center bg-muted/20;
+    
+    .backButton {
+      @apply flex items-center gap-2 px-8 py-6 rounded-2xl font-bold transition-all hover:scale-105 active:scale-95;
+    }
+  }
+}
+
+.questionCard {
+  @apply rounded-2xl border border-border/60 bg-background overflow-hidden transition-all duration-300;
+  
+  &.correct { @apply border-emerald-500/30 bg-emerald-50/10; }
+  &.incorrect { @apply border-rose-500/30 bg-rose-50/10; }
+
+  .header {
+    @apply w-full flex items-center justify-between p-5 hover:bg-muted/20 transition-colors text-left cursor-pointer;
+
+    .left {
+      @apply flex items-center gap-4;
+      .index { @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted font-bold text-sm; }
+      .text { @apply text-sm font-semibold text-foreground line-clamp-1; }
+    }
+
+    .right {
+      @apply flex items-center gap-4;
+      .points { @apply text-sm font-black text-muted-foreground; }
+      .status {
+        @apply flex h-7 w-7 items-center justify-center rounded-full;
+        &.correct { @apply bg-emerald-500 text-white shadow-emerald-500/40 shadow-lg; }
+        &.incorrect { @apply bg-rose-500 text-white shadow-rose-500/40 shadow-lg; }
+      }
+    }
+  }
+
+  .content {
+     @apply p-6 pt-0 border-t border-border/40;
+     
+     .promptTitle { @apply text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5; }
+     .promptBody { @apply text-sm text-foreground/90 leading-relaxed mb-6 bg-muted/20 p-4 rounded-xl border border-border/40; }
+     
+     .sqlTitle { @apply text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5; }
+     .sqlBlock { @apply rounded-xl bg-slate-950 p-4 font-mono text-[13px] leading-relaxed text-slate-100 overflow-x-auto shadow-inner border border-white/5; }
+     
+     .errorBlock { @apply mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs flex items-start gap-3; }
+     
+     .metrics {
+        @apply mt-6 pt-6 border-t border-border/40 flex items-center gap-6;
+        .metric {
+          @apply flex items-center gap-1.5 text-xs font-bold text-muted-foreground;
+          .val { @apply text-foreground; }
+        }
+     }
+  }
+}
