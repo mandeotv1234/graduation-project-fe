@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { PATH } from '@/lib/constants'
+import { PATH, ROLES } from '@/lib/constants'
 
 export default async function Home() {
   const cookieStore = await cookies()
@@ -11,11 +11,11 @@ export default async function Home() {
     redirect(PATH.LOGIN)
   }
 
-  if (userRole === 'TEACHER') {
+  if (userRole === ROLES.TEACHER) {
     redirect(PATH.TEACHER_CLASSES)
   }
 
-  if (userRole === 'STUDENT') {
+  if (userRole === ROLES.STUDENT) {
     redirect(PATH.STUDENT_EXAMS)
   }
 

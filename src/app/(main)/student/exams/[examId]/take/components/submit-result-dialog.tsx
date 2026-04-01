@@ -31,6 +31,7 @@ export function SubmitResultDialog({
   const [expandedQuestions, setExpandedQuestions] = useState<
     Record<number, boolean>
   >({})
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
 
   const toggleExpand = (id: number) => {
     setExpandedQuestions((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -41,8 +42,10 @@ export function SubmitResultDialog({
     return (
       <div className={styles.dialogOverlay}>
         <div className={cn(styles.resultCard, 'max-w-xl text-center p-12')}>
-          <div className={cn(styles.trophyIcon, 'mb-8')}>
-            <CheckCircle2 className="h-12 w-12" />
+          <div className={styles.header}>
+            <div className={cn(styles.trophyIcon, 'mb-8')}>
+              <CheckCircle2 className="h-12 w-12" />
+            </div>
           </div>
           <h2 className="text-3xl font-black text-foreground mb-4">
             Nộp bài thành công!
@@ -63,7 +66,17 @@ export function SubmitResultDialog({
     )
   }
 
-  const isSuccess = (result.totalScore || 0) >= (result.maxScore || 0) * 0.5
+  const hasValidScores =
+    typeof result.totalScore === 'number' &&
+    typeof result.maxScore === 'number' &&
+    result.maxScore > 0
+
+  const isSuccess =
+    hasValidScores &&
+    result.totalScore !== undefined &&
+    result.maxScore !== undefined
+      ? result.totalScore >= result.maxScore * 0.5
+      : false
 
   return (
     <div className={styles.dialogOverlay}>
@@ -124,105 +137,152 @@ export function SubmitResultDialog({
           </div>
         </div>
 
-        {/* Detail List Section */}
-        <div className={styles.detailsSection}>
-          <div className={styles.sectionHeader}>
-            <FileText className={styles.icon} />
-            <span className={styles.label}>Chi tiết bài làm</span>
-            <div className={styles.line} />
-          </div>
+        {/* Action Buttons */}
+        <div className={styles.mainActions}>
+          <Button
+            onClick={() => setShowDetailsModal(true)}
+            variant="outline"
+            size="lg"
+            className={styles.viewDetailsBtn}
+          >
+            <FileText className="h-5 w-5 mr-2" />
+            Chi tiết bài làm
+          </Button>
+        </div>
 
-          <div className={styles.questionsGrid}>
-            {(result.questionResults || []).map((qr) => {
-              const isExpanded = !!expandedQuestions[qr.questionId]
-              return (
-                <div
-                  key={qr.questionId}
-                  className={cn(
-                    styles.questionCard,
-                    qr.isCorrect ? styles.correct : styles.incorrect
-                  )}
+        {/* Details Modal */}
+        {showDetailsModal && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+              <div className={styles.modalHeader}>
+                <div className={styles.titleInfo}>
+                  <FileText className="h-5 w-5 text-primary" />
+                  <h3>Chi tiết bài làm</h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowDetailsModal(false)}
+                  className={styles.closeBtn}
                 >
-                  <button
-                    onClick={() => toggleExpand(qr.questionId)}
-                    className={styles.header}
-                  >
-                    <div className={styles.left}>
-                      <div className={styles.index}>{qr.orderIndex}</div>
-                      <span className={styles.text}>
-                        {qr.studentQuery || '(Không có câu trả lời)'}
-                      </span>
-                    </div>
+                  <XCircle className="h-6 w-6" />
+                </Button>
+              </div>
 
-                    <div className={styles.right}>
-                      <div className={styles.points}>
-                        {qr.scoreEarned}/{qr.maxPoints} đ
-                      </div>
+              <div className={styles.modalScrollArea}>
+                <div className={styles.questionsGrid}>
+                  {(result.details || []).map((detail, index) => {
+                    const qr = result.questionResults?.find(
+                      (q) => q.questionId === detail.questionId
+                    )
+                    const orderIndex = qr?.orderIndex || index + 1
+                    const isExpanded = !!expandedQuestions[detail.questionId]
+                    const isCorrect = qr?.isCorrect ?? false
+
+                    return (
                       <div
+                        key={detail.questionId}
                         className={cn(
-                          styles.status,
-                          qr.isCorrect ? styles.correct : styles.incorrect
+                          styles.questionCard,
+                          isCorrect ? styles.correct : styles.incorrect
                         )}
                       >
-                        {qr.isCorrect ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : (
-                          <XCircle className="h-4 w-4" />
+                        <button
+                          onClick={() => toggleExpand(detail.questionId)}
+                          className={styles.header}
+                        >
+                          <div className={styles.left}>
+                            <div className={styles.index}>{orderIndex}</div>
+                            <span className={styles.text}>
+                              {detail.studentQuery || '(Không có câu trả lời)'}
+                            </span>
+                          </div>
+
+                          <div className={styles.right}>
+                            <div className={styles.points}>
+                              {qr?.scoreEarned ?? 0}/
+                              {qr?.maxPoints || detail.points} đ
+                            </div>
+                            <div
+                              className={cn(
+                                styles.status,
+                                isCorrect ? styles.correct : styles.incorrect
+                              )}
+                            >
+                              {isCorrect ? (
+                                <CheckCircle2 className="h-4 w-4" />
+                              ) : (
+                                <XCircle className="h-4 w-4" />
+                              )}
+                            </div>
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className={styles.content}>
+                            <div className={styles.promptTitle}>
+                              <FileText className="h-3 w-3" /> Đề bài
+                            </div>
+                            <div className={styles.promptBody}>
+                              {detail.content || '(Câu hỏi tự luận SQL)'}
+                            </div>
+
+                            <div className={styles.sqlTitle}>
+                              <CheckCircle2 className="h-3 w-3" /> Câu truy vấn
+                              đã viết
+                            </div>
+                            <pre className={styles.sqlBlock}>
+                              <code>{detail.studentQuery || '-- Trống'}</code>
+                            </pre>
+
+                            {qr?.errorMessage && (
+                              <div className={styles.errorBlock}>
+                                <AlertCircle className="h-4 w-4 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="font-bold mb-1">
+                                    Lỗi chấm điểm
+                                  </p>
+                                  <p className="leading-normal">
+                                    {qr.errorMessage}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className={styles.metrics}>
+                              <div className={styles.metric}>
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>
+                                  Hiệu năng:{' '}
+                                  <span className={styles.val}>
+                                    {qr?.executionTimeMs ?? 0}ms
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
-                      {isExpanded ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </button>
-
-                  {isExpanded && (
-                    <div className={styles.content}>
-                      <div className={styles.promptTitle}>
-                        <FileText className="h-3 w-3" /> Đề bài
-                      </div>
-                      <div className={styles.promptBody}>
-                        (Câu hỏi tự luận SQL)
-                      </div>
-
-                      <div className={styles.sqlTitle}>
-                        <CheckCircle2 className="h-3 w-3" /> Câu truy vấn đã
-                        viết
-                      </div>
-                      <pre className={styles.sqlBlock}>
-                        <code>{qr.studentQuery || '-- Trống'}</code>
-                      </pre>
-
-                      {qr.errorMessage && (
-                        <div className={styles.errorBlock}>
-                          <AlertCircle className="h-4 w-4 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="font-bold mb-1">Lỗi chấm điểm</p>
-                            <p className="leading-normal">{qr.errorMessage}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className={styles.metrics}>
-                        <div className={styles.metric}>
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>
-                            Hiệu năng:{' '}
-                            <span className={styles.val}>
-                              {qr.executionTimeMs}ms
-                            </span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    )
+                  })}
                 </div>
-              )
-            })}
+              </div>
+              <div className={styles.modalFooter}>
+                <Button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="w-full sm:w-auto px-8"
+                >
+                  Đóng
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Footer */}
         <div className={styles.footer}>

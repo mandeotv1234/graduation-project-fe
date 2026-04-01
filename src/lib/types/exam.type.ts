@@ -138,6 +138,12 @@ export interface SubmitExamResponse {
   totalQuestions?: number
   correctCount?: number
   questionResults?: QuestionResultItem[]
+  details?: Array<{
+    questionId: number
+    content: string
+    points: number
+    studentQuery: string
+  }>
 }
 
 export interface TeacherExamResult {

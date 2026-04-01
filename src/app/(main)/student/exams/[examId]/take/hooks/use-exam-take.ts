@@ -99,7 +99,8 @@ export function useExamTake(
           setSubmitResult(response.data)
           setIsSubmitted(true)
         } else {
-          // ACCEPTED or PENDING
+          // ACCEPTED or PENDING — save details for later merge with grading result
+          setSubmitResult(response.data)
           setIsGrading(true)
           toast.success(
             'Bài thi đã được nộp thành công. Vui lòng đợi trong giây lát để hệ thống chấm điểm...'

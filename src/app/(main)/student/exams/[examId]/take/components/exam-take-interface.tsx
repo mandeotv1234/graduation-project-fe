@@ -99,7 +99,12 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         reason?: string
       } & SubmitExamResponse
       if (result.status === 'COMPLETED') {
-        examTake.setSubmitResult(result)
+        examTake.setSubmitResult((prev) => ({
+          ...(prev || {}),
+          ...result,
+          // Prefer old details if new ones aren't provided in socket message
+          details: result.details || prev?.details || []
+        }))
         examTake.setIsGrading(false)
         examTake.setIsSubmitted(true)
       } else if (result.status === 'FAILED') {
@@ -115,13 +120,16 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   useEffect(() => {
     if (!examActive) return
 
-    // Push dummy state to intercept first back action
-    window.history.pushState(null, '', window.location.href)
+    // Push dummy state to intercept first back action if not already present
+    if (window.history.state?.guard !== true) {
+      window.history.pushState({ guard: true }, '', window.location.href)
+    }
 
     const handlePopState = () => {
       setShowLeaveDialog(true)
-      // Immediately push state back so the URL stays on this page while dialog is open
-      window.history.pushState(null, '', window.location.href)
+      // Immediately replace state instead of push to avoid history stack accumulation
+      // while still keeping the user on the current page URL
+      window.history.replaceState({ guard: true }, '', window.location.href)
     }
 
     window.addEventListener('popstate', handlePopState)

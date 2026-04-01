@@ -96,7 +96,7 @@ export function ExamForm({
         ...initialData
       })
     }
-  }, [initialData, reset, specifications.length]) // Re-run when specs load to ensure Select matches
+  }, [initialData, reset]) // Remove specifications.length to avoid wiping in-progress edits
 
   useEffect(() => {
     async function fetchSpecifications() {
