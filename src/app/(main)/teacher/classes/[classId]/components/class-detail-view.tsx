@@ -203,7 +203,7 @@ export function ClassDetailView({
 
                 <div className="flex items-center gap-2 shrink-0">
                   <Link
-                    href={PATH.TEACHER_EXAM_SPECIFICATION_PREVIEW(exam.id)}
+                    href={PATH.TEACHER_EXAM_SPECIFICATION(exam.id)}
                     title="Đặc tả CSDL"
                   >
                     <Button

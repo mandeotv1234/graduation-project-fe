@@ -1,4 +1,5 @@
 export * from '@/lib/types/common.type'
+export * from '@/lib/types/specification-schema-json.type'
 export * from '@/lib/types/auth.type'
 export * from '@/lib/types/exam.type'
 export * from '@/lib/types/create-exam.type'

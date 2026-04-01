@@ -1,22 +1,27 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { Database, PencilLine, Plus } from 'lucide-react'
-import { toast } from 'sonner'
+import { Database, PencilLine, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
-import { createSpecification } from '@/lib/actions'
-import { useApi } from '@/hooks/use-api'
-import {
-  SpecificationResponse,
-  SpecificationDataset,
-  SpecificationEntity,
-  SpecificationEntityAttribute
-} from '@/lib/types'
-import { SpecificationForm } from '@/app/(main)/teacher/specifications/components/specification-form'
+import { SpecificationResponse } from '@/lib/types'
 import { PATH } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
+import { useApi } from '@/hooks/use-api'
+import { deleteSpecification } from '@/lib/actions/exam-specification.action'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
 
 interface SpecificationsViewProps {
   initialSpecifications: SpecificationResponse[]
@@ -25,243 +30,23 @@ interface SpecificationsViewProps {
 export function SpecificationsView({
   initialSpecifications
 }: SpecificationsViewProps) {
-  const { callApi, isLoading } = useApi()
+  const router = useRouter()
+  const { callApi } = useApi()
   const [specifications, setSpecifications] = useState(initialSpecifications)
-  const [showForm, setShowForm] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  const [name, setName] = useState('')
-  const [ddlScript, setDdlScript] = useState('')
-  const [description, setDescription] = useState('')
-  const [entities, setEntities] = useState<SpecificationEntity[]>([])
-  const [datasets, setDatasets] = useState<SpecificationDataset[]>([])
+  useEffect(() => {
+    setSpecifications(initialSpecifications)
+  }, [initialSpecifications])
 
-  const emptyAttribute = (
-    orderIndex: number
-  ): SpecificationEntityAttribute => ({
-    attributeName: '',
-    dataType: 'VARCHAR(255)',
-    description: '',
-    isPrimaryKey: false,
-    isNullable: true,
-    orderIndex
-  })
-
-  const emptyEntity = (orderIndex: number): SpecificationEntity => ({
-    entityName: '',
-    displayName: '',
-    description: '',
-    orderIndex,
-    attributes: [emptyAttribute(1)]
-  })
-
-  const normalizeEntities = (items: SpecificationEntity[]) =>
-    items.map((entity, entityIndex) => ({
-      ...entity,
-      entityName: entity.entityName.trim(),
-      displayName: entity.displayName?.trim() || entity.entityName.trim(),
-      description: entity.description?.trim() || '',
-      orderIndex: entityIndex + 1,
-      attributes: (entity.attributes ?? []).map((attribute, attrIndex) => ({
-        ...attribute,
-        attributeName: attribute.attributeName.trim(),
-        dataType: attribute.dataType.trim(),
-        description: attribute.description?.trim() || '',
-        orderIndex: attrIndex + 1
-      }))
-    }))
-
-  const normalizeDatasets = (items: SpecificationDataset[]) =>
-    items.map((item, index) => ({
-      ...item,
-      name: item.name.trim(),
-      orderIndex: index + 1
-    }))
-
-  const addEntity = () => {
-    setEntities((prev) => [...prev, emptyEntity(prev.length + 1)])
-  }
-
-  const removeEntity = (entityIndex: number) => {
-    setEntities((prev) =>
-      normalizeEntities(prev.filter((_, idx) => idx !== entityIndex))
-    )
-  }
-
-  const moveEntity = (entityIndex: number, direction: -1 | 1) => {
-    setEntities((prev) => {
-      const target = entityIndex + direction
-      if (target < 0 || target >= prev.length) return prev
-      const next = [...prev]
-      ;[next[entityIndex], next[target]] = [next[target], next[entityIndex]]
-      return normalizeEntities(next)
-    })
-  }
-
-  const updateEntity = (
-    entityIndex: number,
-    field: keyof SpecificationEntity,
-    value: string
-  ) => {
-    setEntities((prev) =>
-      prev.map((entity, idx) =>
-        idx === entityIndex ? { ...entity, [field]: value } : entity
-      )
-    )
-  }
-
-  const addAttribute = (entityIndex: number) => {
-    setEntities((prev) =>
-      prev.map((entity, idx) =>
-        idx === entityIndex
-          ? {
-              ...entity,
-              attributes: [
-                ...(entity.attributes ?? []),
-                emptyAttribute((entity.attributes ?? []).length + 1)
-              ]
-            }
-          : entity
-      )
-    )
-  }
-
-  const updateAttribute = (
-    entityIndex: number,
-    attributeIndex: number,
-    field: keyof SpecificationEntityAttribute,
-    value: string | boolean | number
-  ) => {
-    setEntities((prev) =>
-      prev.map((entity, idx) =>
-        idx === entityIndex
-          ? {
-              ...entity,
-              attributes: (entity.attributes ?? []).map((attribute, aIdx) =>
-                aIdx === attributeIndex
-                  ? { ...attribute, [field]: value }
-                  : attribute
-              )
-            }
-          : entity
-      )
-    )
-  }
-
-  const removeAttribute = (entityIndex: number, attributeIndex: number) => {
-    setEntities((prev) =>
-      prev.map((entity, idx) =>
-        idx === entityIndex
-          ? {
-              ...entity,
-              attributes: (entity.attributes ?? [])
-                .filter((_, aIdx) => aIdx !== attributeIndex)
-                .map((attribute, aIdx) => ({
-                  ...attribute,
-                  orderIndex: aIdx + 1
-                }))
-            }
-          : entity
-      )
-    )
-  }
-
-  const addDataset = () => {
-    setDatasets((prev) => [
-      ...prev,
-      {
-        name: '',
-        dataScript: '',
-        orderIndex: prev.length + 1,
-        isActive: true
-      }
-    ])
-  }
-
-  const updateDataset = (
-    index: number,
-    field: keyof SpecificationDataset,
-    value: string | boolean | number
-  ) => {
-    setDatasets((prev) =>
-      prev.map((dataset, idx) =>
-        idx === index ? { ...dataset, [field]: value } : dataset
-      )
-    )
-  }
-
-  const removeDataset = (index: number) => {
-    setDatasets((prev) =>
-      normalizeDatasets(prev.filter((_, idx) => idx !== index))
-    )
-  }
-
-  const moveDataset = (index: number, direction: -1 | 1) => {
-    setDatasets((prev) => {
-      const target = index + direction
-      if (target < 0 || target >= prev.length) return prev
-      const next = [...prev]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return normalizeDatasets(next)
-    })
-  }
-
-  const resetForm = () => {
-    setName('')
-    setDdlScript('')
-    setDescription('')
-    setEntities([])
-    setDatasets([])
-    setShowForm(false)
-  }
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!name.trim() || !ddlScript.trim()) {
-      toast.error('Vui lòng nhập tên và DDL script')
-      return
+  const handleDelete = async (id: number) => {
+    setDeletingId(id)
+    const result = await callApi(deleteSpecification(id))
+    if (result.code === 'SUCCESS') {
+      setSpecifications((prev) => prev.filter((spec) => spec.id !== id))
+      router.refresh()
     }
-
-    const normalizedEntities = normalizeEntities(entities)
-    const invalidEntity = normalizedEntities.find(
-      (entity) => !entity.entityName
-    )
-    if (invalidEntity) {
-      toast.error('Vui lòng nhập entityName cho tất cả entities')
-      return
-    }
-
-    const invalidAttribute = normalizedEntities.find((entity) =>
-      (entity.attributes ?? []).some(
-        (attribute) => !attribute.attributeName || !attribute.dataType
-      )
-    )
-    if (invalidAttribute) {
-      toast.error('Vui lòng nhập đầy đủ attributeName và dataType')
-      return
-    }
-
-    const normalizedDatasets = normalizeDatasets(datasets)
-    const invalidDataset = normalizedDatasets.find((dataset) => !dataset.name)
-    if (invalidDataset) {
-      toast.error('Vui lòng nhập tên cho tất cả datasets')
-      return
-    }
-
-    const result = await callApi(
-      createSpecification({
-        name: name.trim(),
-        ddlScript,
-        description: description.trim() || undefined,
-        entities: normalizedEntities,
-        datasets: normalizedDatasets
-      })
-    )
-
-    if (result.data) {
-      setSpecifications((prev) => [...prev, result.data!])
-      resetForm()
-    }
+    setDeletingId(null)
   }
 
   return (
@@ -276,43 +61,15 @@ export function SpecificationsView({
           </p>
         </div>
 
-        {!showForm && (
-          <Button onClick={() => setShowForm(true)} className="gap-2">
+        <Link href={PATH.TEACHER_SPECIFICATION_CREATE}>
+          <Button className="gap-2">
             <Plus className="h-4 w-4" />
             Tạo đặc tả CSDL
           </Button>
-        )}
+        </Link>
       </div>
 
-      {showForm && (
-        <SpecificationForm
-          mode="create"
-          isLoading={isLoading}
-          name={name}
-          ddlScript={ddlScript}
-          description={description}
-          entities={entities}
-          datasets={datasets}
-          onNameChange={setName}
-          onDdlScriptChange={setDdlScript}
-          onDescriptionChange={setDescription}
-          onSubmit={handleCreate}
-          onCancel={resetForm}
-          onAddEntity={addEntity}
-          onRemoveEntity={removeEntity}
-          onMoveEntity={moveEntity}
-          onUpdateEntity={updateEntity}
-          onAddAttribute={addAttribute}
-          onUpdateAttribute={updateAttribute}
-          onRemoveAttribute={removeAttribute}
-          onAddDataset={addDataset}
-          onUpdateDataset={updateDataset}
-          onRemoveDataset={removeDataset}
-          onMoveDataset={moveDataset}
-        />
-      )}
-
-      {specifications.length === 0 && !showForm ? (
+      {specifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
           <Database className="h-10 w-10 text-muted-foreground/40" />
           <h3 className="mt-4 text-lg font-semibold text-foreground">
@@ -321,6 +78,12 @@ export function SpecificationsView({
           <p className="mt-2 text-sm text-muted-foreground">
             Tạo đặc tả CSDL đầu tiên để sử dụng trong bài thi.
           </p>
+          <Link href={PATH.TEACHER_SPECIFICATION_CREATE} className="mt-6">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Tạo đặc tả CSDL
+            </Button>
+          </Link>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -342,7 +105,7 @@ export function SpecificationsView({
                 </p>
               )}
 
-              <div className="mt-4 flex items-center justify-end">
+              <div className="mt-4 flex items-center justify-end gap-2">
                 <Link href={PATH.TEACHER_SPECIFICATION_EDIT(spec.id)}>
                   <Button
                     type="button"
@@ -353,6 +116,39 @@ export function SpecificationsView({
                     <PencilLine className="h-4 w-4" />
                   </Button>
                 </Link>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      title="Xóa đặc tả CSDL"
+                      className="text-destructive hover:text-destructive"
+                      disabled={deletingId === spec.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Xóa đặc tả CSDL?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Bạn có chắc chắn muốn xóa đặc tả CSDL "{spec.name}"
+                        không? Hành động này không thể hoàn tác.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Hủy</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(spec.id)}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        {deletingId === spec.id ? 'Đang xóa...' : 'Xóa'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           ))}

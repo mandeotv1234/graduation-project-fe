@@ -7,7 +7,6 @@ import { useState } from 'react'
 interface ExamSpecificationViewProps {
   specification: ExamSpecification
   compact?: boolean
-  showDdlScript?: boolean
   showDatasets?: boolean
   inferRelations?: boolean
 }
@@ -275,14 +274,20 @@ function CollapsibleSection({
 export function ExamSpecificationView({
   specification,
   compact = false,
-  showDdlScript = true,
   showDatasets = true,
   inferRelations = true
 }: ExamSpecificationViewProps) {
-  const sorted = [...(specification.entities ?? [])].sort(
-    (a, b) => a.orderIndex - b.orderIndex
+  const mappedEntities = specification.entities ?? []
+  let relations: Relation[] = []
+
+  if (inferRelations) {
+    relations = detectRelations(mappedEntities)
+  }
+
+  const sorted = [...mappedEntities].sort(
+    (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)
   )
-  const relations = inferRelations ? detectRelations(sorted) : []
+
   const hasPrimaryKeys = sorted.some((entity) =>
     (entity.attributes ?? []).some((attribute) => attribute.isPrimaryKey)
   )
@@ -298,7 +303,7 @@ export function ExamSpecificationView({
       <div className="px-4 py-3 space-y-1">
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-sm text-foreground leading-tight">
-            {specification.name ?? specification.title}
+            {specification.name}
           </h3>
         </div>
         {specification.description && (
@@ -307,14 +312,6 @@ export function ExamSpecificationView({
           </p>
         )}
       </div>
-
-      {showDdlScript && specification.ddlScript && (
-        <CollapsibleSection title="DDL Script">
-          <pre className="max-h-56 overflow-auto rounded-md bg-background p-3 text-[11px] font-mono whitespace-pre-wrap text-foreground">
-            {specification.ddlScript}
-          </pre>
-        </CollapsibleSection>
-      )}
 
       {showDatasets && !!specification.datasets?.length && (
         <CollapsibleSection
@@ -336,11 +333,6 @@ export function ExamSpecificationView({
                     <span className="text-muted-foreground">
                       #{dataset.orderIndex}
                     </span>
-                    {dataset.visibleToStudent === false && (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">
-                        Ẩn với sinh viên
-                      </span>
-                    )}
                     {!dataset.isActive && (
                       <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                         Inactive

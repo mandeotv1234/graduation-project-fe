@@ -10,6 +10,7 @@ import {
 } from '@/lib/actions'
 import { TeacherExamDetailContent } from '@/app/(main)/teacher/exams/[examId]/components/teacher-exam-detail-content'
 import { PATH } from '@/lib/constants'
+import { SpecificationDetailResponse } from '@/lib/types'
 
 type TeacherExamDetailPageProps = {
   params: Promise<{ examId: string }>
@@ -75,9 +76,6 @@ export default async function TeacherExamDetailPage({
     : questionCount === 0
       ? 'Cần có ít nhất một câu hỏi trước khi chia sẻ'
       : undefined
-  const specificationLabel = specRes.data?.name
-    ? `${specRes.data.name} (#${specRes.data.id})`
-    : `#${exam.specificationId}`
 
   return (
     <TeacherExamDetailContent
@@ -85,9 +83,8 @@ export default async function TeacherExamDetailPage({
       classLabel={classLabel}
       questionCount={questionCount}
       hasSpecification={hasSpecification}
-      specificationLabel={specificationLabel}
+      specification={specRes.data as SpecificationDetailResponse | null}
       questions={questions}
-      specification={specRes.data}
       templateManagement={templateManagementRes.data ?? null}
       canShareTemplate={canShareTemplate}
       shareDisabledReason={shareDisabledReason}

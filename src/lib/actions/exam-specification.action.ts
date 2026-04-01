@@ -9,6 +9,7 @@ import {
   CreateExamQuestionsBatchRequest,
   ExamQuestionItem,
   SpecificationResponse,
+  SpecificationDetailResponse,
   CreateSpecificationRequest
 } from '@/lib/types'
 
@@ -69,8 +70,8 @@ export async function createExamQuestionsBatch(
 
 export async function getSpecificationDetail(
   specificationId: number
-): Promise<ApiResponse<SpecificationResponse>> {
-  return apiClient.get<SpecificationResponse>(
+): Promise<ApiResponse<SpecificationDetailResponse>> {
+  return apiClient.get<SpecificationDetailResponse>(
     ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
     {
       cache: 'no-store'
@@ -86,6 +87,12 @@ export async function updateSpecification(
     ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
     data
   )
+}
+
+export async function deleteSpecification(
+  specificationId: number
+): Promise<ApiResponse<void>> {
+  return apiClient.delete(ENDPOINTS.SPECIFICATION_DETAIL(specificationId))
 }
 
 export async function generateGradingRubric(data: {

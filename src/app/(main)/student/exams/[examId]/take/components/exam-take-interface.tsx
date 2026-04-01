@@ -140,6 +140,11 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
 
   // Fetch exam specification to provide schema IntelliSense in SQL editor
   useEffect(() => {
+    if (exam.schema && exam.schema.length > 0) {
+      applySchemaMeta(exam.schema)
+      return
+    }
+
     getExamSpecification(exam.examId)
       .then((res) => {
         const spec: ExamSpecification | null = res.data ?? null
@@ -156,7 +161,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       .catch(() => {
         /* silent – IntelliSense just won't have schema context */
       })
-  }, [exam.examId])
+  }, [applySchemaMeta, exam.examId, exam.schema])
 
   const handleExecuteSqlAndRefreshSchema = useCallback(async () => {
     const res = await examTake.handleExecuteSql()

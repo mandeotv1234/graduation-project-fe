@@ -57,6 +57,18 @@ export interface StudentExamDetail {
   maxAttempts?: number
   lateThreshold?: number
   settings?: ExamSettings
+  schema?: Array<{
+    tableName: string
+    columns: Array<{
+      columnName: string
+      dataType: string
+      primaryKey: boolean
+      foreignKey?: boolean
+      referencesTable?: string | null
+      referencesColumn?: string | null
+      nullable: boolean
+    }>
+  }> | null
 }
 
 // GET /api/exams/{examId}/questions → ExamQuestionResponseDto
@@ -195,9 +207,9 @@ export interface ExamSpecification {
   id?: number
   name: string
   // backward-compat for old payloads
-  title?: string
   ddlScript?: string
   ddlVisibleToStudent?: boolean
+  visibleToStudent?: boolean
   schemaDiagram?: string
   schemaDiagramVisibleToStudent?: boolean
   description: string
@@ -358,9 +370,10 @@ export interface SelectQueryGradingPayload {
 
 export interface SaveExamSpecificationRequest {
   name: string
-  title?: string
+  title: string
   ddlScript?: string
   ddlVisibleToStudent?: boolean
+  visibleToStudent?: boolean
   schemaDiagram?: string
   schemaDiagramVisibleToStudent?: boolean
   description: string
@@ -370,7 +383,6 @@ export interface SaveExamSpecificationRequest {
     dataScript: string
     orderIndex: number
     isActive: boolean
-    visibleToStudent?: boolean
   }[]
   entities: {
     entityName: string
