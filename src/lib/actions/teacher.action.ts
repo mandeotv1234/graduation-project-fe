@@ -19,6 +19,7 @@ import {
   UpdateTeacherExamSettingsRequest,
   TeacherExamTemplateVersionsResponse,
   SpecificationResponse,
+  SpecificationDetailResponse,
   CreateSpecificationRequest
 } from '@/lib/types'
 
@@ -155,8 +156,8 @@ export async function createSpecification(
 
 export async function getSpecificationDetail(
   specificationId: number
-): Promise<ApiResponse<SpecificationResponse>> {
-  return apiClient.get<SpecificationResponse>(
+): Promise<ApiResponse<SpecificationDetailResponse>> {
+  return apiClient.get<SpecificationDetailResponse>(
     ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
     { cache: 'no-store' }
   )

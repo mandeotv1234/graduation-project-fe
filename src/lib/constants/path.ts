@@ -25,9 +25,8 @@ export const PATH = {
     `/teacher/exams/${examId}/common-part`,
   TEACHER_EXAM_SPECIFICATION: (examId: number) =>
     `/teacher/exams/${examId}/specification`,
-  TEACHER_EXAM_SPECIFICATION_PREVIEW: (examId: number) =>
-    `/teacher/exams/${examId}/specification?mode=preview`,
   TEACHER_SPECIFICATIONS: '/teacher/specifications',
+  TEACHER_SPECIFICATION_CREATE: '/teacher/specifications/create',
   TEACHER_SPECIFICATION_EDIT: (specificationId: number) =>
     `/teacher/specifications/${specificationId}/edit`,
   TEACHER_EDIT_EXAM: (examId: number) => `/teacher/exams/${examId}/edit`,

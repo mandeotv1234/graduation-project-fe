@@ -1,4 +1,5 @@
 import { ExamSettings } from './exam.type'
+import type { SpecificationSchemaJsonTable } from './specification-schema-json.type'
 
 // ===== Pagination Types =====
 export interface PaginationMeta {
@@ -209,12 +210,14 @@ export interface CreateExamQuestionRequest {
 // ===== Specification Types =====
 
 export interface SpecificationDataset {
+  /** Present on API responses; omit for newly created datasets in save payloads. */
   id?: number
   name: string
   dataScript: string
+  /** JSON string of tabular preview rows (builder / API detail). */
+  tableData?: string
   orderIndex: number
   isActive: boolean
-  visibleToStudent?: boolean
 }
 
 export interface SpecificationEntityAttribute {
@@ -237,14 +240,30 @@ export interface SpecificationEntity {
 export interface SpecificationResponse {
   id: number
   name: string
-  ddlScript: string
-  ddlVisibleToStudent?: boolean
   description?: string
   entities: SpecificationEntity[]
   datasets: SpecificationDataset[]
   createdBy?: number
-  createdAt?: string
-  updatedAt?: string
+  updatedBy?: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SpecificationDetailResponse {
+  id: number
+  name: string
+  description?: string
+  ddlScript: string
+  /**
+   * API may return a JSON string or an already-parsed array (Jackson JsonNode → JSON array).
+   */
+  schemaJson: string | SpecificationSchemaJsonTable[]
+  entities: SpecificationEntity[]
+  datasets: SpecificationDataset[]
+  createdBy?: number
+  updatedBy?: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CreateSpecificationRequest {
@@ -252,6 +271,7 @@ export interface CreateSpecificationRequest {
   ddlScript: string
   ddlVisibleToStudent?: boolean
   description?: string
-  entities: SpecificationEntity[]
+  schemaJson?: SpecificationSchemaJsonTable[]
+  entities?: SpecificationEntity[]
   datasets: SpecificationDataset[]
 }

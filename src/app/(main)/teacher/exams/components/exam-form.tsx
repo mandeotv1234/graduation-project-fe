@@ -6,11 +6,7 @@ import { useForm, FieldErrors } from 'react-hook-form'
 import { toast } from 'sonner'
 import {
   Save,
-  Database,
   Loader2,
-  Eye,
-  EyeOff,
-  Plus,
   FileText,
   ChevronDown,
   ShieldAlert,
@@ -22,13 +18,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { ExamSpecification, SpecificationResponse } from '@/lib/types'
-import { ExamSpecificationView } from '@/components/shared/exam-specification-view'
+import { SpecificationResponse } from '@/lib/types'
 import { getSpecifications } from '@/lib/actions'
 
 import { examSchema, ExamFormValues, ExamFormInput } from './exam-form-schema'
 import { ToggleField } from './toggle-field'
-import { CreateSpecificationModal } from '@/app/(main)/teacher/specifications/components/create-specification-modal'
 
 interface ExamFormProps {
   initialData?: Partial<ExamFormInput>
@@ -48,10 +42,6 @@ export function ExamForm({
   const [specifications, setSpecifications] = useState<SpecificationResponse[]>(
     []
   )
-  const [selectedSpec, setSelectedSpec] =
-    useState<SpecificationResponse | null>(null)
-  const [showSpecPreview, setShowSpecPreview] = useState(false)
-  const [isSpecModalOpen, setIsSpecModalOpen] = useState(false)
 
   const {
     register,
@@ -59,20 +49,19 @@ export function ExamForm({
     control,
     watch,
     reset,
-    setValue,
     formState: { errors }
   } = useForm<ExamFormInput, unknown, ExamFormValues>({
     resolver: zodResolver(examSchema),
     defaultValues: {
       title: '',
-      specificationId: 0,
-      durationMinutes: 60,
-      startTime: '',
-      endTime: '',
-      description: '',
-      isPublished: true,
-      maxAttempts: 1,
-      lateThreshold: 0,
+      specificationId: initialData?.specificationId ?? 0,
+      durationMinutes: initialData?.durationMinutes ?? 60,
+      startTime: initialData?.startTime ?? '',
+      endTime: initialData?.endTime ?? '',
+      description: initialData?.description ?? '',
+      isPublished: initialData?.isPublished ?? true,
+      maxAttempts: initialData?.maxAttempts ?? 1,
+      lateThreshold: initialData?.lateThreshold ?? 0,
       settings: {
         preventCopyPaste: true,
         forceFullscreen: true,
@@ -93,7 +82,27 @@ export function ExamForm({
   useEffect(() => {
     if (initialData) {
       reset({
-        ...initialData
+        title: initialData.title ?? '',
+        specificationId: Number(initialData.specificationId ?? 0),
+        durationMinutes: initialData.durationMinutes ?? 60,
+        startTime: initialData.startTime ?? '',
+        endTime: initialData.endTime ?? '',
+        description: initialData.description ?? '',
+        isPublished: initialData.isPublished ?? true,
+        maxAttempts: initialData.maxAttempts ?? 1,
+        lateThreshold: initialData.lateThreshold ?? 0,
+        settings: {
+          preventCopyPaste: initialData.settings?.preventCopyPaste ?? true,
+          forceFullscreen: initialData.settings?.forceFullscreen ?? true,
+          trackTabSwitch: initialData.settings?.trackTabSwitch ?? true,
+          autoSubmitOnViolation:
+            initialData.settings?.autoSubmitOnViolation ?? false,
+          allowReview: initialData.settings?.allowReview ?? true,
+          scoreDisplayMode:
+            initialData.settings?.scoreDisplayMode ?? 'after_closed',
+          allowOvertime: initialData.settings?.allowOvertime ?? false,
+          gradingMethod: initialData.settings?.gradingMethod ?? 'highest_score'
+        }
       })
     }
   }, [initialData, reset]) // Remove specifications.length to avoid wiping in-progress edits
@@ -108,28 +117,8 @@ export function ExamForm({
     fetchSpecifications()
   }, [])
 
-  const handleSpecificationCreated = async (newSpec: SpecificationResponse) => {
-    const specificationsRes = await getSpecifications()
-    if (specificationsRes.data) {
-      setSpecifications(specificationsRes.data)
-    }
-    setValue('specificationId', newSpec.id)
-    setIsSpecModalOpen(false)
-  }
-
-  const specIdWatch = watch('specificationId')
+  const selectedSpecificationId = watch('specificationId')
   const autoSubmitOnViolation = watch('settings.autoSubmitOnViolation')
-
-  useEffect(() => {
-    if (!specIdWatch || Number(specIdWatch) === 0) {
-      setSelectedSpec(null)
-      setShowSpecPreview(false)
-      return
-    }
-    const spec =
-      specifications.find((s) => s.id === Number(specIdWatch)) ?? null
-    setSelectedSpec(spec)
-  }, [specIdWatch, specifications])
 
   const onFormError = (err: FieldErrors<ExamFormInput>) => {
     const errorValues = Object.values(err)
@@ -159,28 +148,6 @@ export function ExamForm({
       )
     }
   }
-
-  const selectedSpecPreview: ExamSpecification | null = selectedSpec
-    ? {
-        id: selectedSpec.id,
-        name: selectedSpec.name,
-        description: selectedSpec.description ?? '',
-        entities: (selectedSpec.entities ?? []).map((entity) => ({
-          entityName: entity.entityName,
-          displayName: entity.displayName ?? entity.entityName,
-          description: entity.description ?? '',
-          orderIndex: entity.orderIndex,
-          attributes: (entity.attributes ?? []).map((attribute) => ({
-            attributeName: attribute.attributeName,
-            dataType: attribute.dataType,
-            description: attribute.description ?? '',
-            isPrimaryKey: attribute.isPrimaryKey,
-            isNullable: attribute.isNullable,
-            orderIndex: attribute.orderIndex
-          }))
-        }))
-      }
-    : null
 
   return (
     <div className="space-y-8">
@@ -247,32 +214,16 @@ export function ExamForm({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2 flex items-center justify-between">
+                  <label className="text-sm font-medium text-foreground mb-2 flex items-center justify-between">
                     <span>
                       Chọn đặc tả CSDL{' '}
                       <span className="text-destructive">*</span>
                     </span>
-                    {selectedSpec && (
-                      <button
-                        type="button"
-                        onClick={() => setShowSpecPreview((v) => !v)}
-                        className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                      >
-                        {showSpecPreview ? (
-                          <>
-                            <EyeOff className="h-3 w-3" /> Ẩn
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="h-3 w-3" /> Xem
-                          </>
-                        )}
-                      </button>
-                    )}
                   </label>
                   <div className="relative">
                     <select
-                      {...register('specificationId')}
+                      {...register('specificationId', { valueAsNumber: true })}
+                      value={Number(selectedSpecificationId ?? 0)}
                       className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
                       <option value="0">-- Chọn đặc tả CSDL --</option>
@@ -293,13 +244,6 @@ export function ExamForm({
                     <p className="text-xs text-muted-foreground">
                       Sơ đồ CSDL sinh viên sẽ làm bài.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setIsSpecModalOpen(true)}
-                      className="text-blue-600 text-xs font-semibold hover:underline flex items-center gap-1"
-                    >
-                      <Plus className="w-3 h-3" /> Tạo mới
-                    </button>
                   </div>
                 </div>
 
@@ -323,23 +267,6 @@ export function ExamForm({
                   )}
                 </div>
               </div>
-
-              {showSpecPreview && selectedSpecPreview && (
-                <div className="rounded-lg border-2 border-blue-500/20 bg-blue-500/5 p-4 space-y-3 animate-in fade-in slide-in-from-top-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Database className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-semibold text-foreground">
-                        Chi tiết đặc tả CSDL
-                      </span>
-                    </div>
-                  </div>
-                  <ExamSpecificationView
-                    specification={selectedSpecPreview}
-                    compact
-                  />
-                </div>
-              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -566,7 +493,7 @@ export function ExamForm({
               )}
 
               <div className="mt-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-start gap-3">
-                <Settings className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                <Settings className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-orange-700 dark:text-orange-400">
                   Lưu ý: Các thiết lập gian lận sẽ yêu cầu trình duyệt cấp quyền
                   đặc biệt cho ứng dụng khi bắt đầu làm bài.
@@ -576,12 +503,6 @@ export function ExamForm({
           </section>
         </div>
       </form>
-
-      <CreateSpecificationModal
-        open={isSpecModalOpen}
-        onOpenChange={setIsSpecModalOpen}
-        onSuccess={handleSpecificationCreated}
-      />
     </div>
   )
 }

@@ -2,24 +2,23 @@
 
 import {
   Activity,
+  ArrowUpRight,
   Clock,
   Database,
-  Edit,
   FileText,
   Info,
   ShieldAlert
 } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { StudentCommonPartView } from '@/components/shared/student-common-part-view'
 import { EditExamModalButton } from './edit-exam-modal-button'
 import { ExamQuestionsView } from '../questions/components/exam-questions-view'
 import { Button } from '@/components/ui/button'
 import { PATH } from '@/lib/constants'
 import {
   ExamQuestionItem,
-  ExamSpecification,
+  SpecificationDetailResponse,
   TeacherExamDetail,
   TeacherExamTemplateVersionsResponse
 } from '@/lib/types'
@@ -30,17 +29,12 @@ type TeacherExamDetailContentProps = {
   classLabel: string
   questionCount: number
   hasSpecification: boolean
-  specificationLabel: string
+  specification: SpecificationDetailResponse | null
   questions: ExamQuestionItem[]
-  specification?: ExamSpecification
   templateManagement: TeacherExamTemplateVersionsResponse | null
   canShareTemplate: boolean
   shareDisabledReason?: string
 }
-
-type StudentCommonPartBlocks = Parameters<
-  typeof StudentCommonPartView
->[0]['blocks']
 
 function getStatusMeta(
   status: ReturnType<typeof getExamStatus>,
@@ -93,12 +87,53 @@ function yesNo(value?: boolean) {
   return value ? 'Có' : 'Không'
 }
 
+function OverviewItem({
+  label,
+  value,
+  icon,
+  rightIcon
+}: {
+  label: string
+  value: React.ReactNode
+  icon?: React.ReactNode
+  rightIcon?: React.ReactNode
+}) {
+  return (
+    <div className="rounded-lg border bg-card p-4">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <div className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
+        {icon}
+        <span>{value}</span>
+        {rightIcon}
+      </div>
+    </div>
+  )
+}
+
+function SettingRow({
+  label,
+  value
+}: {
+  label: string
+  value: string | number
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-border/60 py-2 last:border-0 last:pb-0">
+      <dt className="text-[13px] text-muted-foreground">{label}</dt>
+      <dd className="text-right text-[13px] font-medium text-foreground">
+        {value}
+      </dd>
+    </div>
+  )
+}
+
 export function TeacherExamDetailContent({
   exam,
   questionCount,
-  specificationLabel,
-  questions,
   specification,
+  questions,
   templateManagement,
   canShareTemplate,
   shareDisabledReason
@@ -114,119 +149,19 @@ export function TeacherExamDetailContent({
     Boolean(displayExam.isPublished)
   )
 
-  const commonPartBlocks = useMemo<StudentCommonPartBlocks>(() => {
-    const blocks: StudentCommonPartBlocks = []
-
-    if (specification?.description?.trim()) {
-      blocks.push({
-        id: 'common-description',
-        kind: 'rich-text',
-        title: 'Mô tả chung',
-        data: { content: specification.description }
-      })
-    }
-
-    if ((specification?.entities ?? []).length > 0) {
-      blocks.push({
-        id: 'common-table-description',
-        kind: 'table-description',
-        title: 'Mô tả bảng dữ liệu',
-        data: { entities: specification?.entities ?? [] }
-      })
-    }
-
-    if (
-      specification?.ddlScript?.trim() &&
-      specification.ddlVisibleToStudent === true
-    ) {
-      blocks.push({
-        id: 'common-ddl',
-        kind: 'sql-ddl',
-        title: 'Mã SQL DDL',
-        data: { sql: specification.ddlScript }
-      })
-    }
-
-    ;(specification?.datasets ?? [])
-      .filter(
-        (dataset) => dataset.visibleToStudent === true && dataset.dataScript
-      )
-      .forEach((dataset, index) => {
-        blocks.push({
-          id: `common-dml-${index + 1}`,
-          kind: 'sql-dml',
-          title: dataset.name?.trim() || `Dữ liệu mẫu ${index + 1}`,
-          data: { sql: dataset.dataScript }
-        })
-      })
-
-    if (
-      specification?.schemaDiagram?.trim() &&
-      specification.schemaDiagramVisibleToStudent === true
-    ) {
-      blocks.push({
-        id: 'common-schema-diagram',
-        kind: 'schema-diagram',
-        title: 'Lược đồ cơ sở dữ liệu',
-        data: { diagramData: specification.schemaDiagram }
-      })
-    }
-
-    return blocks
-  }, [specification])
-
-  const hiddenCommonPartBlocks = useMemo<StudentCommonPartBlocks>(() => {
-    const blocks: StudentCommonPartBlocks = []
-
-    if (
-      specification?.ddlScript?.trim() &&
-      specification.ddlVisibleToStudent !== true
-    ) {
-      blocks.push({
-        id: 'hidden-common-ddl',
-        kind: 'sql-ddl',
-        title: 'Mã SQL DDL',
-        data: { sql: specification.ddlScript }
-      })
-    }
-
-    ;(specification?.datasets ?? [])
-      .filter(
-        (dataset) => dataset.visibleToStudent !== true && dataset.dataScript
-      )
-      .forEach((dataset, index) => {
-        blocks.push({
-          id: `hidden-common-dml-${index + 1}`,
-          kind: 'sql-dml',
-          title:
-            dataset.name?.trim() || `Dữ liệu nội bộ giáo viên ${index + 1}`,
-          data: { sql: dataset.dataScript }
-        })
-      })
-
-    if (
-      specification?.schemaDiagram?.trim() &&
-      specification.schemaDiagramVisibleToStudent !== true
-    ) {
-      blocks.push({
-        id: 'hidden-schema-diagram',
-        kind: 'schema-diagram',
-        title: 'Lược đồ cơ sở dữ liệu',
-        data: { diagramData: specification.schemaDiagram }
-      })
-    }
-
-    return blocks
-  }, [specification])
-
   return (
-    <div className="space-y-8">
-      <div className="p-6 mb-0 bg-sub-primary">
+    <div className="space-y-6">
+      <section className="rounded-lg border bg-sub-primary p-5 md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-primary-container headline-font leading-tight">
+          <div className="space-y-3">
+            <h1 className="text-3xl font-bold leading-tight text-primary-container md:text-4xl">
               {displayExam.title}
             </h1>
+            <span
+              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusMeta.className}`}
+            >
+              {statusMeta.label}
+            </span>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -239,178 +174,115 @@ export function TeacherExamDetailContent({
             <EditExamModalButton exam={displayExam} onSaved={setDisplayExam} />
           </div>
         </div>
-      </div>
-      <div className="rounded-xs bg-card p-6">
-        <div className="border-l-4 border-primary/60 pl-3 mb-4">
-          <div className="flex items-center gap-2">
-            <h1 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
-              Tổng quan về bài thi
-            </h1>
-          </div>
-          <div className="mb-8">
-            <p className="text-sm text-muted-foreground">
-              Xem lại thông tin chung, mô tả và nội quy của bài thi. Bạn có thể
-              chỉnh sửa thông tin và nội quy của bài thi bằng cách nhấn nút
-              "Chỉnh sửa" ở góc trên bên phải.
-            </p>
-          </div>
+      </section>
+
+      <section className="space-y-5 rounded-lg border bg-card p-5 md:p-6">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-title">
+            Tổng quan bài thi
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Theo dõi nhanh các thông tin quan trọng và cấu hình hiện tại của bài
+            thi.
+          </p>
         </div>
-        <div className="grid gap-4 lg:grid-cols-3 mb-4">
-          <div className="lg:col-span-2">
-            <section className="bg-card rounded-xs p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <Info className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-bold text-foreground tracking-tight">
-                  Thông tin chung
-                </h3>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <OverviewItem
+            label="Bắt đầu"
+            value={formatDateTime(displayExam.startTime)}
+          />
+          <OverviewItem
+            label="Kết thúc"
+            value={formatDateTime(displayExam.endTime)}
+          />
+          <OverviewItem
+            label="Thời lượng"
+            icon={<Clock className="h-4 w-4 text-primary/70" />}
+            value={`${displayExam.durationMinutes} phút`}
+          />
+          <OverviewItem
+            label="Số câu hỏi"
+            icon={<FileText className="h-4 w-4 text-primary/70" />}
+            value={`${questionCount} câu`}
+          />
+          {specification && (
+            <OverviewItem
+              label="Đặc tả CSDL"
+              icon={<Database className="h-4 w-4 text-primary/70" />}
+              value={`${specification?.name} (#${specification?.id})`}
+              rightIcon={
+                <Link href={PATH.TEACHER_SPECIFICATION_EDIT(specification.id)}>
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              }
+            />
+          )}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <section className="space-y-3 rounded-lg border bg-background p-4 lg:col-span-2">
+            <div className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-primary" />
+              <h3 className="text-base font-semibold text-foreground">
+                Mô tả và nội quy
+              </h3>
+            </div>
+            {displayExam.description ? (
+              <div className="rounded-md bg-muted/30 p-4 text-sm italic text-muted-foreground whitespace-pre-wrap">
+                {displayExam.description}
               </div>
-
-              <div className="grid grid-cols-2 gap-y-8 gap-x-12">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Bắt đầu
-                  </p>
-                  <p className="text-foreground font-semibold text-lg">
-                    {formatDateTime(displayExam.startTime)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Kết thúc
-                  </p>
-                  <p className="text-foreground font-semibold text-lg">
-                    {formatDateTime(displayExam.endTime)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Thời lượng
-                  </p>
-                  <p className="text-foreground font-semibold text-lg flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary/60" />
-                    {displayExam.durationMinutes} phút
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Số câu hỏi
-                  </p>
-                  <p className="text-foreground font-semibold text-lg flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary/60" />
-                    {questionCount} câu
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Trạng thái
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusMeta.className}`}
-                    >
-                      {statusMeta.label}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-blue-900 mb-1">
-                    Đặc tả CSDL
-                  </p>
-                  <p className="text-foreground font-semibold text-lg flex items-center gap-2">
-                    <Database className="h-5 w-5 text-primary/60" />
-                    {specificationLabel}
-                  </p>
-                </div>
+            ) : (
+              <div className="rounded-md bg-muted p-4 text-sm italic text-muted-foreground">
+                Chưa có mô tả và nội quy.
               </div>
+            )}
+          </section>
 
-              <div className="mt-8 pt-8 border-slate-100">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                  Mô tả và nội quy
-                </p>
-                {displayExam.description ? (
-                  <div className="bg-muted/30 rounded-lg p-4 italic text-muted-foreground text-sm whitespace-pre-wrap">
-                    {displayExam.description}
-                  </div>
-                ) : (
-                  <div className="bg-muted rounded-xs p-4 italic text-slate-500 text-sm">
-                    Chưa có mô tả và nội quy.
-                  </div>
-                )}
-              </div>
-            </section>
-          </div>
-
-          <div className="space-y-4 border-l border-border pl-4">
-            <div className="rounded-lg bg-card overflow-hidden p-4">
-              <div className="flex items-center gap-2.5 border-b border-border bg-muted/20 px-4 py-3">
+          <div className="space-y-4">
+            <section className="rounded-lg border bg-background">
+              <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
                 <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10">
                   <Database className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h2 className="text-sm font-semibold text-foreground">
+                <h3 className="text-sm font-semibold text-foreground">
                   Quy định nộp bài
-                </h2>
+                </h3>
               </div>
-              <div className="p-4">
-                <dl className="space-y-3 text-sm">
-                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                    <dt className="text-muted-foreground text-[13px]">
-                      Xuất bản ngay
-                    </dt>
-                    <dd className="font-medium text-foreground text-right text-[13px]">
-                      {yesNo(displayExam.isPublished)}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                    <dt className="text-muted-foreground text-[13px]">
-                      Làm tối đa
-                    </dt>
-                    <dd className="font-medium text-foreground text-right text-[13px]">
-                      {displayExam.maxAttempts}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                    <dt className="text-muted-foreground text-[13px]">
-                      Ngưỡng nộp trễ
-                    </dt>
-                    <dd className="font-medium text-foreground text-right text-[13px]">
-                      {displayExam.lateThreshold} phút
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                    <dt className="text-muted-foreground text-[13px]">
-                      Tính điểm
-                    </dt>
-                    <dd className="font-medium text-foreground text-right text-[13px] truncate pl-2">
-                      {mapGradingMethod(displayExam.settings?.gradingMethod)}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                    <dt className="text-muted-foreground text-[13px]">
-                      Hiện điểm
-                    </dt>
-                    <dd className="font-medium text-foreground text-right text-[13px] truncate pl-2">
-                      {mapScoreDisplayMode(
-                        displayExam.settings?.scoreDisplayMode
-                      )}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
+              <dl className="px-4 pb-3 pt-2 text-sm">
+                <SettingRow
+                  label="Xuất bản ngay"
+                  value={yesNo(displayExam.isPublished)}
+                />
+                <SettingRow
+                  label="Làm tối đa"
+                  value={displayExam.maxAttempts}
+                />
+                <SettingRow
+                  label="Ngưỡng nộp trễ"
+                  value={`${displayExam.lateThreshold} phút`}
+                />
+                <SettingRow
+                  label="Tính điểm"
+                  value={mapGradingMethod(displayExam.settings?.gradingMethod)}
+                />
+                <SettingRow
+                  label="Hiện điểm"
+                  value={mapScoreDisplayMode(
+                    displayExam.settings?.scoreDisplayMode
+                  )}
+                />
+              </dl>
+            </section>
 
-            <div className="rounded-lg overflow-hidden p-4">
-              <div className="flex items-center gap-2.5 border-b border-border bg-muted/20 px-4 py-3">
+            <section className="rounded-lg border bg-background">
+              <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
                 <div className="flex h-7 w-7 items-center justify-center rounded-md bg-rose-500/10">
                   <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                 </div>
-                <h2 className="text-sm font-semibold text-foreground">
+                <h3 className="text-sm font-semibold text-foreground">
                   Cài đặt chống gian lận
-                </h2>
+                </h3>
               </div>
               <div className="p-4">
                 <dl className="space-y-3 text-sm">
@@ -474,61 +346,9 @@ export function TeacherExamDetailContent({
                   </div>
                 </dl>
               </div>
-            </div>
+            </section>
           </div>
         </div>
-
-        <section className="mb-6 rounded-xs bg-card">
-          <div className="mb-4 pb-4 flex items-center justify-between gap-3 border-l-4 border-primary/60 pl-3">
-            <div>
-              <h1 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
-                Phần yêu cầu chung
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Nội dung chung mà sinh viên xem trong suốt quá trình làm bài
-                thi.
-              </p>
-            </div>
-            <Link href={PATH.TEACHER_EXAM_COMMON_PART(exam.id)}>
-              <Button variant="outline" className="gap-2">
-                <Edit className="h-4 w-4" />
-                Chỉnh sửa phần yêu cầu chung
-              </Button>
-            </Link>
-          </div>
-          <StudentCommonPartView
-            blocks={commonPartBlocks}
-            embedded
-            hideHeader
-          />
-        </section>
-
-        <section className="mb-6 rounded-xs bg-card">
-          <div className="border-l-4 border-primary/60 pl-3">
-            <div>
-              <h1 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
-                Đặc tả nội bộ giáo viên
-              </h1>
-            </div>
-            <p className="mb-6 text-sm text-muted-foreground">
-              Nội dung dưới đây chỉ dành cho giáo viên và sẽ không hiển thị với
-              sinh viên.
-            </p>
-          </div>
-
-          {hiddenCommonPartBlocks.length > 0 ? (
-            <StudentCommonPartView
-              blocks={hiddenCommonPartBlocks}
-              embedded
-              hideHeader
-            />
-          ) : (
-            <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-6 text-sm text-muted-foreground">
-              Hiện chưa có nội dung nội bộ giáo viên trong phần yêu cầu chung.
-            </div>
-          )}
-        </section>
-
         <ExamQuestionsView
           examId={exam.id}
           initialQuestions={questions}
@@ -536,7 +356,7 @@ export function TeacherExamDetailContent({
           canShareTemplate={canShareTemplate}
           shareDisabledReason={shareDisabledReason}
         />
-      </div>
+      </section>
     </div>
   )
 }

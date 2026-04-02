@@ -1,38 +1,25 @@
 'use client'
 
-import { useState, useMemo } from 'react'
 import { FileText } from 'lucide-react'
+import DatabaseBuilder from '../../components/database-builder'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { SpecificationDetailResponse } from '@/lib/types'
-import { parseSpecificationToAppState } from '../../../components/database-builder/state-parser'
-import DatabaseBuilder from '../../../components/database-builder'
+import { useState } from 'react'
 
-interface SpecificationEditViewProps {
-  specification: SpecificationDetailResponse
-}
-
-export function SpecificationEditView({
-  specification
-}: SpecificationEditViewProps) {
+export function SpecificationCreateView() {
   const [specificationInfo, setSpecificationInfo] = useState({
-    name: specification.name ?? '',
-    description: specification.description ?? ''
+    name: '',
+    description: ''
   })
-
-  const initialState = useMemo(() => {
-    return parseSpecificationToAppState(specification)
-  }, [specification])
-
   return (
     <div className="space-y-6 rounded-2xl border border-primary/20 bg-card p-6 shadow-sm">
       <div className="space-y-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Chỉnh sửa đặc tả CSDL
+            Tạo đặc tả CSDL
           </h1>
           <p className="text-muted-foreground">
-            Cập nhật thông tin và cấu trúc dữ liệu cho đặc tả hiện tại.
+            Nhập thông tin chung và cấu trúc dữ liệu cho đặc tả mới.
           </p>
         </div>
 
@@ -74,11 +61,7 @@ export function SpecificationEditView({
           </div>
         </div>
 
-        <DatabaseBuilder
-          specificationInfo={specificationInfo}
-          initialState={initialState}
-          specificationId={specification.id}
-        />
+        <DatabaseBuilder specificationInfo={specificationInfo} />
       </div>
     </div>
   )

@@ -9,9 +9,6 @@ import {
   Award,
   ChevronDown,
   Clock,
-  Database,
-  Eye,
-  EyeOff,
   FileText,
   Loader2,
   Plus,
@@ -23,7 +20,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { ExamSpecificationView } from '@/components/shared'
 import { PATH } from '@/lib/constants'
 import { ExamSpecification, SpecificationResponse } from '@/lib/types'
 import { ToggleField } from '@/app/(main)/teacher/classes/[classId]/create-exam/components/toggle-field'
@@ -91,7 +87,6 @@ export function ExamSettingsForm({
   specificationPreview = null,
   headerActions
 }: ExamSettingsFormProps) {
-  const [showSpecPreview, setShowSpecPreview] = useState(false)
   const [selectedSpec, setSelectedSpec] =
     useState<SpecificationResponse | null>(null)
 
@@ -117,7 +112,6 @@ export function ExamSettingsForm({
     const nextSpecification =
       specifications.find((item) => item.id === Number(specificationId)) ?? null
     setSelectedSpec(nextSpecification)
-    setShowSpecPreview(false)
   }, [mode, specificationId, specifications])
 
   const preview =
@@ -206,23 +200,6 @@ export function ExamSettingsForm({
                         : 'Đặc tả CSDL đã clone'}{' '}
                       <span className="text-destructive">*</span>
                     </span>
-                    {preview && (
-                      <button
-                        type="button"
-                        onClick={() => setShowSpecPreview((value) => !value)}
-                        className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                      >
-                        {showSpecPreview ? (
-                          <>
-                            <EyeOff className="h-3 w-3" /> Ẩn
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="h-3 w-3" /> Xem
-                          </>
-                        )}
-                      </button>
-                    )}
                   </label>
 
                   {mode === 'create' ? (
@@ -295,18 +272,6 @@ export function ExamSettingsForm({
                   )}
                 </div>
               </div>
-
-              {showSpecPreview && preview && (
-                <div className="space-y-3 rounded-lg border-2 border-blue-500/20 bg-blue-500/5 p-4 animate-in fade-in slide-in-from-top-2">
-                  <div className="flex items-center gap-2">
-                    <Database className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-semibold text-foreground">
-                      Chi tiết đặc tả CSDL
-                    </span>
-                  </div>
-                  <ExamSpecificationView specification={preview} compact />
-                </div>
-              )}
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>

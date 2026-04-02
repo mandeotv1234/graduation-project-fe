@@ -1,42 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import {
-  LogOut,
-  GraduationCap,
-  BookOpen,
-  Database,
-  Library
-} from 'lucide-react'
+import { LogOut, GraduationCap } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from '@/components/shared/mode-toggle'
 import { TeacherNotificationBell } from '@/app/(main)/teacher/components/teacher-notification-bell'
 import { PATH } from '@/lib/constants'
 import { logout, getMe } from '@/lib/actions'
-import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { User as UserType } from '@/lib/types'
 import { connectStomp } from '@/lib/socket'
 
-const NAV_ITEMS = [
-  { label: 'Lớp học', href: PATH.TEACHER_CLASSES, icon: BookOpen },
-  {
-    label: 'Đặc Tả CSDL',
-    href: PATH.TEACHER_SPECIFICATIONS,
-    icon: Database
-  },
-  {
-    label: 'Thư viện',
-    href: PATH.TEACHER_LIBRARY,
-    icon: Library
-  }
-]
-
 export function TeacherHeader() {
   const router = useRouter()
-  const pathname = usePathname()
   const [user, setUser] = useState<UserType | null>(null)
 
   useEffect(() => {
@@ -68,27 +46,6 @@ export function TeacherHeader() {
             Teacher
           </span>
         </Link>
-
-        <nav className="hidden items-center gap-1 md:flex">
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-        </nav>
 
         <div className="flex items-center gap-4">
           {user && (

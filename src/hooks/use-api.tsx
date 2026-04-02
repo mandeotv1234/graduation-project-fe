@@ -15,6 +15,7 @@ export function useApi() {
       'Questions created successfully': 'Tạo câu hỏi thành công!',
       'Questions updated successfully': 'Cập nhật câu hỏi thành công!',
       'Specification updated successfully': 'Cập nhật đặc tả thành công!',
+      'Specification deleted successfully': 'Xoá đặc tả thành công!',
       'Class created successfully': 'Tạo lớp học thành công!',
       'Class updated successfully': 'Cập nhật lớp học thành công!',
       'Students added successfully': 'Thêm sinh viên thành công!',
