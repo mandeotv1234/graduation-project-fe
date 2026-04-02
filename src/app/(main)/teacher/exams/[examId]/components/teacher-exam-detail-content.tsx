@@ -444,14 +444,24 @@ export function TeacherExamDetailContent({
                     </dt>
                     <dd className="font-medium text-foreground text-right text-[13px]">
                       {yesNo(displayExam.settings?.autoSubmitOnViolation)}
+                      {displayExam.settings?.autoSubmitOnViolation &&
+                        ` (Tối đa ${displayExam.settings?.maxViolations ?? 3} lần)`}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
                     <dt className="text-muted-foreground text-[13px]">
-                      Xem lại
+                      Xem lại sau nộp
                     </dt>
                     <dd className="font-medium text-foreground text-right text-[13px]">
                       {yesNo(displayExam.settings?.allowReview)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+                    <dt className="text-muted-foreground text-[13px]">
+                      Xem kết quả ngay
+                    </dt>
+                    <dd className="font-medium text-foreground text-right text-[13px]">
+                      {yesNo(displayExam.settings?.showResultAfterSubmit)}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">

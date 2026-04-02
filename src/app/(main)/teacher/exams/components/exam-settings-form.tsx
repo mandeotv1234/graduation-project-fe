@@ -107,6 +107,7 @@ export function ExamSettingsForm({
   })
 
   const specificationId = watch('specificationId')
+  const autoSubmitOnViolation = watch('settings.autoSubmitOnViolation')
 
   useEffect(() => {
     if (mode !== 'create') {
@@ -452,6 +453,15 @@ export function ExamSettingsForm({
                   description="Sinh viên có thể xem lại chi tiết bài làm sau khi có kết quả."
                 />
               </div>
+
+              <div className="border-t border-border pt-2">
+                <ToggleField
+                  control={control}
+                  name="settings.showResultAfterSubmit"
+                  label="Xem kết quả sau khi nộp bài"
+                  description="Cho phép sinh viên xem ngay kết quả chi tiết từng câu khi vừa nộp bài."
+                />
+              </div>
             </div>
           </section>
         </div>
@@ -495,6 +505,25 @@ export function ExamSettingsForm({
                 label="Tự động nộp khi vi phạm"
                 description="Hệ thống tự động thu bài nếu sinh viên vi phạm quá số lần cho phép. Chỉ hoạt động nếu giám sát được bật."
               />
+
+              {autoSubmitOnViolation && (
+                <div className="ml-8 mt-4 rounded-lg border border-border bg-muted/20 p-4">
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    Số lần vi phạm tối đa cho phép
+                  </label>
+                  <Input
+                    {...register('settings.maxViolations')}
+                    type="number"
+                    min={1}
+                    className="max-w-[200px] focus-visible:ring-blue-500"
+                  />
+                  {errors.settings?.maxViolations && (
+                    <p className="mt-1 text-xs text-destructive">
+                      {errors.settings.maxViolations.message}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="mt-4 flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/10 p-4">
                 <Settings className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-600" />

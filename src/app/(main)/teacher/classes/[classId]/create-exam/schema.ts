@@ -15,10 +15,15 @@ export const examSchema = z.object({
     forceFullscreen: z.boolean().default(true),
     trackTabSwitch: z.boolean().default(true),
     autoSubmitOnViolation: z.boolean().default(false),
+    maxViolations: z.coerce
+      .number()
+      .min(1, 'Số lần vi phạm phải lớn hơn 0')
+      .optional(),
     allowReview: z.boolean().default(true),
     scoreDisplayMode: z.string().default('after_closed'),
     allowOvertime: z.boolean().default(false),
-    gradingMethod: z.string().default('highest_score')
+    gradingMethod: z.string().default('highest_score'),
+    showResultAfterSubmit: z.boolean().default(false)
   })
 })
 

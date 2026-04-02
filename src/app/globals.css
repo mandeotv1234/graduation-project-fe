@@ -89,6 +89,17 @@
   --color-surface-container: var(--surface-container);
   --color-surface-container-high: var(--surface-container-high);
   --color-surface-container-highest: var(--surface-container-highest);
+
+  @keyframes progress {
+    0% { transform: scaleX(0); }
+    50% { transform: scaleX(0.7); }
+    100% { transform: scaleX(1); }
+  }
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+  --animate-progress: progress 2s infinite linear;
+  --animate-shimmer: shimmer 2s infinite;
 }
 
 :root {

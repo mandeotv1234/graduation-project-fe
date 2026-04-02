@@ -250,7 +250,9 @@ export function ExamSettingsView({
             allowReview: exam.settings?.allowReview ?? true,
             scoreDisplayMode: exam.settings?.scoreDisplayMode ?? 'after_closed',
             allowOvertime: exam.settings?.allowOvertime ?? false,
-            gradingMethod: exam.settings?.gradingMethod ?? 'highest_score'
+            gradingMethod: exam.settings?.gradingMethod ?? 'highest_score',
+            maxViolations: exam.settings?.maxViolations ?? 3,
+            showResultAfterSubmit: exam.settings?.showResultAfterSubmit ?? false
           }
         }}
         isSubmitting={isLoading}

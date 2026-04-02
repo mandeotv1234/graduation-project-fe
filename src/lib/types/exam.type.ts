@@ -38,6 +38,8 @@ export interface ExamSettings {
   scoreDisplayMode?: string
   allowOvertime?: boolean
   gradingMethod?: string
+  maxViolations?: number
+  showResultAfterSubmit?: boolean
 }
 
 export interface StudentExamDetail {
@@ -136,6 +138,12 @@ export interface SubmitExamResponse {
   totalQuestions?: number
   correctCount?: number
   questionResults?: QuestionResultItem[]
+  details?: Array<{
+    questionId: number
+    content: string
+    points: number
+    studentQuery: string
+  }>
 }
 
 export interface TeacherExamResult {
