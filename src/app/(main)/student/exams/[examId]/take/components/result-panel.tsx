@@ -1,6 +1,6 @@
 'use client'
 
-import { Table, AlertCircle, Clock, Hash } from 'lucide-react'
+import { Table, AlertCircle, Clock, Hash, CheckCircle2 } from 'lucide-react'
 import { ExecuteSqlResponse } from '@/lib/types'
 
 interface ResultPanelProps {
@@ -38,6 +38,25 @@ export function ResultPanel({ result }: ResultPanelProps) {
   const columns =
     result.resultSet.length > 0 ? Object.keys(result.resultSet[0]) : []
 
+  if (columns.length === 0) {
+    return (
+      <div className="p-4">
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              Thành công
+            </p>
+            <pre className="whitespace-pre-wrap text-xs text-emerald-700/80 dark:text-emerald-400/80">
+              {result.statusMessage ||
+                'Câu lệnh thực thi thành công (không có dữ liệu trả về)'}
+            </pre>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -59,34 +78,34 @@ export function ResultPanel({ result }: ResultPanelProps) {
       </div>
 
       {/* Table */}
-      {columns.length > 0 ? (
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
+      <div className="flex-1 overflow-auto bg-background/50">
+        <div className="min-w-full inline-block align-middle">
+          <table className="w-full text-sm border-separate border-spacing-0">
+            <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm shadow-[0_1px_0_rgba(0,0,0,0.05)] transition-shadow">
+              <tr>
                 {columns.map((col) => (
                   <th
                     key={col}
-                    className="whitespace-nowrap px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                    className="whitespace-nowrap px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-border shadow-sm"
                   >
                     {col}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/40">
               {result.resultSet.map((row, i) => (
                 <tr
                   key={i}
-                  className="border-b border-border/50 transition-colors hover:bg-muted/30"
+                  className="group transition-colors hover:bg-muted/40"
                 >
                   {columns.map((col) => (
                     <td
                       key={col}
-                      className="whitespace-nowrap px-4 py-2 text-foreground"
+                      className="whitespace-nowrap px-4 py-2.5 text-foreground font-mono text-[13px]"
                     >
                       {row[col] === null ? (
-                        <span className="italic text-muted-foreground">
+                        <span className="italic text-muted-foreground/50 text-xs">
                           NULL
                         </span>
                       ) : (
@@ -99,11 +118,7 @@ export function ResultPanel({ result }: ResultPanelProps) {
             </tbody>
           </table>
         </div>
-      ) : (
-        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-          Câu lệnh thực thi thành công (không có kết quả trả về)
-        </div>
-      )}
+      </div>
     </div>
   )
 }

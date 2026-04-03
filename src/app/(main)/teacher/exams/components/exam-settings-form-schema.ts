@@ -23,7 +23,8 @@ export const examSettingsFormSchema = z.object({
     scoreDisplayMode: z.string().default('after_closed'),
     allowOvertime: z.boolean().default(false),
     gradingMethod: z.string().default('highest_score'),
-    showResultAfterSubmit: z.boolean().default(false)
+    showResultAfterSubmit: z.boolean().default(false),
+    isLoadDdl: z.boolean().default(false)
   })
 })
 

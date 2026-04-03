@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm, FieldErrors } from 'react-hook-form'
+import { useForm, type FieldErrors } from 'react-hook-form'
 import { toast } from 'sonner'
 import {
   Save,
@@ -72,7 +72,8 @@ export function ExamForm({
         allowOvertime: false,
         gradingMethod: 'highest_score',
         showResultAfterSubmit: false,
-        maxViolations: 3
+        maxViolations: 3,
+        isLoadDdl: false
       },
       ...initialData
     }
@@ -101,7 +102,8 @@ export function ExamForm({
           scoreDisplayMode:
             initialData.settings?.scoreDisplayMode ?? 'after_closed',
           allowOvertime: initialData.settings?.allowOvertime ?? false,
-          gradingMethod: initialData.settings?.gradingMethod ?? 'highest_score'
+          gradingMethod: initialData.settings?.gradingMethod ?? 'highest_score',
+          isLoadDdl: initialData.settings?.isLoadDdl ?? false
         }
       })
     }
@@ -127,17 +129,16 @@ export function ExamForm({
       let message = ''
 
       if (firstError) {
-        if ('message' in firstError && firstError.message) {
+        if (
+          typeof firstError === 'object' &&
+          'message' in firstError &&
+          firstError.message
+        ) {
           message = String(firstError.message)
-        } else if (typeof firstError === 'object') {
+        } else if (typeof firstError === 'object' && firstError !== null) {
           const nestedValues = Object.values(firstError)
           const firstNested = nestedValues[0]
-          if (
-            firstNested &&
-            typeof firstNested === 'object' &&
-            'message' in firstNested &&
-            firstNested.message
-          ) {
+          if (firstNested?.message) {
             message = String(firstNested.message)
           }
         }
@@ -420,6 +421,15 @@ export function ExamForm({
                   name="settings.showResultAfterSubmit"
                   label="Xem kết quả sau khi nộp bài"
                   description="Cho phép sinh viên xem ngay kết quả chi tiết từng câu khi vừa nộp bài."
+                />
+              </div>
+
+              <div className="pt-2 border-t border-border">
+                <ToggleField
+                  control={control}
+                  name="settings.isLoadDdl"
+                  label="Nạp schema giáo viên"
+                  description="Nếu bật, hệ thống sẽ chạy script DDL (CREATE TABLE, ...) của giáo viên vào schema sinh viên khi bắt đầu thi."
                 />
               </div>
             </div>

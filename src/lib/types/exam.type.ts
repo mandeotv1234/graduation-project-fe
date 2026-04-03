@@ -101,6 +101,7 @@ export interface ExecuteSqlResponse {
   rowCount: number
   executionTimeMs: number
   errorMessage: string | null
+  statusMessage: string | null
   schema?: Array<{
     tableName: string
     columns: Array<{

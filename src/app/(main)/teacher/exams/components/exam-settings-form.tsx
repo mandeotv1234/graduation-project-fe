@@ -240,15 +240,18 @@ export function ExamSettingsForm({
                       </div>
                     </>
                   ) : (
-                    <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
-                      <p className="font-medium text-foreground">
-                        {preview?.name ??
-                          'Đặc tả đã được clone cùng đề thi mẫu'}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Đặc tả của đề thi mẫu đã được clone sẵn cho bài thi này.
-                      </p>
-                    </div>
+                    <>
+                      <div className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                        <p className="font-medium text-foreground">
+                          {preview?.name ??
+                            'Đặc tả đã được clone cùng đề thi mẫu'}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Đặc tả của đê thi mẫu đã được clone sẵn cho bài thi
+                          này.
+                        </p>
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -425,6 +428,15 @@ export function ExamSettingsForm({
                   name="settings.showResultAfterSubmit"
                   label="Xem kết quả sau khi nộp bài"
                   description="Cho phép sinh viên xem ngay kết quả chi tiết từng câu khi vừa nộp bài."
+                />
+              </div>
+
+              <div className="border-t border-border pt-2">
+                <ToggleField
+                  control={control}
+                  name="settings.isLoadDdl"
+                  label="Nạp schema giáo viên"
+                  description="Nếu bật, hệ thống sẽ chạy script DDL (CREATE TABLE, ...) của giáo viên vào schema sinh viên khi bắt đầu thi."
                 />
               </div>
             </div>
