@@ -62,6 +62,7 @@ export function ExamForm({
       isPublished: initialData?.isPublished ?? true,
       maxAttempts: initialData?.maxAttempts ?? 1,
       lateThreshold: initialData?.lateThreshold ?? 0,
+      ...initialData,
       settings: {
         preventCopyPaste: true,
         forceFullscreen: true,
@@ -73,9 +74,9 @@ export function ExamForm({
         gradingMethod: 'highest_score',
         showResultAfterSubmit: false,
         maxViolations: 3,
-        isLoadDdl: false
-      },
-      ...initialData
+        isLoadDdl: false,
+        ...initialData?.settings
+      }
     }
   })
 
@@ -103,6 +104,9 @@ export function ExamForm({
             initialData.settings?.scoreDisplayMode ?? 'after_closed',
           allowOvertime: initialData.settings?.allowOvertime ?? false,
           gradingMethod: initialData.settings?.gradingMethod ?? 'highest_score',
+          showResultAfterSubmit:
+            initialData.settings?.showResultAfterSubmit ?? false,
+          maxViolations: initialData.settings?.maxViolations ?? 3,
           isLoadDdl: initialData.settings?.isLoadDdl ?? false
         }
       })
