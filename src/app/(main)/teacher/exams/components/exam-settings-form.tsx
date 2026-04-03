@@ -427,6 +427,15 @@ export function ExamSettingsForm({
                   description="Cho phép sinh viên xem ngay kết quả chi tiết từng câu khi vừa nộp bài."
                 />
               </div>
+
+              <div className="border-t border-border pt-2">
+                <ToggleField
+                  control={control}
+                  name="settings.isLoadDdl"
+                  label="Nạp schema giáo viên"
+                  description="Nếu bật, hệ thống sẽ chạy script DDL (CREATE TABLE, ...) của giáo viên vào schema sinh viên khi bắt đầu thi."
+                />
+              </div>
             </div>
           </section>
         </div>
