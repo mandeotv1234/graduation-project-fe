@@ -36,14 +36,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProviders>
-          <ReduxProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProviders>
+            <ReduxProvider>
               <TeacherNotificationHandler />
               {children}
               <Toaster
@@ -67,9 +67,9 @@ export default function RootLayout({
                   }
                 }}
               />
-            </ThemeProvider>
-          </ReduxProvider>
-        </AuthProviders>
+            </ReduxProvider>
+          </AuthProviders>
+        </ThemeProvider>
       </body>
     </html>
   )

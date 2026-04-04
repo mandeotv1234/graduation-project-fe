@@ -167,7 +167,7 @@ You can start editing the main page by modifying `src/app/(main)/page.tsx`. The 
 
 - **Revalidation strategy (project convention)**:
   - We keep caching rules simple and rely on **explicit invalidation only**:
-    - Use `revalidatePath('/some-path')` in server actions after a successful mutation to invalidate a specific route.
+    - Use `revalidatePath('/some-path')` in server actions after a successfully mutation to invalidate a specific route.
     - Use `revalidateTag('tag-name')` together with `fetch(..., { next: { tags: ['tag-name'] } })` to invalidate a group of related requests.
   - We avoid time-based revalidation (`revalidate = 60`, `next.revalidate`, etc.) to keep behavior predictable.
   - For each new feature, decide:
@@ -175,7 +175,7 @@ You can start editing the main page by modifying `src/app/(main)/page.tsx`. The 
     - Which `path` or `tag` should be revalidated from the corresponding server action.
 
 - **Auth & cookie-based flow (suggested)**:
-  - After a successful login, a server action sets:
+  - After a successfully login, a server action sets:
     - `accessToken` (short-lived).
     - `refreshToken` (longer-lived).
   - Subsequent requests:
@@ -257,7 +257,7 @@ This flow keeps every page consistent: routing is defined in `app/`, types & sch
      - In `src/lib/actions/<domain>.action.ts`, create a function that:
        - Accepts the validated form values.
        - Calls `apiClient` to hit the backend.
-       - Optionally calls `revalidatePath` / `revalidateTag` after a successful mutation.
+       - Optionally calls `revalidatePath` / `revalidateTag` after a successfully mutation.
        - Either returns `{ success, code, message, data? }` or uses `redirect(PATH.SOMEWHERE)` to navigate on the server.
   4. **Client form component**
      - Mark the file with `'use client'`.

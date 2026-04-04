@@ -8,7 +8,9 @@ import {
   TeacherExamDetail,
   UpdateExamRequest,
   CreateExamRequest,
-  CreateExamResponse
+  CreateExamResponse,
+  UpdateExamQuestionRequest,
+  ExamQuestionItem
 } from '@/lib/types'
 import { ENDPOINTS } from '@/lib/constants'
 
@@ -136,4 +138,22 @@ export async function createExam(
   data: CreateExamRequest
 ): Promise<ApiResponse<CreateExamResponse>> {
   return apiClient.post<CreateExamResponse>(ENDPOINTS.CREATE_EXAM, data)
+}
+
+export async function updateExamQuestion(
+  examId: number,
+  questionId: number,
+  data: UpdateExamQuestionRequest
+): Promise<ApiResponse<ExamQuestionItem>> {
+  return apiClient.put<ExamQuestionItem>(
+    ENDPOINTS.EXAM_QUESTION_DETAIL(examId, questionId),
+    data
+  )
+}
+
+export async function deleteExamQuestion(
+  examId: number,
+  questionId: number
+): Promise<ApiResponse<void>> {
+  return apiClient.delete(ENDPOINTS.EXAM_QUESTION_DETAIL(examId, questionId))
 }

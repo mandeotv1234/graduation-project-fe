@@ -4,13 +4,16 @@ export {
   getTeacherExamDetail,
   getTeacherExamMonitor,
   updateExam,
-  createExam
+  createExam,
+  updateExamQuestion,
+  deleteExamQuestion
 } from '@/lib/actions/exam.action'
 export * from '@/lib/actions/student-exam.action'
 export {
   getClasses,
   getClassDetail,
   createClass,
+  updateClass,
   getStudentsInClass,
   getClassExams,
   getClassTeachers,

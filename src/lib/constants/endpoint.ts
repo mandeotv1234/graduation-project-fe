@@ -35,6 +35,8 @@ export const ENDPOINTS = Object.freeze({
   TEACHER_EXAM_TEMPLATE_VERSIONS: (examId: number) =>
     `/exams/${examId}/template-versions`,
   CREATE_EXAM_QUESTION: (examId: number) => `/exams/${examId}/questions`,
+  EXAM_QUESTION_DETAIL: (examId: number, questionId: number) =>
+    `/exams/${examId}/questions/${questionId}`,
   EXAM_MONITOR: (examId: number) => `/exams/${examId}/monitor`,
 
   // Teacher - Specifications

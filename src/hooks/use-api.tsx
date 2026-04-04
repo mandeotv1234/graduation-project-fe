@@ -20,8 +20,12 @@ export function useApi() {
       'Class updated successfully': 'Cập nhật lớp học thành công!',
       'Students added successfully': 'Thêm sinh viên thành công!',
       'Assignment updated successfully': 'Cập nhật bài tập thành công!',
-      'Operation successful': 'Thao tác thành công!',
-      'Login successful': 'Đăng nhập thành công!',
+      'Operation successfully': 'Thao tác thành công!',
+      'Login successfully': 'Đăng nhập thành công!',
+      'Teacher added to class successfully':
+        'Thêm giảng viên vào lớp học thành công!',
+      'Teacher removed from class successfully':
+        'Xóa giảng viên khỏi lớp học thành công!',
       Success: 'Thành công!',
 
       // Error messages
