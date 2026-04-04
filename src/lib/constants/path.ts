@@ -13,6 +13,7 @@ export const PATH = {
   TEACHER_CLASSES: '/teacher/classes',
   TEACHER_CLASS_DETAIL: (classId: number) => `/teacher/classes/${classId}`,
   TEACHER_CREATE_CLASS: '/teacher/classes/create',
+  TEACHER_EDIT_CLASS: (classId: number) => `/teacher/classes/${classId}/edit`,
   TEACHER_CREATE_EXAM: (classId: number) =>
     `/teacher/classes/${classId}/create-exam`,
   TEACHER_EXAM_DETAIL: (examId: number) => `/teacher/exams/${examId}`,

@@ -51,6 +51,16 @@ export async function createClass(
   return apiClient.post<CreateClassResponse>(ENDPOINTS.CLASSES, data)
 }
 
+export async function updateClass(
+  classId: number,
+  data: CreateClassRequest
+): Promise<ApiResponse<CreateClassResponse>> {
+  return apiClient.put<CreateClassResponse>(
+    ENDPOINTS.CLASS_DETAIL(classId),
+    data
+  )
+}
+
 export async function getStudentsInClass(
   classId: number,
   page = 1,

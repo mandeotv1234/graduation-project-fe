@@ -235,6 +235,17 @@ export interface CreateExamQuestionsBatchRequest {
   questions: CreateExamQuestionBatch[]
 }
 
+export interface UpdateExamQuestionRequest {
+  content: string
+  correctQuery: string
+  verifyScript: string
+  difficultyLevel?: number
+  points: number
+  orderIndex?: number
+  questionType: string
+  gradingRubric?: string
+}
+
 // ===== Grading Rubric Types (Polymorphic Architecture) =====
 
 export type SyntaxErrorAction = 'FAIL_ALL' | 'PARTIAL'

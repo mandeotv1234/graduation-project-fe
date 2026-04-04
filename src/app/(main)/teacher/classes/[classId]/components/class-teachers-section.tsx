@@ -96,6 +96,26 @@ export function ClassTeachersSection({
     }
   }
 
+  const emailDomain = '@fit.hcmus.edu.vn'
+  const atIndex = email.indexOf('@')
+  const typedDomain =
+    atIndex !== -1 ? email.substring(atIndex).toLowerCase() : ''
+  const showSuggestion =
+    atIndex !== -1 &&
+    emailDomain.startsWith(typedDomain) &&
+    typedDomain !== emailDomain
+
+  const suggestionText = showSuggestion
+    ? emailDomain.substring(typedDomain.length)
+    : ''
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Tab' && showSuggestion) {
+      e.preventDefault()
+      setEmail(email.substring(0, atIndex) + emailDomain)
+    }
+  }
+
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-4">
@@ -132,19 +152,34 @@ export function ClassTeachersSection({
             <DialogTitle>Thêm giáo viên vào lớp</DialogTitle>
             <DialogDescription>
               Nhập email tài khoản giảng viên để cấp quyền quản lý lớp và bài
-              thi.
+              thi. Có thể gõ <strong>@</strong> sau đó nhấn <strong>Tab</strong>{' '}
+              để hoàn thành tên miền.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleAddTeacher} className="space-y-3">
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Nhập email giảng viên, ví dụ tdthao@fit.hcmus.edu.vn"
-              disabled={isLoading}
-              className="h-10"
-            />
+            <div className="relative">
+              <Input
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Nhập email giảng viên, ví dụ tdthao@fit.hcmus.edu.vn"
+                disabled={isLoading}
+                className="h-10"
+              />
+              {showSuggestion && (
+                <div
+                  className="pointer-events-none absolute inset-0 flex items-center px-3 text-sm"
+                  aria-hidden="true"
+                >
+                  <span className="text-transparent">{email}</span>
+                  <span className="text-muted-foreground opacity-60">
+                    {suggestionText}
+                  </span>
+                </div>
+              )}
+            </div>
             <Button type="submit" className="w-full gap-2" disabled={isLoading}>
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

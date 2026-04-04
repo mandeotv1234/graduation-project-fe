@@ -6,7 +6,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   Plus,
   Hash,
-  Award,
   Save,
   Share2,
   Settings,
@@ -16,8 +15,6 @@ import {
   Code2,
   Terminal,
   Sparkles,
-  ChevronDown,
-  ChevronUp,
   Users,
   Play,
   ArrowRight
@@ -28,13 +25,19 @@ import { Button } from '@/components/ui/button'
 import { RichTextEditor } from '@/components/shared/rich-text-editor'
 import { RubricTestGrader } from './rubric-test-grader'
 import { TeacherSqlEditor } from './teacher-sql-editor'
-import { createExamQuestionsBatch, shareExamAsTemplate } from '@/lib/actions'
+import {
+  createExamQuestionsBatch,
+  shareExamAsTemplate,
+  deleteExamQuestion,
+  updateExamQuestion
+} from '@/lib/actions'
 import { useApi } from '@/hooks/use-api'
 import {
   ExamQuestionItem,
   CreateExamQuestionBatch,
   GradingRubric,
-  TeacherExamTemplateVersionsResponse
+  TeacherExamTemplateVersionsResponse,
+  UpdateExamQuestionRequest
 } from '@/lib/types'
 import { PATH } from '@/lib/constants'
 import { CreateTableRubricEditor } from './create-table-rubric-editor'
@@ -42,6 +45,7 @@ import { InsertDataRubricEditor } from './insert-data-rubric-editor'
 import { InsertDataTestGrader } from './insert-data-test-grader'
 import { SelectQueryRubricEditor } from './select-query-rubric-editor'
 import { SelectQueryTestGrader } from './select-query-test-grader'
+import { QuestionItem } from './question-item'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -51,15 +55,6 @@ const QUESTION_TYPES = [
   { value: 'FUNCTION', label: 'FUNCTION' },
   { value: 'STORED_PROCEDURE', label: 'STORED PROCEDURE' }
 ]
-
-const QUESTION_TYPE_COLORS: Record<string, string> = {
-  CREATE_TABLE: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  INSERT_DATA: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  SELECT_QUERY: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
-  TRIGGER: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  FUNCTION: 'bg-pink-500/10 text-pink-600 dark:text-pink-400',
-  STORED_PROCEDURE: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
-}
 
 interface ExamQuestionsViewProps {
   examId: number
@@ -144,6 +139,44 @@ export function ExamQuestionsView({
 
   const removeQuestion = (id: string) => {
     setPendingQuestions((prev) => prev.filter((q) => q.id !== id))
+  }
+
+  const [updatingQuestionId, setUpdatingQuestionId] = useState<number | null>(
+    null
+  )
+  const [deletingQuestionId, setDeletingQuestionId] = useState<number | null>(
+    null
+  )
+
+  const handleUpdateExistingQuestion = async (
+    id: number,
+    data: UpdateExamQuestionRequest
+  ) => {
+    setUpdatingQuestionId(id)
+    try {
+      const res = await updateExamQuestion(examId, id, data)
+      if (res.data) {
+        setQuestions((prev) => prev.map((q) => (q.id === id ? res.data! : q)))
+        toast.success('Cập nhật câu hỏi thành công')
+      }
+    } catch {
+      toast.error('Cập nhật câu hỏi thất bại')
+    } finally {
+      setUpdatingQuestionId(null)
+    }
+  }
+
+  const handleDeleteExistingQuestion = async (id: number) => {
+    setDeletingQuestionId(id)
+    try {
+      await deleteExamQuestion(examId, id)
+      setQuestions((prev) => prev.filter((q) => q.id !== id))
+      toast.success('Đã xóa câu hỏi')
+    } catch {
+      toast.error('Xóa câu hỏi thất bại')
+    } finally {
+      setDeletingQuestionId(null)
+    }
   }
 
   const handleSubmitQuestions = async (e: React.FormEvent) => {
@@ -834,98 +867,17 @@ export function ExamQuestionsView({
       ) : (
         <div className="space-y-3">
           {questions.map((q) => (
-            <QuestionItem key={q.id} question={q} />
+            <QuestionItem
+              key={q.id}
+              question={q}
+              onDelete={handleDeleteExistingQuestion}
+              onUpdate={handleUpdateExistingQuestion}
+              isUpdating={updatingQuestionId === q.id}
+              isDeleting={deletingQuestionId === q.id}
+              allQuestions={questions}
+              examId={examId}
+            />
           ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function QuestionItem({ question }: { question: ExamQuestionItem }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
-  return (
-    <div className="rounded-sm shadow-sm bg-card transition-all hover:shadow-md">
-      <div className="p-5">
-        <div className="flex items-start gap-4">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-            {question.orderIndex}
-          </span>
-
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${QUESTION_TYPE_COLORS[question.questionType] || 'bg-muted text-muted-foreground'}`}
-              >
-                {question.questionType}
-              </span>
-              <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                <Award className="h-3 w-3" />
-                {question.points}đ
-              </span>
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <Hash className="h-3 w-3" />
-                Độ khó: {question.difficultyLevel}
-              </span>
-            </div>
-
-            <div className="editor-container">
-              <div
-                className="text-sm gap-2 text-foreground whitespace-pre-wrap ProseMirror"
-                dangerouslySetInnerHTML={{ __html: question.content || '' }}
-              />
-            </div>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="h-8 w-8 p-0"
-          >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {isExpanded && (
-        <div className="border-t border-border bg-muted/30 p-5 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <Code2 className="h-3.5 w-3.5" />
-                Đáp án (Correct Query)
-              </div>
-              <div className="h-[180px] overflow-hidden rounded-lg border border-border bg-background">
-                <TeacherSqlEditor
-                  value={question.correctQuery || '-- Không có đáp án'}
-                  onChange={() => {}}
-                  height="100%"
-                  readOnly
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <Terminal className="h-3.5 w-3.5" />
-                Script kiểm thử (Verify Script)
-              </div>
-              <div className="h-[180px] overflow-hidden rounded-lg border border-border bg-background">
-                <TeacherSqlEditor
-                  value={question.verifyScript || '-- Không có script'}
-                  onChange={() => {}}
-                  height="100%"
-                  readOnly
-                />
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>

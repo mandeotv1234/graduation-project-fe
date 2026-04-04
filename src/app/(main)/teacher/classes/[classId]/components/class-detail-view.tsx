@@ -97,12 +97,20 @@ export function ClassDetailView({
             </p>
           </div>
         </div>
-        <Link href={PATH.TEACHER_CREATE_EXAM(classDetail.id)}>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Tạo bài thi
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href={PATH.TEACHER_EDIT_CLASS(classDetail.id)}>
+            <Button variant="outline" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Sửa lớp
+            </Button>
+          </Link>
+          <Link href={PATH.TEACHER_CREATE_EXAM(classDetail.id)}>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Tạo bài thi
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
