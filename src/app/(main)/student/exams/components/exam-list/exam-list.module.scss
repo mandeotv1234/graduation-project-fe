@@ -1,0 +1,87 @@
+@reference 'tailwindcss';
+@reference '../../../../../globals.css';
+
+.link {
+  @apply block;
+}
+
+.statusBadge {
+  @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium;
+
+  .statusDot {
+    @apply mr-1.5 h-1.5 w-1.5 rounded-full bg-current;
+  }
+}
+
+.card {
+  @apply relative overflow-hidden rounded-xl border border-border bg-card p-6 shadow-sm;
+  @apply transition-all duration-300 hover:border-primary/30 hover:shadow-md;
+
+  .cardAccent {
+    @apply absolute inset-x-0 top-0 h-1 opacity-0 transition-opacity duration-300;
+    @apply bg-gradient-to-r from-primary/60 via-primary to-primary/60;
+  }
+
+  .cardContent {
+    @apply flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between;
+
+    .cardMain {
+      @apply flex-1 space-y-3;
+
+      .titleRow {
+        @apply flex items-start gap-3;
+
+        .iconBox {
+          @apply h-10 w-10 shrink-0 rounded-lg bg-primary/10 text-primary;
+          @apply flex items-center justify-center;
+        }
+
+        .titleBlock {
+          @apply space-y-1;
+
+          .title {
+            @apply text-lg font-semibold text-foreground;
+          }
+        }
+      }
+
+      .metaRow {
+        @apply text-sm text-muted-foreground flex flex-wrap gap-4;
+
+        .metaItem {
+          @apply flex items-center gap-1.5;
+        }
+      }
+    }
+
+    .actionWrap {
+      @apply shrink-0;
+
+      .enterButton {
+        @apply gap-2;
+      }
+    }
+  }
+}
+
+.emptyState {
+  @apply py-16 text-center rounded-xl border border-dashed border-border;
+  @apply flex flex-col items-center justify-center;
+
+  .emptyIconWrap {
+    @apply h-16 w-16 rounded-full bg-muted;
+    @apply flex items-center justify-center;
+  }
+
+  .emptyTitle {
+    @apply mt-4 text-lg font-semibold text-foreground;
+  }
+
+  .emptyDescription {
+    @apply mt-2 text-sm text-muted-foreground;
+  }
+}
+
+.list {
+  @apply space-y-4;
+}

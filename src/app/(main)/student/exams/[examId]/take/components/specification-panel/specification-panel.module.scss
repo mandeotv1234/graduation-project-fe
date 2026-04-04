@@ -1,0 +1,55 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.container {
+  @apply relative shrink-0 flex flex-col bg-background border-r border-border;
+  @apply transition-[width] duration-300 ease-in-out;
+
+  &.open {
+    @apply w-[300px] xl:w-[340px];
+  }
+
+  &.closed {
+    @apply w-9;
+  }
+
+  .toggleButton {
+    @apply absolute -right-3 top-6 z-10 h-6 w-6 rounded-full;
+    @apply flex items-center justify-center;
+    @apply border border-border bg-background shadow-sm;
+    @apply transition-colors hover:bg-muted;
+  }
+
+  .header {
+    @apply shrink-0 px-3 py-2.5 bg-primary/5 border-b border-border;
+    @apply flex items-center gap-2;
+
+    .headerIcon {
+      @apply h-4 w-4 shrink-0 text-primary;
+    }
+
+    .headerTitle {
+      @apply truncate text-xs font-bold uppercase tracking-wide text-foreground;
+    }
+  }
+
+  .content {
+    @apply flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin;
+
+    .loadingState {
+      @apply py-12 flex items-center justify-center;
+    }
+  }
+
+  .collapsedState {
+    @apply pt-10 flex flex-col items-center gap-1;
+
+    .collapsedIcon {
+      @apply h-4 w-4 text-primary;
+    }
+
+    .collapsedText {
+      @apply text-[9px] font-semibold uppercase tracking-wide text-muted-foreground;
+    }
+  }
+}

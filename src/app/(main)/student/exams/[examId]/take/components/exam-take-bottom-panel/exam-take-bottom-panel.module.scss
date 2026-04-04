@@ -1,0 +1,79 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.container {
+  @apply h-full border-t border-border bg-card overflow-hidden flex flex-col;
+
+  .tabs {
+    @apply flex-1 min-h-0 flex flex-col;
+  }
+
+  .tabsHeader {
+    @apply border-b border-border;
+  }
+
+  .tabsList {
+    @apply w-full h-12 rounded-none bg-transparent p-0 flex justify-start;
+  }
+
+  .tabsTrigger {
+    @apply px-6 h-full rounded-none border-b-2 border-transparent text-muted-foreground;
+    @apply data-[state=active]:border-primary data-[state=active]:bg-accent/50 data-[state=active]:text-primary;
+  }
+
+  .tabsContent {
+    @apply flex-1 min-h-0 p-0 m-0;
+  }
+
+  .emptyState {
+    @apply h-full flex flex-col items-center justify-center text-sm text-muted-foreground gap-2;
+
+    .emptyIcon {
+      @apply h-8 w-8 opacity-20;
+    }
+
+    .emptyHint {
+      @apply text-xs text-muted-foreground;
+    }
+  }
+
+  .schemaScrollArea {
+    @apply h-full;
+  }
+
+  .schemaContent {
+    @apply p-6;
+
+    .schemaGrid {
+      @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+
+      .tableCard {
+        @apply border border-border rounded-md bg-background overflow-hidden;
+
+        .tableHeader {
+          @apply px-3 py-2 border-b border-border bg-card;
+
+          .tableName {
+            @apply text-sm font-medium font-mono text-foreground;
+          }
+        }
+
+        .tableColumns {
+          @apply p-3 space-y-2;
+
+          .columnRow {
+            @apply text-xs font-mono flex items-center justify-between;
+
+            .columnName {
+              @apply text-muted-foreground;
+            }
+
+            .columnType {
+              @apply text-muted-foreground;
+            }
+          }
+        }
+      }
+    }
+  }
+}
