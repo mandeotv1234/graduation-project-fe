@@ -72,7 +72,7 @@ export function CloneExamTemplateDialog({
       )
       onClose()
       if (res.data?.examId) {
-        router.push(PATH.TEACHER_EXAM_SETTINGS(res.data.examId))
+        router.push(PATH.TEACHER_EXAM_DETAIL(res.data.examId))
       }
     } catch {
       toast.error('Clone đề thi thất bại')

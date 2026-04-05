@@ -83,7 +83,7 @@ export interface StudentInClass {
 // GET /api/classes/{classId}/exams → CreateExamResponseDto (reused)
 export interface ClassExamItem {
   id: number
-  specificationId: number
+  specificationId?: number | null
   classId: number
   creatorId: number
   title: string
@@ -98,7 +98,8 @@ export interface ClassExamItem {
 // ExamSettings is defined in exam.type.ts
 
 export interface CreateExamRequest {
-  specificationId: number
+  /** Bỏ qua hoặc 0 nếu chưa gắn đặc tả. */
+  specificationId?: number | null
   classId: number
   title: string
   durationMinutes: number
@@ -113,7 +114,7 @@ export interface CreateExamRequest {
 
 export interface CreateExamResponse {
   id: number
-  specificationId: number
+  specificationId?: number | null
   classId: number
   creatorId: number
   title: string
@@ -145,7 +146,7 @@ export interface TeacherExamDetail {
   id: number
   classId: number
   title: string
-  specificationId: number
+  specificationId?: number | null
   durationMinutes: number
   startTime: string | null
   endTime: string | null
@@ -182,18 +183,19 @@ export interface TeacherExamMonitorData {
   students: TeacherExamMonitorStudent[]
 }
 
-// PUT /api/exams/{examId}
+// PUT /api/exams/{examId} — mọi field optional (PATCH-style); field có trong body mới cập nhật
 export interface UpdateExamRequest {
-  title: string
-  specificationId: number
-  durationMinutes: number
-  startTime: string | null
-  endTime: string | null
+  title?: string
+  /** Gửi `0` để gỡ đặc tả; bỏ field nếu không đổi. */
+  specificationId?: number | null
+  durationMinutes?: number
+  startTime?: string | null
+  endTime?: string | null
   description?: string
-  isPublished: boolean
-  maxAttempts: number
-  lateThreshold: number
-  settings: ExamSettings
+  isPublished?: boolean
+  maxAttempts?: number
+  lateThreshold?: number
+  settings?: ExamSettings
 }
 
 // POST /api/exams/{examId}/questions → CreateExamQuestionRequestDto

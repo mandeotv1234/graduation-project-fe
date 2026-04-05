@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 export const examSchema = z.object({
   title: z.string().min(1, 'Vui lòng nhập tiêu đề bài thi'),
-  specificationId: z.coerce.number().min(1, 'Vui lòng chọn đặc tả CSDL'),
+  /** 0 = chưa gắn đặc tả; có thể bổ sung sau. */
+  specificationId: z.coerce.number().int().min(0, 'Mã đặc tả không hợp lệ'),
   durationMinutes: z.coerce.number().min(1, 'Thời lượng phải lớn hơn 0'),
   startTime: z.string().optional(),
   endTime: z.string().optional(),

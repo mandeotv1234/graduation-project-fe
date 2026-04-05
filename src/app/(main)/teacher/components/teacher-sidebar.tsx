@@ -32,53 +32,52 @@ export function TeacherSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="hidden lg:block">
-      <div className="sticky top-20">
-        <nav className="space-y-1.5">
-          {NAV_ITEMS.map((item) => {
-            const isActive =
-              pathname.startsWith(item.href) ||
-              (item.label === 'Lớp học' &&
-                pathname.startsWith('/teacher/exams'))
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
+    <aside className="w-full">
+      <nav className="space-y-1.5">
+        {NAV_ITEMS.map((item) => {
+          const isActive =
+            pathname.startsWith(item.href) ||
+            (item.label === 'Lớp học' && pathname.startsWith('/teacher/exams'))
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'group flex items-start gap-3 rounded-xl border px-3 py-3 transition-all',
+                isActive
+                  ? 'border-primary/20 bg-primary/10 shadow-sm'
+                  : 'border-transparent hover:border-border/70 hover:bg-accent/70'
+              )}
+            >
+              <span
                 className={cn(
-                  'group flex items-start gap-3 rounded-xl border px-3 py-3 transition-all',
+                  'mt-0.5 rounded-lg p-2 transition-colors',
                   isActive
-                    ? 'border-primary/20 bg-primary/10 shadow-sm'
-                    : 'border-transparent hover:border-border/70 hover:bg-accent/70'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground'
                 )}
               >
+                <item.icon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
                 <span
                   className={cn(
-                    'mt-0.5 rounded-lg p-2 transition-colors',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground'
+                    'block text-sm font-semibold leading-none transition-colors',
+                    isActive ? 'text-primary' : 'text-foreground'
                   )}
                 >
-                  <item.icon className="h-4 w-4" />
+                  {item.label}
                 </span>
-                <span className="min-w-0">
-                  <span
-                    className={cn(
-                      'block text-sm font-semibold leading-none transition-colors',
-                      isActive ? 'text-primary' : 'text-foreground'
-                    )}
-                  >
-                    {item.label}
-                  </span>
+                {item.description && (
                   <span className="mt-1 block text-xs text-muted-foreground">
                     {item.description}
                   </span>
-                </span>
-              </Link>
-            )
-          })}
-        </nav>
-      </div>
+                )}
+              </span>
+            </Link>
+          )
+        })}
+      </nav>
     </aside>
   )
 }

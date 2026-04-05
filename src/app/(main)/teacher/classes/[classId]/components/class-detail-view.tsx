@@ -224,7 +224,7 @@ export function ClassDetailView({
                   </Link>
 
                   <Link
-                    href={PATH.TEACHER_EDIT_EXAM(exam.id)}
+                    href={PATH.TEACHER_EXAM_DETAIL(exam.id)}
                     title="Cài đặt bài thi"
                   >
                     <Button

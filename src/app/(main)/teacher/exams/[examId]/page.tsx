@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 
 import {
   getClassDetail,
@@ -78,16 +79,22 @@ export default async function TeacherExamDetailPage({
       : undefined
 
   return (
-    <TeacherExamDetailContent
-      exam={exam}
-      classLabel={classLabel}
-      questionCount={questionCount}
-      hasSpecification={hasSpecification}
-      specification={specRes.data as SpecificationDetailResponse | null}
-      questions={questions}
-      templateManagement={templateManagementRes.data ?? null}
-      canShareTemplate={canShareTemplate}
-      shareDisabledReason={shareDisabledReason}
-    />
+    <Suspense
+      fallback={
+        <div className="min-h-[320px] animate-pulse rounded-xl border border-border bg-muted/30" />
+      }
+    >
+      <TeacherExamDetailContent
+        exam={exam}
+        classLabel={classLabel}
+        questionCount={questionCount}
+        hasSpecification={hasSpecification}
+        specification={specRes.data as SpecificationDetailResponse | null}
+        questions={questions}
+        templateManagement={templateManagementRes.data ?? null}
+        canShareTemplate={canShareTemplate}
+        shareDisabledReason={shareDisabledReason}
+      />
+    </Suspense>
   )
 }

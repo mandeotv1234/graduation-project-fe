@@ -257,7 +257,7 @@ export function SqlEditorPanel({
               detail: 'CREATE TABLE – tạo bảng mới',
               doc: 'Tạo bảng mới trong CSDL',
               insert:
-                'CREATE TABLE ${1:table_name} (\n\t${2:id} INT PRIMARY KEY AUTO_INCREMENT,\n\t${3:column1} ${4:VARCHAR(255)} NOT NULL,\n\t${5:created_at} DATETIME DEFAULT CURRENT_TIMESTAMP\n)'
+                'CREATE TABLE ${1:table_name} (\n\t${2:id} INT PRIMARY KEY,\n\t${3:column1} ${4:VARCHAR(255)} NOT NULL,\n\t${5:created_at} DATETIME DEFAULT CURRENT_TIMESTAMP\n)'
             },
             {
               label: 'CREATE TABLE IF NOT EXISTS',
@@ -265,7 +265,7 @@ export function SqlEditorPanel({
               detail: 'CREATE TABLE IF NOT EXISTS',
               doc: 'Tạo bảng nếu chưa tồn tại',
               insert:
-                'CREATE TABLE IF NOT EXISTS ${1:table_name} (\n\t${2:id} INT PRIMARY KEY AUTO_INCREMENT,\n\t${3:column1} ${4:VARCHAR(255)} NOT NULL\n)'
+                'CREATE TABLE IF NOT EXISTS ${1:table_name} (\n\t${2:id} INT PRIMARY KEY,\n\t${3:column1} ${4:VARCHAR(255)} NOT NULL\n)'
             },
             // ALTER TABLE
             {

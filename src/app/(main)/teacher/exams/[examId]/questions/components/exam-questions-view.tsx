@@ -62,6 +62,7 @@ interface ExamQuestionsViewProps {
   templateManagement: TeacherExamTemplateVersionsResponse | null
   canShareTemplate: boolean
   shareDisabledReason?: string
+  variant?: 'standalone' | 'embedded'
 }
 
 interface QuestionFormState extends CreateExamQuestionBatch {
@@ -78,7 +79,8 @@ export function ExamQuestionsView({
   initialQuestions,
   templateManagement,
   canShareTemplate,
-  shareDisabledReason
+  shareDisabledReason,
+  variant = 'standalone'
 }: ExamQuestionsViewProps) {
   const { callApi, isLoading } = useApi()
   const router = useRouter()
@@ -239,14 +241,20 @@ export function ExamQuestionsView({
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between pt-4 pb-1">
-        <div className="border-l-4 border-primary/60 pl-3">
+      <div className="flex flex-col gap-3 pt-4 pb-1 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 border-l-4 border-primary/60 pl-3">
           <div>
-            <h1 className="flex items-center gap-2 text-2xl tracking-tight font-bold text-title">
-              Danh sách câu hỏi
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
-              <p>
+            {variant === 'embedded' ? (
+              <h2 className="text-xl font-bold tracking-tight text-title md:text-2xl">
+                Danh sách câu hỏi
+              </h2>
+            ) : (
+              <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-title">
+                Danh sách câu hỏi
+              </h1>
+            )}
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground">
+              <p className="text-sm">
                 Bài thi #{examId} · {questions.length} câu · {totalPoints} điểm
               </p>
               {latestVisibleVersion && (
@@ -258,10 +266,27 @@ export function ExamQuestionsView({
           </div>
         </div>
 
-        {!showAddForm && (
+        {variant === 'embedded' && !showAddForm && (
+          <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+            <Button
+              className="gap-2"
+              onClick={() => {
+                setShowAddForm(true)
+                if (pendingQuestions.length === 0) {
+                  addEmptyQuestion()
+                }
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Thêm câu hỏi
+            </Button>
+          </div>
+        )}
+
+        {variant === 'standalone' && !showAddForm && (
           <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2">
-              <Link href={PATH.TEACHER_EXAM_SETTINGS(examId)}>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Link href={PATH.TEACHER_EXAM_DETAIL(examId)}>
                 <Button variant="outline" className="gap-2">
                   <Settings className="h-4 w-4" />
                   Cài đặt bài thi
@@ -305,7 +330,9 @@ export function ExamQuestionsView({
               </Button>
             </div>
             {canManage && !canShareTemplate && shareDisabledReason && (
-              <p className="text-xs text-destructive">{shareDisabledReason}</p>
+              <p className="max-w-md text-right text-xs text-destructive">
+                {shareDisabledReason}
+              </p>
             )}
           </div>
         )}
@@ -340,12 +367,13 @@ export function ExamQuestionsView({
                 </div>
                 <p className="max-w-2xl text-sm text-muted-foreground">
                   Theo dõi lịch sử chia sẻ đề thi ngay tại trang câu hỏi. Việc
-                  ẩn hoặc hiện phiên bản vẫn được quản lý trong Cài đặt bài thi.
+                  ẩn hoặc hiện phiên bản được quản lý trong tab thư viện của
+                  trang chi tiết bài thi.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Link href={PATH.TEACHER_EXAM_SETTINGS(examId)}>
+                <Link href={PATH.TEACHER_EXAM_DETAIL(examId)}>
                   <Button variant="outline" className="gap-2">
                     <Settings className="h-4 w-4" />
                     Quản lý tất cả phiên bản
