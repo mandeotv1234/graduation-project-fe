@@ -1,0 +1,128 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.container {
+  .headerContainer {
+    @apply flex items-center gap-3;
+
+    .iconContainer {
+      @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-full;
+
+      &.warning {
+        background-color: hsl(45, 100%, 51%, 0.15);
+      }
+
+      &.success {
+        background-color: hsl(142, 76%, 36%, 0.15);
+      }
+
+      .warningIcon {
+        color: hsl(45, 100%, 51%);
+      }
+
+      .successIcon {
+        color: hsl(142, 76%, 36%);
+      }
+    }
+
+    .titleContainer {
+      @apply flex-1;
+
+      .title {
+        @apply mt-1;
+      }
+
+      .description {
+        @apply mt-1;
+      }
+    }
+  }
+
+  .statusSummary {
+    @apply rounded-xl border border-border bg-muted/30 p-4;
+
+    .progressInfo {
+      @apply flex items-center justify-between;
+
+      .progressText {
+        @apply flex flex-col gap-1;
+
+        .progressTitle {
+          @apply text-sm font-medium text-foreground;
+        }
+
+        .progressSubtitle {
+          @apply text-xs text-muted-foreground;
+        }
+      }
+
+      .progressNumbers {
+        @apply text-right;
+
+        .progressRatio {
+          @apply text-2xl font-bold text-foreground;
+        }
+      }
+    }
+
+    .progressBarContainer {
+      @apply mt-3 h-2 w-full overflow-hidden rounded-full bg-muted;
+
+      .progressBar {
+        @apply h-full rounded-full transition-all duration-500;
+
+        &.warning {
+          background: linear-gradient(
+            to right,
+            hsl(45, 100%, 51%),
+            hsl(45, 92%, 59%)
+          );
+        }
+
+        &.success {
+          background: linear-gradient(
+            to right,
+            hsl(142, 76%, 36%),
+            hsl(142, 71%, 45%)
+          );
+        }
+      }
+    }
+  }
+
+  .warningMessage {
+    @apply text-sm text-amber-600;
+
+    @media (prefers-color-scheme: dark) {
+      @apply text-amber-400;
+    }
+  }
+
+  .infoMessage {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .footer {
+    @apply flex gap-2;
+
+    .cancelButton {
+      @apply flex-1;
+    }
+
+    .submitButton {
+      @apply flex-1 flex items-center gap-2;
+
+      &.warning {
+        @apply bg-amber-600 hover:bg-amber-700;
+      }
+
+      &.success {
+        @apply bg-emerald-600 hover:bg-emerald-700;
+      }
+
+      .buttonIcon {
+        @apply mr-2;
+      }
+    }
+  }
+}

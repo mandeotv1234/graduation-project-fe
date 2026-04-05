@@ -1,7 +1,7 @@
 import { getExamDetail } from '@/lib/actions'
 import { redirect } from 'next/navigation'
 import { PATH } from '@/lib/constants'
-import { ExamStartInterface } from '@/app/(main)/student/exams/[examId]/take/components/exam-start-interface'
+import { ExamStartInterface } from '@/app/(main)/student/exams/[examId]/take/components/exam-start-interface/exam-start-interface'
 
 interface ExamStartPageProps {
   params: Promise<{ examId: string }>

@@ -1,0 +1,10 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.container {
+  @apply h-full min-h-0;
+
+  .keyIcon {
+    @apply h-3.5 w-3.5;
+  }
+}

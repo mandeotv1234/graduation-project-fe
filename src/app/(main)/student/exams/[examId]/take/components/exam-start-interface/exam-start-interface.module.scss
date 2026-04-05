@@ -1,0 +1,99 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.container {
+  @apply pt-4 pb-4 px-4 min-h-screen flex flex-col items-center bg-muted/20;
+
+  .contentWrapper {
+    @apply w-full max-w-3xl;
+
+    .card {
+      @apply bg-background border border-border/60 rounded-2xl p-6 sm:p-10 shadow-md space-y-5 relative overflow-hidden;
+
+      .title {
+        @apply text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight;
+      }
+
+      .infoGrid {
+        @apply grid grid-cols-2 lg:grid-cols-3 gap-6 bg-muted/30 p-5 rounded-xl border border-border/40;
+
+        .infoItem {
+          @apply space-y-1.5;
+
+          .label {
+            @apply text-xs text-muted-foreground uppercase font-semibold tracking-tighter flex items-center gap-1.5;
+          }
+
+          .value {
+            @apply text-lg font-bold text-foreground;
+
+            &.truncateValue {
+              @apply truncate max-w-[200px];
+            }
+          }
+        }
+      }
+
+      .decorativeTopBar {
+        @apply absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary/40 via-primary to-primary/40;
+      }
+
+      .sectionTitle {
+        @apply text-base font-bold text-foreground tracking-wide ps-5;
+      }
+
+      .descriptionBox {
+        @apply space-y-3.5 text-sm text-foreground/80 ps-5;
+      }
+
+      .rulesCard {
+        @apply bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/50 rounded-xl p-5;
+
+        .rulesTitle {
+          @apply text-base font-bold text-foreground tracking-wide mb-4;
+        }
+
+        .rulesList {
+          @apply space-y-3.5 text-sm text-foreground/80 list-disc pl-5 marker:text-amber-500;
+
+          li {
+            strong {
+              @apply font-semibold;
+              color: var(--foreground);
+            }
+          }
+
+          .noRules {
+            @apply list-none text-muted-foreground -ml-5;
+          }
+        }
+      }
+
+      .agreementLabel {
+        @apply flex items-start sm:items-center gap-3 cursor-pointer bg-background py-4;
+
+        &:hover {
+          .text {
+            @apply text-primary;
+          }
+        }
+
+        .checkbox {
+          @apply mt-0.5 sm:mt-0 h-5 w-5 data-[state=checked]:bg-primary data-[state=checked]:border-primary;
+        }
+
+        .text {
+          @apply text-sm text-foreground font-medium select-none transition-colors leading-tight;
+        }
+      }
+
+      .actionSection {
+        @apply flex flex-col items-center space-y-6;
+
+        .startButton {
+          @apply w-full sm:w-auto px-16 py-6 text-base font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-[0.98];
+        }
+      }
+    }
+  }
+}

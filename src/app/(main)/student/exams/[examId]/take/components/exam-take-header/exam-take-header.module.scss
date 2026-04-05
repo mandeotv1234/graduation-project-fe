@@ -1,0 +1,49 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.container {
+  @apply border-b border-border bg-card px-6 py-4 shadow-sm;
+  @apply flex items-center justify-between;
+
+  .leftSection {
+    @apply flex items-center gap-3 sm:gap-6;
+
+    .timer {
+      @apply rounded-full px-3 py-1 sm:px-4 sm:py-1.5;
+      @apply flex items-center gap-1.5 sm:gap-2;
+      @apply font-mono text-base sm:text-lg font-bold tracking-wider transition-colors;
+    }
+
+    .timerWarning {
+      @apply bg-red-500/10 text-red-600 dark:text-red-400 animate-pulse;
+    }
+
+    .timerNormal {
+      @apply bg-primary/10 text-primary;
+    }
+
+    .progressInfo {
+      @apply hidden sm:flex items-center gap-2 text-sm text-muted-foreground;
+
+      .answeredCount {
+        @apply font-semibold text-foreground;
+      }
+    }
+
+    .progressBarTrack {
+      @apply hidden lg:block h-2.5 w-32 xl:w-48;
+      @apply overflow-hidden rounded-full bg-secondary border border-border/50;
+
+      .progressBarFill {
+        @apply h-full rounded-full transition-all duration-500;
+        @apply bg-linear-to-r from-emerald-400 to-emerald-600;
+      }
+    }
+  }
+
+  .submitButton {
+    @apply h-9 px-3 sm:h-10 sm:px-6 gap-1.5 sm:gap-2;
+    @apply bg-emerald-600 hover:bg-emerald-700 text-white font-medium;
+    @apply shadow-sm transition-all hover:shadow-md;
+  }
+}

@@ -1,7 +1,7 @@
 import { getExamDetail, getExamQuestionsByExamId } from '@/lib/actions'
-import { ExamTakeInterface } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-interface'
 import { redirect } from 'next/navigation'
 import { PATH } from '@/lib/constants'
+import { ExamTakeInterface } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface'
 
 interface ExamTakePageProps {
   params: Promise<{ examId: string }>

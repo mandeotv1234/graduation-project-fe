@@ -1,0 +1,39 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.container {
+  @apply space-y-5;
+
+  .headerSection {
+    @apply space-y-3;
+
+    .headerMeta {
+      @apply flex flex-wrap items-center gap-2;
+
+      .questionTitle {
+        @apply text-xl font-semibold text-foreground;
+      }
+
+      .typeBadge {
+        @apply inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium;
+      }
+
+      .pointsBadge {
+        @apply inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium;
+        @apply bg-amber-500/10 text-amber-600 dark:text-amber-400;
+      }
+    }
+  }
+
+  .bodySection {
+    @apply p-0;
+
+    .sectionTitle {
+      @apply mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+    }
+
+    .contentHtml {
+      @apply whitespace-pre-wrap text-sm leading-relaxed text-foreground;
+    }
+  }
+}

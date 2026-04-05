@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   },
   {
     label: 'Thư viện',
+    description: 'Duyệt đề thi mẫu được chia sẻ',
     href: PATH.TEACHER_LIBRARY,
     icon: Library
   }

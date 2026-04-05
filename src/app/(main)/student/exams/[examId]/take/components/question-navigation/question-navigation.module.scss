@@ -1,0 +1,41 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.container {
+  @apply space-y-3;
+
+  .navRow {
+    @apply flex items-center justify-between gap-3;
+
+    .navButton {
+      @apply gap-1.5;
+    }
+
+    .indexLabel {
+      @apply text-sm font-medium text-muted-foreground;
+    }
+  }
+
+  .mobileGrid {
+    @apply lg:hidden flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto;
+    @apply scrollbar-thin p-1 rounded-lg border border-border/50 bg-background/50;
+
+    .questionButton {
+      @apply h-9 w-9 shrink-0 rounded-lg text-xs font-bold;
+      @apply flex items-center justify-center transition-all duration-200;
+    }
+
+    .questionButtonActive {
+      @apply bg-primary text-primary-foreground shadow-sm;
+      @apply ring-2 ring-primary/30 ring-offset-1 ring-offset-background;
+    }
+
+    .questionButtonAnswered {
+      @apply bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 dark:text-emerald-400;
+    }
+
+    .questionButtonIdle {
+      @apply bg-muted text-muted-foreground hover:bg-accent border border-transparent;
+    }
+  }
+}

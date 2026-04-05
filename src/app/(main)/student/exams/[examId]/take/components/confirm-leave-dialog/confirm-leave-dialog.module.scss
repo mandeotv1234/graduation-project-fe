@@ -1,0 +1,58 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.container {
+  max-width: 24rem;
+
+  .header {
+    @apply flex flex-col items-center gap-4 text-center;
+
+    .iconContainer {
+      @apply flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 text-destructive shadow-sm;
+    }
+
+    .icon {
+      @apply h-8 w-8;
+    }
+
+    .titleContainer {
+      @apply space-y-2;
+
+      .title {
+        @apply text-xl font-bold;
+      }
+
+      .description {
+        @apply text-sm leading-relaxed;
+
+        .warningText {
+          @apply font-bold text-destructive;
+        }
+      }
+    }
+  }
+
+  .noticeBox {
+    @apply my-4 rounded-lg bg-muted/50 p-4 text-xs text-muted-foreground border border-border/50;
+
+    .noticeTitle {
+      @apply font-medium text-foreground mb-1;
+    }
+
+    .noticeList {
+      @apply list-disc pl-4 space-y-1;
+    }
+  }
+
+  .footer {
+    @apply flex-col sm:flex-row gap-2;
+
+    .cancelButton {
+      @apply flex-1 sm:order-1 border-border/60 hover:bg-muted font-semibold;
+    }
+
+    .confirmButton {
+      @apply flex-1 sm:order-2 bg-destructive hover:bg-destructive/90 text-white font-bold shadow-sm shadow-destructive/20 flex items-center gap-2;
+    }
+  }
+}
