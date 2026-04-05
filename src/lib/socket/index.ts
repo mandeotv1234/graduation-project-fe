@@ -8,9 +8,21 @@ const SOCKET_URL =
   'http://localhost:8080/ws'
 
 let stompClient: Client | null = null
+const connectListeners: Array<() => void> = []
 
 export function getStompClient(): Client | null {
   return stompClient
+}
+
+export function subscribeToConnect(callback: () => void) {
+  if (stompClient?.connected) {
+    callback()
+  }
+  connectListeners.push(callback)
+  return () => {
+    const idx = connectListeners.indexOf(callback)
+    if (idx > -1) connectListeners.splice(idx, 1)
+  }
 }
 
 export function connectStomp(options?: {
@@ -18,28 +30,28 @@ export function connectStomp(options?: {
   onDisconnect?: () => void
   onError?: (error: string) => void
 }): Client {
+  if (options?.onConnect) {
+    subscribeToConnect(options.onConnect)
+  }
+
   if (stompClient?.connected) return stompClient
+
+  if (stompClient) return stompClient
 
   const client = new Client({
     webSocketFactory: () => new SockJS(SOCKET_URL),
     reconnectDelay: 5000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
-    debug: (str) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[STOMP]', str)
-      }
-    },
     onConnect: () => {
-      console.log('[STOMP] Connected')
-      options?.onConnect?.()
+      setTimeout(() => {
+        connectListeners.forEach((listener) => listener())
+      }, 0)
     },
     onDisconnect: () => {
-      console.log('[STOMP] Disconnected')
       options?.onDisconnect?.()
     },
     onStompError: (frame) => {
-      console.error('[STOMP] Error:', frame.headers['message'])
       options?.onError?.(frame.headers['message'] || 'STOMP error')
     }
   })
@@ -74,7 +86,7 @@ export function subscribeToExamViolations(
         const payload = JSON.parse(message.body) as ViolationNotification
         callback(payload)
       } catch {
-        console.error('[STOMP] Failed to parse violation notification')
+        // silent
       }
     }
   )
@@ -100,7 +112,7 @@ export function subscribeToGradingResult(
         const payload = JSON.parse(message.body)
         callback(payload)
       } catch {
-        console.error('[STOMP] Failed to parse grading result notification')
+        // silent
       }
     }
   )
@@ -126,9 +138,7 @@ export function subscribeToTeacherGradingResult(
         const payload = JSON.parse(message.body)
         callback(payload)
       } catch {
-        console.error(
-          '[STOMP] Failed to parse teacher grading result notification'
-        )
+        // silent
       }
     }
   )

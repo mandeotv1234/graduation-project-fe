@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   connectStomp,
-  getStompClient,
+  subscribeToConnect,
   subscribeToExamViolations
 } from '@/lib/socket'
 import {
@@ -97,75 +97,128 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
       }
     })
 
-    const timer = setInterval(() => {
-      const client = getStompClient()
-      if (client?.connected) {
-        setConnected(true)
-      }
-    }, 1000)
-
-    return () => {
-      clearInterval(timer)
-    }
+    return () => {}
   }, [])
 
   useEffect(() => {
-    const waitAndSubscribe = () => {
-      const client = getStompClient()
-      if (!client?.connected) return undefined
+    let unsubscribeSub: (() => void) | undefined
 
-      return subscribeToExamViolations(monitor.examId, (notification) => {
-        setEvents((prev) => [notification, ...prev].slice(0, 100))
-        setMonitorMap((prev) => {
-          const existing = prev[notification.studentId]
-          const nextCount = notification.violationCount
+    const unSubConnect = subscribeToConnect(() => {
+      setConnected(true)
+      if (unsubscribeSub) {
+        unsubscribeSub()
+      }
 
-          return {
-            ...prev,
-            [notification.studentId]: {
-              studentId: notification.studentId,
-              studentName:
-                notification.studentName ||
-                existing?.studentName ||
-                `Sinh viên #${notification.studentId}`,
-              violationCount: nextCount,
-              latestViolationType: notification.violationType,
-              latestViolationAt: notification.timestamp,
-              isFlagged: existing?.isFlagged ?? false,
-              forceSubmitted:
-                notification.autoSubmitted || existing?.forceSubmitted || false
+      unsubscribeSub = subscribeToExamViolations(
+        monitor.examId,
+        (notification) => {
+          setEvents((prev) => [notification, ...prev].slice(0, 100))
+          setMonitorMap((prev) => {
+            const existing = prev[notification.studentId]
+            const nextCount = notification.violationCount
+
+            return {
+              ...prev,
+              [notification.studentId]: {
+                studentId: notification.studentId,
+                studentName:
+                  notification.studentName ||
+                  existing?.studentName ||
+                  `Sinh viên #${notification.studentId}`,
+                violationCount: nextCount,
+                latestViolationType: notification.violationType,
+                latestViolationAt: notification.timestamp,
+                isFlagged: existing?.isFlagged ?? false,
+                forceSubmitted:
+                  notification.autoSubmitted ||
+                  existing?.forceSubmitted ||
+                  false
+              }
             }
+          })
+
+          if (notification.autoSubmitted) {
+            toast.error(
+              `${notification.studentName} đã bị nộp bài tự động do vi phạm ${notification.violationCount} lần.`
+            )
+          } else {
+            toast.warning(
+              `${notification.studentName}: Vi phạm lần ${notification.violationCount}: ${notification.description || notification.violationType}`
+            )
           }
-        })
-
-        if (notification.autoSubmitted) {
-          toast.error(
-            `${notification.studentName} đã bị nộp bài tự động do vi phạm nhiều lần.`
-          )
-        } else {
-          toast.warning(
-            `${notification.studentName}: ${notification.description || notification.violationType}`
-          )
         }
-      })
-    }
-
-    let unsubscribe: (() => void) | undefined
-    const intervalId = setInterval(() => {
-      if (!unsubscribe) {
-        unsubscribe = waitAndSubscribe()
-      }
-
-      if (unsubscribe) {
-        clearInterval(intervalId)
-      }
-    }, 500)
+      )
+    })
 
     return () => {
-      clearInterval(intervalId)
-      unsubscribe?.()
+      unSubConnect()
+      unsubscribeSub?.()
     }
   }, [monitor.examId])
+
+  useEffect(() => {
+    const fetchLatestAttempts = async () => {
+      const violators = monitor.students.filter((s) => s.violationCount > 0)
+      if (violators.length === 0) return
+
+      try {
+        const promises = violators.map((s) =>
+          getTeacherExamViolations(monitor.examId, s.studentId)
+            .then((res) => ({
+              studentId: s.studentId,
+              violations: res.data ?? []
+            }))
+            .catch(() => null)
+        )
+        const results = await Promise.all(promises)
+
+        setMonitorMap((prev) => {
+          const next = { ...prev }
+          let changed = false
+          results.forEach((res) => {
+            if (!res) return
+            if (res.violations.length === 0) {
+              if (
+                next[res.studentId] &&
+                next[res.studentId].violationCount !== 0
+              ) {
+                next[res.studentId] = {
+                  ...next[res.studentId],
+                  violationCount: 0
+                }
+                changed = true
+              }
+              return
+            }
+
+            const maxAttempt = Math.max(
+              ...res.violations.map((v) => v.attemptNumber ?? 1),
+              1
+            )
+            const latestCount = res.violations.filter(
+              (v) => (v.attemptNumber ?? 1) === maxAttempt
+            ).length
+
+            if (
+              next[res.studentId] &&
+              next[res.studentId].violationCount !== latestCount
+            ) {
+              next[res.studentId] = {
+                ...next[res.studentId],
+                violationCount: latestCount
+              }
+              changed = true
+            }
+          })
+          return changed ? next : prev
+        })
+      } catch {
+        // silent
+      }
+    }
+
+    void fetchLatestAttempts()
+  }, [monitor.examId, monitor.students])
 
   const monitorRows = useMemo(() => {
     return Object.values(monitorMap).sort((a, b) => {
@@ -467,10 +520,7 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                 {filteredRows.map((row) => (
                   <tr
                     key={row.studentId}
-                    className="cursor-pointer border-b border-border/60 transition-colors hover:bg-muted/30"
-                    onClick={() => {
-                      void openStudentDetail(row)
-                    }}
+                    className="border-b border-border/60 transition-colors hover:bg-muted/30"
                   >
                     <td className="px-4 py-3 font-medium text-foreground">
                       {row.studentName}
@@ -480,6 +530,12 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                         variant={
                           row.violationCount >= 3 ? 'destructive' : 'secondary'
                         }
+                        className="cursor-pointer hover:opacity-80"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void openStudentDetail(row)
+                        }}
+                        title="Nhấn để xem chi tiết các lần vi phạm"
                       >
                         {row.violationCount}
                       </Badge>
