@@ -22,7 +22,8 @@ export {
   getTeacherExamSettings,
   updateTeacherExamSettings,
   getTeacherExamTemplateVersions,
-  getExamResults
+  getExamResults,
+  getTeacherSubmissionDetail
 } from '@/lib/actions/teacher.action'
 export * from '@/lib/actions/anti-cheat.action'
 export * from '@/lib/actions/notification.action'

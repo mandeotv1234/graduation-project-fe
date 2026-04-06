@@ -34,6 +34,7 @@ export function useExamTake(
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isGrading, setIsGrading] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [isCloudError, setIsCloudError] = useState(false)
   const isSubmittingRef = useRef(false)
 
   const currentQuestion = questions[currentQuestionIndex]
@@ -44,6 +45,24 @@ export function useExamTake(
       [questionId]: sql
     }))
   }, [])
+
+  /** Bulk restore answers (used by draft restoration) */
+  const restoreAnswers = useCallback(
+    (restoredAnswers: Record<number, string>) => {
+      setAnswers((prev) => {
+        const next = { ...prev }
+        for (const [id, content] of Object.entries(restoredAnswers)) {
+          const numId = Number(id)
+          // Only restore if the question exists and content is non-empty
+          if (next[numId] !== undefined && content && content.trim()) {
+            next[numId] = content
+          }
+        }
+        return next
+      })
+    },
+    []
+  )
 
   const goToQuestion = useCallback(
     (index: number) => {
@@ -83,6 +102,7 @@ export function useExamTake(
     if (isSubmittingRef.current || isSubmitted) return
     isSubmittingRef.current = true
     setShowConfirmDialog(false)
+    setIsCloudError(false)
 
     const submitData = {
       answers: questions.map((q) => ({
@@ -106,7 +126,21 @@ export function useExamTake(
             'Bài thi đã được nộp thành công. Vui lòng đợi trong giây lát để hệ thống chấm điểm...'
           )
         }
+      } else {
+        // If we get an error response (like 401/403/500) during submission,
+        // it might be because the backend auto-submit job already finished and cleared the session.
+        // We should redirect to the exams list rather than letting the global interceptor logout.
+        console.warn(
+          'Submission returned no data or error, redirecting to exams list:',
+          response
+        )
+        router.push(PATH.STUDENT_EXAMS)
       }
+    } catch (err) {
+      console.error('Submission error caught in hook:', err)
+      setIsCloudError(true)
+      // Redirect anyway to prevent getting stuck
+      router.push(PATH.STUDENT_EXAMS)
     } finally {
       // Allow retry if failed (or just keep it locked if success)
       isSubmittingRef.current = false
@@ -137,7 +171,9 @@ export function useExamTake(
     unansweredCount,
     showConfirmDialog,
     setShowConfirmDialog,
+    isCloudError,
     updateAnswer,
+    restoreAnswers,
     goToQuestion,
     handleExecuteSql,
     handleRequestSubmit,

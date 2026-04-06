@@ -16,9 +16,5 @@ export default async function ExamResultsPage({
   const response = await getExamResults(id)
   const initialResults = response.data || []
 
-  return (
-    <div className="container mx-auto py-8">
-      <ExamResultsView examId={id} initialResults={initialResults} />
-    </div>
-  )
+  return <ExamResultsView examId={id} initialResults={initialResults} />
 }

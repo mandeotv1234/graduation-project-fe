@@ -160,6 +160,7 @@ export interface SubmitExamResponse {
 }
 
 export interface TeacherExamResult {
+  submissionId: number
   studentId: number
   studentName: string
   studentEmail: string
@@ -168,8 +169,24 @@ export interface TeacherExamResult {
   maxScore: number
   correctCount: number
   totalQuestions: number
-  status: GradingStatus
+  status: 'PENDING' | 'COMPLETED' | 'FAILED'
   submittedAt: string
+}
+
+export interface TeacherExamResultDetail extends TeacherExamResult {
+  questionResults: QuestionResultDetail[]
+}
+
+export interface QuestionResultDetail {
+  questionId: number
+  content: string
+  studentQuery: string
+  correctQuery: string
+  isCorrect: boolean
+  scoreEarned: number
+  maxPoints: number
+  errorMessage?: string
+  executionTimeMs?: number
 }
 
 // ===== Exam Specification Types =====

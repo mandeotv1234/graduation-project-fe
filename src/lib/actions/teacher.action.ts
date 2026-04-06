@@ -14,6 +14,7 @@ import {
   ClassExamItem,
   AddTeacherToClassRequest,
   TeacherExamResult,
+  TeacherExamResultDetail,
   CreateExamRequest,
   CreateExamResponse,
   UpdateTeacherExamSettingsRequest,
@@ -146,6 +147,16 @@ export async function getExamResults(
   return apiClient.get<TeacherExamResult[]>(ENDPOINTS.EXAM_RESULTS(examId), {
     cache: 'no-store'
   })
+}
+
+export async function getTeacherSubmissionDetail(
+  examId: number,
+  resultId: number
+): Promise<ApiResponse<TeacherExamResultDetail>> {
+  return apiClient.get<TeacherExamResultDetail>(
+    ENDPOINTS.EXAM_RESULT_DETAIL(examId, resultId),
+    { cache: 'no-store' }
+  )
 }
 
 // ===== Specifications =====

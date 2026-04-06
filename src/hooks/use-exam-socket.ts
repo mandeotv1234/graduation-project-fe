@@ -9,18 +9,22 @@ import { ViolationNotification } from '@/lib/types'
 
 interface UseExamSocketOptions {
   examId: number
+  studentId?: number
   enabled?: boolean
   onForceSubmit?: () => void
   onTimeSync?: (remainingSeconds: number) => void
   onGradingResult?: (result: unknown) => void
+  onKicked?: () => void
 }
 
 export function useExamSocket({
   examId,
+  studentId,
   enabled = true,
   onForceSubmit,
   onTimeSync,
-  onGradingResult
+  onGradingResult,
+  onKicked
 }: UseExamSocketOptions) {
   const dispatch = useAppDispatch()
   const isConnected = useRef(false)
@@ -28,10 +32,12 @@ export function useExamSocket({
   const onForceSubmitRef = useRef(onForceSubmit)
   const onTimeSyncRef = useRef(onTimeSync)
   const onGradingResultRef = useRef(onGradingResult)
+  const onKickedRef = useRef(onKicked)
 
   onForceSubmitRef.current = onForceSubmit
   onTimeSyncRef.current = onTimeSync
   onGradingResultRef.current = onGradingResult
+  onKickedRef.current = onKicked
 
   const cleanupSubs = () => {
     subsRef.current.forEach((unsub) => {
@@ -127,6 +133,33 @@ export function useExamSocket({
       )
 
       subsRef.current.push(() => subGrading.unsubscribe())
+
+      // Subscribe to personal exam-session (for SESSION_KICKED)
+      if (studentId) {
+        const subPersonal = client.subscribe(
+          `/topic/student/${studentId}/exam-session`,
+          (message) => {
+            try {
+              const payload = JSON.parse(message.body)
+              if (payload.examId !== examId) return
+
+              if (payload.type === 'SESSION_KICKED') {
+                dispatch(
+                  showWarning(
+                    payload.message ||
+                      'Phiên thi của bạn đã bị chấm dứt do giáo viên cho phép đăng nhập từ thiết bị khác.'
+                  )
+                )
+                // Notify the component to handle the exit (allows bypassing guards)
+                onKickedRef.current?.()
+              }
+            } catch {
+              console.error('[ExamSocket] Failed to parse personal message')
+            }
+          }
+        )
+        subsRef.current.push(() => subPersonal.unsubscribe())
+      }
     }
 
     connectStomp({
@@ -145,7 +178,7 @@ export function useExamSocket({
       disconnectStomp()
       isConnected.current = false
     }
-  }, [dispatch, enabled, examId])
+  }, [dispatch, enabled, examId, studentId])
 
   return { isConnected: isConnected.current }
 }

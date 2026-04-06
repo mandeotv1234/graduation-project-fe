@@ -195,6 +195,8 @@
   --surface-container: rgb(238 237 244);
   --surface-container-high: rgb(232 231 239);
   --surface-container-highest: rgb(227 226 233);
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
 }
 
 .dark {
@@ -294,6 +296,8 @@
   --surface-container: rgb(30 31 37);
   --surface-container-high: rgb(41 42 47);
   --surface-container-highest: rgb(52 52 58);
+  --warning: #f59e0b;
+  --warning-foreground: #020617;
 }
 
 @layer base {

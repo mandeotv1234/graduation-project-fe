@@ -1,42 +1,138 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock, Hash, BookOpen } from 'lucide-react'
-import { StudentExamDetail } from '@/lib/types'
-import { startExamSession } from '@/lib/actions'
+import {
+  StudentExamDetail,
+  StartExamSessionResponse,
+  ApiResponse
+} from '@/lib/types'
+import { getMe } from '@/lib/actions'
 import { PATH } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { toast } from 'sonner'
-import styles from '@/app/(main)/student/exams/[examId]/take/components/exam-start-interface/exam-start-interface.module.scss'
+import { WaitingApprovalOverlay } from '@/app/(main)/exam/components/waiting-approval-overlay/waiting-approval-overlay'
+import styles from './exam-start-interface.module.scss'
 
 interface ExamStartInterfaceProps {
   exam: StudentExamDetail
+}
+
+/**
+ * Client-side fetch to the Next.js proxy route that forwards requests to the
+ * backend WITH the real browser IP and User-Agent.
+ */
+async function callStartSession(
+  examId: number
+): Promise<ApiResponse<StartExamSessionResponse>> {
+  try {
+    const res = await fetch(`/api/exams/${examId}/start-session`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    const body = (await res.json()) as ApiResponse<StartExamSessionResponse>
+    if (!res.ok) {
+      return {
+        code: body.code ?? String(res.status),
+        message: body.message ?? 'Failed to start session',
+        data: undefined as unknown as StartExamSessionResponse
+      }
+    }
+    return body
+  } catch {
+    return {
+      code: 'NETWORK_ERROR',
+      message: 'Network error — could not reach server',
+      data: undefined as unknown as StartExamSessionResponse
+    }
+  }
 }
 
 export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
   const router = useRouter()
   const [agreed, setAgreed] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [studentId, setStudentId] = useState<number | undefined>()
+  const [pendingConflict, setPendingConflict] = useState<{
+    conflictId: string
+  } | null>(null)
+
+  // Fetch studentId for WaitingApprovalOverlay
+  useEffect(() => {
+    getMe().then((res) => {
+      if (res.data) setStudentId(res.data.id)
+    })
+  }, [])
 
   const handleStartExam = async () => {
     if (!agreed) return
-
     setIsStarting(true)
-    const res = await startExamSession(exam.examId)
-    setIsStarting(false)
+    setError(null)
 
-    if (res.code === '200' || res.code === 'OK') {
-      router.push(PATH.STUDENT_EXAM_DOING(exam.examId))
-    } else {
-      toast.error('Không thể bắt đầu', {
-        description: res.message || 'Có lỗi xảy ra'
-      })
+    try {
+      const result = await callStartSession(exam.examId)
+
+      if (result.data) {
+        // Conflict pending — student must wait for teacher approval
+        if (result.data.conflictPending && result.data.conflictId) {
+          setPendingConflict({ conflictId: result.data.conflictId })
+          setIsStarting(false)
+          return
+        }
+
+        if (!result.data.sessionStarted) {
+          setError(
+            result.data.message ||
+              'Không thể bắt đầu phiên thi. Có thể bạn đã dùng hết lượt.'
+          )
+          setIsStarting(false)
+          return
+        }
+
+        // Session started successfully → navigate to exam
+        router.push(PATH.STUDENT_EXAM_DOING(exam.examId))
+      } else {
+        setError(
+          result.message || 'Không nhận được phân hồi hợp lệ từ máy chủ.'
+        )
+        setIsStarting(false)
+      }
+    } catch {
+      setError('Lỗi kết nối máy chủ. Vui lòng thử lại.')
+      setIsStarting(false)
     }
   }
 
   const { settings, durationMinutes, maxAttempts, description } = exam
+
+  // Show waiting overlay if conflict is pending
+  if (pendingConflict && studentId) {
+    return (
+      <WaitingApprovalOverlay
+        examId={exam.examId}
+        studentId={studentId}
+        conflictId={pendingConflict.conflictId}
+        examEndTime={exam.endTime}
+        onApproved={async () => {
+          setPendingConflict(null)
+          setError(null)
+          // Retry startSession — session is now force-overridden by teacher
+          const result = await callStartSession(exam.examId)
+          if (result.data?.sessionStarted) {
+            router.push(PATH.STUDENT_EXAM_DOING(exam.examId))
+          } else {
+            setError('Không thể kết nối lại phiên thi. Vui lòng thử lại.')
+          }
+        }}
+        onRejected={(reason: string) => {
+          setPendingConflict(null)
+          setError(reason)
+        }}
+      />
+    )
+  }
 
   return (
     <main className={styles.container}>
@@ -164,6 +260,14 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
               </span>
             </label>
           </section>
+
+          {/* Error message */}
+          {error && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
           {/* Action Section */}
           <div className={styles.actionSection}>
             <Button

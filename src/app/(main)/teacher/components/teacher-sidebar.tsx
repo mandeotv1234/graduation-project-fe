@@ -36,7 +36,10 @@ export function TeacherSidebar() {
       <div className="sticky top-20">
         <nav className="space-y-1.5">
           {NAV_ITEMS.map((item) => {
-            const isActive = pathname.startsWith(item.href)
+            const isActive =
+              pathname.startsWith(item.href) ||
+              (item.label === 'Lớp học' &&
+                pathname.startsWith('/teacher/exams'))
             return (
               <Link
                 key={item.href}

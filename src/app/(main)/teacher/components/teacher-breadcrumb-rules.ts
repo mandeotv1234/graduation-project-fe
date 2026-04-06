@@ -194,6 +194,42 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
     }
   },
   {
+    id: 'teacher-exam-results',
+    kind: 'regex',
+    pattern: /^\/teacher\/exams\/(\d+)\/results(?:\/(\d+))?$/,
+    paramKeys: ['examId', 'submissionId'],
+    crumbs: ({ params }) => {
+      const crumbs = [
+        HOME_CRUMB,
+        {
+          label: ':classLabel',
+          href: '/teacher/classes/:classId',
+          clickable: true
+        },
+        {
+          label: ':examTitle',
+          href: '/teacher/exams/:examId',
+          clickable: true
+        },
+        {
+          label: 'Kết quả bài làm',
+          href: '/teacher/exams/:examId/results',
+          clickable: !params.submissionId
+        }
+      ]
+
+      if (params.submissionId) {
+        crumbs.push({
+          label: 'Chi tiết bài làm',
+          href: `/teacher/exams/${params.examId}/results/${params.submissionId}`,
+          clickable: false
+        })
+      }
+
+      return crumbs
+    }
+  },
+  {
     id: 'specification-edit',
     kind: 'template',
     template: '/teacher/specifications/:specificationId/edit',
