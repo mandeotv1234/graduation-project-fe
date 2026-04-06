@@ -1,13 +1,11 @@
-/**
- * Utility to download exam answers as a backup file
- * Use this when submission fails due to network errors
- */
+import { ExamQuestionItem } from '@/lib/types'
+
 export function downloadAnswersBackup(
   examTitle: string,
   studentName: string,
   studentId: string,
   answers: Record<number, string>,
-  questions: { id: number; content?: string; title?: string }[]
+  questions: ExamQuestionItem[]
 ) {
   const timestamp = new Date().toISOString()
   const data = {
@@ -16,14 +14,16 @@ export function downloadAnswersBackup(
     studentId,
     timestamp,
     backupVersion: '1.0',
-    answers: Object.entries(answers).map(([id, content]) => {
-      const q = questions.find((q) => q.id === Number(id))
-      return {
-        questionId: Number(id),
-        questionTitle: q?.content || q?.title || `Question ${id}`,
-        studentAnswer: content
-      }
-    })
+    answers: questions.map((q) => ({
+      questionId: q.id,
+      questionTitle: q.content
+        ? q.content
+            .replace(/<[^>]*>/g, '')
+            .substring(0, 100)
+            .trim()
+        : `Câu hỏi ${q.id}`,
+      studentAnswer: answers[q.id] || ''
+    }))
   }
 
   const json = JSON.stringify(data, null, 2)
