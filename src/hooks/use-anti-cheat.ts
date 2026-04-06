@@ -378,12 +378,16 @@ export function useAntiCheat({
     }
   }, [antiCheatEnabled, recordViolation])
 
+  const isBypassedRef = useRef(false)
+
   // 6. Prevent leaving page during active exam
   useEffect(() => {
     if (!enabled) return
 
     // Standard beforeunload for refresh/close
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isBypassedRef.current) return
+
       e.preventDefault()
       e.returnValue = ''
       return ''
@@ -397,6 +401,10 @@ export function useAntiCheat({
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [enabled])
+
+  const bypassAntiCheat = useCallback(() => {
+    isBypassedRef.current = true
+  }, [])
 
   // Request fullscreen
   const requestFullscreen = useCallback(async () => {
@@ -427,6 +435,7 @@ export function useAntiCheat({
     requestFullscreen,
     exitFullscreen,
     totalViolations,
-    isFullscreen
+    isFullscreen,
+    bypassAntiCheat
   }
 }

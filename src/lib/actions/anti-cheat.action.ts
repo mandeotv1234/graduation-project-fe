@@ -11,6 +11,8 @@ import {
   TeacherExamViolation
 } from '@/lib/types'
 
+import { getForwardedHeaders } from './student-exam.action'
+
 function extractErrorMessage(error: unknown): string {
   if (typeof error === 'string') {
     try {
@@ -31,7 +33,9 @@ export async function startExamSession(
   try {
     console.log('[Server Action] startExamSession', examId)
     return await apiClient.post<StartExamSessionResponse>(
-      ENDPOINTS.EXAM_START_SESSION(examId)
+      ENDPOINTS.EXAM_START_SESSION(examId),
+      {}, // Empty body
+      { headers: await getForwardedHeaders() }
     )
   } catch (error: unknown) {
     const msg = extractErrorMessage(error)
@@ -100,6 +104,42 @@ export async function getTeacherExamViolations(
       code: 'SERVER_ERROR',
       message: msg,
       data: []
+    }
+  }
+}
+
+export async function approveDeviceConflict(
+  examId: number,
+  conflictId: string
+): Promise<ApiResponse<null>> {
+  try {
+    return await apiClient.post<null>(
+      ENDPOINTS.EXAM_DEVICE_CONFLICT_APPROVE(examId, conflictId)
+    )
+  } catch (error: unknown) {
+    return {
+      code: 'SERVER_ERROR',
+      message: extractErrorMessage(error),
+      data: null
+    }
+  }
+}
+
+export async function rejectDeviceConflict(
+  examId: number,
+  conflictId: string,
+  reason?: string
+): Promise<ApiResponse<null>> {
+  try {
+    return await apiClient.post<null>(
+      ENDPOINTS.EXAM_DEVICE_CONFLICT_REJECT(examId, conflictId),
+      { reason: reason ?? '' }
+    )
+  } catch (error: unknown) {
+    return {
+      code: 'SERVER_ERROR',
+      message: extractErrorMessage(error),
+      data: null
     }
   }
 }

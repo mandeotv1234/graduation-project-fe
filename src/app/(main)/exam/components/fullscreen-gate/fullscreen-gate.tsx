@@ -4,20 +4,56 @@ import { Loader2, Maximize, Shield, ShieldCheck } from 'lucide-react'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { startExamSession } from '@/lib/actions/anti-cheat.action'
 import { setFullscreen } from '@/lib/redux/slices/anti-cheat.slice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
-import type { StartExamSessionResponse } from '@/lib/types'
+import type { StartExamSessionResponse, ApiResponse } from '@/lib/types'
+import { WaitingApprovalOverlay } from '@/app/(main)/exam/components/waiting-approval-overlay/waiting-approval-overlay'
 import styles from '@/app/(main)/exam/components/fullscreen-gate/fullscreen-gate.module.scss'
+
+/**
+ * Client-side fetch to the Next.js proxy route that forwards requests to the
+ * backend WITH the real browser IP and User-Agent.
+ *
+ * We intentionally do NOT use a Server Action here because Server Actions run
+ * on the Node.js server — their IP would be 127.0.0.1 and UA would be Node.js,
+ * making device fingerprinting useless.
+ */
+async function callStartSession(
+  examId: number
+): Promise<ApiResponse<StartExamSessionResponse>> {
+  try {
+    const res = await fetch(`/api/exams/${examId}/start-session`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    const body = (await res.json()) as ApiResponse<StartExamSessionResponse>
+    if (!res.ok) {
+      return {
+        code: body.code ?? String(res.status),
+        message: body.message ?? 'Failed to start session',
+        data: undefined as unknown as StartExamSessionResponse
+      }
+    }
+    return body
+  } catch {
+    return {
+      code: 'NETWORK_ERROR',
+      message: 'Network error — could not reach server',
+      data: undefined as unknown as StartExamSessionResponse
+    }
+  }
+}
 
 interface FullscreenGateProps {
   examId: number
+  studentId?: number
   children: ReactNode
   onSessionStarted?: (session: StartExamSessionResponse) => void
 }
 
 export function FullscreenGate({
   examId,
+  studentId,
   children,
   onSessionStarted
 }: FullscreenGateProps) {
@@ -26,6 +62,10 @@ export function FullscreenGate({
   const [isSupported, setIsSupported] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isVerified, setIsVerified] = useState(false)
+  const [pendingConflict, setPendingConflict] = useState<{
+    conflictId: string
+  } | null>(null)
 
   useEffect(() => {
     setIsSupported(!!document.documentElement.requestFullscreen)
@@ -50,15 +90,22 @@ export function FullscreenGate({
 
     try {
       // 2. Gọi startExamSession sau khi fullscreen thành công
-      const result = await startExamSession(examId)
+      const result = await callStartSession(examId)
 
       if (result.data) {
+        // Conflict pending — student must wait for teacher approval
+        if (result.data.conflictPending && result.data.conflictId) {
+          setPendingConflict({ conflictId: result.data.conflictId })
+          setIsLoading(false)
+          return
+        }
+
         if (!result.data.sessionStarted) {
           setError(
             result.data.message ||
               'Không thể bắt đầu phiên thi. Có thể bạn đã đăng nhập ở thiết bị khác.'
           )
-          // Thoát fullscreen nếu session thất bại
+          // Exit fullscreen if session failed
           if (document.fullscreenElement) {
             await document.exitFullscreen()
           }
@@ -67,42 +114,89 @@ export function FullscreenGate({
           return
         }
 
-        // 3. Trả session data cho parent
+        // 3. Pass session data to parent
+        setIsVerified(true)
         onSessionStarted?.(result.data)
       } else {
-        // API trả về nhưng không có data — vẫn cho vào thi, timer sẽ sync từ getExamTime
-        console.warn(
-          '[FullscreenGate] startExamSession returned no data, using fallback'
+        // API returned but no data
+        console.error('[FullscreenGate] startExamSession returned no data')
+        setError(
+          'Không nhận được phản hồi hợp lệ từ máy chủ. Vui lòng thử lại.'
         )
-        onSessionStarted?.({
-          sessionStarted: true,
-          message: 'Fallback session',
-          serverTime: new Date().toISOString(),
-          examStartedAt: new Date().toISOString(),
-          examEndTime: '',
-          remainingSeconds: 0, // Timer sẽ sync từ getExamTime
-          durationMinutes: 0
-        })
+        if (document.fullscreenElement) {
+          await document.exitFullscreen()
+        }
+        dispatch(setFullscreen(false))
       }
     } catch (err) {
       console.error('[FullscreenGate] startExamSession failed:', err)
-      // API lỗi — vẫn cho vào thi, timer sẽ sync từ getExamTime
-      onSessionStarted?.({
-        sessionStarted: true,
-        message: 'Fallback session (API error)',
-        serverTime: new Date().toISOString(),
-        examStartedAt: new Date().toISOString(),
-        examEndTime: '',
-        remainingSeconds: 0,
-        durationMinutes: 0
-      })
+      setError(
+        'Lỗi kết nối máy chủ. Vui lòng kiểm tra đường truyền và thử lại.'
+      )
+      if (document.fullscreenElement) {
+        await document.exitFullscreen()
+      }
+      dispatch(setFullscreen(false))
     } finally {
       setIsLoading(false)
     }
   }, [dispatch, examId, onSessionStarted])
 
-  if (!isSupported || isFullscreen) {
+  // Auto-verify if already in fullscreen on mount
+  useEffect(() => {
+    if (isFullscreen && !isVerified && !isLoading && !pendingConflict) {
+      handleEnterFullscreen()
+    }
+  }, [
+    isFullscreen,
+    isVerified,
+    isLoading,
+    pendingConflict,
+    handleEnterFullscreen
+  ])
+
+  if (!isSupported || (isFullscreen && isVerified)) {
     return <>{children}</>
+  }
+
+  // Show waiting overlay if conflict is pending
+  if (pendingConflict) {
+    if (!studentId) {
+      return (
+        <div className={styles.container}>
+          <div className={styles.card}>
+            <Loader2 className={styles.spinnerIcon} />
+            <p>Đang tải thông tin sinh viên...</p>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <WaitingApprovalOverlay
+        examId={examId}
+        studentId={studentId}
+        conflictId={pendingConflict.conflictId}
+        onApproved={async () => {
+          setPendingConflict(null)
+          setError(null)
+          // Retry startSession — session is now force-overridden by teacher
+          const result = await callStartSession(examId)
+          if (result.data?.sessionStarted) {
+            onSessionStarted?.(result.data)
+          } else {
+            setError('Không thể kết nối lại phiên thi. Vui lòng thử lại.')
+          }
+        }}
+        onRejected={(reason: string) => {
+          setPendingConflict(null)
+          setError(reason)
+          if (document.fullscreenElement) {
+            document.exitFullscreen()
+          }
+          dispatch(setFullscreen(false))
+        }}
+      />
+    )
   }
 
   return (

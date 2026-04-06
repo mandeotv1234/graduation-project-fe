@@ -9,6 +9,7 @@ const SSR_API_TRACE = process.env.SSR_API_TRACE === 'true'
 
 type RequestOptions = RequestInit & {
   queries?: Record<string, string | number>
+  ignoreAuthError?: boolean
 }
 
 export class ApiClient {
@@ -183,7 +184,8 @@ export class ApiClient {
 
     const res = await this.fetchWithToken(endpoint, options)
     await this.traceResponse(res, 'response', requestUrl)
-    const isTokenError = res.status === 401 || res.status === 403
+    const isTokenError =
+      (res.status === 401 || res.status === 403) && !options.ignoreAuthError
 
     if (isTokenError) {
       const isAuthEndpoint =
@@ -264,18 +266,28 @@ export class ApiClient {
     return this.parseJson<T>(res)
   }
 
-  async post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
+  async post<T>(
+    endpoint: string,
+    data?: unknown,
+    options?: Omit<RequestOptions, 'method' | 'body'>
+  ): Promise<ApiResponse<T>> {
     const res = await this.request(endpoint, {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined
+      body: data ? JSON.stringify(data) : undefined,
+      ...options
     })
     return this.parseJson<T>(res)
   }
 
-  async put<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
+  async put<T>(
+    endpoint: string,
+    data?: unknown,
+    options?: Omit<RequestOptions, 'method' | 'body'>
+  ): Promise<ApiResponse<T>> {
     const res = await this.request(endpoint, {
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined
+      body: data ? JSON.stringify(data) : undefined,
+      ...options
     })
     return this.parseJson<T>(res)
   }

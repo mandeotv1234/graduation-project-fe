@@ -22,6 +22,8 @@ export interface UnreadCountDto {
 
 // WebSocket Grading Results
 export interface GradingNotificationDto {
+  submissionId?: number
+  attemptNumber?: number
   examId: number
   examName?: string
   studentId: number

@@ -7,6 +7,7 @@ import {
   SubmitExamResponse
 } from '@/lib/types'
 import { useExamTake } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-take'
+import { useExamDraft } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-draft'
 import { useEffect, useState, useCallback } from 'react'
 import { getExamTime } from '@/lib/actions/anti-cheat.action'
 import { getExamSpecification, getMe } from '@/lib/actions'
@@ -19,6 +20,10 @@ import { QuestionPanel } from '@/app/(main)/student/exams/[examId]/take/componen
 import { SqlEditorPanel } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel/sql-editor-panel'
 import type { SchemaTable } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel/sql-editor-panel'
 import { ExamTakeBottomPanel } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-bottom-panel/exam-take-bottom-panel'
+import { SaveStatusIndicator } from '@/app/(main)/student/exams/[examId]/take/components/save-status-indicator'
+import { DraftRestoredBanner } from '@/app/(main)/student/exams/[examId]/take/components/draft-restored-banner'
+import { NetworkStatusBanner } from '@/app/(main)/student/exams/[examId]/take/components/network-status-banner'
+import { downloadAnswersBackup } from '@/lib/utils/export-exam-answers'
 import { ResizablePanel } from '@/components/shared/resizable-panel'
 import type { ExecuteSqlResponse } from '@/lib/types'
 import { toast } from 'sonner'
@@ -47,6 +52,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   const [schemaMeta, setSchemaMeta] =
     useState<ExecuteSqlResponse['schema']>(null)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
+  const [showRestoredBanner, setShowRestoredBanner] = useState(false)
 
   const applySchemaMeta = useCallback(
     (schema: ExecuteSqlResponse['schema']) => {
@@ -69,12 +75,40 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   // Exam logic hooks (always called, never conditionally)
   const examTake = useExamTake(exam, questions)
 
+  const examActive = sessionStarted && !examTake.isSubmitted
+
+  const { bypassAntiCheat } = useAntiCheat({
+    examId: exam.examId,
+    enabled: examActive,
+    settings: exam.settings
+  })
+
+  const {
+    saveStatus,
+    lastSavedAt,
+    isServerReachable,
+    getRestoredAnswers,
+    handleManualSave,
+    clearLocalDraft
+  } = useExamDraft(exam.examId, examTake.answers, examActive)
+
+  const handleDownloadBackup = useCallback(() => {
+    downloadAnswersBackup(
+      exam.title || 'Exam',
+      user?.fullName || 'Student',
+      user?.studentId || user?.email || 'N/A',
+      examTake.answers,
+      questions
+    )
+  }, [exam.title, user, examTake.answers, questions])
+
   const handleForceSubmit = useCallback(() => {
     toast.info('Đã hết thời gian làm bài, hệ thống đang nộp bài tự động...')
+    bypassAntiCheat()
+    window.onbeforeunload = null
+    clearLocalDraft()
     examTake.handleConfirmSubmit()
-  }, [examTake])
-
-  const examActive = sessionStarted && !examTake.isSubmitted
+  }, [examTake, bypassAntiCheat, clearLocalDraft])
 
   const { setServerTime, remainingSeconds } = useExamTimer({
     examId: exam.examId,
@@ -83,16 +117,18 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     allowOvertime: exam.settings?.allowOvertime,
     onTimeUp: !exam.settings?.allowOvertime ? handleForceSubmit : undefined
   })
-  useAntiCheat({
-    examId: exam.examId,
-    enabled: examActive,
-    settings: exam.settings
-  })
+
   useExamSocket({
     examId: exam.examId,
+    studentId: user?.id,
     enabled: examActive,
     onForceSubmit: handleForceSubmit,
     onTimeSync: setServerTime,
+    onKicked: useCallback(() => {
+      bypassAntiCheat()
+      window.onbeforeunload = null
+      window.location.href = '/student/exams'
+    }, [bypassAntiCheat]),
     onGradingResult: (rawResult: unknown) => {
       const result = rawResult as {
         status: string
@@ -203,10 +239,20 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         if (timeRes.data && timeRes.data.remainingSeconds > 0) {
           setInitialSeconds(timeRes.data.remainingSeconds)
           setSessionStarted(true)
+
+          const restoredAnswers = await getRestoredAnswers()
+          if (restoredAnswers) {
+            examTake.restoreAnswers(restoredAnswers)
+            setShowRestoredBanner(true)
+            // Auto-hide restorative banner after 3 seconds
+            setTimeout(() => setShowRestoredBanner(false), 3000)
+          }
+        } else if (timeRes.data && !timeRes.data.studentStartedAt) {
+          // No active session — redirect user back to the waiting room to click Start
+          window.location.href = `/student/exams/${exam.examId}/take`
+          return
         } else {
-          setError(
-            timeRes.message || 'Phiên thi đã kết thúc hoặc không tồn tại.'
-          )
+          setError('Phiên thi đã kết thúc hoặc không tồn tại.')
         }
       } catch (err) {
         // Re-throw Next.js redirects to prevent them from being swallowed
@@ -275,6 +321,13 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   return (
     <>
       <ViolationWarningModal />
+      <NetworkStatusBanner
+        isReachable={isServerReachable}
+        onDownloadBackup={handleDownloadBackup}
+      />
+      {showRestoredBanner && (
+        <DraftRestoredBanner onDismiss={() => setShowRestoredBanner(false)} />
+      )}
       {examTake.isGrading && (
         <div className={styles.loadingOverlay}>
           <div className={styles.loaderContent}>
@@ -322,6 +375,12 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
               </div>
 
               <div className={styles.statusActions}>
+                <SaveStatusIndicator
+                  status={saveStatus}
+                  lastSavedAt={lastSavedAt}
+                  onManualSave={handleManualSave}
+                  isServerReachable={isServerReachable}
+                />
                 <div className={styles.progressContainer}>
                   <div className={styles.progressText}>
                     Tiến độ: {examTake.answeredCount}/{questions.length} câu
@@ -407,7 +466,10 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       <ConfirmSubmitDialog
         open={examTake.showConfirmDialog}
         onOpenChange={examTake.setShowConfirmDialog}
-        onConfirm={examTake.handleConfirmSubmit}
+        onConfirm={() => {
+          clearLocalDraft()
+          examTake.handleConfirmSubmit()
+        }}
         unansweredCount={examTake.unansweredCount}
         totalQuestions={questions.length}
         isLoading={examTake.isLoading}

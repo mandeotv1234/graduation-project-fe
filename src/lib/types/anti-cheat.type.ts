@@ -33,6 +33,8 @@ export interface ReportViolationResponse {
 // POST /api/exams/{examId}/start-session → StartExamSessionResponseDto
 export interface StartExamSessionResponse {
   sessionStarted: boolean
+  conflictPending: boolean
+  conflictId: string | null
   message: string
   serverTime: string
   examStartedAt: string
@@ -40,6 +42,32 @@ export interface StartExamSessionResponse {
   remainingSeconds: number
   durationMinutes: number
 }
+
+// Teacher WebSocket: /topic/teacher/exam/{examId}/device-conflict
+export interface DeviceConflictPendingEvent {
+  type: 'DEVICE_CONFLICT_PENDING'
+  conflictId: string
+  examId: number
+  studentId: number
+  studentName: string
+  studentEmail: string
+  existingIpAddress: string
+  existingUserAgent: string
+  newIpAddress: string
+  newUserAgent: string
+  requestedAt: string
+}
+
+// Student WebSocket: /topic/student/{studentId}/exam-session
+export type StudentExamSessionEvent =
+  | {
+      type: 'DEVICE_CONFLICT_APPROVED'
+      examId: number
+      conflictId: string
+      message: string
+    }
+  | { type: 'SESSION_KICKED'; examId: number; message: string }
+  | { type: 'DEVICE_CONFLICT_REJECTED'; examId: number; reason: string }
 
 // GET /api/exams/{examId}/time → ExamTimeResponseDto
 export interface ExamTimeResponse {

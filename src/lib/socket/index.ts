@@ -145,3 +145,81 @@ export function subscribeToTeacherGradingResult(
 
   return () => subscription.unsubscribe()
 }
+
+/**
+ * Subscribe to device conflict notifications (Teacher).
+ * Backend sends to: /topic/teacher/exam/{examId}/device-conflict
+ */
+export function subscribeToDeviceConflict(
+  examId: number,
+  callback: (notification: unknown) => void
+): (() => void) | undefined {
+  const client = getStompClient()
+  if (!client?.connected) return undefined
+
+  const subscription = client.subscribe(
+    `/topic/teacher/exam/${examId}/device-conflict`,
+    (message: IMessage) => {
+      try {
+        const payload = JSON.parse(message.body)
+        callback(payload)
+      } catch {
+        console.error('[STOMP] Failed to parse device conflict notification')
+      }
+    }
+  )
+
+  return () => subscription.unsubscribe()
+}
+
+/**
+ * Subscribe to student-specific exam session notifications (Student).
+ * Backend sends to: /topic/student/{studentId}/exam-session
+ */
+export function subscribeToStudentSession(
+  studentId: number,
+  callback: (notification: unknown) => void
+): (() => void) | undefined {
+  const client = getStompClient()
+  if (!client?.connected) return undefined
+
+  const subscription = client.subscribe(
+    `/topic/student/${studentId}/exam-session`,
+    (message: IMessage) => {
+      try {
+        const payload = JSON.parse(message.body)
+        callback(payload)
+      } catch {
+        console.error('[STOMP] Failed to parse student session notification')
+      }
+    }
+  )
+
+  return () => subscription.unsubscribe()
+}
+
+/**
+ * Subscribe to global teacher notifications (Teacher).
+ * Backend sends to: /topic/teacher/{teacherId}/notifications
+ */
+export function subscribeToTeacherNotifications(
+  teacherId: number,
+  callback: (notification: unknown) => void
+): (() => void) | undefined {
+  const client = getStompClient()
+  if (!client?.connected) return undefined
+
+  const subscription = client.subscribe(
+    `/topic/teacher/${teacherId}/notifications`,
+    (message: IMessage) => {
+      try {
+        const payload = JSON.parse(message.body)
+        callback(payload)
+      } catch {
+        console.error('[STOMP] Failed to parse teacher notification')
+      }
+    }
+  )
+
+  return () => subscription.unsubscribe()
+}

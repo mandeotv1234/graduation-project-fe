@@ -14,11 +14,16 @@ export const ENDPOINTS = Object.freeze({
   EXAM_QUESTIONS: (examId: number) => `/exams/${examId}/questions`,
   EXAM_EXECUTE_SQL: (examId: number) => `/exams/${examId}/execute-sql`,
   EXAM_SUBMIT: (examId: number) => `/exams/${examId}/submit`,
+  EXAM_DRAFT: (examId: number) => `/exams/${examId}/draft`,
 
   // Anti-Cheating
   EXAM_START_SESSION: (examId: number) => `/exams/${examId}/start-session`,
   EXAM_REPORT_VIOLATION: (examId: number) => `/exams/${examId}/violations`,
   EXAM_TIME: (examId: number) => `/exams/${examId}/time`,
+  EXAM_DEVICE_CONFLICT_APPROVE: (examId: number, conflictId: string) =>
+    `/exams/${examId}/device-conflict/${conflictId}/approve`,
+  EXAM_DEVICE_CONFLICT_REJECT: (examId: number, conflictId: string) =>
+    `/exams/${examId}/device-conflict/${conflictId}/reject`,
 
   // Teacher - Classes
   CLASSES: '/classes',
@@ -55,6 +60,8 @@ export const ENDPOINTS = Object.freeze({
   EXAM_TEST_GRADE_SELECT: (examId: number) =>
     `/exams/${examId}/test-grade-select`,
   EXAM_RESULTS: (examId: number) => `/exams/${examId}/results`,
+  EXAM_RESULT_DETAIL: (examId: number, resultId: number) =>
+    `/exams/${examId}/results/${resultId}`,
 
   // Teacher - Notifications
   NOTIFICATIONS: '/notifications',
