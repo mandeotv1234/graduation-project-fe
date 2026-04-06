@@ -1,15 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Bell,
-  AlertTriangle,
-  Trash2,
-  CheckCheck,
-  Loader2,
-  X,
-  BellOff
-} from 'lucide-react'
+import { Bell, Trash2, CheckCheck, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -29,9 +21,13 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { connectStomp, disconnectStomp, getStompClient } from '@/lib/socket'
+import { connectStomp, getStompClient, subscribeToConnect } from '@/lib/socket'
 import { VIOLATION_LABELS, ViolationType } from '@/lib/constants/violation'
-import type { ViolationNotification, TeacherNotificationDto } from '@/lib/types'
+import type {
+  ViolationNotification,
+  TeacherNotificationDto,
+  GradingNotificationDto
+} from '@/lib/types'
 import {
   getNotifications,
   markNotificationRead,
@@ -85,52 +81,8 @@ function mapWsToItem(payload: ViolationNotification): NotificationItem {
   }
 }
 
-// ─── Active toast tracking (module-level) ────────────────────────────
-const activeToastIds = new Set<string | number>()
-const DISMISS_ALL_TOAST_ID = 'dismiss-all-violations'
-const STACK_THRESHOLD = 3 // show dismiss-all after this many toasts
-
-function syncDismissAllToast() {
-  const count = activeToastIds.size
-
-  if (count >= STACK_THRESHOLD) {
-    // Upsert a sticky "dismiss all" toast above the stack
-    toast.custom(
-      () => (
-        <div className="flex w-[360px] items-center justify-between gap-3 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950 px-4 py-2.5 shadow-xl">
-          <div className="flex items-center gap-2 min-w-0">
-            <BellOff className="h-4 w-4 shrink-0 text-orange-500" />
-            <span className="text-xs font-semibold text-orange-700 dark:text-orange-300 truncate">
-              {count} thông báo vi phạm đang hiển thị
-            </span>
-          </div>
-          <button
-            onClick={() => {
-              // Dismiss all individual toasts
-              activeToastIds.forEach((id) => toast.dismiss(id))
-              activeToastIds.clear()
-              toast.dismiss(DISMISS_ALL_TOAST_ID)
-            }}
-            className="shrink-0 flex items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-orange-600 transition-colors"
-          >
-            <X className="h-3 w-3" />
-            Xóa hết
-          </button>
-        </div>
-      ),
-      {
-        id: DISMISS_ALL_TOAST_ID,
-        duration: Infinity,
-        position: 'top-right'
-      }
-    )
-  } else {
-    // Fewer than threshold — remove the dismiss-all banner if it exists
-    toast.dismiss(DISMISS_ALL_TOAST_ID)
-  }
-}
-
 // ─── Toast-style popup (Facebook-like) ────────────────────────────────
+/*
 function showViolationToast(item: NotificationItem) {
   const label =
     VIOLATION_LABELS[item.violationType as ViolationType] || item.violationType
@@ -142,12 +94,10 @@ function showViolationToast(item: NotificationItem) {
   toast.custom(
     (id) => (
       <div className="flex w-[360px] items-start gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-xl animate-in slide-in-from-top-2 fade-in duration-300">
-        {/* Icon */}
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/15">
           <AlertTriangle className="h-4.5 w-4.5 text-red-500" />
         </div>
 
-        {/* Content */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="truncate text-sm font-semibold text-foreground">
@@ -173,7 +123,6 @@ function showViolationToast(item: NotificationItem) {
           </p>
         </div>
 
-        {/* Close */}
         <button
           onClick={() => {
             activeToastIds.delete(id)
@@ -201,6 +150,7 @@ function showViolationToast(item: NotificationItem) {
     }
   )
 }
+*/
 
 // ─── Main Component ──────────────────────────────────────────────────
 export function TeacherNotificationBell() {
@@ -217,7 +167,6 @@ export function TeacherNotificationBell() {
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const pageRef = useRef(1)
-  const isConnected = useRef(false)
   const initialFetched = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -236,7 +185,22 @@ export function TeacherNotificationBell() {
 
         setNotifications((prev) => {
           if (replace) {
-            return items
+            // Giữ lại các thông báo realtime (WebSocket) chưa được lưu vào DB
+            // để tránh bị xóa mất khi API trả về
+            const realtimeItems = prev.filter((n) => !n.persisted)
+            // Loại bỏ realtime items đã có trong API response (đã được persist)
+            const apiStudentKeys = new Set(
+              items.map(
+                (n) => `${n.examId}-${n.studentName}-${n.violationType}`
+              )
+            )
+            const uniqueRealtimeItems = realtimeItems.filter(
+              (n) =>
+                !apiStudentKeys.has(
+                  `${n.examId}-${n.studentName}-${n.violationType}`
+                )
+            )
+            return [...uniqueRealtimeItems, ...items]
           }
           // Merge: avoid duplicates by DB id
           const existingIds = new Set(
@@ -266,15 +230,7 @@ export function TeacherNotificationBell() {
   useEffect(() => {
     if (initialFetched.current) return
     initialFetched.current = true
-    fetchNotificationsPage(1, true)
-  }, [fetchNotificationsPage])
-
-  // ─── Poll first page every 30s to stay in sync ───────────────────
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchNotificationsPage(1, true)
-    }, 30_000)
-    return () => clearInterval(interval)
+    void fetchNotificationsPage(1, true)
   }, [fetchNotificationsPage])
 
   // ─── Load more on scroll ──────────────────────────────────────────
@@ -290,55 +246,166 @@ export function TeacherNotificationBell() {
   }, [loading, hasMore, fetchNotificationsPage])
 
   // ─── WebSocket subscription ────────────────────────────────────────
-  const setupTeacherSubscription = useCallback(() => {
-    const client = getStompClient()
-    if (!client?.connected) return
+  const setupTeacherSubscription = useCallback(
+    (client: ReturnType<typeof getStompClient>) => {
+      if (!client) return undefined
 
-    const handleViolation = (message: { body: string }) => {
-      try {
-        const payload = JSON.parse(message.body) as ViolationNotification
-        const newItem = mapWsToItem(payload)
-        setNotifications((prev) => {
-          // Dedup: skip if a notification with same examId+studentId+violationCount already exists
-          const isDuplicate = prev.some(
-            (n) =>
-              n.examId === newItem.examId &&
-              n.violationCount === newItem.violationCount &&
-              n.studentName === newItem.studentName
-          )
-          if (isDuplicate) return prev
-          return [newItem, ...prev].slice(0, 200)
-        })
+      const handleViolation = (message: { body: string }) => {
+        try {
+          const payload = JSON.parse(message.body) as ViolationNotification
+          const newItem = mapWsToItem(payload)
+          setNotifications((prev) => {
+            // Dedup: skip if a notification with same examId+studentId+violationCount already exists
+            const isDuplicate = prev.some(
+              (n) =>
+                n.examId === newItem.examId &&
+                n.violationCount === newItem.violationCount &&
+                n.studentName === newItem.studentName
+            )
+            if (isDuplicate) return prev
+            return [newItem, ...prev].slice(0, 200)
+          })
 
-        // Show Facebook-style toast popup
-        showViolationToast(newItem)
-      } catch {
-        console.error('[TeacherNotification] Failed to parse message')
+          // Tắt hoàn toàn pop-up theo yêu cầu, chỉ chừa lại chấm đỏ.
+          // showViolationToast(newItem)
+        } catch {
+          // silent
+        }
       }
-    }
 
-    client.subscribe('/user/queue/violations', handleViolation)
-    client.subscribe('/topic/teacher/violations', handleViolation)
-  }, [])
+      const handleGlobalGradingResult = (message: { body: string }) => {
+        try {
+          const payload = JSON.parse(message.body) as GradingNotificationDto
+          const score = payload.totalScore || payload.score || 0
+          const newItem: NotificationItem = {
+            id: `grade-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            examId: payload.examId || 0,
+            studentName: payload.studentName || 'Học sinh',
+            violationType: 'NỘP BÀI',
+            description: `Đã nộp bài. Điểm: ${score}`,
+            violationCount: 0,
+            autoSubmitted: false,
+            timestamp: new Date().toISOString(),
+            read: false,
+            persisted: false
+          }
+
+          setNotifications((prev) => {
+            // Bỏ qua nếu đã có thông báo nộp bài của sinh viên này cho kỳ thi này
+            const isDuplicate = prev.some(
+              (n) =>
+                n.violationType === 'NỘP BÀI' &&
+                n.examId === newItem.examId &&
+                n.studentName === newItem.studentName
+            )
+            if (isDuplicate) return prev
+            return [newItem, ...prev].slice(0, 200)
+          })
+
+          // Vẫn bật popup nhỏ nếu đang ở trang giám sát
+          const isMonitorPage = window.location.pathname.endsWith('/monitor')
+          if (isMonitorPage) {
+            toast.info(
+              `Học sinh ${newItem.studentName} vừa hoàn thành bài thi`,
+              {
+                id: `toast-grade-${payload.examId}-${payload.studentId || payload.studentName}`,
+                description: `Điểm số: ${score}. Xem chi tiết trong mục Kết quả.`,
+                action: payload.examId
+                  ? {
+                      label: 'Xem',
+                      onClick: () =>
+                        (window.location.href = `/teacher/exams/${payload.examId}/results`)
+                    }
+                  : undefined
+              }
+            )
+          }
+        } catch {
+          // silent
+        }
+      }
+
+      const sub1 = client.subscribe('/user/queue/violations', handleViolation)
+      const sub2 = client.subscribe(
+        '/topic/teacher/violations',
+        handleViolation
+      )
+      const sub3 = client.subscribe(
+        '/user/queue/grading-results',
+        handleGlobalGradingResult
+      )
+      const sub4 = client.subscribe(
+        '/topic/teacher/grading-results',
+        handleGlobalGradingResult
+      )
+
+      return () => {
+        sub1.unsubscribe()
+        sub2.unsubscribe()
+        sub3.unsubscribe()
+        sub4.unsubscribe()
+      }
+    },
+    []
+  )
 
   useEffect(() => {
-    if (isConnected.current) return
+    connectStomp() // Ensure the background connection starts
 
-    connectStomp({
-      onConnect: () => {
-        isConnected.current = true
-        setupTeacherSubscription()
-      },
-      onDisconnect: () => {
-        isConnected.current = false
+    let unsubscribeSub: (() => void) | undefined
+
+    const unSubConnect = subscribeToConnect(() => {
+      // Nếu socket bị rớt và connect lại, hàm này sẽ tự động được chạy lại
+      if (unsubscribeSub) {
+        unsubscribeSub()
       }
+      // Truyền client trực tiếp — tại thời điểm này client chắc chắn đã connected
+      const client = getStompClient()
+      unsubscribeSub = setupTeacherSubscription(client)
     })
 
     return () => {
-      disconnectStomp()
-      isConnected.current = false
+      unSubConnect()
+      unsubscribeSub?.()
     }
   }, [setupTeacherSubscription])
+
+  // ─── Lắng nghe sự kiện thông báo Nộp bài từ Handler ───────────────────
+  useEffect(() => {
+    const handleGrading = (e: Event) => {
+      const customEvent = e as CustomEvent
+      const { examId, notification } = customEvent.detail
+
+      const score = notification.totalScore || notification.score || 0
+      const newItem: NotificationItem = {
+        id: `grade-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        examId,
+        studentName: notification.studentName || 'Học sinh',
+        violationType: 'NỘP BÀI',
+        description: `Đã nộp bài. Điểm: ${score}`,
+        violationCount: 0,
+        autoSubmitted: false, // Default is false unless graded differently
+        timestamp: new Date().toISOString(),
+        read: false,
+        persisted: false
+      }
+      setNotifications((prev) => {
+        // Bỏ qua nếu đã có thông báo nộp bài của sinh viên này cho kỳ thi này (để chống dội 2 lần)
+        const isDuplicate = prev.some(
+          (n) =>
+            n.violationType === 'NỘP BÀI' &&
+            n.examId === newItem.examId &&
+            n.studentName === newItem.studentName
+        )
+        if (isDuplicate) return prev
+        return [newItem, ...prev].slice(0, 200)
+      })
+    }
+
+    window.addEventListener('teacher-grading-result', handleGrading)
+    return () =>
+      window.removeEventListener('teacher-grading-result', handleGrading)
+  }, [])
 
   // ─── Mark all read when popover CLOSES after being open ─────────────
   const wasOpenRef = useRef(false)
@@ -392,6 +459,7 @@ export function TeacherNotificationBell() {
     VIOLATION_LABELS[type as ViolationType] || type
 
   const getSeverityColor = (type: string) => {
+    if (type === 'NỘP BÀI') return 'text-green-600 dark:text-green-400'
     switch (type) {
       case ViolationType.DEVTOOLS_OPEN:
       case ViolationType.PASTE:
@@ -452,8 +520,8 @@ export function TeacherNotificationBell() {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              <h4 className="text-sm font-semibold">Thông báo vi phạm</h4>
+              <Bell className="h-4 w-4 text-primary" />
+              <h4 className="text-sm font-semibold">Thông báo từ hệ thống</h4>
               {notifications.length > 0 && (
                 <Badge variant="secondary" className="text-xs">
                   {notifications.length}

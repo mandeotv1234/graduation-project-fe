@@ -3,7 +3,10 @@
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { usePathname } from 'next/navigation'
-import { subscribeToTeacherGradingResult } from '@/lib/socket'
+import {
+  subscribeToConnect,
+  subscribeToTeacherGradingResult
+} from '@/lib/socket'
 import { GradingNotificationDto } from '@/lib/types'
 
 export function TeacherNotificationHandler() {
@@ -22,32 +25,50 @@ export function TeacherNotificationHandler() {
 
     if (!examId) return
 
-    const unsubscribe = subscribeToTeacherGradingResult(
-      examId,
-      (rawNotification: unknown) => {
-        const notification = rawNotification as GradingNotificationDto
-        // Avoid duplicate toast if we are already on the results page
-        const isResultsPage = pathname.endsWith('/results')
-        if (isResultsPage) return
+    let unsubscribeSub: (() => void) | undefined
 
-        const score = notification.totalScore || notification.score || 0
-
-        toast.info(
-          `Học sinh ${notification.studentName || 'Học sinh'} vừa hoàn thành bài thi`,
-          {
-            description: `Điểm số: ${score}. Xem chi tiết trong mục Kết quả.`,
-            action: {
-              label: 'Xem',
-              onClick: () =>
-                (window.location.href = `/teacher/exams/${examId}/results`)
-            }
-          }
-        )
+    const unSubConnect = subscribeToConnect(() => {
+      if (unsubscribeSub) {
+        unsubscribeSub()
       }
-    )
+
+      unsubscribeSub = subscribeToTeacherGradingResult(
+        examId,
+        (rawNotification: unknown) => {
+          const notification = rawNotification as GradingNotificationDto
+          const isResultsPage = window.location.pathname.endsWith('/results')
+          if (isResultsPage) return
+
+          const score = notification.totalScore || notification.score || 0
+
+          window.dispatchEvent(
+            new CustomEvent('teacher-grading-result', {
+              detail: { examId, notification }
+            })
+          )
+
+          const isMonitorPage = window.location.pathname.endsWith('/monitor')
+          if (isMonitorPage) {
+            toast.info(
+              `Học sinh ${notification.studentName || 'Học sinh'} vừa hoàn thành bài thi`,
+              {
+                id: `toast-grade-${examId}-${notification.studentId || notification.studentName}`,
+                description: `Điểm số: ${score}. Xem chi tiết trong mục Kết quả.`,
+                action: {
+                  label: 'Xem',
+                  onClick: () =>
+                    (window.location.href = `/teacher/exams/${examId}/results`)
+                }
+              }
+            )
+          }
+        }
+      )
+    })
 
     return () => {
-      unsubscribe?.()
+      unSubConnect()
+      unsubscribeSub?.()
     }
   }, [pathname, isTeacherSection])
 
