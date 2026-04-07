@@ -175,10 +175,14 @@ export interface TeacherExamResult {
 
 export interface TeacherExamResultDetail extends TeacherExamResult {
   questionResults: QuestionResultDetail[]
+  gradingType: 'AUTO' | 'MANUAL' | 'MIXED'
+  lastGradedAt?: string
 }
 
 export interface QuestionResultDetail {
   questionId: number
+  // ExamSubmission.id for the per-question submission — used by override API
+  submissionId?: number
   content: string
   studentQuery: string
   correctQuery: string
@@ -187,6 +191,48 @@ export interface QuestionResultDetail {
   maxPoints: number
   errorMessage?: string
   executionTimeMs?: number
+  gradingType: 'AUTO' | 'MANUAL'
+  gradedBy?: number
+  gradedByName?: string
+  gradedAt?: string
+  teacherComment?: string
+  questionType: string
+}
+
+// ===== Override & Re-grade Types =====
+
+export interface OverrideSubmissionRequest {
+  scoreEarned: number
+  isCorrect: boolean
+  teacherComment?: string
+}
+
+export interface OverrideSubmissionResponse {
+  submissionId: number
+  scoreEarned: number
+  isCorrect: boolean
+  gradingType: 'MANUAL'
+  teacherComment?: string
+  updatedResult: {
+    totalScore: number
+    correctCount: number
+    gradingType: 'AUTO' | 'MANUAL' | 'MIXED'
+  }
+}
+
+export interface RegradeResponse {
+  message: string
+  previousScores: PreviousScores
+}
+
+export interface PreviousScores {
+  totalScore: number
+  correctCount: number
+  details: Array<{
+    questionId: number
+    scoreEarned: number
+    isCorrect: boolean
+  }>
 }
 
 // ===== Exam Specification Types =====
