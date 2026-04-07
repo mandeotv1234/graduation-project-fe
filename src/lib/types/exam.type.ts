@@ -235,6 +235,12 @@ export interface PreviousScores {
   }>
 }
 
+export interface RegradeAllResponse {
+  queuedCount: number
+  skippedCount: number
+  message: string
+}
+
 // ===== Exam Specification Types =====
 
 // GET/PUT /api/exams/{examId}/specification

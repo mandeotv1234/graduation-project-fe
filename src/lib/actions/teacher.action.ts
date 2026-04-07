@@ -24,7 +24,8 @@ import {
   CreateSpecificationRequest,
   OverrideSubmissionRequest,
   OverrideSubmissionResponse,
-  RegradeResponse
+  RegradeResponse,
+  RegradeAllResponse
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -183,6 +184,12 @@ export async function regradeExamResult(
   return apiClient.post<RegradeResponse>(
     ENDPOINTS.EXAM_REGRADE_RESULT(examId, resultId)
   )
+}
+
+export async function regradeAllExamResults(
+  examId: number
+): Promise<ApiResponse<RegradeAllResponse>> {
+  return apiClient.post<RegradeAllResponse>(ENDPOINTS.EXAM_REGRADE_ALL(examId))
 }
 
 // ===== Specifications =====

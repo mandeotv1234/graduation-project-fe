@@ -13,14 +13,27 @@ import {
   Filter,
   Users,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
 import styles from './exam-results-view.module.scss'
 
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
 import { TeacherExamResult, GradingNotificationDto } from '@/lib/types'
 import { subscribeToTeacherGradingResult } from '@/lib/socket'
+import { regradeAllExamResults } from '@/lib/actions'
 
 interface ExamResultsViewProps {
   examId: number
@@ -34,6 +47,28 @@ export function ExamResultsView({
   const router = useRouter()
   const [results, setResults] = useState<TeacherExamResult[]>(initialResults)
   const [searchTerm, setSearchTerm] = useState('')
+  const [isRegradingAll, setIsRegradingAll] = useState(false)
+
+  async function handleRegradeAll() {
+    setIsRegradingAll(true)
+    try {
+      const res = await regradeAllExamResults(examId)
+      if (res.data) {
+        toast.success(
+          `Đã đưa vào hàng đợi chấm lại ${res.data.queuedCount} bài` +
+            (res.data.skippedCount > 0
+              ? ` (bỏ qua ${res.data.skippedCount} bài chưa hoàn tất)`
+              : '')
+        )
+      } else {
+        toast.error(res.message ?? 'Không thể chấm lại toàn bộ')
+      }
+    } catch {
+      toast.error('Lỗi kết nối khi chấm lại toàn bộ')
+    } finally {
+      setIsRegradingAll(false)
+    }
+  }
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -169,6 +204,36 @@ export function ExamResultsView({
         </div>
 
         <div className="flex items-center gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-2"
+                disabled={isRegradingAll || results.length === 0}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isRegradingAll ? 'animate-spin' : ''}`}
+                />
+                {isRegradingAll ? 'Đang chấm lại...' : 'Chấm lại toàn bộ'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Chấm lại toàn bộ bài thi</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tất cả bài đã hoàn tất sẽ được chấm lại từ đầu. Điểm cũ và các
+                  chỉnh sửa thủ công sẽ bị ghi đè. Hành động này không thể hoàn
+                  tác.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                <AlertDialogAction onClick={handleRegradeAll}>
+                  Chấm lại toàn bộ
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button variant="outline" className="gap-2" onClick={handleExportCSV}>
             <Download className="h-4 w-4" />
             Xuất file CSV

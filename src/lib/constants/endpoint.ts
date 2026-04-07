@@ -70,6 +70,7 @@ export const ENDPOINTS = Object.freeze({
     `/exams/${examId}/results/${resultId}/submissions/${submissionId}/override`,
   EXAM_REGRADE_RESULT: (examId: number, resultId: number) =>
     `/exams/${examId}/results/${resultId}/regrade`,
+  EXAM_REGRADE_ALL: (examId: number) => `/exams/${examId}/regrade-all`,
 
   // Teacher - Notifications
   NOTIFICATIONS: '/notifications',

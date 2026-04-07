@@ -25,7 +25,8 @@ export {
   getExamResults,
   getTeacherSubmissionDetail,
   overrideSubmissionScore,
-  regradeExamResult
+  regradeExamResult,
+  regradeAllExamResults
 } from '@/lib/actions/teacher.action'
 export * from '@/lib/actions/anti-cheat.action'
 export * from '@/lib/actions/notification.action'
