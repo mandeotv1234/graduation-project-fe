@@ -23,6 +23,13 @@ import { getSpecifications } from '@/lib/actions'
 
 import { examSchema, ExamFormValues, ExamFormInput } from './exam-form-schema'
 import { ToggleField } from './toggle-field'
+import { cn } from '@/lib/utils'
+
+export type ExamFormFocusSection =
+  | 'overview'
+  | 'submission'
+  | 'antiCheat'
+  | 'description'
 
 interface ExamFormProps {
   initialData?: Partial<ExamFormInput>
@@ -30,6 +37,8 @@ interface ExamFormProps {
   isLoading: boolean
   title: string
   submitLabel: string
+  /** Khi set: chỉ hiển thị một nhóm trường (dùng trong modal chỉnh từng phần). */
+  focusSection?: ExamFormFocusSection
 }
 
 export function ExamForm({
@@ -37,7 +46,8 @@ export function ExamForm({
   onSubmit,
   isLoading,
   title,
-  submitLabel
+  submitLabel,
+  focusSection
 }: ExamFormProps) {
   const [specifications, setSpecifications] = useState<SpecificationResponse[]>(
     []
@@ -126,6 +136,9 @@ export function ExamForm({
   const selectedSpecificationId = watch('specificationId')
   const autoSubmitOnViolation = watch('settings.autoSubmitOnViolation')
 
+  const show = (s: ExamFormFocusSection) => !focusSection || focusSection === s
+  const isFocused = Boolean(focusSection)
+
   const onFormError = (err: FieldErrors<ExamFormInput>) => {
     const errorValues = Object.values(err)
     if (errorValues.length > 0) {
@@ -155,367 +168,424 @@ export function ExamForm({
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              {title}
-            </h1>
+    <div className={cn('space-y-8', isFocused && 'space-y-0')}>
+      {/* Trong modal section: nút Lưu đặt ở footer Dialog, không render ở đây */}
+      {!isFocused && (
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                {title}
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              type="submit"
+              form="exam-form"
+              disabled={isLoading}
+              className="gap-2 bg-blue-600 text-white shadow-sm transition-all hover:bg-blue-700"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {submitLabel}
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button
-            type="submit"
-            form="exam-form"
-            disabled={isLoading}
-            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {submitLabel}
-          </Button>
-        </div>
-      </div>
+      )}
 
       <form
         id="exam-form"
         onSubmit={handleSubmit(onSubmit, onFormError)}
-        className="grid grid-cols-1 lg:grid-cols-3 gap-4"
+        className={cn(
+          'grid gap-4',
+          isFocused ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-3'
+        )}
       >
-        {/* Left Column (Span 2) */}
-        <div className="lg:col-span-2 space-y-8 mb-1">
-          {/* Section 1: Thông tin cơ bản */}
-          <section className="bg-card rounded-xs p-6 pb-10 mb-4 lg:col-span-2 shadow-sm">
-            <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
-              <div className="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
-                <FileText className="w-5 h-5" />
-              </div>
-              <h2 className="text-lg font-semibold text-foreground">
-                Thông tin chung
-              </h2>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Tiêu đề bài thi <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  {...register('title')}
-                  placeholder="VD: Bài thi CSDL - Giữa kỳ"
-                  className="focus-visible:ring-blue-500"
-                />
-                {errors.title && (
-                  <p className="text-destructive text-xs mt-1">
-                    {errors.title.message}
-                  </p>
+        {(show('overview') || show('description') || show('submission')) && (
+          <div
+            className={cn(
+              'mb-1 space-y-8',
+              !isFocused && 'lg:col-span-2',
+              isFocused &&
+                focusSection !== 'antiCheat' &&
+                'mx-auto w-full max-w-3xl'
+            )}
+          >
+            {/* Section: Thông tin chung (thời gian, đặc tả, tiêu đề) */}
+            {show('overview') && (
+              <section className="bg-card rounded-xs p-6 pb-10 mb-4 shadow-sm">
+                {!isFocused && (
+                  <div className="mb-6 flex items-center gap-2 border-b border-border pb-4">
+                    <div className="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      Thông tin chung
+                    </h2>
+                  </div>
                 )}
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 flex items-center justify-between">
-                    <span>
-                      Chọn đặc tả CSDL{' '}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Tiêu đề bài thi{' '}
                       <span className="text-destructive">*</span>
-                    </span>
-                  </label>
-                  <div className="relative">
-                    <select
-                      {...register('specificationId', { valueAsNumber: true })}
-                      value={Number(selectedSpecificationId ?? 0)}
-                      className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <option value="0">-- Chọn đặc tả CSDL --</option>
-                      {specifications.map((spec) => (
-                        <option key={spec.id} value={spec.id}>
-                          {spec.name ?? `Specification #${spec.id}`}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  </div>
-                  {errors.specificationId && (
-                    <p className="text-destructive text-xs mt-1">
-                      {errors.specificationId.message}
-                    </p>
-                  )}
-                  <div className="mt-2 flex justify-between items-center">
-                    <p className="text-xs text-muted-foreground">
-                      Sơ đồ CSDL sinh viên sẽ làm bài.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Thời lượng (phút){' '}
-                    <span className="text-destructive">*</span>
-                  </label>
-                  <div className="relative">
+                    </label>
                     <Input
-                      {...register('durationMinutes')}
-                      type="number"
-                      className="pl-9 focus-visible:ring-blue-500"
+                      {...register('title')}
+                      placeholder="VD: Bài thi CSDL - Giữa kỳ"
+                      className="focus-visible:ring-blue-500"
                     />
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    {errors.title && (
+                      <p className="text-destructive text-xs mt-1">
+                        {errors.title.message}
+                      </p>
+                    )}
                   </div>
-                  {errors.durationMinutes && (
-                    <p className="text-destructive text-xs mt-1">
-                      {errors.durationMinutes.message}
-                    </p>
-                  )}
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Thời gian bắt đầu
-                  </label>
-                  <Input
-                    {...register('startTime')}
-                    type="datetime-local"
-                    className="focus-visible:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Thời gian kết thúc
-                  </label>
-                  <Input
-                    {...register('endTime')}
-                    type="datetime-local"
-                    className="focus-visible:ring-blue-500"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 flex items-center justify-between">
+                        <span>Chọn đặc tả CSDL</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          {...register('specificationId', {
+                            valueAsNumber: true
+                          })}
+                          value={Number(selectedSpecificationId ?? 0)}
+                          className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
+                          <option value="0">-- Chọn đặc tả CSDL --</option>
+                          {specifications.map((spec) => (
+                            <option key={spec.id} value={spec.id}>
+                              {spec.name ?? `Specification #${spec.id}`}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      </div>
+                      {errors.specificationId && (
+                        <p className="text-destructive text-xs mt-1">
+                          {errors.specificationId.message}
+                        </p>
+                      )}
+                      <div className="mt-2 flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground">
+                          Sơ đồ CSDL sinh viên sẽ làm bài.
+                        </p>
+                      </div>
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Mô tả và Nội quy bài thi
-                </label>
-                <Textarea
-                  {...register('description')}
-                  rows={4}
-                  placeholder="Nhập hướng dẫn làm bài, các lưu ý quan trọng cho sinh viên..."
-                  className="resize-y focus-visible:ring-blue-500"
-                />
-              </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Thời lượng (phút){' '}
+                        <span className="text-destructive">*</span>
+                      </label>
+                      <div className="relative">
+                        <Input
+                          {...register('durationMinutes')}
+                          type="number"
+                          className="pl-9 focus-visible:ring-blue-500"
+                        />
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                      {errors.durationMinutes && (
+                        <p className="text-destructive text-xs mt-1">
+                          {errors.durationMinutes.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="pt-6 border-t border-border mt-2">
-                <ToggleField
-                  control={control}
-                  name="isPublished"
-                  label="Xuất bản ngay"
-                  description="Nếu tắt, bài thi sẽ được lưu ở trạng thái Bản nháp và sinh viên không thể nhìn thấy."
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Section 2: Quy định nộp bài & Điểm số */}
-          <section className="bg-card rounded-xs p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
-              <div className="p-2 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg">
-                <Award className="w-5 h-5" />
-              </div>
-              <h2 className="text-lg font-semibold text-foreground">
-                Quy định nộp bài &amp; Điểm số
-              </h2>
-            </div>
-
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Số lần làm bài tối đa
-                  </label>
-                  <Input
-                    {...register('maxAttempts')}
-                    type="number"
-                    min={1}
-                    className="focus-visible:ring-blue-500"
-                  />
-                  {errors.maxAttempts && (
-                    <p className="text-destructive text-xs mt-1">
-                      {errors.maxAttempts.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Ngưỡng nộp trễ (phút)
-                  </label>
-                  <Input
-                    {...register('lateThreshold')}
-                    type="number"
-                    min={0}
-                    className="focus-visible:ring-blue-500"
-                  />
-                  {errors.lateThreshold && (
-                    <p className="text-destructive text-xs mt-1">
-                      {errors.lateThreshold.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Phương thức tính điểm
-                  </label>
-                  <div className="relative">
-                    <select
-                      {...register('settings.gradingMethod')}
-                      className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <option value="highest_score">Lấy điểm cao nhất</option>
-                      <option value="latest_score">Lấy điểm lần cuối</option>
-                      <option value="average_score">Điểm trung bình</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Thời gian bắt đầu
+                      </label>
+                      <Input
+                        {...register('startTime')}
+                        type="datetime-local"
+                        className="focus-visible:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Thời gian kết thúc
+                      </label>
+                      <Input
+                        {...register('endTime')}
+                        type="datetime-local"
+                        className="focus-visible:ring-blue-500"
+                      />
+                    </div>
                   </div>
                 </div>
+              </section>
+            )}
+
+            {/* Mô tả và nội quy */}
+            {show('description') && (
+              <section className="bg-card rounded-xs p-6 shadow-sm">
+                {!isFocused && (
+                  <div className="mb-6 flex items-center gap-2 border-b border-border pb-4">
+                    <div className="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      Mô tả và Nội quy bài thi
+                    </h2>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    Hiển thị điểm
+                    Nội dung mô tả
                   </label>
-                  <div className="relative">
-                    <select
-                      {...register('settings.scoreDisplayMode')}
-                      className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <option value="immediately">Ngay sau khi nộp</option>
-                      <option value="after_closed">Sau khi bài thi đóng</option>
-                      <option value="never">Không hiển thị</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Textarea
+                    {...register('description')}
+                    rows={focusSection === 'description' ? 12 : 4}
+                    placeholder="Nhập hướng dẫn làm bài, các lưu ý quan trọng cho sinh viên..."
+                    className="resize-y focus-visible:ring-blue-500"
+                  />
+                </div>
+              </section>
+            )}
+
+            {/* Quy định nộp bài & Điểm số */}
+            {show('submission') && (
+              <section className="bg-card rounded-xs p-6 shadow-sm">
+                {!isFocused && (
+                  <div className="mb-6 flex items-center gap-2 border-b border-border pb-4">
+                    <div className="rounded-lg bg-green-500/10 p-2 text-green-600 dark:text-green-400">
+                      <Award className="h-5 w-5" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      Quy định nộp bài &amp; Điểm số
+                    </h2>
+                  </div>
+                )}
+
+                <div className="space-y-6">
+                  <ToggleField
+                    control={control}
+                    name="isPublished"
+                    label="Xuất bản ngay"
+                    description="Nếu tắt, bài thi sẽ được lưu ở trạng thái Bản nháp và sinh viên không thể nhìn thấy."
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Số lần làm bài tối đa
+                      </label>
+                      <Input
+                        {...register('maxAttempts')}
+                        type="number"
+                        min={1}
+                        className="focus-visible:ring-blue-500"
+                      />
+                      {errors.maxAttempts && (
+                        <p className="text-destructive text-xs mt-1">
+                          {errors.maxAttempts.message}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Ngưỡng nộp trễ (phút)
+                      </label>
+                      <Input
+                        {...register('lateThreshold')}
+                        type="number"
+                        min={0}
+                        className="focus-visible:ring-blue-500"
+                      />
+                      {errors.lateThreshold && (
+                        <p className="text-destructive text-xs mt-1">
+                          {errors.lateThreshold.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Phương thức tính điểm
+                      </label>
+                      <div className="relative">
+                        <select
+                          {...register('settings.gradingMethod')}
+                          className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
+                          <option value="highest_score">
+                            Lấy điểm cao nhất
+                          </option>
+                          <option value="latest_score">
+                            Lấy điểm lần cuối
+                          </option>
+                          <option value="average_score">Điểm trung bình</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Hiển thị điểm
+                      </label>
+                      <div className="relative">
+                        <select
+                          {...register('settings.scoreDisplayMode')}
+                          className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
+                          <option value="immediately">Ngay sau khi nộp</option>
+                          <option value="after_closed">
+                            Sau khi bài thi đóng
+                          </option>
+                          <option value="never">Không hiển thị</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-border mt-6">
+                    <ToggleField
+                      control={control}
+                      name="settings.allowOvertime"
+                      label="Cho phép nộp trễ"
+                      description="Sinh viên có thể nộp bài sau khi hết thời gian (bị đánh dấu nộp trễ)."
+                    />
+                  </div>
+
+                  <div className="pt-2 border-t border-border">
+                    <ToggleField
+                      control={control}
+                      name="settings.allowReview"
+                      label="Cho phép xem lại bài"
+                      description="Sinh viên có thể xem lại chi tiết bài làm sau khi có kết quả."
+                    />
+                  </div>
+
+                  <div className="pt-2 border-t border-border">
+                    <ToggleField
+                      control={control}
+                      name="settings.showResultAfterSubmit"
+                      label="Xem kết quả sau khi nộp bài"
+                      description="Cho phép sinh viên xem ngay kết quả chi tiết từng câu khi vừa nộp bài."
+                    />
+                  </div>
+
+                  <div className="pt-2 border-t border-border">
+                    <ToggleField
+                      control={control}
+                      name="settings.isLoadDdl"
+                      label="Nạp schema giáo viên"
+                      description="Nếu bật, hệ thống sẽ chạy script DDL (CREATE TABLE, ...) của giáo viên vào schema sinh viên khi bắt đầu thi."
+                    />
                   </div>
                 </div>
-              </div>
+              </section>
+            )}
+          </div>
+        )}
 
-              <div className="pt-6 border-t border-border mt-6">
-                <ToggleField
-                  control={control}
-                  name="settings.allowOvertime"
-                  label="Cho phép nộp trễ"
-                  description="Sinh viên có thể nộp bài sau khi hết thời gian (bị đánh dấu nộp trễ)."
-                />
-              </div>
-
-              <div className="pt-2 border-t border-border">
-                <ToggleField
-                  control={control}
-                  name="settings.allowReview"
-                  label="Cho phép xem lại bài"
-                  description="Sinh viên có thể xem lại chi tiết bài làm sau khi có kết quả."
-                />
-              </div>
-
-              <div className="pt-2 border-t border-border">
-                <ToggleField
-                  control={control}
-                  name="settings.showResultAfterSubmit"
-                  label="Xem kết quả sau khi nộp bài"
-                  description="Cho phép sinh viên xem ngay kết quả chi tiết từng câu khi vừa nộp bài."
-                />
-              </div>
-
-              <div className="pt-2 border-t border-border">
-                <ToggleField
-                  control={control}
-                  name="settings.isLoadDdl"
-                  label="Nạp schema giáo viên"
-                  description="Nếu bật, hệ thống sẽ chạy script DDL (CREATE TABLE, ...) của giáo viên vào schema sinh viên khi bắt đầu thi."
-                />
-              </div>
-            </div>
-          </section>
-        </div>
-
-        {/* Right Column (Span 1) */}
-        <div className="space-y-6">
-          <section className="bg-card rounded-xs p-6 sticky top-24 shadow-sm">
-            <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
-              <div className="p-2 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <h2 className="text-lg font-semibold text-foreground">
-                Cài đặt chống gian lận
-              </h2>
-            </div>
-
-            <div className="space-y-6">
-              <ToggleField
-                control={control}
-                name="settings.preventCopyPaste"
-                label="Chống Copy/Paste"
-                description="Ngăn sinh viên sao chép mã hoặc dán từ bên ngoài vào trình soạn thảo bằng bàn phím và chuột."
-              />
-
-              <hr className="border-border" />
-
-              <ToggleField
-                control={control}
-                name="settings.forceFullscreen"
-                label="Bắt buộc toàn màn hình"
-                description="Sinh viên phải duy trì chế độ toàn màn hình để làm bài. Rời khỏi sẽ bị cảnh báo."
-              />
-
-              <hr className="border-border" />
-
-              <ToggleField
-                control={control}
-                name="settings.trackTabSwitch"
-                label="Giám sát chuyển Tab"
-                description="Ghi nhận và hiển thị số lần sinh viên rời khỏi tab làm bài thi gửi về hệ thống."
-              />
-
-              <hr className="border-border" />
-
-              <ToggleField
-                control={control}
-                name="settings.autoSubmitOnViolation"
-                label="Tự động nộp khi vi phạm"
-                description="Hệ thống tự động thu bài nếu sinh viên vi phạm quá số lần cho phép. Chỉ hoạt động nếu Giám sát được bật."
-              />
-
-              {autoSubmitOnViolation && (
-                <div className="ml-8 mt-4 p-4 border border-border bg-muted/20 rounded-lg">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Số lần vi phạm tối đa cho phép
-                  </label>
-                  <Input
-                    {...register('settings.maxViolations')}
-                    type="number"
-                    min={1}
-                    className="max-w-[200px] focus-visible:ring-blue-500"
-                  />
-                  {errors.settings?.maxViolations && (
-                    <p className="text-destructive text-xs mt-1">
-                      {errors.settings.maxViolations.message}
-                    </p>
-                  )}
+        {/* Cột phải: chống gian lận */}
+        {show('antiCheat') && (
+          <div
+            className={cn(
+              'space-y-6',
+              isFocused &&
+                focusSection === 'antiCheat' &&
+                'mx-auto w-full max-w-3xl'
+            )}
+          >
+            <section
+              className={cn(
+                'bg-card rounded-xs p-6 shadow-sm',
+                !isFocused && 'sticky top-24'
+              )}
+            >
+              {!isFocused && (
+                <div className="mb-6 flex items-center gap-2 border-b border-border pb-4">
+                  <div className="rounded-lg bg-red-500/10 p-2 text-red-600 dark:text-red-400">
+                    <ShieldAlert className="h-5 w-5" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Cài đặt chống gian lận
+                  </h2>
                 </div>
               )}
 
-              <div className="mt-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-start gap-3">
-                <Settings className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" />
-                <p className="text-xs text-orange-700 dark:text-orange-400">
-                  Lưu ý: Các thiết lập gian lận sẽ yêu cầu trình duyệt cấp quyền
-                  đặc biệt cho ứng dụng khi bắt đầu làm bài.
-                </p>
+              <div className="space-y-6">
+                <ToggleField
+                  control={control}
+                  name="settings.preventCopyPaste"
+                  label="Chống Copy/Paste"
+                  description="Ngăn sinh viên sao chép mã hoặc dán từ bên ngoài vào trình soạn thảo bằng bàn phím và chuột."
+                />
+
+                <hr className="border-border" />
+
+                <ToggleField
+                  control={control}
+                  name="settings.forceFullscreen"
+                  label="Bắt buộc toàn màn hình"
+                  description="Sinh viên phải duy trì chế độ toàn màn hình để làm bài. Rời khỏi sẽ bị cảnh báo."
+                />
+
+                <hr className="border-border" />
+
+                <ToggleField
+                  control={control}
+                  name="settings.trackTabSwitch"
+                  label="Giám sát chuyển Tab"
+                  description="Ghi nhận và hiển thị số lần sinh viên rời khỏi tab làm bài thi gửi về hệ thống."
+                />
+
+                <hr className="border-border" />
+
+                <ToggleField
+                  control={control}
+                  name="settings.autoSubmitOnViolation"
+                  label="Tự động nộp khi vi phạm"
+                  description="Hệ thống tự động thu bài nếu sinh viên vi phạm quá số lần cho phép. Chỉ hoạt động nếu Giám sát được bật."
+                />
+
+                {autoSubmitOnViolation && (
+                  <div className="ml-8 mt-4 p-4 border border-border bg-muted/20 rounded-lg">
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Số lần vi phạm tối đa cho phép
+                    </label>
+                    <Input
+                      {...register('settings.maxViolations')}
+                      type="number"
+                      min={1}
+                      className="max-w-[200px] focus-visible:ring-blue-500"
+                    />
+                    {errors.settings?.maxViolations && (
+                      <p className="text-destructive text-xs mt-1">
+                        {errors.settings.maxViolations.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="mt-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-start gap-3">
+                  <Settings className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-orange-700 dark:text-orange-400">
+                    Lưu ý: Các thiết lập gian lận sẽ yêu cầu trình duyệt cấp
+                    quyền đặc biệt cho ứng dụng khi bắt đầu làm bài.
+                  </p>
+                </div>
               </div>
-            </div>
-          </section>
-        </div>
+            </section>
+          </div>
+        )}
       </form>
     </div>
   )

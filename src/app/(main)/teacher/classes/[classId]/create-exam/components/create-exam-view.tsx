@@ -31,7 +31,12 @@ export function CreateExamView({
 
     const result = await callApi(createExam(payload))
     if (result.data?.id) {
-      router.push(PATH.TEACHER_EXAM_SPECIFICATION(result.data.id))
+      const specId = result.data.specificationId
+      if (specId != null && specId > 0) {
+        router.push(PATH.TEACHER_EXAM_SPECIFICATION(result.data.id))
+      } else {
+        router.push(PATH.TEACHER_EXAM_DETAIL(result.data.id))
+      }
     }
   }
 

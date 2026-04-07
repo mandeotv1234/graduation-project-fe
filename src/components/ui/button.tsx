@@ -59,26 +59,31 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : 'button'
-    const buttonContent = (
-      <>
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {children}
-      </>
+    const isDisabled = Boolean(isLoading || disabled)
+    const classNames = cn(
+      buttonVariants({ variant, size, className }),
+      'cursor-pointer transition-all',
+      isDisabled && 'pointer-events-none opacity-50'
     )
 
+    if (asChild) {
+      return (
+        <Slot
+          className={classNames}
+          ref={ref}
+          aria-disabled={isDisabled || undefined}
+          {...props}
+        >
+          {children}
+        </Slot>
+      )
+    }
+
     return (
-      <Comp
-        className={cn(
-          buttonVariants({ variant, size, className }),
-          'cursor-pointer transition-all'
-        )}
-        ref={ref}
-        disabled={isLoading || disabled}
-        {...(asChild ? props : { ...props, children: buttonContent })}
-      >
-        {asChild ? children : buttonContent}
-      </Comp>
+      <button className={classNames} ref={ref} disabled={isDisabled} {...props}>
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {children}
+      </button>
     )
   }
 )

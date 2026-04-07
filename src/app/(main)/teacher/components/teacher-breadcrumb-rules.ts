@@ -162,13 +162,12 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
     id: 'teacher-exam-tabs',
     kind: 'regex',
     pattern:
-      /^\/teacher\/exams\/(\d+)\/(questions|specification|edit|monitor|common-part)$/,
+      /^\/teacher\/exams\/(\d+)\/(questions|specification|monitor|common-part)$/,
     paramKeys: ['examId', 'tab'],
     crumbs: ({ params }) => {
       const tabLabelMap: Record<string, string> = {
         questions: 'Câu hỏi',
         specification: 'Đặc tả đề thi',
-        edit: 'Chỉnh sửa thông tin',
         monitor: 'Giám sát thi',
         'common-part': 'Phần yêu cầu chung'
       }

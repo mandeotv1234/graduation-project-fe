@@ -21,6 +21,7 @@ import {
 import { useApi } from '@/hooks/use-api'
 import { updateExam } from '@/lib/actions'
 import { TeacherExamDetail } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 type InitialData = Partial<ExamFormInput> & {
   id: number
@@ -30,6 +31,8 @@ type InitialData = Partial<ExamFormInput> & {
 interface EditExamModalButtonProps {
   exam: TeacherExamDetail
   onSaved?: (updatedExam: TeacherExamDetail) => void
+  triggerLabel?: string
+  triggerClassName?: string
 }
 
 function toDateTimeLocalValue(value: string | null | undefined): string {
@@ -37,12 +40,12 @@ function toDateTimeLocalValue(value: string | null | undefined): string {
   return value.substring(0, 16)
 }
 
-function buildInitialData(exam: TeacherExamDetail): InitialData {
+export function buildExamFormInitialData(exam: TeacherExamDetail): InitialData {
   return {
     id: exam.id,
     classId: exam.classId,
     title: exam.title,
-    specificationId: exam.specificationId,
+    specificationId: Number(exam.specificationId ?? 0),
     durationMinutes: exam.durationMinutes,
     startTime: toDateTimeLocalValue(exam.startTime),
     endTime: toDateTimeLocalValue(exam.endTime),
@@ -54,9 +57,55 @@ function buildInitialData(exam: TeacherExamDetail): InitialData {
   }
 }
 
+/** Payload gửi updateExam: form dùng undefined, API dùng null cho slot trống. */
+export type ExamUpdateMergePayload = Omit<
+  ExamFormValues,
+  'startTime' | 'endTime'
+> & {
+  startTime: string | null
+  endTime: string | null
+}
+
+/** Gộp payload đã gửi với response — tránh mất specificationId khi API trả thiếu field. */
+export function mergeTeacherExamAfterUpdate(
+  exam: TeacherExamDetail,
+  payload: ExamUpdateMergePayload,
+  resultData: TeacherExamDetail | undefined | null
+): TeacherExamDetail {
+  const specFromPayload = Number(payload.specificationId)
+  let specificationId: number
+  if (resultData != null) {
+    const sid = resultData.specificationId
+    if (sid != null && sid > 0) {
+      specificationId = sid
+    } else if (sid === null) {
+      specificationId = 0
+    } else {
+      specificationId =
+        specFromPayload > 0
+          ? specFromPayload
+          : Number(exam.specificationId ?? 0)
+    }
+  } else {
+    specificationId =
+      specFromPayload > 0 ? specFromPayload : Number(exam.specificationId ?? 0)
+  }
+
+  return {
+    ...exam,
+    ...(resultData || {}),
+    ...payload,
+    startTime: payload.startTime,
+    endTime: payload.endTime,
+    specificationId
+  }
+}
+
 export function EditExamModalButton({
   exam,
-  onSaved
+  onSaved,
+  triggerLabel = 'Chỉnh sửa thông tin',
+  triggerClassName
 }: EditExamModalButtonProps) {
   const router = useRouter()
   const { callApi, isLoading } = useApi()
@@ -72,14 +121,11 @@ export function EditExamModalButton({
     const result = await callApi(updateExam(exam.id, payload), false)
 
     if (result.code === '200' || result.code === 'OK') {
-      const updatedExam: TeacherExamDetail = result.data
-        ? result.data
-        : {
-            ...exam,
-            ...payload,
-            startTime: payload.startTime,
-            endTime: payload.endTime
-          }
+      const updatedExam = mergeTeacherExamAfterUpdate(
+        exam,
+        payload,
+        result.data
+      )
 
       onSaved?.(updatedExam)
       toast.success('Cập nhật bài thi thành công')
@@ -90,9 +136,12 @@ export function EditExamModalButton({
 
   return (
     <>
-      <Button className="gap-2" onClick={() => setIsOpen(true)}>
+      <Button
+        className={cn('gap-2', triggerClassName)}
+        onClick={() => setIsOpen(true)}
+      >
         <PencilLine className="h-4 w-4" />
-        Chỉnh sửa thông tin
+        {triggerLabel}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -108,7 +157,7 @@ export function EditExamModalButton({
           </DialogHeader>
           <div className="[&_.sticky]:static [&_h1.text-3xl]:text-2xl">
             <ExamForm
-              initialData={buildInitialData(exam)}
+              initialData={buildExamFormInitialData(exam)}
               onSubmit={onSubmit}
               isLoading={isLoading}
               title="Chỉnh sửa bài thi"

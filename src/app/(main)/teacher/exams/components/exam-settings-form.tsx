@@ -197,8 +197,7 @@ export function ExamSettingsForm({
                     <span>
                       {mode === 'create'
                         ? 'Chọn đặc tả CSDL'
-                        : 'Đặc tả CSDL đã clone'}{' '}
-                      <span className="text-destructive">*</span>
+                        : 'Đặc tả CSDL đã clone'}
                     </span>
                   </label>
 
