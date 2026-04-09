@@ -50,22 +50,25 @@ import {
   TeacherExamTemplateVersionsResponse,
   UpdateExamQuestionRequest
 } from '@/lib/types'
-import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
+import { CreateTableRubricEditor } from './create-table-rubric-editor'
+import { InsertDataRubricEditor } from './insert-data-rubric-editor'
+import { InsertDataTestGrader } from './insert-data-test-grader'
+import { SelectQueryRubricEditor } from './select-query-rubric-editor'
+import { RoutineTestGrader } from './routine-test-grader'
+import { QuestionItem } from './question-item'
 import {
   generateCreateTableQuestionFromSchema,
   sanitizeSchemaTables
 } from './create-table-question-generator'
-import { CreateTableRubricEditor } from './create-table-rubric-editor'
 import {
   generateInsertDataQuestionFromDataset,
   getDatasetTableNames
 } from './insert-data-question-generator'
-import { InsertDataRubricEditor } from './insert-data-rubric-editor'
-import { InsertDataTestGrader } from './insert-data-test-grader'
+import { RoutineRubricEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/routine-rubric-editor/routine-rubric-editor'
+import { TriggerRubricEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor'
+import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
 import { InsertQueryFromSpec } from './insert-query-from-spec'
-import { QuestionItem } from './question-item'
 import { RubricTestGrader } from './rubric-test-grader'
-import { SelectQueryRubricEditor } from './select-query-rubric-editor'
 import { SelectQueryTestGrader } from './select-query-test-grader'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 
@@ -314,11 +317,16 @@ export function ExamQuestionsView({
   }
 
   const handleQuestionTypeChange = (questionId: string, nextType: string) => {
-    updateQuestion(questionId, { questionType: nextType, wizardStep: 1 })
-    if (nextType === 'CREATE_TABLE') {
+    const normalizedType = nextType.trim().toUpperCase()
+    updateQuestion(questionId, {
+      questionType: normalizedType,
+      wizardStep: 1,
+      rubricData: null
+    })
+    if (normalizedType === 'CREATE_TABLE') {
       setCreateTableModalOpen((prev) => ({ ...prev, [questionId]: true }))
     }
-    if (nextType === 'INSERT_DATA') {
+    if (normalizedType === 'INSERT_DATA') {
       const defaultDataset = availableDatasets[0]
       const defaultTable = defaultDataset
         ? getDatasetTableNames(defaultDataset)[0] || ''
@@ -719,11 +727,17 @@ export function ExamQuestionsView({
             <div className="space-y-6">
               {pendingQuestions.slice(0, 1).map((q, idx) => {
                 const step = q.wizardStep || 1
+                const normalizedQuestionType = String(q.questionType || '')
+                  .trim()
+                  .toUpperCase()
                 const hasWizard = [
                   'CREATE_TABLE',
                   'INSERT_DATA',
-                  'SELECT_QUERY'
-                ].includes(q.questionType)
+                  'SELECT_QUERY',
+                  'FUNCTION',
+                  'STORED_PROCEDURE',
+                  'TRIGGER'
+                ].includes(normalizedQuestionType)
                 const stepItems = hasWizard
                   ? [
                       { step: 1, label: 'Nội dung & đáp án' },
@@ -1233,17 +1247,7 @@ export function ExamQuestionsView({
                             </div>
                           </div>
 
-                          <div
-                            className={`grid gap-5 ${
-                              [
-                                'CREATE_TABLE',
-                                'INSERT_DATA',
-                                'SELECT_QUERY'
-                              ].includes(q.questionType)
-                                ? 'grid-cols-1'
-                                : 'grid-cols-1 lg:grid-cols-2'
-                            }`}
-                          >
+                          <div className={`grid gap-5 grid-cols-1 `}>
                             <div className="space-y-2">
                               <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                                 <span className="flex items-center gap-1.5">
@@ -1415,13 +1419,45 @@ export function ExamQuestionsView({
                               wizardStep={step}
                             />
                           )}
+                          {(q.questionType === 'FUNCTION' ||
+                            q.questionType === 'STORED_PROCEDURE') && (
+                            <RoutineRubricEditor
+                              questionType={q.questionType}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              wizardStep={step}
+                            />
+                          )}
+                          {q.questionType === 'TRIGGER' && (
+                            <TriggerRubricEditor
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              wizardStep={step}
+                            />
+                          )}
                         </div>
                       )}
 
                       {step === 4 &&
                         (q.questionType === 'CREATE_TABLE' ||
                           q.questionType === 'INSERT_DATA' ||
-                          q.questionType === 'SELECT_QUERY') && (
+                          q.questionType === 'SELECT_QUERY' ||
+                          q.questionType === 'FUNCTION' ||
+                          q.questionType === 'STORED_PROCEDURE') && (
                           <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
                             <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
                               <Play className="h-4 w-4" />
@@ -1444,6 +1480,15 @@ export function ExamQuestionsView({
                             )}
                             {q.questionType === 'SELECT_QUERY' && (
                               <SelectQueryTestGrader
+                                examId={examId}
+                                rubric={q.rubricData ?? null}
+                                correctQuery={q.correctQuery}
+                                totalPoints={q.points}
+                              />
+                            )}
+                            {(q.questionType === 'FUNCTION' ||
+                              q.questionType === 'STORED_PROCEDURE') && (
+                              <RoutineTestGrader
                                 examId={examId}
                                 rubric={q.rubricData ?? null}
                                 correctQuery={q.correctQuery}

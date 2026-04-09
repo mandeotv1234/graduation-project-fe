@@ -48,6 +48,7 @@ export {
   testGradeCreateTable,
   testGradeInsertData,
   testGradeSelectData,
+  testGradeRoutineData,
   executeSelectTestCaseConfig,
   buildInsertTablesFromAnswer,
   buildCreateTablesFromAnswer
