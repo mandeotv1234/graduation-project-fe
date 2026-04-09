@@ -1,0 +1,260 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.editor {
+  @apply space-y-4;
+
+  .settingsCard {
+    @apply rounded-lg border border-border/70 bg-muted/30 p-3;
+
+    .settingsHeader {
+      @apply mb-2 flex items-center gap-2;
+
+      .settingsIcon {
+        @apply h-4 w-4 text-muted-foreground;
+      }
+
+      .settingsTitle {
+        @apply text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+      }
+    }
+
+    .settingsControls {
+      @apply flex flex-wrap items-center gap-4 text-sm;
+
+      .checkboxLabel {
+        @apply flex items-center gap-2;
+
+        .checkboxInput {
+          @apply h-4 w-4 rounded border-border;
+        }
+
+        .labelText {
+          @apply text-foreground;
+        }
+      }
+
+      .syntaxGroup {
+        @apply flex items-center gap-2;
+
+        .mutedText {
+          @apply text-muted-foreground;
+        }
+
+        .syntaxSelect {
+          @apply rounded-md border border-border bg-background px-2 py-1 text-sm;
+        }
+      }
+    }
+  }
+
+  .emptyState {
+    @apply rounded-lg border border-dashed border-border bg-muted/20 p-6 text-center;
+
+    .emptyIcon {
+      @apply mx-auto mb-3 h-10 w-10 text-muted-foreground;
+    }
+
+    .emptyTitle {
+      @apply mb-1 text-sm font-medium text-foreground;
+    }
+
+    .emptyDescription {
+      @apply mb-3 text-xs text-muted-foreground;
+    }
+
+    .emptyActions {
+      @apply flex items-center justify-center gap-2;
+    }
+  }
+
+  .triggerList {
+    @apply space-y-3;
+
+    .triggerCard {
+      @apply overflow-hidden rounded-lg border border-border bg-card;
+
+      .triggerHeader {
+        @apply flex cursor-pointer items-center justify-between bg-muted/30 px-3 py-2;
+
+        .triggerHeaderLeft {
+          @apply flex items-center gap-2;
+
+          .chevronIcon {
+            @apply h-4 w-4 text-muted-foreground;
+          }
+
+          .triggerIcon {
+            @apply h-4 w-4 text-amber-500;
+          }
+
+          .triggerName {
+            @apply text-sm font-medium text-foreground;
+          }
+
+          .triggerSubText {
+            @apply text-xs text-muted-foreground;
+          }
+        }
+
+        .removeButton {
+          @apply inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors;
+          @apply hover:bg-destructive/10 hover:text-destructive;
+
+          .removeIcon {
+            @apply h-4 w-4;
+          }
+        }
+      }
+
+      .triggerDetails {
+        @apply space-y-4 p-4;
+
+        .twoColumns {
+          @apply grid grid-cols-2 gap-3;
+
+          .field {
+            @apply space-y-1.5;
+
+            .fieldLabel {
+              @apply text-xs font-medium text-muted-foreground;
+            }
+
+            .fieldInput {
+              @apply w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm;
+            }
+          }
+        }
+
+        .eventsSection {
+          @apply space-y-2;
+
+          .eventsLabel {
+            @apply flex items-center gap-1.5 text-xs font-medium text-muted-foreground;
+
+            .eventsIcon {
+              @apply h-3.5 w-3.5;
+            }
+          }
+
+          .eventOptions {
+            @apply flex flex-wrap gap-3;
+
+            .eventOption {
+              @apply flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2;
+
+              .eventCheckbox {
+                @apply h-4 w-4 rounded border-border;
+              }
+
+              .eventText {
+                @apply text-sm;
+              }
+            }
+          }
+        }
+
+        .timingSection {
+          @apply space-y-2;
+
+          .timingLabel {
+            @apply text-xs font-medium text-muted-foreground;
+          }
+
+          .timingOptions {
+            @apply flex flex-wrap gap-3;
+
+            .timingOption {
+              @apply flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2;
+
+              .timingRadio {
+                @apply h-4 w-4;
+              }
+
+              .timingText {
+                @apply text-sm;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .actions {
+      @apply flex items-center justify-center gap-2 pt-2;
+    }
+  }
+
+  .summary {
+    @apply flex items-center justify-between rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-sm;
+
+    .summaryLeft {
+      @apply flex items-center gap-2;
+
+      .summaryIcon {
+        @apply h-4 w-4 text-muted-foreground;
+      }
+
+      .summaryText {
+        @apply text-muted-foreground;
+      }
+    }
+
+    .summaryValue {
+      @apply font-semibold text-foreground;
+    }
+  }
+
+  .iconSm {
+    @apply mr-1 h-4 w-4;
+  }
+
+  .spin {
+    @apply animate-spin;
+  }
+
+  .testCaseCard {
+    @apply rounded-lg border border-border bg-card p-4;
+
+    .testCaseHeader {
+      @apply mb-4 flex items-center justify-between border-b border-border/50 pb-3;
+
+      .testCaseNumber {
+        @apply text-sm font-semibold text-foreground;
+      }
+    }
+
+    .testCaseFields {
+      @apply space-y-4;
+
+      .field {
+        @apply space-y-1.5;
+
+        .fieldLabel {
+          @apply text-xs font-medium text-muted-foreground;
+        }
+
+        .fieldInput {
+          @apply w-full rounded-md border border-border bg-background px-3 py-2 text-sm;
+        }
+      }
+
+      .fieldTextarea {
+        @apply w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono;
+        @apply resize-y min-h-[80px];
+      }
+
+      .penaltyField {
+        @apply flex items-center gap-2;
+
+        .penaltyLabel {
+          @apply text-xs font-medium text-muted-foreground;
+        }
+
+        .penaltyInput {
+          @apply w-24 rounded-md border border-border bg-background px-2 py-1.5 text-sm;
+        }
+      }
+    }
+  }
+}
