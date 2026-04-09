@@ -26,6 +26,17 @@
   }
 }
 
+.timeProgressBar {
+  @apply fixed top-0 left-0 right-0 h-1 z-50 bg-secondary/30;
+  .timeFill {
+    @apply h-full transition-all duration-1000 ease-linear;
+    &.normal { @apply bg-primary; }
+    &.warning { @apply bg-amber-500; }
+    &.danger { @apply bg-rose-500; }
+    &.critical { @apply bg-rose-700; }
+  }
+}
+
 .interfaceContainer {
   @apply flex flex-col h-screen bg-background text-foreground overflow-hidden;
 
@@ -79,7 +90,19 @@
         @apply flex items-center gap-3;
 
         .timer {
-          @apply flex items-center gap-1.5 text-sm font-mono font-semibold text-foreground bg-primary/5 px-3 py-1.5 rounded-md border border-primary/10;
+          @apply flex items-center gap-1.5 text-sm font-mono font-semibold text-foreground bg-primary/5 px-3 py-1.5 rounded-md border border-primary/10 transition-all duration-300;
+
+          &.warning {
+            @apply text-amber-600 bg-amber-50 border-amber-200;
+          }
+
+          &.danger {
+            @apply text-rose-600 bg-rose-50 border-rose-200;
+          }
+
+          &.critical {
+            @apply text-white bg-rose-700 border-rose-800 shadow-[0_0_15px_rgba(190,18,60,0.4)] animate-pulse;
+          }
         }
 
         .submitBtn {
