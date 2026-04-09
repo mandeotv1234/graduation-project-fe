@@ -51,46 +51,52 @@ async function findExamMetaFromTeacherClasses(
   let currentPage = 1
   let totalPages = 1
 
-  while (currentPage <= totalPages) {
-    const classesResponse = await getClasses(currentPage, pageSize)
-    const classes = classesResponse.data ?? []
-    const total = classesResponse.meta?.pagination?.total ?? classes.length
-    totalPages = Math.max(1, Math.ceil(total / pageSize))
+  try {
+    while (currentPage <= totalPages) {
+      const classesResponse = await getClasses(currentPage, pageSize)
+      const classes = classesResponse.data ?? []
+      const total = classesResponse.meta?.pagination?.total ?? classes.length
+      totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-    if (classes.length === 0) {
-      return null
-    }
+      if (classes.length === 0) {
+        return null
+      }
 
-    const examResponses = await Promise.all(
-      classes.map(async (classItem) => {
-        try {
-          const response = await getClassExams(classItem.id)
-          return {
-            classItem,
-            exams: response.data ?? []
+      const examResponses = await Promise.all(
+        classes.map(async (classItem) => {
+          try {
+            const response = await getClassExams(classItem.id)
+            return {
+              classItem,
+              exams: response.data ?? []
+            }
+          } catch {
+            return {
+              classItem,
+              exams: []
+            }
           }
-        } catch {
+        })
+      )
+
+      for (const examResponse of examResponses) {
+        const matchedExam = examResponse.exams.find(
+          (item) => item.id === examId
+        )
+
+        if (matchedExam) {
           return {
-            classItem,
-            exams: []
+            classId: String(examResponse.classItem.id),
+            classLabel: `Lớp ${examResponse.classItem.classCode}`,
+            examTitle: matchedExam.title
           }
-        }
-      })
-    )
-
-    for (const examResponse of examResponses) {
-      const matchedExam = examResponse.exams.find((item) => item.id === examId)
-
-      if (matchedExam) {
-        return {
-          classId: String(examResponse.classItem.id),
-          classLabel: `Lớp ${examResponse.classItem.classCode}`,
-          examTitle: matchedExam.title
         }
       }
-    }
 
-    currentPage += 1
+      currentPage += 1
+    }
+  } catch {
+    return null
   }
 
   return null
