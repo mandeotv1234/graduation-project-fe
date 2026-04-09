@@ -336,21 +336,21 @@ export interface GradingSettings {
   case_sensitive_names: boolean
   allow_implicit_constraints: boolean
   positive_only_scoring?: boolean
+  skip_child_checks_when_table_missing?: boolean
 }
 
 export interface RubricColumn {
   name: string
   expected_type: string
   is_nullable: boolean
-  points: number
+  missing_column_penalty: number
   type_mismatch_penalty: number
 }
 
 export interface RubricConstraint {
   type: ConstraintType
   columns: string[]
-  points: number
-  missing_penalty: number
+  missing_constraint_penalty: number
   references_table?: string
   references_columns?: string[]
   expression?: string
@@ -358,7 +358,7 @@ export interface RubricConstraint {
 
 export interface RubricTable {
   expected_name: string
-  existence_points: number
+  missing_table_penalty: number
   missing_penalty_action: MissingPenaltyAction
   columns: RubricColumn[]
   constraints: RubricConstraint[]

@@ -465,9 +465,7 @@ export function InsertDataRubricEditor({
         }
         setExpandedTables(expanded)
 
-        toast.success(
-          `AI đã tạo rubric thành công (${Array.isArray(finalPayload.tables) ? finalPayload.tables.length : 0} bảng${enforceExactPoints ? ', đã cân đúng tổng điểm' : ''})`
-        )
+        toast.success('AI tạo rubric thành công')
       } else {
         toast.error(result.message || 'AI không thể tạo rubric')
       }
@@ -892,7 +890,7 @@ function TableEditor({
                         Là khóa tham chiếu? (PK)
                       </th>
                       <th className="px-3 py-2 text-center font-semibold">
-                        Cộng điểm nếu khớp
+                        Trừ điểm nếu sai
                       </th>
                       <th className="px-3 py-2 text-left font-semibold">
                         Phương pháp duyệt chuỗi

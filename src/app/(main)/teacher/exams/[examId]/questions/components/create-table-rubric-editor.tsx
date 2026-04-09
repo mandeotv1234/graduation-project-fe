@@ -1,6 +1,6 @@
-'use client'
+﻿'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback } from 'react'
 import {
   Plus,
   Trash2,
@@ -10,10 +10,7 @@ import {
   Settings2,
   ChevronDown,
   ChevronRight,
-  AlertTriangle,
-  CheckCircle2,
   Sparkles,
-  Equal,
   Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -32,6 +29,11 @@ import {
 
 // ===== Default factories =====
 
+const STANDARD_MISSING_TABLE_PENALTY = 0.5
+const STANDARD_MISSING_COLUMN_PENALTY = 0.5
+const STANDARD_TYPE_MISMATCH_PENALTY = 0.25
+const STANDARD_MISSING_CONSTRAINT_PENALTY = 0.5
+
 function createDefaultRubric(totalPoints: number): GradingRubric {
   return {
     total_points: totalPoints,
@@ -41,7 +43,8 @@ function createDefaultRubric(totalPoints: number): GradingRubric {
         syntax_error_action: 'FAIL_ALL',
         case_sensitive_names: false,
         allow_implicit_constraints: true,
-        positive_only_scoring: false
+        positive_only_scoring: false,
+        skip_child_checks_when_table_missing: true
       },
       tables: []
     }
@@ -51,7 +54,7 @@ function createDefaultRubric(totalPoints: number): GradingRubric {
 function createDefaultTable(): RubricTable {
   return {
     expected_name: '',
-    existence_points: 0.1,
+    missing_table_penalty: STANDARD_MISSING_TABLE_PENALTY,
     missing_penalty_action: 'SKIP_TABLE',
     columns: [],
     constraints: []
@@ -63,8 +66,8 @@ function createDefaultColumn(): RubricColumn {
     name: '',
     expected_type: 'VARCHAR',
     is_nullable: true,
-    points: 0.05,
-    type_mismatch_penalty: 0.02
+    missing_column_penalty: STANDARD_MISSING_COLUMN_PENALTY,
+    type_mismatch_penalty: STANDARD_TYPE_MISMATCH_PENALTY
   }
 }
 
@@ -72,8 +75,7 @@ function createDefaultConstraint(): RubricConstraint {
   return {
     type: 'PRIMARY_KEY',
     columns: [],
-    points: 0.1,
-    missing_penalty: 0.05
+    missing_constraint_penalty: STANDARD_MISSING_CONSTRAINT_PENALTY
   }
 }
 
@@ -102,7 +104,8 @@ function normalizeCreateTablePayload(
     syntax_error_action: 'FAIL_ALL',
     case_sensitive_names: false,
     allow_implicit_constraints: true,
-    positive_only_scoring: false
+    positive_only_scoring: false,
+    skip_child_checks_when_table_missing: true
   }
 
   if (!payload || typeof payload !== 'object') {
@@ -126,141 +129,43 @@ function normalizeCreateTablePayload(
       rawSettings.allow_implicit_constraints,
       true
     ),
-    positive_only_scoring: toBoolean(rawSettings.positive_only_scoring, false)
+    positive_only_scoring: false,
+    skip_child_checks_when_table_missing: toBoolean(
+      rawSettings.skip_child_checks_when_table_missing,
+      true
+    )
   }
 
   return {
     grading_settings: settings,
     tables: Array.isArray(payloadRecord.tables)
-      ? (payloadRecord.tables as RubricTable[])
+      ? (payloadRecord.tables as RubricTable[]).map((table) => ({
+          ...table,
+          missing_table_penalty: Number(table.missing_table_penalty ?? 0),
+          missing_penalty_action: table.missing_penalty_action ?? 'SKIP_TABLE',
+          columns: (table.columns ?? []).map((column) => ({
+            ...column,
+            missing_column_penalty: Number(column.missing_column_penalty ?? 0),
+            type_mismatch_penalty: Number(column.type_mismatch_penalty ?? 0)
+          })),
+          constraints: (table.constraints ?? []).map((constraint) => ({
+            ...constraint,
+            missing_constraint_penalty: Number(
+              constraint.missing_constraint_penalty ?? 0
+            )
+          }))
+        }))
       : []
   }
 }
 
-function round2(value: number): number {
-  return Math.round(value * 100) / 100
-}
-
-function rebalanceCreateTablePoints(
-  tables: RubricTable[],
-  totalPoints: number
-): RubricTable[] {
-  if (tables.length === 0) {
-    return tables
-  }
-
-  type PointBucket =
-    | { type: 'table'; tableIdx: number; value: number }
-    | { type: 'column'; tableIdx: number; colIdx: number; value: number }
-    | {
-        type: 'constraint'
-        tableIdx: number
-        constraintIdx: number
-        value: number
-      }
-
-  const buckets: PointBucket[] = []
-  tables.forEach((table, tableIdx) => {
-    buckets.push({
-      type: 'table',
-      tableIdx,
-      value: Math.max(0, Number(table.existence_points) || 0)
-    })
-
-    table.columns.forEach((column, colIdx) => {
-      buckets.push({
-        type: 'column',
-        tableIdx,
-        colIdx,
-        value: Math.max(0, Number(column.points) || 0)
-      })
-    })
-
-    table.constraints.forEach((constraint, constraintIdx) => {
-      buckets.push({
-        type: 'constraint',
-        tableIdx,
-        constraintIdx,
-        value: Math.max(0, Number(constraint.points) || 0)
-      })
-    })
-  })
-
-  if (buckets.length === 0) {
-    return tables
-  }
-
-  const totalCents = Math.max(0, Math.round(totalPoints * 100))
-  const weightSum = buckets.reduce((sum, bucket) => sum + bucket.value, 0)
-  const fallbackWeight = weightSum > 0 ? 0 : 1
-
-  const weighted = buckets.map((bucket) => {
-    const weight = weightSum > 0 ? bucket.value : fallbackWeight
-    const raw = (weight / (weightSum || buckets.length)) * totalCents
-    const cents = Math.floor(raw)
-    return { ...bucket, cents, fraction: raw - cents }
-  })
-
-  let assigned = weighted.reduce((sum, bucket) => sum + bucket.cents, 0)
-  let remainder = totalCents - assigned
-  if (remainder > 0) {
-    const order = [...weighted]
-      .map((bucket, idx) => ({ idx, fraction: bucket.fraction }))
-      .sort((a, b) => b.fraction - a.fraction)
-    let i = 0
-    while (remainder > 0) {
-      weighted[order[i % order.length].idx].cents += 1
-      remainder -= 1
-      i += 1
-    }
-  }
-
-  const nextTables = tables.map((table) => ({
-    ...table,
-    columns: table.columns.map((column) => ({ ...column })),
-    constraints: table.constraints.map((constraint) => ({ ...constraint }))
-  }))
-
-  weighted.forEach((bucket) => {
-    const nextPoints = bucket.cents / 100
-    if (bucket.type === 'table') {
-      nextTables[bucket.tableIdx].existence_points = nextPoints
-      return
-    }
-
-    if (bucket.type === 'column') {
-      const original = tables[bucket.tableIdx].columns[bucket.colIdx]
-      const ratio =
-        original.points > 0
-          ? original.type_mismatch_penalty / original.points
-          : 0.4
-      nextTables[bucket.tableIdx].columns[bucket.colIdx] = {
-        ...nextTables[bucket.tableIdx].columns[bucket.colIdx],
-        points: nextPoints,
-        type_mismatch_penalty: round2(Math.max(0, nextPoints * ratio))
-      }
-      return
-    }
-
-    const original = tables[bucket.tableIdx].constraints[bucket.constraintIdx]
-    const ratio =
-      original.points > 0 ? original.missing_penalty / original.points : 0.5
-    nextTables[bucket.tableIdx].constraints[bucket.constraintIdx] = {
-      ...nextTables[bucket.tableIdx].constraints[bucket.constraintIdx],
-      points: nextPoints,
-      missing_penalty: round2(Math.max(0, nextPoints * ratio))
-    }
-  })
-
-  assigned = weighted.reduce((sum, bucket) => sum + bucket.cents, 0)
-  if (assigned !== totalCents) {
-    const delta = round2((totalCents - assigned) / 100)
-    nextTables[0].existence_points = round2(
-      Math.max(0, nextTables[0].existence_points + delta)
-    )
-  }
-
-  return nextTables
+function normalizeSqlTypeBase(type: string): string {
+  const normalized = (type || '').trim().toUpperCase()
+  if (!normalized) return 'VARCHAR'
+  const parenIndex = normalized.indexOf('(')
+  const noParams =
+    parenIndex >= 0 ? normalized.substring(0, parenIndex) : normalized
+  return noParams.trim() || 'VARCHAR'
 }
 
 const SQL_TYPES = [
@@ -341,6 +246,7 @@ export function CreateTableRubricEditor({
           ...normalizedPayload,
           grading_settings: {
             ...normalizedPayload.grading_settings,
+            positive_only_scoring: false,
             ...partial
           }
         }
@@ -355,50 +261,16 @@ export function CreateTableRubricEditor({
         ...r,
         total_points: totalPoints,
         question_category: 'CREATE_TABLE',
-        grading_payload: { ...normalizedPayload, tables: newTables }
+        grading_payload: {
+          ...normalizedPayload,
+          grading_settings: {
+            ...normalizedPayload.grading_settings,
+            positive_only_scoring: false
+          },
+          tables: newTables
+        }
       }
     })
-  }
-
-  // ===== Points calculation =====
-  const allocatedPoints = useMemo(() => {
-    let sum = 0
-    for (const t of tables) {
-      sum += t.existence_points
-      for (const c of t.columns) sum += c.points
-      for (const cn of t.constraints) sum += cn.points
-    }
-    return Math.round(sum * 100) / 100
-  }, [tables])
-
-  const pointsDiff = Math.round((totalPoints - allocatedPoints) * 100) / 100
-
-  // ===== Auto distribute points =====
-  const autoDistributePoints = () => {
-    if (tables.length === 0) return
-    const perTable = totalPoints / tables.length
-    const newTables = tables.map((t) => {
-      const existPts = Math.round(perTable * 0.1 * 100) / 100
-      const totalItems = t.columns.length + t.constraints.length
-      if (totalItems === 0) return { ...t, existence_points: perTable }
-      const remaining = perTable - existPts
-      const perItem = Math.round((remaining / totalItems) * 100) / 100
-      return {
-        ...t,
-        existence_points: existPts,
-        columns: t.columns.map((c) => ({
-          ...c,
-          points: perItem,
-          type_mismatch_penalty: Math.round(perItem * 0.4 * 100) / 100
-        })),
-        constraints: t.constraints.map((cn) => ({
-          ...cn,
-          points: perItem,
-          missing_penalty: Math.round(perItem * 0.5 * 100) / 100
-        }))
-      }
-    })
-    setTables(newTables)
   }
 
   // ===== Table-level expand/collapse =====
@@ -411,7 +283,6 @@ export function CreateTableRubricEditor({
 
   // ===== AI Generate =====
   const [isGenerating, setIsGenerating] = useState(false)
-  const [enforceExactPoints, setEnforceExactPoints] = useState(true)
 
   const handleAiGenerate = async () => {
     if (!correctQuery?.trim()) {
@@ -425,8 +296,7 @@ export function CreateTableRubricEditor({
         correctQuery: correctQuery.trim(),
         questionContent: questionContent || '',
         totalPoints,
-        questionType: 'CREATE_TABLE',
-        enforceExactTotalPoints: enforceExactPoints
+        questionType: 'CREATE_TABLE'
       })
 
       if (result.data) {
@@ -438,11 +308,7 @@ export function CreateTableRubricEditor({
         const parsedPayload = normalizeCreateTablePayload(
           parsed.grading_payload
         )
-        const parsedTables = parsedPayload.tables
-
-        const nextTables = enforceExactPoints
-          ? rebalanceCreateTablePoints(parsedTables, totalPoints)
-          : parsedTables
+        const nextTables = parsedPayload.tables
 
         const nextRubric: GradingRubric = {
           ...parsed,
@@ -450,6 +316,10 @@ export function CreateTableRubricEditor({
           question_category: 'CREATE_TABLE',
           grading_payload: {
             ...parsedPayload,
+            grading_settings: {
+              ...parsedPayload.grading_settings,
+              positive_only_scoring: false
+            },
             tables: nextTables
           }
         }
@@ -463,14 +333,11 @@ export function CreateTableRubricEditor({
         })
         setExpandedTables(expanded)
 
-        toast.success(
-          `AI đã tạo rubric thành công (${nextTables.length} bảng${enforceExactPoints ? ', đã cân đúng tổng điểm' : ''})`
-        )
+        toast.success('AI tạo rubric thành công')
       } else {
         toast.error(result.message || 'AI không thể tạo rubric')
       }
-    } catch (err) {
-      console.error('AI rubric generation failed:', err)
+    } catch {
       toast.error('Lỗi khi gọi AI. Vui lòng thử lại.')
     } finally {
       setIsGenerating(false)
@@ -479,7 +346,6 @@ export function CreateTableRubricEditor({
 
   return (
     <div className="space-y-5">
-      {/* AI Generate + Points summary bar */}
       <div className="flex flex-wrap items-center gap-3">
         <Button
           type="button"
@@ -501,55 +367,6 @@ export function CreateTableRubricEditor({
             </>
           )}
         </Button>
-
-        <label className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={enforceExactPoints}
-            onChange={(e) => setEnforceExactPoints(e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-primary"
-          />
-          AI cân đúng tổng điểm
-        </label>
-
-        <div
-          className={`flex-1 flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium border ${
-            pointsDiff === 0
-              ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-              : 'bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-400'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {pointsDiff === 0 ? (
-              <CheckCircle2 className="h-4 w-4" />
-            ) : (
-              <AlertTriangle className="h-4 w-4" />
-            )}
-            <span>
-              Đã phân bổ: <strong>{allocatedPoints}</strong> / {totalPoints}{' '}
-              điểm
-              {pointsDiff !== 0 && (
-                <span className="ml-2 text-xs">
-                  (
-                  {pointsDiff > 0
-                    ? `Còn thiếu ${pointsDiff}`
-                    : `Dư ${Math.abs(pointsDiff)}`}{' '}
-                  điểm)
-                </span>
-              )}
-            </span>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={autoDistributePoints}
-            className="gap-1 text-xs h-7"
-          >
-            <Equal className="h-3 w-3" />
-            Phân bổ đều
-          </Button>
-        </div>
       </div>
 
       {/* Zone 1: General Settings */}
@@ -599,18 +416,20 @@ export function CreateTableRubricEditor({
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={Boolean(settings.positive_only_scoring)}
+              checked={Boolean(settings.skip_child_checks_when_table_missing)}
               onChange={(e) =>
-                updateSettings({ positive_only_scoring: e.target.checked })
+                updateSettings({
+                  skip_child_checks_when_table_missing: e.target.checked
+                })
               }
               className="h-4 w-4 rounded border-border accent-primary"
             />
             <div>
               <p className="text-sm font-medium text-foreground">
-                Chỉ tính điểm cộng
+                Bỏ qua lỗi con khi thiếu bảng
               </p>
               <p className="text-xs text-muted-foreground">
-                Bật lên để tắt trừ điểm, mục sai sẽ không được cộng điểm
+                Nếu thiếu bảng thì không trừ thêm cột và ràng buộc của bảng đó
               </p>
             </div>
           </label>
@@ -650,7 +469,6 @@ export function CreateTableRubricEditor({
           <TableEditor
             key={tableIdx}
             table={table}
-            positiveOnlyScoring={Boolean(settings.positive_only_scoring)}
             isExpanded={expandedTables[tableIdx] ?? false}
             onToggle={() => toggleTable(tableIdx)}
             onChange={(updated) => {
@@ -672,27 +490,19 @@ export function CreateTableRubricEditor({
 
 function TableEditor({
   table,
-  positiveOnlyScoring,
   isExpanded,
   onToggle,
   onChange,
   onRemove
 }: {
   table: RubricTable
-  positiveOnlyScoring: boolean
   isExpanded: boolean
   onToggle: () => void
   onChange: (t: RubricTable) => void
   onRemove: () => void
 }) {
-  const colPoints = table.columns.reduce((s, c) => s + c.points, 0)
-  const conPoints = table.constraints.reduce((s, c) => s + c.points, 0)
-  const tableTotal =
-    Math.round((table.existence_points + colPoints + conPoints) * 100) / 100
-
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      {/* Table Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
         onClick={onToggle}
@@ -705,10 +515,6 @@ function TableEditor({
         <Table2 className="h-4 w-4 text-blue-500 shrink-0" />
         <span className="font-mono text-sm font-bold text-foreground">
           {table.expected_name || 'Bảng chưa đặt tên'}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          ({table.columns.length} cột · {table.constraints.length} ràng buộc ·{' '}
-          {tableTotal}đ)
         </span>
         <div
           className="ml-auto flex items-center gap-1"
@@ -727,7 +533,6 @@ function TableEditor({
 
       {isExpanded && (
         <div className="border-t border-border p-4 space-y-5">
-          {/* Table basic info */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
@@ -745,19 +550,19 @@ function TableEditor({
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                Điểm tồn tại bảng
+                Trừ khi thiếu bảng
               </label>
               <input
                 type="number"
-                value={table.existence_points}
+                value={table.missing_table_penalty}
                 onChange={(e) =>
                   onChange({
                     ...table,
-                    existence_points: Number(e.target.value)
+                    missing_table_penalty: Number(e.target.value)
                   })
                 }
                 min={0}
-                step={0.01}
+                step={0.05}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
@@ -776,13 +581,14 @@ function TableEditor({
                 }
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <option value="SKIP_TABLE">Bỏ qua (SKIP_TABLE)</option>
-                <option value="ZERO_POINTS">0 điểm (ZERO_POINTS)</option>
+                <option value="SKIP_TABLE">Bỏ qua lỗi con (SKIP_TABLE)</option>
+                <option value="ZERO_POINTS">
+                  0 điểm bảng này (ZERO_POINTS)
+                </option>
               </select>
             </div>
           </div>
 
-          {/* Columns */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h5 className="flex items-center gap-1.5 text-xs font-bold text-foreground uppercase tracking-wider">
@@ -811,7 +617,7 @@ function TableEditor({
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/50 border-b border-border">
-                      <th className="px-3 py-2 text-left font-semibold w-[25%]">
+                      <th className="px-3 py-2 text-left font-semibold w-[24%]">
                         Tên cột
                       </th>
                       <th className="px-3 py-2 text-left font-semibold w-[20%]">
@@ -820,15 +626,13 @@ function TableEditor({
                       <th className="px-3 py-2 text-center font-semibold w-[10%]">
                         Nullable
                       </th>
-                      <th className="px-3 py-2 text-center font-semibold w-[15%]">
-                        Điểm
+                      <th className="px-3 py-2 text-center font-semibold w-[18%]">
+                        Trừ khi thiếu cột
                       </th>
-                      {!positiveOnlyScoring && (
-                        <th className="px-3 py-2 text-center font-semibold w-[15%]">
-                          Trừ sai kiểu
-                        </th>
-                      )}
-                      <th className="px-3 py-2 text-center font-semibold w-[8%]"></th>
+                      <th className="px-3 py-2 text-center font-semibold w-[18%]">
+                        Trừ sai kiểu
+                      </th>
+                      <th className="px-3 py-2 text-center font-semibold w-[10%]"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -852,7 +656,7 @@ function TableEditor({
                         </td>
                         <td className="px-3 py-2">
                           <select
-                            value={col.expected_type}
+                            value={normalizeSqlTypeBase(col.expected_type)}
                             onChange={(e) => {
                               const newCols = [...table.columns]
                               newCols[colIdx] = {
@@ -888,12 +692,12 @@ function TableEditor({
                         <td className="px-3 py-2">
                           <input
                             type="number"
-                            value={col.points}
+                            value={col.missing_column_penalty}
                             onChange={(e) => {
                               const newCols = [...table.columns]
                               newCols[colIdx] = {
                                 ...col,
-                                points: Number(e.target.value)
+                                missing_column_penalty: Number(e.target.value)
                               }
                               onChange({ ...table, columns: newCols })
                             }}
@@ -902,25 +706,23 @@ function TableEditor({
                             className="w-full rounded border border-border bg-background px-2 py-1 text-center text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           />
                         </td>
-                        {!positiveOnlyScoring && (
-                          <td className="px-3 py-2">
-                            <input
-                              type="number"
-                              value={col.type_mismatch_penalty}
-                              onChange={(e) => {
-                                const newCols = [...table.columns]
-                                newCols[colIdx] = {
-                                  ...col,
-                                  type_mismatch_penalty: Number(e.target.value)
-                                }
-                                onChange({ ...table, columns: newCols })
-                              }}
-                              min={0}
-                              step={0.01}
-                              className="w-full rounded border border-border bg-background px-2 py-1 text-center text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            />
-                          </td>
-                        )}
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            value={col.type_mismatch_penalty}
+                            onChange={(e) => {
+                              const newCols = [...table.columns]
+                              newCols[colIdx] = {
+                                ...col,
+                                type_mismatch_penalty: Number(e.target.value)
+                              }
+                              onChange({ ...table, columns: newCols })
+                            }}
+                            min={0}
+                            step={0.01}
+                            className="w-full rounded border border-border bg-background px-2 py-1 text-center text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          />
+                        </td>
                         <td className="px-3 py-2 text-center">
                           <button
                             type="button"
@@ -945,7 +747,6 @@ function TableEditor({
             )}
           </div>
 
-          {/* Constraints */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h5 className="flex items-center gap-1.5 text-xs font-bold text-foreground uppercase tracking-wider">
@@ -1021,7 +822,7 @@ function ConstraintEditor({
   return (
     <div className="rounded-md border border-border bg-muted/10 p-3 space-y-3">
       <div className="flex items-start gap-3">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 flex-1">
           <div className="space-y-1">
             <label className="text-[10px] font-medium text-muted-foreground uppercase">
               Loại
@@ -1069,31 +870,15 @@ function ConstraintEditor({
 
           <div className="space-y-1">
             <label className="text-[10px] font-medium text-muted-foreground uppercase">
-              Điểm
-            </label>
-            <input
-              type="number"
-              value={constraint.points}
-              onChange={(e) =>
-                onChange({ ...constraint, points: Number(e.target.value) })
-              }
-              min={0}
-              step={0.01}
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-medium text-muted-foreground uppercase">
               Trừ khi thiếu
             </label>
             <input
               type="number"
-              value={constraint.missing_penalty}
+              value={constraint.missing_constraint_penalty}
               onChange={(e) =>
                 onChange({
                   ...constraint,
-                  missing_penalty: Number(e.target.value)
+                  missing_constraint_penalty: Number(e.target.value)
                 })
               }
               min={0}
@@ -1112,7 +897,6 @@ function ConstraintEditor({
         </button>
       </div>
 
-      {/* FK-specific fields */}
       {isFk && (
         <div className="grid grid-cols-2 gap-3 pl-0">
           <div className="space-y-1">
@@ -1152,7 +936,6 @@ function ConstraintEditor({
         </div>
       )}
 
-      {/* CHECK / DEFAULT expression */}
       {(isCheck || isDefault) && (
         <div className="space-y-1">
           <label className="text-[10px] font-medium text-muted-foreground uppercase">
