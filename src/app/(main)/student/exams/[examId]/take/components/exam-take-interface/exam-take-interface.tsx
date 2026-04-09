@@ -222,6 +222,47 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     return seconds < 0 ? `-${text}` : text
   }, [])
 
+  // Timer milestones and toasts
+  useEffect(() => {
+    if (!examActive) return
+
+    if (remainingSeconds === 300) {
+      toast.warning('Còn lại 5 phút!')
+    } else if (remainingSeconds === 60) {
+      toast.error('Chỉ còn 1 phút! Hãy kiểm tra lại bài làm.')
+    } else if (remainingSeconds === 30) {
+      toast.error('Cảnh báo: Chỉ còn 30 giây cuối cùng!')
+    }
+  }, [remainingSeconds, examActive])
+
+  const getTimerState = useCallback((seconds: number) => {
+    if (seconds <= 30) return 'critical'
+    if (seconds <= 60) return 'danger'
+    if (seconds <= 300) return 'warning'
+    return 'normal'
+  }, [])
+
+  const timerState = getTimerState(remainingSeconds)
+  const timerClass =
+    timerState === 'critical'
+      ? styles.critical
+      : timerState === 'danger'
+        ? styles.danger
+        : timerState === 'warning'
+          ? styles.warning
+          : ''
+
+  // Update document title with remaining time
+  useEffect(() => {
+    if (!examActive) return
+    const time = formatTime(remainingSeconds)
+    const storedTitle = document.title
+    document.title = `[${time}] ${exam.title}`
+    return () => {
+      document.title = storedTitle
+    }
+  }, [remainingSeconds, examActive, exam.title, formatTime])
+
   // Only conditionally render UI, never call hooks conditionally
   useEffect(() => {
     async function initSession() {
@@ -320,6 +361,17 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
 
   return (
     <>
+      <div className={styles.timeProgressBar}>
+        <div
+          className={`${styles.timeFill} ${styles[timerState]}`}
+          style={{
+            width: `${Math.max(
+              0,
+              (remainingSeconds / (exam.durationMinutes * 60)) * 100
+            )}%`
+          }}
+        />
+      </div>
       <ViolationWarningModal />
       <NetworkStatusBanner
         isReachable={isServerReachable}
@@ -400,8 +452,12 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                 </div>
 
                 <div className={styles.actions}>
-                  <div className={styles.timer}>
-                    <Clock className="h-4 w-4 text-primary" />
+                  <div className={`${styles.timer} ${timerClass}`}>
+                    <Clock
+                      className={`h-4 w-4 ${
+                        timerState === 'normal' ? 'text-primary' : ''
+                      }`}
+                    />
                     <span>{formatTime(remainingSeconds)}</span>
                   </div>
                   <Button

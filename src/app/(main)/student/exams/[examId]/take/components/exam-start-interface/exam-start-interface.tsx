@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock, Hash, BookOpen } from 'lucide-react'
+import { Clock, Hash, BookOpen, Shield, Maximize, Loader2 } from 'lucide-react'
 import {
   StudentExamDetail,
   StartExamSessionResponse,
@@ -13,6 +13,8 @@ import { PATH } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { WaitingApprovalOverlay } from '@/app/(main)/exam/components/waiting-approval-overlay/waiting-approval-overlay'
+import { setFullscreen } from '@/lib/redux/slices/anti-cheat.slice'
+import { useAppDispatch } from '@/lib/redux/hooks'
 import styles from './exam-start-interface.module.scss'
 
 interface ExamStartInterfaceProps {
@@ -58,6 +60,16 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
   const [pendingConflict, setPendingConflict] = useState<{
     conflictId: string
   } | null>(null)
+  const [countdownStr, setCountdownStr] = useState<string | null>(null)
+  const [canStart, setCanStart] = useState(() => {
+    if (exam.maxAttempts === 1 && exam.startTime) {
+      return new Date(exam.startTime).getTime() <= Date.now()
+    }
+    return true
+  })
+  const hasAutoStarted = useRef(false)
+
+  const dispatch = useAppDispatch()
 
   // Fetch studentId for WaitingApprovalOverlay
   useEffect(() => {
@@ -66,16 +78,11 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
     })
   }, [])
 
-  const handleStartExam = async () => {
-    if (!agreed) return
-    setIsStarting(true)
-    setError(null)
-
+  const doStartSession = useCallback(async () => {
     try {
       const result = await callStartSession(exam.examId)
 
       if (result.data) {
-        // Conflict pending — student must wait for teacher approval
         if (result.data.conflictPending && result.data.conflictId) {
           setPendingConflict({ conflictId: result.data.conflictId })
           setIsStarting(false)
@@ -87,23 +94,102 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
             result.data.message ||
               'Không thể bắt đầu phiên thi. Có thể bạn đã dùng hết lượt.'
           )
+          if (document.fullscreenElement) {
+            await document.exitFullscreen()
+          }
+          dispatch(setFullscreen(false))
           setIsStarting(false)
           return
         }
 
-        // Session started successfully → navigate to exam
         router.push(PATH.STUDENT_EXAM_DOING(exam.examId))
       } else {
         setError(
-          result.message || 'Không nhận được phân hồi hợp lệ từ máy chủ.'
+          result.message || 'Không nhận được phản hồi hợp lệ từ máy chủ.'
         )
+        if (document.fullscreenElement) {
+          await document.exitFullscreen()
+        }
+        dispatch(setFullscreen(false))
         setIsStarting(false)
       }
     } catch {
       setError('Lỗi kết nối máy chủ. Vui lòng thử lại.')
+      if (document.fullscreenElement) {
+        await document.exitFullscreen()
+      }
+      dispatch(setFullscreen(false))
       setIsStarting(false)
     }
+  }, [exam.examId, router, dispatch])
+
+  const handleStartExam = async () => {
+    if (!agreed) return
+    setIsStarting(true)
+    setError(null)
+
+    if (exam.settings?.forceFullscreen) {
+      try {
+        await document.documentElement.requestFullscreen()
+        dispatch(setFullscreen(true))
+      } catch {
+        setError('Bạn cần cấp quyền chế độ toàn màn hình để bắt đầu bài thi.')
+        setIsStarting(false)
+        return
+      }
+    }
+
+    await doStartSession()
   }
+
+  useEffect(() => {
+    if (!exam.startTime || exam.maxAttempts !== 1) return
+    const startObj = new Date(exam.startTime).getTime()
+
+    const updateCountdown = () => {
+      const now = Date.now()
+      const diff = startObj - now
+      if (diff > 0) {
+        setCanStart(false)
+        const h = Math.floor(diff / 3600000)
+        const m = Math.floor((diff % 3600000) / 60000)
+        const s = Math.floor((diff % 60000) / 1000)
+        const text =
+          h > 0
+            ? `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+            : `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+        setCountdownStr(text)
+      } else {
+        setCanStart(true)
+        setCountdownStr(null)
+      }
+    }
+
+    updateCountdown()
+    const intervalId = setInterval(updateCountdown, 1000)
+    return () => clearInterval(intervalId)
+  }, [exam.startTime, exam.maxAttempts])
+
+  useEffect(() => {
+    if (
+      canStart &&
+      !hasAutoStarted.current &&
+      exam.maxAttempts === 1 &&
+      exam.startTime
+    ) {
+      if (!exam.settings?.forceFullscreen) {
+        hasAutoStarted.current = true
+        setIsStarting(true)
+        doStartSession()
+      }
+    }
+  }, [
+    canStart,
+    exam.maxAttempts,
+    exam.startTime,
+    exam.settings?.forceFullscreen,
+    doStartSession
+  ])
 
   const { settings, durationMinutes, maxAttempts, description } = exam
 
@@ -161,7 +247,9 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                   <Hash className="w-3.5 h-3.5" /> Số lượt cho phép
                 </p>
                 <p className={styles.value}>
-                  {maxAttempts ? `${maxAttempts} Lượt` : '1 Lượt'}
+                  {maxAttempts
+                    ? `${exam.usedAttempts ?? 0}/${maxAttempts} Lượt`
+                    : '1 Lượt'}
                 </p>
               </div>
 
@@ -245,20 +333,39 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                     </li>
                   )}
               </ul>
+              {settings?.forceFullscreen && (
+                <div className="mt-5 p-4 bg-background/50 rounded-lg border border-amber-200/40">
+                  <p className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-amber-600" /> Chế độ thi an
+                    toàn (Bắt buộc)
+                  </p>
+                  <p className="text-sm text-foreground/80">
+                    Hệ thống yêu cầu chế độ toàn màn hình để đảm bảo tính công
+                    bằng. Bạn không được chuyển thẻ nội dung (tab), mở DevTools,
+                    hay sử dụng các phím tắt bị cấm. Mọi vi phạm sẽ được ghi
+                    nhận lại và bài thi sẽ bị tự động nộp nếu vi phạm quá số
+                    lần.
+                  </p>
+                </div>
+              )}
             </div>
-            <label className={styles.agreementLabel}>
-              <Checkbox
-                checked={agreed}
-                onCheckedChange={(checked: boolean | 'indeterminate') =>
-                  setAgreed(checked === true)
-                }
-                className={styles.checkbox}
-              />
-              <span className={styles.text}>
-                Tôi đã đọc, hiểu và cam kết tuân thủ các quy định thi trực tuyến
-                một cách nghiêm túc.
-              </span>
-            </label>
+            {(!exam.startTime ||
+              exam.maxAttempts !== 1 ||
+              settings?.forceFullscreen) && (
+              <label className={styles.agreementLabel}>
+                <Checkbox
+                  checked={agreed}
+                  onCheckedChange={(checked: boolean | 'indeterminate') =>
+                    setAgreed(checked === true)
+                  }
+                  className={styles.checkbox}
+                />
+                <span className={styles.text}>
+                  Tôi đã đọc, hiểu và cam kết tuân thủ các quy định thi trực
+                  tuyến một cách nghiêm túc.
+                </span>
+              </label>
+            )}
           </section>
 
           {/* Error message */}
@@ -273,12 +380,31 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
             <Button
               size="lg"
               className={styles.startButton}
-              disabled={!agreed || isStarting}
+              disabled={
+                !canStart ||
+                (!agreed &&
+                  (!exam.startTime ||
+                    exam.maxAttempts !== 1 ||
+                    settings?.forceFullscreen)) ||
+                isStarting
+              }
               onClick={handleStartExam}
             >
-              {isStarting
-                ? 'Đang chuẩn bị phiên thi...'
-                : 'Bắt đầu làm bài thi'}
+              {isStarting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Đang chuẩn bị phiên thi...
+                </>
+              ) : !canStart && countdownStr ? (
+                `Bắt đầu sau ${countdownStr}`
+              ) : settings?.forceFullscreen ? (
+                <>
+                  <Maximize className="w-4 h-4 mr-2" />
+                  Bật toàn màn hình & Bắt đầu
+                </>
+              ) : (
+                'Bắt đầu làm bài thi'
+              )}
             </Button>
           </div>
         </div>

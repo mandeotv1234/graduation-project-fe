@@ -55,6 +55,7 @@ export interface StudentExamDetail {
   secondsUntilStart?: number
   description?: string
   maxAttempts?: number
+  usedAttempts?: number
   lateThreshold?: number
   settings?: ExamSettings
   schema?: Array<{
