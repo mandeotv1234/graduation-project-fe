@@ -39,6 +39,7 @@ import {
   Loader2,
   Play,
   Save,
+  Sparkles,
   Terminal,
   Trash2
 } from 'lucide-react'
@@ -55,12 +56,16 @@ import {
   getDatasetTableNames
 } from './insert-data-question-generator'
 import { InsertDataRubricEditor } from './insert-data-rubric-editor'
+import { RoutineTestGrader } from './routine-test-grader'
+import { TriggerTestGrader } from './trigger-test-grader'
 import { InsertDataTestGrader } from './insert-data-test-grader'
 import { InsertQueryFromSpec } from './insert-query-from-spec'
-import { RubricTestGrader } from './rubric-test-grader'
-import { SelectQueryRubricEditor } from './select-query-rubric-editor'
-import { SelectQueryTestGrader } from './select-query-test-grader'
-import { TeacherSqlEditor } from './teacher-sql-editor'
+import { TeacherSqlEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/teacher-sql-editor'
+import { SelectQueryRubricEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/select-query-rubric-editor'
+import { RubricTestGrader } from '@/app/(main)/teacher/exams/[examId]/questions/components/rubric-test-grader'
+import { SelectQueryTestGrader } from '@/app/(main)/teacher/exams/[examId]/questions/components/select-query-test-grader'
+import { RoutineRubricEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/routine-rubric-editor/routine-rubric-editor'
+import { TriggerRubricEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -78,6 +83,40 @@ const QUESTION_TYPE_COLORS: Record<string, string> = {
   TRIGGER: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   FUNCTION: 'bg-pink-500/10 text-pink-600 dark:text-pink-400',
   STORED_PROCEDURE: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+}
+
+function buildRoutineSchemaContext(
+  tables: SpecificationSchemaJsonTable[],
+  specification?: ExamSpecification | SpecificationDetailResponse | null
+) {
+  const ddlScript = specification?.ddlScript?.trim()
+  if (ddlScript) {
+    return ddlScript.slice(0, 12000)
+  }
+
+  if (tables.length > 0) {
+    return tables
+      .map((table) => {
+        const columns = table.columns
+          .map((column) => {
+            const flags = [
+              column.primaryKey ? 'PK' : '',
+              column.foreignKey
+                ? `FK->${column.referencesTable}.${column.referencesColumn}`
+                : '',
+              column.nullable ? 'NULL' : 'NOT NULL'
+            ]
+              .filter(Boolean)
+              .join(' ')
+            return `${column.columnName} ${column.dataType}${flags ? ` ${flags}` : ''}`
+          })
+          .join(', ')
+        return `TABLE ${table.tableName}(${columns})`
+      })
+      .join('\n')
+  }
+
+  return ''
 }
 
 export function QuestionItem({
@@ -134,6 +173,10 @@ export function QuestionItem({
       ),
     [specificationDatasets]
   )
+  const routineSchemaContext = useMemo(
+    () => buildRoutineSchemaContext(availableSchemaTables, specification),
+    [availableSchemaTables, specification]
+  )
 
   const selectedInsertDataset = useMemo(
     () =>
@@ -157,8 +200,10 @@ export function QuestionItem({
     questionType: question.questionType || 'SELECT_QUERY',
     rubricData: question.gradingRubric
       ? JSON.parse(question.gradingRubric)
-      : null
+      : null,
+    wizardStep: 1
   })
+  const [editWizardStep, setEditWizardStep] = useState(1)
 
   const openEdit = () => {
     setEditForm({
@@ -171,8 +216,10 @@ export function QuestionItem({
       questionType: question.questionType || 'SELECT_QUERY',
       rubricData: question.gradingRubric
         ? JSON.parse(question.gradingRubric)
-        : null
+        : null,
+      wizardStep: 1
     })
+    setEditWizardStep(1)
     setCreateTableModalOpen(false)
     setInsertDataModalOpen(false)
     setEditCreateTableSelections([])
@@ -649,15 +696,7 @@ export function QuestionItem({
             </div>
           </div>
 
-          <div
-            className={`grid gap-4 ${
-              ['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
-                editForm.questionType
-              )
-                ? 'grid-cols-1'
-                : 'grid-cols-1 md:grid-cols-2'
-            }`}
-          >
+          <div className="grid gap-4 grid-cols-1">
             <div className="space-y-2">
               <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                 <span className="flex items-center gap-1.5">
@@ -691,9 +730,14 @@ export function QuestionItem({
                 />
               </div>
             </div>
-            {!['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
-              editForm.questionType
-            ) && (
+            {![
+              'CREATE_TABLE',
+              'INSERT_DATA',
+              'SELECT_QUERY',
+              'FUNCTION',
+              'STORED_PROCEDURE',
+              'TRIGGER'
+            ].includes(editForm.questionType) && (
               <div className="space-y-2">
                 <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                   <span className="flex items-center gap-1.5">
@@ -821,6 +865,121 @@ export function QuestionItem({
               )}
             </div>
           )}
+
+          {(editForm.questionType === 'FUNCTION' ||
+            editForm.questionType === 'STORED_PROCEDURE') && (
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-4">
+              <h4 className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
+                <Sparkles className="h-4 w-4" /> Cấu hình rubric
+                FUNCTION/PROCEDURE
+              </h4>
+              {/* Step indicator */}
+              <div className="flex items-center gap-2 text-xs">
+                {[
+                  { step: 1, label: '1. Nội dung' },
+                  { step: 2, label: '2. Test cases' },
+                  { step: 3, label: '3. Rubric' },
+                  { step: 4, label: '4. Kiểm thử' }
+                ].map((item) => (
+                  <button
+                    key={item.step}
+                    type="button"
+                    onClick={() => setEditWizardStep(item.step)}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      editWizardStep === item.step
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <RoutineRubricEditor
+                questionType={
+                  editForm.questionType === 'STORED_PROCEDURE'
+                    ? 'STORED_PROCEDURE'
+                    : 'FUNCTION'
+                }
+                totalPoints={editForm.points}
+                rubric={editForm.rubricData}
+                onChange={(rubric) =>
+                  setEditForm((prev) => ({ ...prev, rubricData: rubric }))
+                }
+                correctQuery={editForm.correctQuery}
+                questionContent={editForm.content}
+                schemaContext={routineSchemaContext}
+                wizardStep={editWizardStep}
+              />
+
+              {editWizardStep === 4 && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
+                    <Play className="h-4 w-4" /> Kiểm thử rubric
+                  </h4>
+                  <RoutineTestGrader
+                    examId={examId}
+                    rubric={editForm.rubricData}
+                    correctQuery={editForm.correctQuery}
+                    totalPoints={editForm.points}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {editForm.questionType === 'TRIGGER' && (
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-4">
+              <h4 className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
+                <Sparkles className="h-4 w-4" /> Cấu hình rubric TRIGGER
+              </h4>
+              {/* Step indicator */}
+              <div className="flex items-center gap-2 text-xs">
+                {[
+                  { step: 1, label: '1. Nội dung' },
+                  { step: 2, label: '2. Test cases' },
+                  { step: 3, label: '3. Rubric' },
+                  { step: 4, label: '4. Kiểm thử' }
+                ].map((item) => (
+                  <button
+                    key={item.step}
+                    type="button"
+                    onClick={() => setEditWizardStep(item.step)}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      editWizardStep === item.step
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <TriggerRubricEditor
+                totalPoints={editForm.points}
+                rubric={editForm.rubricData}
+                onChange={(rubric) =>
+                  setEditForm((prev) => ({ ...prev, rubricData: rubric }))
+                }
+                correctQuery={editForm.correctQuery}
+                questionContent={editForm.content}
+                wizardStep={editWizardStep}
+              />
+              {editWizardStep === 4 && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
+                    <Play className="h-4 w-4" /> Kiểm thử rubric
+                  </h4>
+                  <TriggerTestGrader
+                    examId={examId}
+                    rubric={editForm.rubricData}
+                    correctQuery={editForm.correctQuery}
+                    totalPoints={editForm.points}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     )
@@ -936,9 +1095,14 @@ export function QuestionItem({
                 />
               </div>
             </div>
-            {!['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
-              question.questionType
-            ) && (
+            {![
+              'CREATE_TABLE',
+              'INSERT_DATA',
+              'SELECT_QUERY',
+              'FUNCTION',
+              'STORED_PROCEDURE',
+              'TRIGGER'
+            ].includes(question.questionType) && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <Terminal className="h-3.5 w-3.5" /> Script kiểm thử (Verify

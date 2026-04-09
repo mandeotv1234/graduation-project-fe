@@ -383,7 +383,11 @@ export interface UpdateExamQuestionRequest {
 // ===== Grading Rubric Types (Polymorphic Architecture) =====
 
 export type SyntaxErrorAction = 'FAIL_ALL' | 'PARTIAL'
-export type MissingPenaltyAction = 'SKIP_TABLE' | 'ZERO_POINTS'
+export type MissingPenaltyAction =
+  | 'SKIP_TABLE'
+  | 'ZERO_POINTS'
+  | 'SKIP_ROUTINE'
+  | 'SKIP_TRIGGER'
 export type ConstraintType =
   | 'PRIMARY_KEY'
   | 'FOREIGN_KEY'
@@ -437,6 +441,8 @@ export interface GradingRubric {
     | CreateTableGradingPayload
     | InsertDataGradingPayload
     | SelectQueryGradingPayload
+    | RoutineGradingPayload
+    | TriggerGradingPayload
     | Record<string, unknown>
 }
 
@@ -572,6 +578,101 @@ export interface SelectTestCase {
 export interface SelectQueryGradingPayload {
   grading_rules?: InsertDataGradingRule[]
   test_cases: SelectTestCase[]
+}
+
+// === FUNCTION/STORED_PROCEDURE Grading Types ===
+
+export interface RoutineGradingSettings {
+  syntax_error_action?: SyntaxErrorAction
+  print_output_compare_mode?: 'LENIENT' | 'STRICT'
+}
+
+export type RoutineType = 'FUNCTION' | 'PROCEDURE' | 'STORED_PROCEDURE'
+export type ParameterMode = 'IN' | 'OUT' | 'INOUT'
+
+export interface RoutineRubricParameter {
+  name: string
+  expected_type: string
+  expected_mode: ParameterMode
+  points: number
+  type_mismatch_penalty: number
+}
+
+export interface RoutineRubricRoutine {
+  expected_name: string
+  expected_type: RoutineType
+  existence_points: number
+  type_points: number
+  return_type_points: number
+  expected_return_type: string
+  missing_penalty_action: MissingPenaltyAction
+  parameters: RoutineRubricParameter[]
+}
+
+export type VerificationType =
+  | 'RETURN_VALUE'
+  | 'OUT_PARAMETER'
+  | 'RESULT_SET'
+  | 'SIDE_EFFECT'
+  | 'PRINT_OUTPUT'
+
+export interface RoutineTestCase {
+  case_id: string
+  case_name: string
+  score_weight?: number
+  penalty_value?: number
+  match_type?: 'EXACT' | 'CONTAINS'
+  input_parameters?: string | Record<string, unknown>
+  setup_script?: string
+  invocation_query?: string
+  validation_query?: string
+  verification_type: VerificationType
+  description?: string
+  expected_result?: string
+}
+
+export interface RoutineGradingPayload {
+  grading_settings: RoutineGradingSettings
+  routines: RoutineRubricRoutine[]
+  test_cases?: RoutineTestCase[]
+}
+
+// === TRIGGER Grading Types ===
+
+export interface TriggerGradingSettings {
+  syntax_error_action?: SyntaxErrorAction
+  case_sensitive_names?: boolean
+  positive_only_scoring?: boolean
+}
+
+export interface TriggerTestCase {
+  case_id: string
+  case_name: string
+  penalty_value: number
+  trigger_sql: string
+  expected_result: string
+  setup_script?: string
+  description?: string
+}
+
+export interface TriggerRubricTrigger {
+  expected_name: string
+  existence_points: number
+  table_points: number
+  event_points: number
+  timing_points: number
+  expected_table_name: string
+  is_insert: boolean
+  is_update: boolean
+  is_delete: boolean
+  is_after: boolean
+  missing_penalty_action: MissingPenaltyAction
+}
+
+export interface TriggerGradingPayload {
+  grading_settings: TriggerGradingSettings
+  triggers: TriggerRubricTrigger[]
+  test_cases?: TriggerTestCase[]
 }
 
 export interface SaveExamSpecificationRequest {
