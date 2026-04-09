@@ -523,6 +523,7 @@ export function TeacherExamDetailContent({
             variant="embedded"
             examId={exam.id}
             initialQuestions={questions}
+            specification={displaySpecification}
             templateManagement={templateManagement}
             canShareTemplate={canShareTemplate}
             shareDisabledReason={shareDisabledReason}

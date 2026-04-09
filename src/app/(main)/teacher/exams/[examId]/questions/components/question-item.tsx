@@ -18,13 +18,19 @@ import {
 import { Button } from '@/components/ui/button'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { RichTextEditor } from '@/components/shared/rich-text-editor'
-import { ExamQuestionItem, UpdateExamQuestionRequest } from '@/lib/types'
+import {
+  ExamQuestionItem,
+  UpdateExamQuestionRequest,
+  ExamSpecification,
+  SpecificationDetailResponse
+} from '@/lib/types'
 import { CreateTableRubricEditor } from './create-table-rubric-editor'
 import { InsertDataRubricEditor } from './insert-data-rubric-editor'
 import { SelectQueryRubricEditor } from './select-query-rubric-editor'
 import { RubricTestGrader } from './rubric-test-grader'
 import { InsertDataTestGrader } from './insert-data-test-grader'
 import { SelectQueryTestGrader } from './select-query-test-grader'
+import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +68,7 @@ export function QuestionItem({
   isUpdating,
   isDeleting,
   allQuestions,
+  specification = null,
   examId
 }: {
   question: ExamQuestionItem
@@ -70,6 +77,7 @@ export function QuestionItem({
   isUpdating: boolean
   isDeleting: boolean
   allQuestions: ExamQuestionItem[]
+  specification?: ExamSpecification | SpecificationDetailResponse | null
   examId: number
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -213,7 +221,15 @@ export function QuestionItem({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div
+            className={`grid gap-4 ${
+              ['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
+                editForm.questionType
+              )
+                ? 'grid-cols-1'
+                : 'grid-cols-1 md:grid-cols-2'
+            }`}
+          >
             <div className="space-y-2">
               <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                 <span className="flex items-center gap-1.5">
@@ -221,6 +237,14 @@ export function QuestionItem({
                   Query)
                 </span>
               </label>
+              {editForm.questionType === 'CREATE_TABLE' && (
+                <CreateTableQueryFromSpec
+                  specification={specification}
+                  onApply={(sql) =>
+                    setEditForm((prev) => ({ ...prev, correctQuery: sql }))
+                  }
+                />
+              )}
               <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
                 <TeacherSqlEditor
                   value={editForm.correctQuery}
@@ -231,24 +255,30 @@ export function QuestionItem({
                 />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <label className="flex items-center justify-between text-sm font-semibold text-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Terminal className="h-4 w-4 text-muted-foreground" /> Script
-                  kiểm thử
-                </span>
-              </label>
-              <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
-                <TeacherSqlEditor
-                  value={editForm.verifyScript}
-                  onChange={(v) =>
-                    setEditForm((prev) => ({ ...prev, verifyScript: v || '' }))
-                  }
-                  height="100%"
-                />
+            {!['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
+              editForm.questionType
+            ) && (
+              <div className="space-y-2">
+                <label className="flex items-center justify-between text-sm font-semibold text-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Terminal className="h-4 w-4 text-muted-foreground" />{' '}
+                    Script kiểm thử
+                  </span>
+                </label>
+                <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
+                  <TeacherSqlEditor
+                    value={editForm.verifyScript}
+                    onChange={(v) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        verifyScript: v || ''
+                      }))
+                    }
+                    height="100%"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Rubrics Editor for existing question */}
@@ -443,7 +473,15 @@ export function QuestionItem({
       </div>
       {isExpanded && (
         <div className="border-t border-border bg-muted/30 p-5 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div
+            className={`grid gap-4 ${
+              ['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
+                question.questionType
+              )
+                ? 'grid-cols-1'
+                : 'grid-cols-1 md:grid-cols-2'
+            }`}
+          >
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 <Code2 className="h-3.5 w-3.5" /> Đáp án (Correct Query)
@@ -457,20 +495,24 @@ export function QuestionItem({
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <Terminal className="h-3.5 w-3.5" /> Script kiểm thử (Verify
-                Script)
+            {!['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
+              question.questionType
+            ) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <Terminal className="h-3.5 w-3.5" /> Script kiểm thử (Verify
+                  Script)
+                </div>
+                <div className="h-[180px] overflow-hidden rounded-lg border border-border bg-background">
+                  <TeacherSqlEditor
+                    value={question.verifyScript || '-- Không có script'}
+                    onChange={() => {}}
+                    height="100%"
+                    readOnly
+                  />
+                </div>
               </div>
-              <div className="h-[180px] overflow-hidden rounded-lg border border-border bg-background">
-                <TeacherSqlEditor
-                  value={question.verifyScript || '-- Không có script'}
-                  onChange={() => {}}
-                  height="100%"
-                  readOnly
-                />
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}

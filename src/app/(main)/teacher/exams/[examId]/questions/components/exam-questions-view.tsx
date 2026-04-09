@@ -36,6 +36,8 @@ import {
   ExamQuestionItem,
   CreateExamQuestionBatch,
   GradingRubric,
+  ExamSpecification,
+  SpecificationDetailResponse,
   TeacherExamTemplateVersionsResponse,
   UpdateExamQuestionRequest
 } from '@/lib/types'
@@ -46,6 +48,7 @@ import { InsertDataTestGrader } from './insert-data-test-grader'
 import { SelectQueryRubricEditor } from './select-query-rubric-editor'
 import { SelectQueryTestGrader } from './select-query-test-grader'
 import { QuestionItem } from './question-item'
+import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -59,6 +62,7 @@ const QUESTION_TYPES = [
 interface ExamQuestionsViewProps {
   examId: number
   initialQuestions: ExamQuestionItem[]
+  specification?: ExamSpecification | SpecificationDetailResponse | null
   templateManagement: TeacherExamTemplateVersionsResponse | null
   canShareTemplate: boolean
   shareDisabledReason?: string
@@ -77,6 +81,7 @@ function formatVersionTimestamp(value?: string) {
 export function ExamQuestionsView({
   examId,
   initialQuestions,
+  specification = null,
   templateManagement,
   canShareTemplate,
   shareDisabledReason,
@@ -626,7 +631,17 @@ export function ExamQuestionsView({
                     </div>
 
                     {/* SQL Editors */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div
+                      className={`grid gap-5 ${
+                        [
+                          'CREATE_TABLE',
+                          'INSERT_DATA',
+                          'SELECT_QUERY'
+                        ].includes(q.questionType)
+                          ? 'grid-cols-1'
+                          : 'grid-cols-1 lg:grid-cols-2'
+                      }`}
+                    >
                       <div className="space-y-2">
                         <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                           <span className="flex items-center gap-1.5">
@@ -634,6 +649,16 @@ export function ExamQuestionsView({
                             Đáp án (Correct Query)
                           </span>
                         </label>
+                        {q.questionType === 'CREATE_TABLE' && (
+                          <CreateTableQueryFromSpec
+                            specification={specification}
+                            onApply={(sql) =>
+                              updateQuestion(q.id, {
+                                correctQuery: sql
+                              })
+                            }
+                          />
+                        )}
                         <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
                           <TeacherSqlEditor
                             value={q.correctQuery}
@@ -661,32 +686,37 @@ export function ExamQuestionsView({
                             </p>
                           )}
                       </div>
-
-                      <div className="space-y-2">
-                        <label className="flex items-center justify-between text-sm font-semibold text-foreground">
-                          <span className="flex items-center gap-1.5">
-                            <Terminal className="h-4 w-4 text-muted-foreground" />
-                            Script kiểm thử (Verify Script)
-                          </span>
-                        </label>
-                        <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
-                          <TeacherSqlEditor
-                            value={q.verifyScript}
-                            onChange={(value) =>
-                              updateQuestion(q.id, {
-                                verifyScript: value || ''
-                              })
-                            }
-                            height="100%"
-                          />
+                      {![
+                        'CREATE_TABLE',
+                        'INSERT_DATA',
+                        'SELECT_QUERY'
+                      ].includes(q.questionType) && (
+                        <div className="space-y-2">
+                          <label className="flex items-center justify-between text-sm font-semibold text-foreground">
+                            <span className="flex items-center gap-1.5">
+                              <Terminal className="h-4 w-4 text-muted-foreground" />
+                              Script kiểm thử (Verify Script)
+                            </span>
+                          </label>
+                          <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
+                            <TeacherSqlEditor
+                              value={q.verifyScript}
+                              onChange={(value) =>
+                                updateQuestion(q.id, {
+                                  verifyScript: value || ''
+                                })
+                              }
+                              height="100%"
+                            />
+                          </div>
+                          {!q.verifyScript && (
+                            <p className="flex items-center gap-1.5 text-[11px] text-primary italic">
+                              <Sparkles className="h-3 w-3" />
+                              AI sẽ tự động tạo script dựa trên nội dung đề bài
+                            </p>
+                          )}
                         </div>
-                        {!q.verifyScript && (
-                          <p className="flex items-center gap-1.5 text-[11px] text-primary italic">
-                            <Sparkles className="h-3 w-3" />
-                            AI sẽ tự động tạo script dựa trên nội dung đề bài
-                          </p>
-                        )}
-                      </div>
+                      )}
                     </div>
 
                     {/* Rubric Editors */}
@@ -903,6 +933,7 @@ export function ExamQuestionsView({
               isUpdating={updatingQuestionId === q.id}
               isDeleting={deletingQuestionId === q.id}
               allQuestions={questions}
+              specification={specification}
               examId={examId}
             />
           ))}

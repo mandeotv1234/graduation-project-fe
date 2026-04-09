@@ -1,3 +1,5 @@
+import type { SpecificationSchemaJsonTable } from '@/lib/types/specification-schema-json.type'
+
 export interface Question {
   id: number
   title: string
@@ -226,6 +228,7 @@ export interface ExamSpecification {
   name: string
   // backward-compat for old payloads
   ddlScript?: string
+  schemaJson?: string | SpecificationSchemaJsonTable[] | null
   ddlVisibleToStudent?: boolean
   visibleToStudent?: boolean
   schemaDiagram?: string

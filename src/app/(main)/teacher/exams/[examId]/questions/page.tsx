@@ -67,6 +67,7 @@ export default async function ExamQuestionsPage({
     <ExamQuestionsView
       examId={examIdNum}
       initialQuestions={questions}
+      specification={specificationResponse.data ?? null}
       templateManagement={templateManagementResponse.data ?? null}
       canShareTemplate={hasValidSpecification && questions.length > 0}
       shareDisabledReason={shareDisabledReason}
