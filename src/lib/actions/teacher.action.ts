@@ -21,7 +21,11 @@ import {
   TeacherExamTemplateVersionsResponse,
   SpecificationResponse,
   SpecificationDetailResponse,
-  CreateSpecificationRequest
+  CreateSpecificationRequest,
+  OverrideSubmissionRequest,
+  OverrideSubmissionResponse,
+  RegradeResponse,
+  RegradeAllResponse
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -157,6 +161,35 @@ export async function getTeacherSubmissionDetail(
     ENDPOINTS.EXAM_RESULT_DETAIL(examId, resultId),
     { cache: 'no-store' }
   )
+}
+
+// ===== Override & Re-grade =====
+
+export async function overrideSubmissionScore(
+  examId: number,
+  resultId: number,
+  submissionId: number,
+  data: OverrideSubmissionRequest
+): Promise<ApiResponse<OverrideSubmissionResponse>> {
+  return apiClient.patch<OverrideSubmissionResponse>(
+    ENDPOINTS.EXAM_OVERRIDE_SUBMISSION(examId, resultId, submissionId),
+    data
+  )
+}
+
+export async function regradeExamResult(
+  examId: number,
+  resultId: number
+): Promise<ApiResponse<RegradeResponse>> {
+  return apiClient.post<RegradeResponse>(
+    ENDPOINTS.EXAM_REGRADE_RESULT(examId, resultId)
+  )
+}
+
+export async function regradeAllExamResults(
+  examId: number
+): Promise<ApiResponse<RegradeAllResponse>> {
+  return apiClient.post<RegradeAllResponse>(ENDPOINTS.EXAM_REGRADE_ALL(examId))
 }
 
 // ===== Specifications =====

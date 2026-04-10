@@ -32,6 +32,58 @@
   }
 }
 
+// ===== Status badges (header) =====
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &.completed {
+    background-color: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+
+  &.failed {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  &.pending {
+    background-color: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #ffedd5;
+  }
+}
+
+// ===== Phase 9: comparison banner =====
+
+.comparisonBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  color: #1e40af;
+}
+
+.totalDelta {
+  font-weight: 700;
+  margin-left: 0.25rem;
+}
+
+// ===== Overview card =====
+
 .overviewCard {
   background: white;
   border-radius: 12px;
@@ -61,43 +113,18 @@
       font-weight: 700;
       color: #1e293b;
     }
-
-    .statusBadge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      width: fit-content;
-
-      &.completed {
-        background-color: #f0fdf4;
-        color: #166534;
-        border: 1px solid #bbf7d0;
-      }
-
-      &.failed {
-        background-color: #fef2f2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
-      }
-
-      &.pending {
-        background-color: #fff7ed;
-        color: #9a3412;
-        border: 1px solid #ffedd5;
-      }
-    }
   }
 }
+
+// ===== Question list =====
 
 .questionList {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
+
+// ===== Question card =====
 
 .questionCard {
   background: white;
@@ -117,101 +144,371 @@
   &.incorrect {
     border-left: 4px solid #ef4444;
   }
+}
 
-  .qHeader {
-    padding: 1rem 1.5rem;
-    background-color: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+// ===== Question card header =====
 
-    .qTitle {
-      font-weight: 600;
-      color: #334155;
-    }
+.qHeader {
+  padding: 0.875rem 1.25rem;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
 
-    .qScore {
-      font-size: 0.875rem;
-      font-weight: 600;
-      
-      &.passed { color: #166534; }
-      &.failed { color: #991b1b; }
-    }
+.qHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.qHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qTitle {
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.qScore {
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  &.passed {
+    color: #166534;
   }
 
-  .qContent {
-    padding: 1.5rem;
-
-    .prompt {
-      color: #1e293b;
-      line-height: 1.6;
-      margin-bottom: 1.5rem;
-      white-space: pre-wrap;
-    }
-
-    .codeSections {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-
-      @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .codeBlock {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-
-      label {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #64748b;
-        text-transform: uppercase;
-      }
-
-      pre {
-        background-color: #0f172a;
-        color: #e2e8f0;
-        padding: 1rem;
-        border-radius: 8px;
-        font-family: 'Fira Code', monospace;
-        font-size: 0.875rem;
-        overflow-x: auto;
-        margin: 0;
-        min-height: 100px;
-      }
-
-      &.student pre {
-        border: 1px solid #334155;
-      }
-
-      &.correct pre {
-        background-color: #064e3b;
-        border: 1px solid #065f46;
-      }
-    }
-  }
-
-  .qFooter {
-    padding: 0.75rem 1.5rem;
-    background-color: #fff1f2;
-    border-top: 1px solid #fecaca;
+  &.failed {
     color: #991b1b;
-    font-size: 0.875rem;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
+  }
+}
 
-    &.success {
-       background-color: #f0fdf4;
-       border-top: 1px solid #bbf7d0;
-       color: #166534;
+// ===== Phase 7: question type badge =====
+
+.questionTypeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+// ===== Phase 7: grading type badge =====
+
+.gradingBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.gradingAuto {
+    background-color: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+  }
+
+  &.gradingManual {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+}
+
+// ===== Phase 9: per-question score delta =====
+
+.scoreDelta {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+}
+
+.deltaPositive {
+  color: #15803d;
+  background-color: #f0fdf4;
+}
+
+.deltaNegative {
+  color: #b91c1c;
+  background-color: #fef2f2;
+}
+
+.deltaNeutral {
+  color: #64748b;
+  background-color: #f1f5f9;
+}
+
+// ===== Question card body =====
+
+.qContent {
+  padding: 1.5rem;
+
+  .prompt {
+    color: #1e293b;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    white-space: pre-wrap;
+  }
+
+  .codeSections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: stretch;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .codeBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    pre {
+      background-color: #0f172a;
+      color: #e2e8f0;
+      padding: 1rem;
+      border-radius: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.875rem;
+      overflow-x: auto;
+      margin: 0;
+      min-height: 100px;
+      max-height: 400px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    &.student pre {
+      border: 1px solid #334155;
+    }
+
+    &.correct pre {
+      background-color: #064e3b;
+      border: 1px solid #065f46;
     }
   }
 }
+
+// ===== Phase 7: teacher comment =====
+
+.teacherComment {
+  margin: 0 1.5rem 1rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+
+  .commentMeta {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 0.375rem;
+  }
+
+  .commentText {
+    font-style: italic;
+    color: #334155;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+// ===== Phase 8: inline edit form =====
+
+.editForm {
+  margin: 0 1.5rem 1rem;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.editFormRow {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 140px;
+}
+
+.scoreInput {
+  max-width: 120px;
+}
+
+.correctToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.correctCheckbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.correctLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #334155;
+}
+
+.commentInput {
+  resize: vertical;
+  font-size: 0.875rem;
+}
+
+.charCount {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-align: right;
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+// ===== Phase 8: edit button =====
+
+.editBtn {
+  font-size: 0.8rem;
+  height: 1.875rem;
+  padding: 0 0.625rem;
+}
+
+// ===== Phase 9: re-grade button =====
+
+.regradeBtn {
+  font-size: 0.875rem;
+}
+
+// ===== Question footer =====
+
+.qFooter {
+  padding: 0.75rem 1.5rem;
+  background-color: #fff1f2;
+  border-top: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+
+  &.success {
+    background-color: #f0fdf4;
+    border-top: 1px solid #bbf7d0;
+    color: #166534;
+  }
+}
+
+// ===== Error detail (collapsible) =====
+
+.errorDetail {
+  padding: 0.75rem 1.5rem;
+  background-color: #fff1f2;
+  border-top: 1px solid #fecaca;
+
+  .errorSummary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #991b1b;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      color: #7f1d1d;
+    }
+  }
+
+  .errorContent {
+    margin-top: 0.625rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .errorSection {
+    padding: 0.5rem 0.75rem;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    font-size: 0.8rem;
+
+    .errorLabel {
+      font-weight: 700;
+      color: #991b1b;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: #7f1d1d;
+      line-height: 1.5;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  }
+}
+
+// ===== Loading state =====
 
 .loading {
   display: flex;
