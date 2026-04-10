@@ -42,10 +42,30 @@ export function InsertDataTestGrader({
   const [result, setResult] = useState<GradeResult | null>(null)
   const [isGrading, setIsGrading] = useState(false)
 
-  const payload = (rubric?.grading_payload ?? null) as {
-    tables?: unknown[]
-  } | null
-  const hasRubric = Array.isArray(payload?.tables) && payload.tables.length > 0
+  const rubricRoot = (rubric as unknown as Record<string, unknown>) || null
+  const payload =
+    rubricRoot?.grading_payload &&
+    typeof rubricRoot.grading_payload === 'object' &&
+    !Array.isArray(rubricRoot.grading_payload)
+      ? (rubricRoot.grading_payload as Record<string, unknown>)
+      : null
+
+  const payloadTables = Array.isArray(payload?.tables)
+    ? (payload.tables as unknown[])
+    : null
+  const payloadLegacyTables = Array.isArray(payload?.expected_datasets)
+    ? (payload.expected_datasets as unknown[])
+    : null
+  const rootTables = Array.isArray(rubricRoot?.tables)
+    ? (rubricRoot.tables as unknown[])
+    : null
+  const rootLegacyTables = Array.isArray(rubricRoot?.expected_datasets)
+    ? (rubricRoot.expected_datasets as unknown[])
+    : null
+
+  const resolvedTables =
+    payloadTables ?? payloadLegacyTables ?? rootTables ?? rootLegacyTables ?? []
+  const hasRubric = resolvedTables.length > 0
 
   const handleTest = async () => {
     if (!rubric || !studentSql.trim() || !correctQuery?.trim()) return
@@ -78,7 +98,7 @@ export function InsertDataTestGrader({
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
         <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-amber-500" />
-        Vui lòng tạo rubric dữ liệu trước khi sử dụng chức năng chấm thử INSERT.
+        Vui lòng tạo rubric dữ liệu (tables/expected_data) trước khi sử dụng chức năng chấm thử INSERT.
       </div>
     )
   }
@@ -102,7 +122,7 @@ export function InsertDataTestGrader({
         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           SQL CỦA SINH VIÊN (LỆNH INSERT DỮ LIỆU)
         </label>
-        <div className="h-40 overflow-hidden rounded-md border border-border bg-background">
+        <div className="h-40 overflow-hidden rounded-md border border-border bg-sub-background">
           <TeacherSqlEditor
             value={studentSql}
             onChange={(value) => {
@@ -206,3 +226,5 @@ export function InsertDataTestGrader({
     </div>
   )
 }
+
+

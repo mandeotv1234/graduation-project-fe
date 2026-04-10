@@ -5,6 +5,7 @@ import { ENDPOINTS } from '@/lib/constants'
 import {
   ApiResponse,
   ExamSpecification,
+  InsertDataExpectedDataset,
   SaveExamSpecificationRequest,
   CreateExamQuestionsBatchRequest,
   ExamQuestionItem,
@@ -12,6 +13,19 @@ import {
   SpecificationDetailResponse,
   CreateSpecificationRequest
 } from '@/lib/types'
+
+function parseApiErrorCode(error: unknown): string | null {
+  if (typeof error !== 'string' || error.trim().length === 0) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(error) as { code?: unknown }
+    return typeof parsed.code === 'string' ? parsed.code : null
+  } catch {
+    return null
+  }
+}
 
 export async function getSpecifications(): Promise<
   ApiResponse<SpecificationResponse[]>
@@ -40,7 +54,12 @@ export async function getExamSpecification(
         cache: 'no-store'
       }
     )
-  } catch {
+  } catch (error) {
+    const code = parseApiErrorCode(error)
+    if (code !== 'NOT_FOUND' && code !== '404') {
+      throw error
+    }
+
     return {
       data: undefined,
       code: 'NOT_FOUND',
@@ -162,4 +181,35 @@ export async function testGradeSelectData(
   }>
 > {
   return apiClient.post(ENDPOINTS.EXAM_TEST_GRADE_SELECT(examId), data)
+}
+
+export async function executeSelectTestCaseConfig(
+  examId: number,
+  data: {
+    setupDependencyId?: string
+    setupCustomScript?: string
+    correctQuery: string
+  }
+): Promise<
+  ApiResponse<{
+    columns_config: { column_name: string; data_type: string }[]
+    rows: string[][]
+  }>
+> {
+  return apiClient.post(ENDPOINTS.EXAM_RUN_SELECT_TESTCASE(examId), data)
+}
+
+export async function buildInsertTablesFromAnswer(
+  examId: number,
+  data: {
+    correctQuery: string
+  }
+): Promise<
+  ApiResponse<{
+    tables: InsertDataExpectedDataset[]
+    preparedCount: number
+    targetTableCount: number
+  }>
+> {
+  return apiClient.post(ENDPOINTS.EXAM_BUILD_INSERT_TABLES(examId), data)
 }

@@ -49,6 +49,7 @@ import { SelectQueryRubricEditor } from './select-query-rubric-editor'
 import { SelectQueryTestGrader } from './select-query-test-grader'
 import { QuestionItem } from './question-item'
 import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
+import { InsertQueryFromSpec } from './insert-query-from-spec'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -344,7 +345,7 @@ export function ExamQuestionsView({
       </div>
 
       {isDedicatedQuestionsPage && (canManage || versions.length > 0) && (
-        <section className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.06] via-card to-card p-5 shadow-sm">
+        <section className="rounded-2xl border border-sub-primary/15 bg-linear-to-br from-sub-primary/6 via-card to-card p-5 shadow-sm">
           <div className="space-y-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="space-y-2">
@@ -364,7 +365,7 @@ export function ExamQuestionsView({
                       : 'Chưa public'}
                   </span>
                   {versions.length > 0 && (
-                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                    <span className="rounded-full bg-sub-primary/10 px-2.5 py-1 text-xs font-medium text-sub-primary">
                       {visibleVersions.length}/{versions.length} phiên bản hiển
                       thị
                     </span>
@@ -448,7 +449,7 @@ export function ExamQuestionsView({
                     >
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                          <span className="rounded-full bg-sub-primary/10 px-2.5 py-0.5 text-xs font-medium text-sub-primary">
                             v{version.version}
                           </span>
                           <span
@@ -492,7 +493,7 @@ export function ExamQuestionsView({
             <div>
               <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 Thêm câu hỏi mới
-                <span className="bg-primary/10 text-primary text-xs px-2.5 py-0.5 rounded-full font-medium">
+                <span className="bg-sub-primary/10 text-sub-primary text-xs px-2.5 py-0.5 rounded-full font-medium">
                   {pendingQuestions.length} câu
                 </span>
               </h2>
@@ -537,7 +538,7 @@ export function ExamQuestionsView({
                   {/* Card Header */}
                   <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/20 px-5 py-3 border-b border-border">
                     <div className="flex items-center gap-4">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sub-primary/10 text-sm font-bold text-sub-primary">
                         {idx + 1}
                       </span>
                       <div className="flex items-center gap-2">
@@ -551,7 +552,7 @@ export function ExamQuestionsView({
                               questionType: e.target.value
                             })
                           }
-                          className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="rounded-md border border-border bg-sub-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {QUESTION_TYPES.map((t) => (
                             <option key={t.value} value={t.value}>
@@ -577,7 +578,7 @@ export function ExamQuestionsView({
                           }
                           min={0.5}
                           step={0.5}
-                          className="w-16 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         />
                       </div>
                       <div className="flex items-center gap-2">
@@ -594,7 +595,7 @@ export function ExamQuestionsView({
                           }
                           min={1}
                           max={5}
-                          className="w-16 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         />
                       </div>
                       <div className="h-5 w-px bg-border mx-1"></div>
@@ -645,7 +646,7 @@ export function ExamQuestionsView({
                       <div className="space-y-2">
                         <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                           <span className="flex items-center gap-1.5">
-                            <Code2 className="h-4 w-4 text-primary" />
+                            <Code2 className="h-4 w-4 text-sub-primary" />
                             Đáp án (Correct Query)
                           </span>
                         </label>
@@ -659,7 +660,17 @@ export function ExamQuestionsView({
                             }
                           />
                         )}
-                        <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
+                        {q.questionType === 'INSERT_DATA' && (
+                          <InsertQueryFromSpec
+                            specification={specification}
+                            onApply={(sql) =>
+                              updateQuestion(q.id, {
+                                correctQuery: sql
+                              })
+                            }
+                          />
+                        )}
+                        <div className="h-[160px] overflow-hidden rounded-md border border-border bg-sub-background">
                           <TeacherSqlEditor
                             value={q.correctQuery}
                             onChange={(value) =>
@@ -672,7 +683,7 @@ export function ExamQuestionsView({
                         </div>
                         {!q.correctQuery &&
                           q.questionType !== 'INSERT_DATA' && (
-                            <p className="flex items-center gap-1.5 text-[11px] text-primary italic">
+                            <p className="flex items-center gap-1.5 text-[11px] text-sub-primary italic">
                               <Sparkles className="h-3 w-3" />
                               AI sẽ tự động tạo đáp án dựa trên nội dung đề bài
                             </p>
@@ -717,136 +728,137 @@ export function ExamQuestionsView({
                           )}
                         </div>
                       )}
+
                     </div>
 
                     {/* Rubric Editors */}
-                    {q.questionType === 'CREATE_TABLE' && (
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-primary">
+                    {(q.questionType === 'CREATE_TABLE' ||
+                      q.questionType === 'INSERT_DATA' ||
+                      q.questionType === 'SELECT_QUERY') && (
+                      <div className="rounded-lg border border-sub-primary/20 p-4 space-y-4">
+                        <h4 className="flex items-center gap-2 text-sm font-bold text-sub-primary">
                           <Sparkles className="h-4 w-4" />
-                          Cấu hình quy tắc chấm điểm (Rubric)
+                          Cấu hình quy tắc chấm điểm
                         </h4>
-                        <CreateTableRubricEditor
-                          totalPoints={q.points}
-                          rubric={q.rubricData ?? null}
-                          onChange={(rubric) =>
-                            updateQuestion(q.id, { rubricData: rubric })
-                          }
-                          correctQuery={q.correctQuery}
-                          questionContent={q.content}
-                        />
-
-                        <div className="mt-4 pt-4 border-t border-primary/10">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                            <Play className="h-4 w-4" />
-                            Vùng chấm thử
-                          </h4>
-                          <RubricTestGrader
-                            rubric={q.rubricData ?? null}
-                            correctQuery={q.correctQuery}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {q.questionType === 'INSERT_DATA' && (
-                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                          <Sparkles className="h-4 w-4" />
-                          Cấu hình quy tắc chấm điểm Cột & Dữ liệu
-                        </h4>
-                        <InsertDataRubricEditor
-                          totalPoints={q.points}
-                          rubric={q.rubricData ?? null}
-                          onChange={(rubric) =>
-                            updateQuestion(q.id, { rubricData: rubric })
-                          }
-                          correctQuery={q.correctQuery}
-                          questionContent={q.content}
-                        />
-
-                        <div className="mt-4 pt-4 border-t border-emerald-500/10">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                            <Play className="h-4 w-4" />
-                            Vùng giả lập chấm thi INSERT
-                          </h4>
-                          <InsertDataTestGrader
-                            rubric={q.rubricData ?? null}
-                            correctQuery={q.correctQuery}
-                            examId={examId}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {q.questionType === 'SELECT_QUERY' && (
-                      <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-4 space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-violet-600 dark:text-violet-400">
-                          <Sparkles className="h-4 w-4" />
-                          Cấu hình rubric SELECT theo test case
-                        </h4>
-
-                        <SelectQueryRubricEditor
-                          totalPoints={q.points}
-                          rubric={q.rubricData ?? null}
-                          onChange={(rubric) =>
-                            updateQuestion(q.id, { rubricData: rubric })
-                          }
-                          correctQuery={q.correctQuery}
-                          questionContent={q.content}
-                          contextQueries={[
-                            ...questions
-                              .filter(
-                                (item) =>
-                                  item.id !== Number(q.id) &&
-                                  (item.questionType === 'CREATE_TABLE' ||
-                                    item.questionType === 'INSERT_DATA') &&
-                                  Boolean(item.correctQuery?.trim())
-                              )
-                              .map((item) => ({
-                                questionType: item.questionType,
-                                content: item.content,
-                                correctQuery: item.correctQuery
-                              })),
-                            ...pendingQuestions
-                              .filter(
-                                (item) =>
-                                  item.id !== q.id &&
-                                  (item.questionType === 'CREATE_TABLE' ||
-                                    item.questionType === 'INSERT_DATA') &&
-                                  Boolean(item.correctQuery?.trim())
-                              )
-                              .map((item) => ({
-                                questionType: item.questionType,
-                                content: item.content,
-                                correctQuery: item.correctQuery
-                              }))
-                          ]}
-                          dependencyOptions={[
-                            ...questions.map((existingQ) => ({
-                              value: String(existingQ.id),
-                              label: `#${existingQ.orderIndex} - Câu đã lưu`
-                            })),
-                            ...pendingQuestions
-                              .filter((other) => other.id !== q.id)
-                              .map((other) => ({
-                                value: other.id,
-                                label: `#${other.orderIndex} - Câu đang tạo`
-                              }))
-                          ]}
-                        />
-
-                        <div className="mt-4 pt-4 border-t border-violet-500/10">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                            <Play className="h-4 w-4" />
-                            Vùng chấm thử SELECT
-                          </h4>
-                          <SelectQueryTestGrader
-                            examId={examId}
-                            rubric={q.rubricData ?? null}
-                            correctQuery={q.correctQuery}
-                          />
-                        </div>
+                        {q.questionType === 'CREATE_TABLE' && (
+                          <div className="space-y-4">
+                            <CreateTableRubricEditor
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                            />
+                            <div className="mt-4 pt-4 border-t border-sub-primary/10">
+                              <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
+                                <Play className="h-4 w-4" />
+                                Vùng chấm thử
+                              </h4>
+                              <RubricTestGrader
+                                rubric={q.rubricData ?? null}
+                                correctQuery={q.correctQuery}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {q.questionType === 'INSERT_DATA' && (
+                          <div className="space-y-4">
+                            <InsertDataRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                            />
+                            <div className="mt-4 pt-4 border-t border-emerald-500/10">
+                              <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
+                                <Play className="h-4 w-4" />
+                                Vùng giả lập chấm thi INSERT
+                              </h4>
+                              <InsertDataTestGrader
+                                rubric={q.rubricData ?? null}
+                                correctQuery={q.correctQuery}
+                                examId={examId}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {q.questionType === 'SELECT_QUERY' && (
+                          <div className="space-y-4">
+                            <SelectQueryRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              contextQueries={[
+                                ...questions
+                                  .filter(
+                                    (item) =>
+                                      item.id !== Number(q.id) &&
+                                      (item.questionType === 'CREATE_TABLE' ||
+                                        item.questionType === 'INSERT_DATA') &&
+                                      Boolean(item.correctQuery?.trim())
+                                  )
+                                  .map((item) => ({
+                                    questionType: item.questionType,
+                                    content: item.content,
+                                    correctQuery: item.correctQuery
+                                  })),
+                                ...pendingQuestions
+                                  .filter(
+                                    (item) =>
+                                      item.id !== q.id &&
+                                      (item.questionType === 'CREATE_TABLE' ||
+                                        item.questionType === 'INSERT_DATA') &&
+                                      Boolean(item.correctQuery?.trim())
+                                  )
+                                  .map((item) => ({
+                                    questionType: item.questionType,
+                                    content: item.content,
+                                    correctQuery: item.correctQuery
+                                  }))
+                              ]}
+                              dependencyOptions={[
+                                ...questions.map((existingQ) => ({
+                                  value: String(existingQ.id),
+                                  label: `#${existingQ.orderIndex} - Câu đã lưu`
+                                })),
+                                ...pendingQuestions
+                                  .filter((other) => other.id !== q.id)
+                                  .map((other) => ({
+                                    value: other.id,
+                                    label: `#${other.orderIndex} - Câu đang tạo`
+                                  }))
+                              ]}
+                            />
+                            <div className="mt-4 pt-4 border-t border-violet-500/10">
+                              <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
+                                <Play className="h-4 w-4" />
+                                Vùng chấm thử SELECT
+                              </h4>
+                              <SelectQueryTestGrader
+                                examId={examId}
+                                rubric={q.rubricData ?? null}
+                                correctQuery={q.correctQuery}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -856,7 +868,7 @@ export function ExamQuestionsView({
           )}
 
           {/* Form Actions (Sticky Bottom Bar) */}
-          <div className="sticky bottom-4 z-10 flex items-center justify-between rounded-xl border border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 p-4 shadow-lg">
+          <div className="sticky bottom-4 z-10 flex items-center justify-between rounded-xl border border-border bg-sub-background/95 backdrop-blur supports-backdrop-filter:bg-sub-background/80 p-4 shadow-lg">
             <div className="flex items-center gap-4">
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-foreground">

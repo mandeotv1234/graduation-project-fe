@@ -1,4 +1,4 @@
-﻿import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 
 import { SpecificationEditView } from '@/app/(main)/teacher/specifications/[specificationId]/edit/components/specification-edit-view'
 import { getSpecificationDetail } from '@/lib/actions'

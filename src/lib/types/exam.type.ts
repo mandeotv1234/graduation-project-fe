@@ -312,6 +312,7 @@ export interface RubricTable {
 
 export interface CreateTableGradingPayload {
   grading_settings: GradingSettings
+  grading_rules?: InsertDataGradingRule[]
   tables: RubricTable[]
 }
 
@@ -330,17 +331,76 @@ export interface GradingRubric {
 export interface InsertDataGradingSettings {
   depends_on_question_id?: string
   syntax_error_action?: SyntaxErrorAction
-  allow_extra_rows: boolean
-  penalty_per_extra_row: number
+  allow_extra_rows?: boolean
+  penalty_per_extra_row?: number
+  ignore_column_order?: boolean
+  trim_string_spaces?: boolean
+  case_insensitive_data?: boolean
+}
+
+export type GradingRuleTarget =
+  | 'TABLE'
+  | 'COLUMN'
+  | 'DATA_TYPE'
+  | 'PRIMARY_KEY'
+  | 'FOREIGN_KEY'
+  | 'CONSTRAINT_LOCAL'
+  | 'COLUMN_ORDER'
+  | 'ROW'
+  | 'CELL_VALUE'
+  | 'ROW_ORDER'
+
+export type GradingRuleCondition =
+  | 'IS_MISSING'
+  | 'IS_EXTRA'
+  | 'IS_NULL'
+  | 'NOT_EQUAL'
+  | 'OUT_OF_ORDER'
+  | 'TYPE_MISMATCH'
+  | 'LENGTH_MISMATCH'
+  | 'REFERENCE_ERROR'
+
+export type GradingRuleModifier =
+  | 'TO_LOWERCASE'
+  | 'TRIM_WHITESPACE'
+  | 'REMOVE_ALL_WHITESPACE'
+  | 'REMOVE_DIACRITICS'
+  | 'REMOVE_SPECIAL_CHARS'
+  | 'CAST_TO_STRING'
+  | 'CAST_TO_FLOAT'
+  | 'ROUND_TO_INT'
+  | 'ROUND_2_DECIMALS'
+  | 'MATCH_FAMILY_TYPE'
+  | 'SORT_ASC'
+
+export type GradingRuleAction =
+  | 'DEDUCT_POINTS'
+  | 'DEDUCT_PERCENTAGE'
+  | 'FAIL_ITEM'
+  | 'FAIL_ALL'
+  | 'IGNORE'
+
+export interface InsertDataGradingRule {
+  rule_name?: string
+  target?: GradingRuleTarget
+  condition?: GradingRuleCondition
+  modifiers?: GradingRuleModifier[]
+  action?: GradingRuleAction
+  penalty_value?: number
+  description?: string
+  is_special?: boolean
+  // Backward compatibility for previously saved data.
+  rule_id?: string
 }
 
 export type MatchType = 'EXACT' | 'IGNORE_CASE_AND_SPACE' | 'NUMERIC_TOLERANCE'
 
 export interface InsertDataColumnConfig {
   name: string
-  is_primary_key: boolean
-  points: number
-  match_type: MatchType
+  is_primary_key?: boolean
+  is_graded?: boolean
+  points?: number
+  match_type?: MatchType
 }
 
 export interface InsertDataExpectedRow {
@@ -349,16 +409,17 @@ export interface InsertDataExpectedRow {
 
 export interface InsertDataExpectedDataset {
   table_name: string
-  table_points: number
-  row_grading_strategy: string
-  missing_row_penalty: number
-  columns_config: InsertDataColumnConfig[]
-  expected_data: InsertDataExpectedRow[]
+  table_points?: number
+  row_grading_strategy?: string
+  missing_row_penalty?: number
+  columns_config?: InsertDataColumnConfig[]
+  expected_data?: InsertDataExpectedRow[]
 }
 
 export interface InsertDataGradingPayload {
-  grading_settings: InsertDataGradingSettings
-  tables: InsertDataExpectedDataset[]
+  grading_settings?: InsertDataGradingSettings
+  grading_rules?: InsertDataGradingRule[]
+  tables?: InsertDataExpectedDataset[]
 }
 
 // === SELECT_QUERY Grading Types ===
@@ -397,6 +458,7 @@ export interface SelectTestCase {
 
 export interface SelectQueryGradingPayload {
   global_grading_rules: SelectGlobalGradingRules
+  grading_rules?: InsertDataGradingRule[]
   test_cases: SelectTestCase[]
 }
 

@@ -12,7 +12,6 @@ import {
   Edit,
   Save,
   Loader2,
-  Sparkles,
   Play
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -31,6 +30,7 @@ import { RubricTestGrader } from './rubric-test-grader'
 import { InsertDataTestGrader } from './insert-data-test-grader'
 import { SelectQueryTestGrader } from './select-query-test-grader'
 import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
+import { InsertQueryFromSpec } from './insert-query-from-spec'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,7 +111,7 @@ export function QuestionItem({
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-all">
         <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/20 px-5 py-3 border-b border-border">
           <div className="flex items-center gap-4">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sub-primary/10 text-sm font-bold text-sub-primary">
               <input
                 type="number"
                 value={editForm.orderIndex}
@@ -121,7 +121,7 @@ export function QuestionItem({
                     orderIndex: Number(e.target.value)
                   }))
                 }
-                className="w-10 rounded-md border-transparent bg-transparent text-center focus:border-border font-bold p-0 text-primary"
+                className="w-10 rounded-md border-transparent bg-transparent text-center focus:border-border font-bold p-0 text-sub-primary"
               />
             </span>
             <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export function QuestionItem({
                       .value as ExamQuestionItem['questionType']
                   }))
                 }
-                className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium"
+                className="rounded-md border border-border bg-sub-background px-3 py-1.5 text-sm font-medium"
               >
                 {QUESTION_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
@@ -164,7 +164,7 @@ export function QuestionItem({
                 }
                 min={0.5}
                 step={0.5}
-                className="w-16 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center"
+                className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export function QuestionItem({
                 }
                 min={1}
                 max={5}
-                className="w-16 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center"
+                className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center"
               />
             </div>
             <div className="h-5 w-px bg-border mx-1"></div>
@@ -209,7 +209,7 @@ export function QuestionItem({
             <label className="text-sm font-semibold text-foreground">
               Nội dung đề bài
             </label>
-            <div className="rounded-md border border-border overflow-hidden">
+            <div className="rounded-md overflow-hidden">
               <RichTextEditor
                 content={editForm.content}
                 onChange={(html) =>
@@ -233,7 +233,7 @@ export function QuestionItem({
             <div className="space-y-2">
               <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                 <span className="flex items-center gap-1.5">
-                  <Code2 className="h-4 w-4 text-primary" /> Đáp án (Correct
+                  <Code2 className="h-4 w-4 text-sub-primary" /> Đáp án (Correct
                   Query)
                 </span>
               </label>
@@ -245,7 +245,15 @@ export function QuestionItem({
                   }
                 />
               )}
-              <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
+              {editForm.questionType === 'INSERT_DATA' && (
+                <InsertQueryFromSpec
+                  specification={specification}
+                  onApply={(sql) =>
+                    setEditForm((prev) => ({ ...prev, correctQuery: sql }))
+                  }
+                />
+              )}
+              <div className="h-[160px] overflow-hidden rounded-md border border-border bg-sub-background">
                 <TeacherSqlEditor
                   value={editForm.correctQuery}
                   onChange={(v) =>
@@ -281,103 +289,104 @@ export function QuestionItem({
             )}
           </div>
 
-          {/* Rubrics Editor for existing question */}
-          {editForm.questionType === 'CREATE_TABLE' && (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-4">
-              <h4 className="flex items-center gap-2 text-sm font-bold text-primary">
-                <Sparkles className="h-4 w-4" /> Cấu hình rubric
-              </h4>
-              <CreateTableRubricEditor
-                totalPoints={editForm.points}
-                rubric={editForm.rubricData}
-                onChange={(rubric) =>
-                  setEditForm((prev) => ({ ...prev, rubricData: rubric }))
-                }
-                correctQuery={editForm.correctQuery}
-                questionContent={editForm.content}
-              />
-              <div className="mt-4 pt-4 border-t border-primary/10">
-                <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                  <Play className="h-4 w-4" /> Vùng chấm thử
-                </h4>
-                <RubricTestGrader
+          {/* Rubric Editors */}
+          {(editForm.questionType === 'CREATE_TABLE' ||
+            editForm.questionType === 'INSERT_DATA' ||
+            editForm.questionType === 'SELECT_QUERY') && (
+            <div className="rounded-lg space-y-4">
+              {editForm.questionType === 'CREATE_TABLE' && (
+                <CreateTableRubricEditor
+                  totalPoints={editForm.points}
                   rubric={editForm.rubricData}
+                  onChange={(rubric) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      rubricData: rubric
+                    }))
+                  }
                   correctQuery={editForm.correctQuery}
+                  questionContent={editForm.content}
                 />
-              </div>
-            </div>
-          )}
-
-          {editForm.questionType === 'INSERT_DATA' && (
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-4">
-              <h4 className="flex items-center gap-2 text-sm font-bold text-emerald-600">
-                <Sparkles className="h-4 w-4" /> Cấu hình rubric INSERT
-              </h4>
-              <InsertDataRubricEditor
-                totalPoints={editForm.points}
-                rubric={editForm.rubricData}
-                onChange={(rubric) =>
-                  setEditForm((prev) => ({ ...prev, rubricData: rubric }))
-                }
-                correctQuery={editForm.correctQuery}
-                questionContent={editForm.content}
-              />
-              <div className="mt-4 pt-4 border-t border-emerald-500/10">
-                <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                  <Play className="h-4 w-4" /> Vùng chấm thử
-                </h4>
-                <InsertDataTestGrader
-                  rubric={editForm.rubricData}
-                  correctQuery={editForm.correctQuery}
+              )}
+              {editForm.questionType === 'INSERT_DATA' && (
+                <InsertDataRubricEditor
                   examId={examId}
-                />
-              </div>
-            </div>
-          )}
-
-          {editForm.questionType === 'SELECT_QUERY' && (
-            <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-4 space-y-4">
-              <h4 className="flex items-center gap-2 text-sm font-bold text-violet-600">
-                <Sparkles className="h-4 w-4" /> Cấu hình rubric SELECT
-              </h4>
-              <SelectQueryRubricEditor
-                totalPoints={editForm.points}
-                rubric={editForm.rubricData}
-                onChange={(rubric) =>
-                  setEditForm((prev) => ({ ...prev, rubricData: rubric }))
-                }
-                correctQuery={editForm.correctQuery}
-                questionContent={editForm.content}
-                contextQueries={allQuestions
-                  .filter(
-                    (q) =>
-                      q.id !== question.id &&
-                      (q.questionType === 'CREATE_TABLE' ||
-                        q.questionType === 'INSERT_DATA') &&
-                      q.correctQuery
-                  )
-                  .map((q) => ({
-                    questionType: q.questionType,
-                    content: q.content,
-                    correctQuery: q.correctQuery
-                  }))}
-                dependencyOptions={allQuestions
-                  .filter((q) => q.id !== question.id)
-                  .map((q) => ({
-                    value: String(q.id),
-                    label: `#${q.orderIndex} - Câu đã lưu`
-                  }))}
-              />
-              <div className="mt-4 pt-4 border-t border-violet-500/10">
-                <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                  <Play className="h-4 w-4" /> Vùng chấm thử SELECT
-                </h4>
-                <SelectQueryTestGrader
-                  examId={examId}
+                  totalPoints={editForm.points}
                   rubric={editForm.rubricData}
+                  onChange={(rubric) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      rubricData: rubric
+                    }))
+                  }
                   correctQuery={editForm.correctQuery}
+                  questionContent={editForm.content}
                 />
-              </div>
+              )}
+              {editForm.questionType === 'SELECT_QUERY' && (
+                <SelectQueryRubricEditor
+                  examId={examId}
+                  totalPoints={editForm.points}
+                  rubric={editForm.rubricData}
+                  onChange={(rubric) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      rubricData: rubric
+                    }))
+                  }
+                  correctQuery={editForm.correctQuery}
+                  questionContent={editForm.content}
+                  contextQueries={allQuestions
+                    .filter(
+                      (q) =>
+                        q.id !== question.id &&
+                        (q.questionType === 'CREATE_TABLE' ||
+                          q.questionType === 'INSERT_DATA') &&
+                        q.correctQuery
+                    )
+                    .map((q) => ({
+                      questionType: q.questionType,
+                      content: q.content,
+                      correctQuery: q.correctQuery
+                    }))}
+                  dependencyOptions={allQuestions
+                    .filter((q) => q.id !== question.id)
+                    .map((q) => ({
+                      value: String(q.id),
+                      label: `#${q.orderIndex} - Câu đã lưu`
+                    }))}
+                />
+              )}
+
+              {/* Vùng chấm thử — MAIN SECTION */}
+              {editForm.rubricData && (
+                <div className="mt-5 rounded-lg border border-amber-500/20 bg-amber-500/3 p-4 space-y-3">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
+                    <Play className="h-4 w-4" /> Vùng chấm thử
+                  </h4>
+
+                  {editForm.questionType === 'CREATE_TABLE' && (
+                    <RubricTestGrader
+                      rubric={editForm.rubricData}
+                      correctQuery={editForm.correctQuery}
+                    />
+                  )}
+                  {editForm.questionType === 'INSERT_DATA' && (
+                    <InsertDataTestGrader
+                      rubric={editForm.rubricData}
+                      correctQuery={editForm.correctQuery}
+                      examId={examId}
+                    />
+                  )}
+                  {editForm.questionType === 'SELECT_QUERY' && (
+                    <SelectQueryTestGrader
+                      examId={examId}
+                      rubric={editForm.rubricData}
+                      correctQuery={editForm.correctQuery}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -389,7 +398,7 @@ export function QuestionItem({
     <div className="rounded-sm shadow-sm bg-card transition-all hover:shadow-md border border-border">
       <div className="p-5">
         <div className="flex items-start gap-4">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sub-primary/10 text-sm font-bold text-sub-primary">
             {question.orderIndex}
           </span>
           <div className="min-w-0 flex-1 space-y-2">
@@ -486,7 +495,7 @@ export function QuestionItem({
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 <Code2 className="h-3.5 w-3.5" /> Đáp án (Correct Query)
               </div>
-              <div className="h-[180px] overflow-hidden rounded-lg border border-border bg-background">
+              <div className="h-[180px] overflow-hidden rounded-lg border border-border bg-sub-background">
                 <TeacherSqlEditor
                   value={question.correctQuery || '-- Không có đáp án'}
                   onChange={() => {}}
@@ -513,8 +522,8 @@ export function QuestionItem({
                 </div>
               </div>
             )}
+            </div>
           </div>
-        </div>
       )}
     </div>
   )

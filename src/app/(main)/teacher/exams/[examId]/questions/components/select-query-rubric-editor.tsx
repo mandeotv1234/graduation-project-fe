@@ -16,18 +16,24 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { TeacherSqlEditor } from './teacher-sql-editor'
-import { generateGradingRubric } from '@/lib/actions'
+import {
+  generateGradingRubric,
+  executeSelectTestCaseConfig
+} from '@/lib/actions'
 import {
   GradingRubric,
+  InsertDataGradingRule,
   SelectGlobalGradingRules,
   SelectExpectedColumnConfig,
   SelectTestCase,
   SelectQueryGradingPayload
 } from '@/lib/types'
+import { GradingRulesEditor } from './grading-rules-editor'
 
 const MIN_SELECT_TEST_CASES = 1
 
 interface SelectQueryRubricEditorProps {
+  examId: number
   totalPoints: number
   rubric: GradingRubric | null
   onChange: (rubric: GradingRubric) => void
@@ -198,6 +204,9 @@ function normalizeSelectRubric(
   const payload = (rubric.grading_payload ||
     {}) as Partial<SelectQueryGradingPayload>
   const rules = payload.global_grading_rules || createDefaultRules()
+  const gradingRules = Array.isArray(payload.grading_rules)
+    ? (payload.grading_rules as InsertDataGradingRule[])
+    : []
   const testCasesRaw = Array.isArray(payload.test_cases)
     ? payload.test_cases
     : []
@@ -240,12 +249,14 @@ function normalizeSelectRubric(
             ? rules.extra_row_penalty
             : 0.2
       },
+      grading_rules: gradingRules,
       test_cases: testCases
     }
   }
 }
 
 export function SelectQueryRubricEditor({
+  examId,
   totalPoints,
   rubric,
   onChange,
@@ -260,6 +271,9 @@ export function SelectQueryRubricEditor({
   )
   const payload = currentRubric.grading_payload as SelectQueryGradingPayload
   const rules = payload.global_grading_rules
+  const gradingRules = Array.isArray(payload.grading_rules)
+    ? payload.grading_rules
+    : []
   const testCases = payload.test_cases
 
   const updateRubric = useCallback(
@@ -276,6 +290,7 @@ export function SelectQueryRubricEditor({
       ...r,
       grading_payload: {
         ...(r.grading_payload as SelectQueryGradingPayload),
+          grading_rules,
         global_grading_rules: {
           ...(r.grading_payload as SelectQueryGradingPayload)
             .global_grading_rules,
@@ -290,7 +305,23 @@ export function SelectQueryRubricEditor({
       ...r,
       grading_payload: {
         ...(r.grading_payload as SelectQueryGradingPayload),
+        grading_rules,
         test_cases: cases
+      }
+    }))
+  }
+
+  const setGradingRules = (nextRules: InsertDataGradingRule[]) => {
+    updateRubric((r) => ({
+      ...r,
+      grading_payload: {
+        ...(r.grading_payload as SelectQueryGradingPayload),
+        grading_rules: nextRules,
+        global_grading_rules: {
+          ...(r.grading_payload as SelectQueryGradingPayload)
+            .global_grading_rules
+        },
+        test_cases: [...(r.grading_payload as SelectQueryGradingPayload).test_cases]
       }
     }))
   }
@@ -343,6 +374,28 @@ export function SelectQueryRubricEditor({
   const [expandedCases, setExpandedCases] = useState<Record<number, boolean>>(
     {}
   )
+
+  const testCaseContextSummary = useMemo(() => {
+    if (testCases.length === 0) {
+      return '- Chưa có test case nào trong rubric SELECT.'
+    }
+
+    return testCases
+      .map((testCase, index) => {
+        const columns = testCase.expected_result.columns_config
+          .map((column) => column.column_name)
+          .filter(Boolean)
+
+        return [
+          `- ${testCase.case_id || `TC_${index + 1}`}`,
+          `name=${testCase.case_name || 'Unnamed case'}`,
+          `weight=${testCase.weight_ratio}`,
+          `columns=[${columns.join(', ') || 'none'}]`,
+          `rows=${testCase.expected_result.rows.length}`
+        ].join(' | ')
+      })
+      .join('\n')
+  }, [testCases])
 
   const toggleCase = (idx: number) => {
     setExpandedCases((prev) => ({
@@ -434,12 +487,12 @@ export function SelectQueryRubricEditor({
           )}
         </Button>
 
-        <label className="flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-xs text-muted-foreground">
+        <label className="flex h-9 items-center gap-2 rounded-md border border-border bg-sub-background px-3 text-xs text-muted-foreground">
           <input
             type="checkbox"
             checked={enforceExactPoints}
             onChange={(e) => setEnforceExactPoints(e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-primary"
+            className="h-4 w-4 rounded border-border accent-sub-primary"
           />
           AI cân đúng tổng điểm
         </label>
@@ -489,6 +542,16 @@ export function SelectQueryRubricEditor({
           </div>
         </div>
       </div>
+
+      <GradingRulesEditor
+        questionType="SELECT_QUERY"
+        totalPoints={totalPoints}
+        rules={gradingRules}
+        onChange={setGradingRules}
+        correctQuery={correctQuery}
+        questionContent={questionContent}
+        contextSummary={testCaseContextSummary}
+      />
 
       <div
         className={`rounded-md border px-4 py-3 text-sm transition-colors ${
@@ -565,7 +628,7 @@ export function SelectQueryRubricEditor({
                   )
                   setTestCases(normalizeWeightRatios(testCases, remaining))
                 }}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
             <div className="space-y-1.5">
@@ -580,7 +643,7 @@ export function SelectQueryRubricEditor({
                 onChange={(e) =>
                   updateRules({ wrong_order_penalty: Number(e.target.value) })
                 }
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -600,7 +663,7 @@ export function SelectQueryRubricEditor({
                     wrong_column_order_penalty: Number(e.target.value)
                   })
                 }
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
             <div className="space-y-1.5">
@@ -615,7 +678,7 @@ export function SelectQueryRubricEditor({
                 onChange={(e) =>
                   updateRules({ extra_row_penalty: Number(e.target.value) })
                 }
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -656,13 +719,13 @@ export function SelectQueryRubricEditor({
               onClick={() => toggleCase(idx)}
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-sm font-bold text-primary">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-sub-primary/10 text-sm font-bold text-sub-primary">
                   {idx + 1}
                 </span>
                 <span className="text-sm font-semibold text-foreground">
                   {tc.case_name || `Test case ${idx + 1}`}
                 </span>
-                <span className="text-xs text-muted-foreground ml-2 px-2.5 py-0.5 rounded-full bg-background border border-border">
+                <span className="text-xs text-muted-foreground ml-2 px-2.5 py-0.5 rounded-full bg-sub-background border border-border">
                   Tỉ trọng: {tc.weight_ratio}
                 </span>
                 {tc.is_hidden && (
@@ -709,7 +772,7 @@ export function SelectQueryRubricEditor({
                         setTestCases(next)
                       }}
                       placeholder="Mã test case"
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
                   </div>
                   <div className="space-y-1.5 md:col-span-2">
@@ -724,7 +787,7 @@ export function SelectQueryRubricEditor({
                         setTestCases(next)
                       }}
                       placeholder="Tên kịch bản"
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -745,7 +808,7 @@ export function SelectQueryRubricEditor({
                         setTestCases(next)
                       }}
                       placeholder="Tỉ trọng"
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
                   </div>
                 </div>
@@ -765,7 +828,7 @@ export function SelectQueryRubricEditor({
                         }
                         setTestCases(next)
                       }}
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
                       <option value="">Không dùng câu phụ thuộc</option>
                       {dependencyOptions.map((opt) => (
@@ -785,9 +848,9 @@ export function SelectQueryRubricEditor({
                           next[idx] = { ...tc, is_hidden: e.target.checked }
                           setTestCases(next)
                         }}
-                        className="w-4 h-4 rounded border-input bg-background text-primary focus:ring-1 focus:ring-ring focus:outline-none"
+                        className="w-4 h-4 rounded border-input bg-sub-background text-sub-primary focus:ring-1 focus:ring-ring focus:outline-none"
                       />
-                      <span className="group-hover:text-primary transition-colors">
+                      <span className="group-hover:text-sub-primary transition-colors">
                         Test case ẩn
                       </span>
                     </label>
@@ -796,10 +859,10 @@ export function SelectQueryRubricEditor({
 
                 <div className="space-y-1.5 flex flex-col">
                   <label className="text-xs font-semibold text-foreground flex items-center gap-2 mb-2">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <Sparkles className="h-3.5 w-3.5 text-sub-primary" />
                     Script setup test case (AI tạo, giáo viên có thể sửa)
                   </label>
-                  <div className="h-[180px] overflow-hidden rounded-md border border-border bg-background shadow-sm">
+                  <div className="h-[180px] overflow-hidden rounded-md border border-border bg-sub-background shadow-sm">
                     <TeacherSqlEditor
                       value={tc.setup_custom_script || ''}
                       onChange={(value) => {
@@ -819,14 +882,64 @@ export function SelectQueryRubricEditor({
 
                 <div className="space-y-4 pt-6 border-t border-border/40">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground border-l-2 border-primary pl-2">
-                      Cấu hình cột kết quả
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-foreground border-l-2 border-sub-primary pl-2">
+                        Cấu hình cột kết quả
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={isGenerating}
+                        className="h-7 text-xs bg-muted/60 hover:bg-muted font-medium text-emerald-600 dark:text-emerald-400 gap-1.5"
+                        onClick={async () => {
+                          if (!correctQuery?.trim()) {
+                            toast.error(
+                              'Vui lòng nhập script đáp án đúng trước'
+                            )
+                            return
+                          }
+                          try {
+                            const res = await executeSelectTestCaseConfig(
+                              examId,
+                              {
+                                setupDependencyId: tc.setup_dependency_id,
+                                setupCustomScript: tc.setup_custom_script,
+                                correctQuery: correctQuery.trim()
+                              }
+                            )
+                            if (res.data) {
+                              const next = [...testCases]
+                              next[idx] = {
+                                ...tc,
+                                expected_result: {
+                                  ...tc.expected_result,
+                                  columns_config: res.data.columns_config || [],
+                                  rows: res.data.rows || [],
+                                  expected_row_count: (res.data.rows || [])
+                                    .length
+                                }
+                              }
+                              setTestCases(next)
+                              toast.success(
+                                'Đã tự động lấy cột và dữ liệu thành công'
+                              )
+                            }
+                          } catch (e) {
+                            console.error(e)
+                            toast.error('Lỗi khi tự động lấy dữ liệu')
+                          }
+                        }}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Tự động sinh dữ liệu kết quả
+                      </Button>
+                    </div>
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 gap-1.5 text-xs shadow-sm bg-background hover:bg-muted"
+                      className="h-7 gap-1.5 text-xs shadow-sm bg-sub-background hover:bg-muted"
                       onClick={() => {
                         const next = [...testCases]
                         const newColumns: SelectExpectedColumnConfig[] = [
@@ -892,7 +1005,7 @@ export function SelectQueryRubricEditor({
                             setTestCases(next)
                           }}
                           placeholder="Tên cột"
-                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         />
                       </div>
                       <div className="md:col-span-5 space-y-1">
@@ -920,7 +1033,7 @@ export function SelectQueryRubricEditor({
                             setTestCases(next)
                           }}
                           placeholder="Kiểu dữ liệu"
-                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         />
                       </div>
                       <div
@@ -959,14 +1072,14 @@ export function SelectQueryRubricEditor({
 
                 <div className="space-y-4 pt-6 border-t border-border/40">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-foreground border-l-2 border-primary pl-2">
+                    <span className="text-sm font-semibold text-foreground border-l-2 border-sub-primary pl-2">
                       Dữ liệu kết quả mong đợi
                     </span>
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7 gap-1.5 text-xs shadow-sm bg-background hover:bg-muted"
+                      className="h-7 gap-1.5 text-xs shadow-sm bg-sub-background hover:bg-muted"
                       onClick={() => {
                         const next = [...testCases]
                         const colsLen = tc.expected_result.columns_config.length
@@ -1011,13 +1124,13 @@ export function SelectQueryRubricEditor({
                         }
                         setTestCases(next)
                       }}
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-9 w-full rounded-md border border-input bg-sub-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
                   </div>
 
                   {tc.expected_result.rows.length > 0 &&
                     tc.expected_result.columns_config.length > 0 && (
-                      <div className="overflow-x-auto rounded-md border border-border shadow-sm bg-background">
+                      <div className="overflow-x-auto rounded-md border border-border shadow-sm bg-sub-background">
                         <table className="w-full text-sm">
                           <thead className="bg-muted/40 border-b border-border">
                             <tr>
@@ -1074,7 +1187,7 @@ export function SelectQueryRubricEditor({
                                           }
                                           setTestCases(next)
                                         }}
-                                        className="flex h-8 w-full rounded border border-transparent bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none hover:bg-muted/50 focus:bg-background focus:border-input focus:shadow-sm"
+                                        className="flex h-8 w-full rounded border border-transparent bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none hover:bg-muted/50 focus:bg-sub-background focus:border-input focus:shadow-sm"
                                         placeholder="..."
                                       />
                                     </td>
@@ -1118,15 +1231,6 @@ export function SelectQueryRubricEditor({
                     </div>
                   )}
                 </div>
-
-                <div className="flex items-start gap-2 text-xs text-muted-foreground bg-blue-500/5 border border-blue-500/10 p-3 rounded-md mt-6">
-                  <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
-                  <p className="text-blue-700 dark:text-blue-400">
-                    <strong className="font-semibold">Gợi ý:</strong> Để bao phủ
-                    tốt, nên có ít nhất 1 test case có setup bổ sung (case ẩn/dữ
-                    liệu biên) và 1 case dữ liệu cơ bản.
-                  </p>
-                </div>
               </div>
             )}
           </div>
@@ -1135,3 +1239,5 @@ export function SelectQueryRubricEditor({
     </div>
   )
 }
+
+
