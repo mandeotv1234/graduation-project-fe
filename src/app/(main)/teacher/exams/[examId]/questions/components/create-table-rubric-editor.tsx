@@ -1,6 +1,6 @@
-﻿'use client'
+'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import {
   Plus,
   Trash2,
@@ -11,7 +11,10 @@ import {
   ChevronDown,
   ChevronRight,
   Sparkles,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  Equal
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -19,6 +22,7 @@ import { generateGradingRubric } from '@/lib/actions'
 import {
   GradingRubric,
   GradingSettings,
+  InsertDataGradingRule,
   RubricTable,
   RubricColumn,
   RubricConstraint,
@@ -26,6 +30,7 @@ import {
   SyntaxErrorAction,
   MissingPenaltyAction
 } from '@/lib/types'
+import { GradingRulesEditor } from './grading-rules-editor'
 
 // ===== Default factories =====
 
@@ -46,6 +51,7 @@ function createDefaultRubric(totalPoints: number): GradingRubric {
         positive_only_scoring: false,
         skip_child_checks_when_table_missing: true
       },
+      grading_rules: [],
       tables: []
     }
   }
@@ -94,10 +100,64 @@ function toSyntaxErrorAction(value: unknown): SyntaxErrorAction {
   return value === 'PARTIAL' ? 'PARTIAL' : 'FAIL_ALL'
 }
 
+function roundTo(value: number, digits: number): number {
+  const factor = 10 ** digits
+  return Math.round(value * factor) / factor
+}
+
+function rebalanceCreateTablePenalties(
+  tables: RubricTable[],
+  totalPoints: number
+): RubricTable[] {
+  if (tables.length === 0) {
+    return tables
+  }
+
+  const totalCents = Math.max(0, Math.round(totalPoints * 100))
+  const weights = tables.map((table) =>
+    Math.max(0, Number(table.missing_table_penalty))
+  )
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0)
+
+  const weighted = tables.map((table, idx) => {
+    const basis = weightSum > 0 ? weights[idx] : 1
+    const raw = (basis / (weightSum || tables.length)) * totalCents
+    const cents = Math.floor(raw)
+    return {
+      table,
+      idx,
+      cents,
+      fraction: raw - cents
+    }
+  })
+
+  let remainder =
+    totalCents - weighted.reduce((sum, item) => sum + item.cents, 0)
+
+  if (remainder > 0) {
+    const order = [...weighted]
+      .map((item, idx) => ({ idx, fraction: item.fraction }))
+      .sort((a, b) => b.fraction - a.fraction)
+
+    let i = 0
+    while (remainder > 0) {
+      weighted[order[i % order.length].idx].cents += 1
+      remainder -= 1
+      i += 1
+    }
+  }
+
+  return weighted.map(({ table, cents }) => ({
+    ...table,
+    missing_table_penalty: cents / 100
+  }))
+}
+
 function normalizeCreateTablePayload(
   payload: GradingRubric['grading_payload'] | undefined
 ): {
   grading_settings: GradingSettings
+  grading_rules: InsertDataGradingRule[]
   tables: RubricTable[]
 } {
   const defaultSettings: GradingSettings = {
@@ -111,6 +171,7 @@ function normalizeCreateTablePayload(
   if (!payload || typeof payload !== 'object') {
     return {
       grading_settings: defaultSettings,
+      grading_rules: [],
       tables: []
     }
   }
@@ -138,6 +199,9 @@ function normalizeCreateTablePayload(
 
   return {
     grading_settings: settings,
+    grading_rules: Array.isArray(payloadRecord.grading_rules)
+      ? (payloadRecord.grading_rules as InsertDataGradingRule[])
+      : [],
     tables: Array.isArray(payloadRecord.tables)
       ? (payloadRecord.tables as RubricTable[]).map((table) => ({
           ...table,
@@ -225,6 +289,7 @@ export function CreateTableRubricEditor({
   const currentRubric = rubric ?? createDefaultRubric(totalPoints)
   const payload = normalizeCreateTablePayload(currentRubric.grading_payload)
   const settings = payload.grading_settings
+  const gradingRules = payload.grading_rules
   const tables = payload.tables
 
   // ===== Helper to update rubric immutably =====
@@ -248,7 +313,8 @@ export function CreateTableRubricEditor({
             ...normalizedPayload.grading_settings,
             positive_only_scoring: false,
             ...partial
-          }
+          },
+          grading_rules: normalizedPayload.grading_rules
         }
       }
     })
@@ -267,7 +333,28 @@ export function CreateTableRubricEditor({
             ...normalizedPayload.grading_settings,
             positive_only_scoring: false
           },
+          grading_rules: normalizedPayload.grading_rules,
           tables: newTables
+        }
+      }
+    })
+  }
+
+  const setGradingRules = (newRules: InsertDataGradingRule[]) => {
+    updateRubric((r) => {
+      const normalizedPayload = normalizeCreateTablePayload(r.grading_payload)
+      return {
+        ...r,
+        total_points: totalPoints,
+        question_category: 'CREATE_TABLE',
+        grading_payload: {
+          ...normalizedPayload,
+          grading_settings: {
+            ...normalizedPayload.grading_settings,
+            positive_only_scoring: false
+          },
+          grading_rules: newRules,
+          tables: normalizedPayload.tables
         }
       }
     })
@@ -283,6 +370,74 @@ export function CreateTableRubricEditor({
 
   // ===== AI Generate =====
   const [isGenerating, setIsGenerating] = useState(false)
+  const [enforceExactPoints, setEnforceExactPoints] = useState(true)
+
+  const allocatedPoints = useMemo(() => {
+    const total = tables.reduce(
+      (sum, table) => sum + Number(table.missing_table_penalty || 0),
+      0
+    )
+    return roundTo(total, 2)
+  }, [tables])
+
+  const pointsDiff = useMemo(
+    () => roundTo(totalPoints - allocatedPoints, 2),
+    [allocatedPoints, totalPoints]
+  )
+
+  const tableContextSummary = useMemo(() => {
+    if (tables.length === 0) {
+      return '- Chưa có bảng nào trong rubric CREATE TABLE.'
+    }
+
+    return tables
+      .map((table) => {
+        const tableName = table.expected_name?.trim() || 'UNKNOWN_TABLE'
+        const columns = table.columns
+          .map((column) => column.name?.trim())
+          .filter(Boolean)
+        const constraints = table.constraints
+          .map((constraint) => constraint.type)
+          .filter(Boolean)
+
+        return [
+          `- ${tableName}`,
+          `columns=[${columns.join(', ') || 'none'}]`,
+          `constraints=[${constraints.join(', ') || 'none'}]`
+        ].join(' | ')
+      })
+      .join('\n')
+  }, [tables])
+
+  const autoDistributePoints = () => {
+    if (tables.length === 0) return
+
+    const perTable = roundTo(totalPoints / tables.length, 2)
+
+    const nextTables = tables.map((table) => {
+      const columnCount = Math.max(1, table.columns.length)
+      const constraintCount = Math.max(1, table.constraints.length)
+      const missingColumnPenalty = roundTo(perTable / columnCount, 2)
+      const typeMismatchPenalty = roundTo(missingColumnPenalty / 2, 2)
+      const missingConstraintPenalty = roundTo(perTable / constraintCount, 2)
+
+      return {
+        ...table,
+        missing_table_penalty: perTable,
+        columns: table.columns.map((column) => ({
+          ...column,
+          missing_column_penalty: missingColumnPenalty,
+          type_mismatch_penalty: typeMismatchPenalty
+        })),
+        constraints: table.constraints.map((constraint) => ({
+          ...constraint,
+          missing_constraint_penalty: missingConstraintPenalty
+        }))
+      }
+    })
+
+    setTables(nextTables)
+  }
 
   const handleAiGenerate = async () => {
     if (!correctQuery?.trim()) {
@@ -296,7 +451,8 @@ export function CreateTableRubricEditor({
         correctQuery: correctQuery.trim(),
         questionContent: questionContent || '',
         totalPoints,
-        questionType: 'CREATE_TABLE'
+        questionType: 'CREATE_TABLE',
+        enforceExactTotalPoints: enforceExactPoints
       })
 
       if (result.data) {
@@ -308,7 +464,9 @@ export function CreateTableRubricEditor({
         const parsedPayload = normalizeCreateTablePayload(
           parsed.grading_payload
         )
-        const nextTables = parsedPayload.tables
+        const nextTables = enforceExactPoints
+          ? rebalanceCreateTablePenalties(parsedPayload.tables, totalPoints)
+          : parsedPayload.tables
 
         const nextRubric: GradingRubric = {
           ...parsed,
@@ -320,6 +478,7 @@ export function CreateTableRubricEditor({
               ...parsedPayload.grading_settings,
               positive_only_scoring: false
             },
+            grading_rules: parsedPayload.grading_rules,
             tables: nextTables
           }
         }
@@ -367,12 +526,71 @@ export function CreateTableRubricEditor({
             </>
           )}
         </Button>
+
+        <label className="flex items-center gap-2 rounded-md border border-border bg-sub-background px-3 py-1.5 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={enforceExactPoints}
+            onChange={(e) => setEnforceExactPoints(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-sub-primary"
+          />
+          AI cân đúng tổng điểm
+        </label>
+
+        <div
+          className={`flex-1 flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium border ${
+            pointsDiff === 0
+              ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+              : 'bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-400'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {pointsDiff === 0 ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <AlertTriangle className="h-4 w-4" />
+            )}
+            <span>
+              Đã phân bổ: <strong>{allocatedPoints}</strong> / {totalPoints}{' '}
+              điểm
+              {pointsDiff !== 0 && (
+                <span className="ml-2 text-xs">
+                  (
+                  {pointsDiff > 0
+                    ? `Còn thiếu ${pointsDiff}`
+                    : `Dư ${Math.abs(pointsDiff)}`}{' '}
+                  điểm)
+                </span>
+              )}
+            </span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={autoDistributePoints}
+            className="gap-1 text-xs h-7"
+          >
+            <Equal className="h-3 w-3" />
+            Phân bổ đều
+          </Button>
+        </div>
       </div>
+
+      <GradingRulesEditor
+        questionType="CREATE_TABLE"
+        totalPoints={totalPoints}
+        rules={gradingRules}
+        onChange={setGradingRules}
+        correctQuery={correctQuery}
+        questionContent={questionContent}
+        contextSummary={tableContextSummary}
+      />
 
       {/* Zone 1: General Settings */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-4">
         <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
-          <Settings2 className="h-4 w-4 text-primary" />
+          <Settings2 className="h-4 w-4 text-sub-primary" />
           Cấu hình chung
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -387,7 +605,7 @@ export function CreateTableRubricEditor({
                   syntax_error_action: e.target.value as SyntaxErrorAction
                 })
               }
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <option value="FAIL_ALL">0 điểm toàn bộ (FAIL_ALL)</option>
               <option value="PARTIAL">Chấm từng phần (PARTIAL)</option>
@@ -401,7 +619,7 @@ export function CreateTableRubricEditor({
               onChange={(e) =>
                 updateSettings({ case_sensitive_names: e.target.checked })
               }
-              className="h-4 w-4 rounded border-border accent-primary"
+              className="h-4 w-4 rounded border-border accent-sub-primary"
             />
             <div>
               <p className="text-sm font-medium text-foreground">
@@ -422,7 +640,7 @@ export function CreateTableRubricEditor({
                   skip_child_checks_when_table_missing: e.target.checked
                 })
               }
-              className="h-4 w-4 rounded border-border accent-primary"
+              className="h-4 w-4 rounded border-border accent-sub-primary"
             />
             <div>
               <p className="text-sm font-medium text-foreground">
@@ -440,7 +658,7 @@ export function CreateTableRubricEditor({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <Table2 className="h-4 w-4 text-primary" />
+            <Table2 className="h-4 w-4 text-sub-primary" />
             Danh sách bảng ({tables.length})
           </h4>
           <Button
@@ -545,7 +763,7 @@ function TableEditor({
                   onChange({ ...table, expected_name: e.target.value })
                 }
                 placeholder="VD: CONGTY"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
             <div className="space-y-1.5">
@@ -562,8 +780,8 @@ function TableEditor({
                   })
                 }
                 min={0}
-                step={0.05}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                step={0.01}
+                className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
             <div className="space-y-1.5">
@@ -579,7 +797,7 @@ function TableEditor({
                       .value as MissingPenaltyAction
                   })
                 }
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <option value="SKIP_TABLE">Bỏ qua lỗi con (SKIP_TABLE)</option>
                 <option value="ZERO_POINTS">
@@ -651,7 +869,7 @@ function TableEditor({
                               onChange({ ...table, columns: newCols })
                             }}
                             placeholder="MaCT"
-                            className="w-full rounded border border-border bg-background px-2 py-1 font-mono text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            className="w-full rounded border border-border bg-sub-background px-2 py-1 font-mono text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -665,7 +883,7 @@ function TableEditor({
                               }
                               onChange({ ...table, columns: newCols })
                             }}
-                            className="w-full rounded border border-border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            className="w-full rounded border border-border bg-sub-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           >
                             {SQL_TYPES.map((t) => (
                               <option key={t} value={t}>
@@ -686,7 +904,7 @@ function TableEditor({
                               }
                               onChange({ ...table, columns: newCols })
                             }}
-                            className="h-4 w-4 rounded border-border accent-primary"
+                            className="h-4 w-4 rounded border-border accent-sub-primary"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -720,7 +938,7 @@ function TableEditor({
                             }}
                             min={0}
                             step={0.01}
-                            className="w-full rounded border border-border bg-background px-2 py-1 text-center text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            className="w-full rounded border border-border bg-sub-background px-2 py-1 text-center text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           />
                         </td>
                         <td className="px-3 py-2 text-center">
@@ -835,7 +1053,7 @@ function ConstraintEditor({
                   type: e.target.value as ConstraintType
                 })
               }
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               {CONSTRAINT_TYPES.map((ct) => (
                 <option key={ct.value} value={ct.value}>
@@ -858,7 +1076,7 @@ function ConstraintEditor({
                   columns: Array.from(e.target.selectedOptions, (o) => o.value)
                 })
               }
-              className="w-full rounded border border-border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-8"
+              className="w-full rounded border border-border bg-sub-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-8"
             >
               {availableColumns.map((col) => (
                 <option key={col} value={col}>
@@ -883,7 +1101,7 @@ function ConstraintEditor({
               }
               min={0}
               step={0.01}
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
         </div>
@@ -910,7 +1128,7 @@ function ConstraintEditor({
                 onChange({ ...constraint, references_table: e.target.value })
               }
               placeholder="VD: NHANVIEN"
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
           <div className="space-y-1">
@@ -930,7 +1148,7 @@ function ConstraintEditor({
                 })
               }
               placeholder="VD: MaNV"
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
         </div>
@@ -948,10 +1166,12 @@ function ConstraintEditor({
               onChange({ ...constraint, expression: e.target.value })
             }
             placeholder={isCheck ? 'VD: Luong > 0' : 'VD: GETDATE()'}
-            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
       )}
     </div>
   )
 }
+
+

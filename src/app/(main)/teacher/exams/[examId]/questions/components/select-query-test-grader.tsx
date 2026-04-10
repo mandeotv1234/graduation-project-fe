@@ -94,7 +94,7 @@ export function SelectQueryTestGrader({
 
   return (
     <div className="space-y-3">
-      <div className="h-[180px] overflow-hidden rounded border border-border bg-background">
+      <div className="h-[180px] overflow-hidden rounded border border-border bg-sub-background">
         <TeacherSqlEditor
           value={studentSql}
           onChange={(value) => {
@@ -156,3 +156,4 @@ export function SelectQueryTestGrader({
     </div>
   )
 }
+

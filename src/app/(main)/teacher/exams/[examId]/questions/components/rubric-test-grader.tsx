@@ -101,7 +101,7 @@ export function RubricTestGrader({
         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           SQL của sinh viên (CREATE TABLE)
         </label>
-        <div className="h-40 overflow-hidden rounded-md border border-border bg-background">
+        <div className="h-40 overflow-hidden rounded-md border border-border bg-sub-background">
           <TeacherSqlEditor
             value={studentSql}
             onChange={(value) => {
@@ -222,3 +222,5 @@ export function RubricTestGrader({
     </div>
   )
 }
+
+

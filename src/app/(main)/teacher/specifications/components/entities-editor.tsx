@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { ArrowDown, ArrowUp, Plus, Table2, Trash2 } from 'lucide-react'
 

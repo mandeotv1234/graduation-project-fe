@@ -43,6 +43,8 @@ export {
   generateGradingRubric,
   testGradeCreateTable,
   testGradeInsertData,
-  testGradeSelectData
+  testGradeSelectData,
+  executeSelectTestCaseConfig,
+  buildInsertTablesFromAnswer
 } from '@/lib/actions/exam-specification.action'
 export * from '@/lib/actions/library.action'

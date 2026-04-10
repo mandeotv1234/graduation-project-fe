@@ -61,6 +61,10 @@ export const ENDPOINTS = Object.freeze({
     `/exams/${examId}/test-grade-insert`,
   EXAM_TEST_GRADE_SELECT: (examId: number) =>
     `/exams/${examId}/test-grade-select`,
+  EXAM_RUN_SELECT_TESTCASE: (examId: number) =>
+    `/exams/${examId}/run-select-testcase`,
+  EXAM_BUILD_INSERT_TABLES: (examId: number) =>
+    `/exams/${examId}/build-insert-tables`,
   EXAM_RESULTS: (examId: number) => `/exams/${examId}/results`,
   EXAM_RESULT_DETAIL: (examId: number, resultId: number) =>
     `/exams/${examId}/results/${resultId}`,
