@@ -1289,6 +1289,7 @@ export function ExamQuestionsView({
                         {q.questionType === 'CREATE_TABLE' && (
                           <div className="space-y-4">
                             <CreateTableRubricEditor
+                              examId={examId}
                               totalPoints={q.points}
                               rubric={q.rubricData ?? null}
                               onChange={(rubric) =>

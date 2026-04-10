@@ -724,6 +724,7 @@ export function QuestionItem({
             <div className="rounded-lg space-y-4">
               {editForm.questionType === 'CREATE_TABLE' && (
                 <CreateTableRubricEditor
+                  examId={examId}
                   totalPoints={editForm.points}
                   rubric={editForm.rubricData}
                   onChange={(rubric) =>
