@@ -6,6 +6,7 @@ import { AppState, TableDef, ColumnDef, DatasetDef, RowDef } from './types'
 
 type TableDataEntry = {
   tableName: string
+  script?: string
   columns: string[]
   rows: unknown[][]
 }
@@ -28,6 +29,148 @@ function parseSchemaJson(
   } catch {
     return undefined
   }
+}
+
+export function schemaJsonToAppState(
+  schemaArray: SpecificationSchemaJsonTable[]
+): AppState | undefined {
+  if (!schemaArray?.length) return undefined
+
+  const tables: TableDef[] = []
+  const tableRefMap = new Map<string, string>()
+
+  schemaArray.forEach((schemaTable, tIdx) => {
+    const tableId = `tbl-${tIdx}-${Date.now()}`
+    tableRefMap.set(schemaTable.tableName, tableId)
+
+    const columns: ColumnDef[] = (schemaTable.columns || []).map(
+      (col, cIdx) => ({
+        id: `col-${tIdx}-${cIdx}-${Date.now()}`,
+        name: col.columnName,
+        type: col.dataType,
+        isPrimaryKey: !!col.primaryKey,
+        isNotNull: col.nullable === undefined ? true : !col.nullable,
+        isUnique: !!col.unique || !!col.primaryKey,
+        isAutoIncrement: !!col.autoIncrement
+      })
+    )
+
+    tables.push({
+      id: tableId,
+      name: schemaTable.tableName,
+      columns,
+      foreignKeys: []
+    })
+  })
+
+  schemaArray.forEach((schemaTable) => {
+    const sourceTableId = tableRefMap.get(schemaTable.tableName)
+    const sourceTable = tables.find((t) => t.id === sourceTableId)
+    if (!sourceTable) return
+
+    const fksByTarget = new Map<
+      string,
+      Array<{ sourceColumnId: string; targetColumnId: string }>
+    >()
+
+    const hasExplicitForeignKeys =
+      Array.isArray(schemaTable.foreignKeys) &&
+      schemaTable.foreignKeys.length > 0
+
+    // Preferred format: explicit foreignKeys array (supports composite keys)
+    ;(schemaTable.foreignKeys || []).forEach((fk) => {
+      const targetTableId = tableRefMap.get(fk.targetTable)
+      if (!targetTableId) return
+
+      const targetTable = tables.find((t) => t.id === targetTableId)
+      if (!targetTable) return
+
+      const mappings: Array<{
+        sourceColumnId: string
+        targetColumnId: string
+      }> = []
+      fk.sourceColumns.forEach((sourceColName, idx) => {
+        const targetColName = fk.targetColumns[idx]
+        if (!targetColName) return
+
+        const sourceCol = sourceTable.columns.find(
+          (c) => c.name === sourceColName
+        )
+        const targetCol = targetTable.columns.find(
+          (c) => c.name === targetColName
+        )
+        if (!sourceCol || !targetCol) return
+        mappings.push({
+          sourceColumnId: sourceCol.id,
+          targetColumnId: targetCol.id
+        })
+      })
+
+      if (mappings.length > 0) {
+        if (!fksByTarget.has(targetTableId)) {
+          fksByTarget.set(targetTableId, [])
+        }
+        const existing = fksByTarget.get(targetTableId)!
+        mappings.forEach((mapping) => {
+          const isDuplicated = existing.some(
+            (item) =>
+              item.sourceColumnId === mapping.sourceColumnId &&
+              item.targetColumnId === mapping.targetColumnId
+          )
+          if (!isDuplicated) {
+            existing.push(mapping)
+          }
+        })
+      }
+    })
+
+    // Backward compatible format: FK info stored on each column
+    // Only use when explicit foreignKeys array is absent.
+    if (!hasExplicitForeignKeys) {
+      ;(schemaTable.columns || []).forEach((col) => {
+        if (col.foreignKey && col.referencesTable && col.referencesColumn) {
+          const targetTableId = tableRefMap.get(col.referencesTable)
+          if (!targetTableId) return
+          const targetTable = tables.find((t) => t.id === targetTableId)
+          const sourceCol = sourceTable.columns.find(
+            (c) => c.name === col.columnName
+          )
+          const targetCol = targetTable?.columns.find(
+            (c) => c.name === col.referencesColumn
+          )
+          if (!sourceCol || !targetCol) return
+
+          if (!fksByTarget.has(targetTableId)) {
+            fksByTarget.set(targetTableId, [])
+          }
+          const existing = fksByTarget.get(targetTableId)!
+          const isDuplicated = existing.some(
+            (item) =>
+              item.sourceColumnId === sourceCol.id &&
+              item.targetColumnId === targetCol.id
+          )
+          if (!isDuplicated) {
+            existing.push({
+              sourceColumnId: sourceCol.id,
+              targetColumnId: targetCol.id
+            })
+          }
+        }
+      })
+    }
+
+    Array.from(fksByTarget.entries()).forEach(
+      ([targetTableId, mappings], fkIdx) => {
+        sourceTable.foreignKeys.push({
+          id: `fk-${sourceTableId}-${fkIdx}-${Date.now()}`,
+          targetTableId,
+          columnMapping: mappings
+        })
+      }
+    )
+  })
+
+  return { tables, datasets: [] }
 }
 
 function parseTableData(raw: string | undefined): TableDataEntry[] {
@@ -54,81 +197,17 @@ export function parseSpecificationToAppState(
   const schemaArray = parseSchemaJson(schemaRaw)
   if (!schemaArray?.length) return undefined
 
-  const tables: TableDef[] = []
-  const tableRefMap = new Map<string, string>() // tableName -> tableId
+  const parsedState = schemaJsonToAppState(schemaArray)
+  if (!parsedState) return undefined
+  const { tables } = parsedState
+  const tableRefMap = new Map<string, string>()
+  tables.forEach((t) => tableRefMap.set(t.name, t.id))
 
-  // Create tables and columns
-  schemaArray.forEach((schemaTable, tIdx) => {
-    const tableId = `tbl-${tIdx}-${Date.now()}`
-    tableRefMap.set(schemaTable.tableName, tableId)
-
-    const columns: ColumnDef[] = (schemaTable.columns || []).map(
-      (col, cIdx) => ({
-        id: `col-${tIdx}-${cIdx}-${Date.now()}`,
-        name: col.columnName,
-        type: col.dataType,
-        isPrimaryKey: !!col.primaryKey,
-        isNotNull: col.nullable === undefined ? true : !col.nullable,
-        // Old JSON may omit `unique`; PK still implies uniqueness in the UI.
-        isUnique: !!col.unique || !!col.primaryKey,
-        isAutoIncrement: !!col.autoIncrement
-      })
-    )
-
-    tables.push({
-      id: tableId,
-      name: schemaTable.tableName,
-      columns,
-      foreignKeys: [] // Will populate after all tables exist
-    })
-  })
-
-  // Populate Foreign Keys
+  // Best-effort fallback extraction of isAutoIncrement from DDL script.
   schemaArray.forEach((schemaTable) => {
     const sourceTableId = tableRefMap.get(schemaTable.tableName)
     const sourceTable = tables.find((t) => t.id === sourceTableId)
     if (!sourceTable) return
-
-    // Group foreign keys by target table
-    const fksByTarget = new Map<
-      string,
-      Array<{ sourceColumnId: string; targetColumnId: string }>
-    >()
-
-    ;(schemaTable.columns || []).forEach((col) => {
-      if (col.foreignKey && col.referencesTable && col.referencesColumn) {
-        const targetTableId = tableRefMap.get(col.referencesTable)
-        if (!targetTableId) return
-
-        const targetTable = tables.find((t) => t.id === targetTableId)
-        const sourceCol = sourceTable.columns.find(
-          (c) => c.name === col.columnName
-        )
-        const targetCol = targetTable?.columns.find(
-          (c) => c.name === col.referencesColumn
-        )
-
-        if (sourceCol && targetCol) {
-          if (!fksByTarget.has(targetTableId)) {
-            fksByTarget.set(targetTableId, [])
-          }
-          fksByTarget.get(targetTableId)!.push({
-            sourceColumnId: sourceCol.id,
-            targetColumnId: targetCol.id
-          })
-        }
-      }
-    })
-
-    Array.from(fksByTarget.entries()).forEach(
-      ([targetTableId, mappings], fkIdx) => {
-        sourceTable.foreignKeys.push({
-          id: `fk-${sourceTableId}-${fkIdx}-${Date.now()}`,
-          targetTableId,
-          columnMapping: mappings
-        })
-      }
-    )
 
     // Best-effort fallback extraction of isAutoIncrement from DDL script.
     // Only parse inside current CREATE TABLE block to avoid cross-table false matches.

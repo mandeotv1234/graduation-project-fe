@@ -8,7 +8,7 @@ import {
 } from '@/lib/types'
 import { useExamTake } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-take'
 import { useExamDraft } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-draft'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getExamTime } from '@/lib/actions/anti-cheat.action'
 import { getExamSpecification, getMe } from '@/lib/actions'
 import { User as UserType } from '@/lib/types'
@@ -35,6 +35,9 @@ import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/com
 import { ConfirmLeaveDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-leave-dialog/confirm-leave-dialog'
 import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog/confirm-submit-dialog'
 import { PageSpinner } from '@/components/shared'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { DatasetTableView } from '@/components/shared/dataset-table-view'
+import type { SpecificationSchemaJsonTable } from '@/lib/types'
 
 interface ExamTakeInterfaceProps {
   exam: StudentExamDetail
@@ -53,6 +56,48 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     useState<ExecuteSqlResponse['schema']>(null)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
   const [showRestoredBanner, setShowRestoredBanner] = useState(false)
+  const [examSpecification, setExamSpecification] =
+    useState<ExamSpecification | null>(null)
+  const [isOverviewSelected, setIsOverviewSelected] = useState(true)
+  const schemaTablesForOverview = useMemo(() => {
+    if (schemaMeta && schemaMeta.length > 0) {
+      return schemaMeta.map((table) => ({
+        tableName: table.tableName,
+        columns: table.columns.map((col) => ({
+          name: col.columnName,
+          type: col.dataType,
+          primaryKey: Boolean(col.primaryKey),
+          nullable: Boolean(col.nullable),
+          foreignKey: Boolean((col as { foreignKey?: boolean }).foreignKey),
+          referencesTable:
+            (col as { referencesTable?: string | null }).referencesTable ??
+            null,
+          referencesColumn:
+            (col as { referencesColumn?: string | null }).referencesColumn ??
+            null,
+          unique: Boolean((col as { unique?: boolean }).unique),
+          autoIncrement: Boolean(
+            (col as { autoIncrement?: boolean }).autoIncrement
+          )
+        }))
+      }))
+    }
+
+    return editorSchema.map((table) => ({
+      tableName: table.tableName,
+      columns: table.columns.map((col) => ({
+        name: col.name,
+        type: col.type,
+        primaryKey: false,
+        nullable: true,
+        foreignKey: false,
+        referencesTable: null,
+        referencesColumn: null,
+        unique: false,
+        autoIncrement: false
+      }))
+    }))
+  }, [editorSchema, schemaMeta])
 
   const applySchemaMeta = useCallback(
     (schema: ExecuteSqlResponse['schema']) => {
@@ -185,13 +230,57 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       .then((res) => {
         const spec: ExamSpecification | null = res.data ?? null
         if (!spec) return
-        const tables: SchemaTable[] = spec.entities.map((entity) => ({
-          tableName: entity.entityName,
-          columns: entity.attributes.map((attr) => ({
-            name: attr.attributeName,
-            type: attr.dataType
-          }))
-        }))
+        setExamSpecification(spec)
+
+        let parsedSchemaJson: SpecificationSchemaJsonTable[] = []
+        const rawSchemaJson = spec.schemaJson
+        if (typeof rawSchemaJson === 'string' && rawSchemaJson.trim()) {
+          try {
+            const parsed = JSON.parse(rawSchemaJson)
+            if (Array.isArray(parsed)) {
+              parsedSchemaJson = parsed as SpecificationSchemaJsonTable[]
+            }
+          } catch {
+            parsedSchemaJson = []
+          }
+        } else if (Array.isArray(rawSchemaJson)) {
+          parsedSchemaJson = rawSchemaJson
+        }
+
+        const tables: SchemaTable[] =
+          spec.entities?.length > 0
+            ? spec.entities.map((entity) => ({
+                tableName: entity.entityName,
+                columns: entity.attributes.map((attr) => ({
+                  name: attr.attributeName,
+                  type: attr.dataType
+                }))
+              }))
+            : parsedSchemaJson.map((table) => ({
+                tableName: table.tableName,
+                columns: table.columns.map((col) => ({
+                  name: col.columnName,
+                  type: col.dataType
+                }))
+              }))
+
+        if (parsedSchemaJson.length > 0) {
+          applySchemaMeta(
+            parsedSchemaJson.map((table) => ({
+              tableName: table.tableName,
+              columns: table.columns.map((col) => ({
+                columnName: col.columnName,
+                dataType: col.dataType,
+                primaryKey: Boolean(col.primaryKey),
+                foreignKey: Boolean(col.foreignKey),
+                referencesTable: col.referencesTable ?? null,
+                referencesColumn: col.referencesColumn ?? null,
+                nullable: col.nullable ?? false
+              }))
+            }))
+          )
+        }
+
         setEditorSchema(tables)
       })
       .catch(() => {
@@ -404,7 +493,12 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
             questions={questions}
             currentIndex={examTake.currentQuestionIndex}
             answers={examTake.answers}
-            onSelect={examTake.goToQuestion}
+            onSelect={(index) => {
+              setIsOverviewSelected(false)
+              examTake.goToQuestion(index)
+            }}
+            onSelectOverview={() => setIsOverviewSelected(true)}
+            isOverviewSelected={isOverviewSelected}
             header={null}
           />
 
@@ -475,7 +569,16 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
 
             {/* Prompt (compact) */}
             <div className={styles.questionPrompt}>
-              {examTake.currentQuestion ? (
+              {isOverviewSelected ? (
+                <div className={styles.panelWrapper}>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {exam.title}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {examSpecification?.description || exam.description || ''}
+                  </p>
+                </div>
+              ) : examTake.currentQuestion ? (
                 <div className={styles.panelWrapper}>
                   <QuestionPanel question={examTake.currentQuestion} />
                 </div>
@@ -488,31 +591,157 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
 
             {/* Editor + Bottom Panel with Resizer */}
             <div className={styles.editorArea}>
-              <ResizablePanel defaultSize={65} minSize={30} maxSize={85}>
-                {examTake.currentQuestion ? (
-                  <SqlEditorPanel
-                    value={examTake.answers[examTake.currentQuestion.id] || ''}
-                    onChange={(val: string) =>
-                      examTake.updateAnswer(examTake.currentQuestion.id, val)
-                    }
-                    onExecute={handleExecuteSqlAndRefreshSchema}
-                    isLoading={examTake.isLoading}
-                    schema={editorSchema}
-                  />
-                ) : (
-                  <div className={styles.emptyStateCenter}>
-                    Chọn một câu hỏi để bắt đầu
-                  </div>
-                )}
+              {isOverviewSelected ? (
+                <div className="h-full min-h-0 p-4">
+                  <div className="grid h-full min-h-0 grid-cols-1 gap-4 xl:grid-cols-2">
+                    <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card">
+                      <div className="border-b border-border bg-muted/40 px-4 py-2.5">
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Thông tin bảng
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          Tên bảng, tên cột, kiểu dữ liệu, ràng buộc
+                        </p>
+                      </div>
+                      <ScrollArea className="h-full min-h-0 flex-1 p-3">
+                        <div className="space-y-3">
+                          {schemaTablesForOverview.length > 0 ? (
+                            schemaTablesForOverview.map((table) => (
+                              <div
+                                key={table.tableName}
+                                className="overflow-hidden rounded-md border border-border/70"
+                              >
+                                <div className="border-b border-border bg-muted/30 px-3 py-2 text-sm font-semibold text-primary">
+                                  {table.tableName}
+                                </div>
+                                <table className="w-full text-xs">
+                                  <thead className="bg-muted/20 text-muted-foreground">
+                                    <tr>
+                                      <th className="border-b border-r border-border px-3 py-2 text-left">
+                                        Cột
+                                      </th>
+                                      <th className="border-b border-r border-border px-3 py-2 text-left">
+                                        Kiểu dữ liệu
+                                      </th>
+                                      <th className="border-b border-border px-3 py-2 text-left">
+                                        Ràng buộc
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {table.columns.map((col) => (
+                                      <tr
+                                        key={`${table.tableName}-${col.name}`}
+                                        className="odd:bg-background even:bg-muted/10"
+                                      >
+                                        <td className="border-r border-border px-3 py-2 font-medium text-foreground">
+                                          {col.name}
+                                        </td>
+                                        <td className="border-r border-border px-3 py-2 font-mono text-muted-foreground">
+                                          {col.type}
+                                        </td>
+                                        <td className="px-3 py-2 text-muted-foreground">
+                                          {[
+                                            col.primaryKey ? 'PK' : null,
+                                            col.foreignKey
+                                              ? `FK${
+                                                  col.referencesTable
+                                                    ? ` -> ${col.referencesTable}.${col.referencesColumn || ''}`
+                                                    : ''
+                                                }`
+                                              : null,
+                                            col.unique ? 'UNIQUE' : null,
+                                            col.autoIncrement
+                                              ? 'AUTO_INCREMENT'
+                                              : null,
+                                            !col.nullable ? 'NOT NULL' : 'NULL'
+                                          ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ))
+                          ) : (
+                            <div className={styles.emptyStateCenter}>
+                              Chưa có thông tin schema
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </section>
 
-                <ExamTakeBottomPanel
-                  schema={editorSchema}
-                  result={examTake.sqlResult}
-                  schemaMeta={schemaMeta}
-                  examId={exam.examId}
-                  onSchemaMetaChange={applySchemaMeta}
-                />
-              </ResizablePanel>
+                    <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card">
+                      <div className="border-b border-border bg-muted/40 px-4 py-2.5">
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Dữ liệu mẫu trong bảng
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          Hiển thị theo dataset hiện có của đề
+                        </p>
+                      </div>
+                      <ScrollArea className="h-full min-h-0 flex-1 p-3">
+                        {examSpecification?.datasets?.length ? (
+                          <div className="space-y-4">
+                            {examSpecification.datasets
+                              .slice()
+                              .sort((a, b) => a.orderIndex - b.orderIndex)
+                              .map((dataset, idx) => (
+                                <section
+                                  key={`${dataset.id ?? idx}-${dataset.name}`}
+                                  className="space-y-2"
+                                >
+                                  <h4 className="text-sm font-semibold text-foreground">
+                                    Dataset: {dataset.name}
+                                  </h4>
+                                  <DatasetTableView
+                                    sql={dataset.dataScript}
+                                    tableData={dataset.tableData}
+                                  />
+                                </section>
+                              ))}
+                          </div>
+                        ) : (
+                          <div className={styles.emptyStateCenter}>
+                            Chưa có dữ liệu mẫu để hiển thị
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </section>
+                  </div>
+                </div>
+              ) : (
+                <ResizablePanel defaultSize={65} minSize={30} maxSize={85}>
+                  {examTake.currentQuestion ? (
+                    <SqlEditorPanel
+                      value={
+                        examTake.answers[examTake.currentQuestion.id] || ''
+                      }
+                      onChange={(val: string) =>
+                        examTake.updateAnswer(examTake.currentQuestion.id, val)
+                      }
+                      onExecute={handleExecuteSqlAndRefreshSchema}
+                      isLoading={examTake.isLoading}
+                      schema={editorSchema}
+                    />
+                  ) : (
+                    <div className={styles.emptyStateCenter}>
+                      Chọn một câu hỏi để bắt đầu
+                    </div>
+                  )}
+
+                  <ExamTakeBottomPanel
+                    schema={editorSchema}
+                    result={examTake.sqlResult}
+                    schemaMeta={schemaMeta}
+                    examId={exam.examId}
+                    onSchemaMetaChange={applySchemaMeta}
+                  />
+                </ResizablePanel>
+              )}
             </div>
           </div>
         </div>

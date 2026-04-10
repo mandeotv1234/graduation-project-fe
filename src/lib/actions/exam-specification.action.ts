@@ -10,7 +10,8 @@ import {
   ExamQuestionItem,
   SpecificationResponse,
   SpecificationDetailResponse,
-  CreateSpecificationRequest
+  CreateSpecificationRequest,
+  SpecificationSchemaJsonTable
 } from '@/lib/types'
 
 export async function getSpecifications(): Promise<
@@ -26,6 +27,25 @@ export async function createSpecification(
 ): Promise<ApiResponse<SpecificationResponse>> {
   return apiClient.post<SpecificationResponse>(
     ENDPOINTS.SPECIFICATIONS_V2,
+    data
+  )
+}
+
+export async function generateSpecificationSchemaByAI(data: {
+  description: string
+  currentSchemaJson?: SpecificationSchemaJsonTable[]
+}): Promise<ApiResponse<SpecificationSchemaJsonTable[]>> {
+  return apiClient.post<SpecificationSchemaJsonTable[]>(
+    ENDPOINTS.SPECIFICATIONS_AI_SCHEMA,
+    data
+  )
+}
+
+export async function generateSpecificationSchemaFromDDL(data: {
+  ddlScript: string
+}): Promise<ApiResponse<SpecificationSchemaJsonTable[]>> {
+  return apiClient.post<SpecificationSchemaJsonTable[]>(
+    ENDPOINTS.SPECIFICATIONS_SCHEMA_FROM_DDL,
     data
   )
 }

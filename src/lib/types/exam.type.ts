@@ -40,6 +40,8 @@ export interface ExamSettings {
   gradingMethod?: string
   maxViolations?: number
   showResultAfterSubmit?: boolean
+  /** DDL giáo viên nạp vào schema sinh viên khi bắt đầu thi */
+  isLoadDdl?: boolean
 }
 
 export interface StudentExamDetail {
@@ -217,6 +219,7 @@ export interface SpecDataset {
   id?: number
   name: string
   dataScript: string
+  tableData?: string
   orderIndex: number
   isActive: boolean
   visibleToStudent?: boolean
@@ -231,6 +234,7 @@ export interface ExamSpecification {
   visibleToStudent?: boolean
   schemaDiagram?: string
   schemaDiagramVisibleToStudent?: boolean
+  schemaJson?: string | import('@/lib/types').SpecificationSchemaJsonTable[]
   description: string
   entities: SpecEntity[]
   datasets?: SpecDataset[]

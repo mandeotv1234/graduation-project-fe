@@ -29,6 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useBuilderContext } from './builder-context'
+import { ForeignKeyDef } from './types'
 
 export const DATA_TYPES = [
   'INT',
@@ -59,12 +60,6 @@ export function SchemaEditor() {
     addColumn,
     updateColumn,
     deleteColumn,
-    addForeignKey,
-    updateForeignKey,
-    removeForeignKey,
-    addForeignKeyMapping,
-    updateForeignKeyMapping,
-    removeForeignKeyMapping,
     editingColumn,
     setEditingColumn
   } = useBuilderContext()
@@ -204,7 +199,17 @@ export function SchemaEditor() {
                             if (open)
                               setEditingColumn({
                                 tableId: activeTable.id,
-                                col: { ...col }
+                                col: { ...col },
+                                draftForeignKeys: activeTable.foreignKeys.map(
+                                  (fk) => ({
+                                    ...fk,
+                                    columnMapping: fk.columnMapping.map(
+                                      (m) => ({
+                                        ...m
+                                      })
+                                    )
+                                  })
+                                )
                               })
                             else setEditingColumn(null)
                           }}
@@ -326,199 +331,346 @@ export function SchemaEditor() {
                                 )}
 
                               <div className="border-t pt-6 space-y-4">
-                                <div className="flex justify-between items-center">
-                                  <h3 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
-                                    Table Foreign Keys
-                                  </h3>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                      addForeignKey(activeTable.id)
+                                {editingColumn &&
+                                  editingColumn.col.id === col.id &&
+                                  (() => {
+                                    const draftForeignKeys =
+                                      editingColumn.draftForeignKeys
+                                    const updateDraftForeignKeys = (
+                                      updater: (
+                                        prev: ForeignKeyDef[]
+                                      ) => ForeignKeyDef[]
+                                    ) => {
+                                      setEditingColumn({
+                                        ...editingColumn,
+                                        draftForeignKeys:
+                                          updater(draftForeignKeys)
+                                      })
                                     }
-                                  >
-                                    <Plus className="w-4 h-4 mr-2" /> Add
-                                    Foreign Key
-                                  </Button>
-                                </div>
-                                {activeTable.foreignKeys.map((fk) => (
-                                  <div
-                                    key={fk.id}
-                                    className="border p-4 rounded-md space-y-4 bg-neutral-50/50"
-                                  >
-                                    <div className="flex justify-between items-center">
-                                      <div className="flex items-center gap-3">
-                                        <Label className="font-medium text-neutral-700">
-                                          Target Table:
-                                        </Label>
-                                        <Select
-                                          value={fk.targetTableId}
-                                          onValueChange={(val) =>
-                                            val &&
-                                            updateForeignKey(
-                                              activeTable.id,
-                                              fk.id,
-                                              {
-                                                targetTableId: val,
-                                                columnMapping: []
-                                              }
-                                            )
-                                          }
-                                        >
-                                          <SelectTrigger className="w-[200px] bg-white">
-                                            <SelectValue placeholder="Select table" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {tables
-                                              .filter(
-                                                (t) => t.id !== activeTable.id
-                                              )
-                                              .map((t) => (
-                                                <SelectItem
-                                                  key={t.id}
-                                                  value={t.id}
-                                                >
-                                                  {t.name}
-                                                </SelectItem>
-                                              ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                        onClick={() =>
-                                          removeForeignKey(
-                                            activeTable.id,
-                                            fk.id
-                                          )
-                                        }
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </div>
+                                    const relatedForeignKeys =
+                                      draftForeignKeys.filter((fk) =>
+                                        fk.columnMapping.some(
+                                          (m) =>
+                                            m.sourceColumnId ===
+                                            editingColumn.col.id
+                                        )
+                                      )
 
-                                    {fk.targetTableId && (
-                                      <div className="space-y-3 pl-4 border-l-2 border-blue-200">
-                                        <Label className="text-xs text-neutral-500 uppercase font-semibold">
-                                          Column Mapping
-                                        </Label>
-                                        {fk.columnMapping.map(
-                                          (mapping, idx) => (
-                                            <div
-                                              key={idx}
-                                              className="flex items-center gap-3"
-                                            >
-                                              <Select
-                                                value={mapping.sourceColumnId}
-                                                onValueChange={(val) =>
-                                                  val &&
-                                                  updateForeignKeyMapping(
-                                                    activeTable.id,
-                                                    fk.id,
-                                                    idx,
-                                                    { sourceColumnId: val }
-                                                  )
-                                                }
-                                              >
-                                                <SelectTrigger className="w-[180px] bg-white">
-                                                  <SelectValue placeholder="Source Column" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  {activeTable.columns.map(
-                                                    (c) => (
-                                                      <SelectItem
-                                                        key={c.id}
-                                                        value={c.id}
-                                                      >
-                                                        {c.name}
-                                                      </SelectItem>
-                                                    )
-                                                  )}
-                                                </SelectContent>
-                                              </Select>
-                                              <span className="text-neutral-400 font-mono text-sm">
-                                                REFERENCES
-                                              </span>
-                                              <Select
-                                                value={mapping.targetColumnId}
-                                                onValueChange={(val) =>
-                                                  val &&
-                                                  updateForeignKeyMapping(
-                                                    activeTable.id,
-                                                    fk.id,
-                                                    idx,
-                                                    { targetColumnId: val }
-                                                  )
-                                                }
-                                              >
-                                                <SelectTrigger className="w-[180px] bg-white">
-                                                  <SelectValue placeholder="Target Column" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  {tables
-                                                    .find(
-                                                      (t) =>
-                                                        t.id ===
-                                                        fk.targetTableId
-                                                    )
-                                                    ?.columns.map((c) => (
-                                                      <SelectItem
-                                                        key={c.id}
-                                                        value={c.id}
-                                                      >
-                                                        {c.name}
-                                                      </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                              </Select>
+                                    const addForeignKeyForCurrentColumn =
+                                      () => {
+                                        const newFkId = `fk-${Date.now()}`
+                                        updateDraftForeignKeys((prev) => [
+                                          ...prev,
+                                          {
+                                            id: newFkId,
+                                            targetTableId: '',
+                                            columnMapping: [
+                                              {
+                                                sourceColumnId:
+                                                  editingColumn.col.id,
+                                                targetColumnId: ''
+                                              }
+                                            ]
+                                          }
+                                        ])
+                                      }
+
+                                    const updateDraftFk = (
+                                      fkId: string,
+                                      updates: Partial<ForeignKeyDef>
+                                    ) => {
+                                      updateDraftForeignKeys((prev) =>
+                                        prev.map((fk) =>
+                                          fk.id === fkId
+                                            ? { ...fk, ...updates }
+                                            : fk
+                                        )
+                                      )
+                                    }
+
+                                    const removeDraftFk = (fkId: string) => {
+                                      updateDraftForeignKeys((prev) =>
+                                        prev.filter((fk) => fk.id !== fkId)
+                                      )
+                                    }
+
+                                    const updateDraftFkMapping = (
+                                      fkId: string,
+                                      mappingIndex: number,
+                                      updates: Partial<{
+                                        sourceColumnId: string
+                                        targetColumnId: string
+                                      }>
+                                    ) => {
+                                      updateDraftForeignKeys((prev) =>
+                                        prev.map((fk) => {
+                                          if (fk.id !== fkId) return fk
+                                          const nextMappings = [
+                                            ...fk.columnMapping
+                                          ]
+                                          nextMappings[mappingIndex] = {
+                                            ...nextMappings[mappingIndex],
+                                            ...updates
+                                          }
+                                          return {
+                                            ...fk,
+                                            columnMapping: nextMappings
+                                          }
+                                        })
+                                      )
+                                    }
+
+                                    const addDraftFkMapping = (
+                                      fkId: string
+                                    ) => {
+                                      updateDraftForeignKeys((prev) =>
+                                        prev.map((fk) =>
+                                          fk.id === fkId
+                                            ? {
+                                                ...fk,
+                                                columnMapping: [
+                                                  ...fk.columnMapping,
+                                                  {
+                                                    sourceColumnId:
+                                                      editingColumn.col.id,
+                                                    targetColumnId: ''
+                                                  }
+                                                ]
+                                              }
+                                            : fk
+                                        )
+                                      )
+                                    }
+
+                                    const removeDraftFkMapping = (
+                                      fkId: string,
+                                      mappingIndex: number
+                                    ) => {
+                                      updateDraftForeignKeys((prev) =>
+                                        prev.map((fk) => {
+                                          if (fk.id !== fkId) return fk
+                                          const nextMappings = [
+                                            ...fk.columnMapping
+                                          ]
+                                          nextMappings.splice(mappingIndex, 1)
+                                          return {
+                                            ...fk,
+                                            columnMapping: nextMappings
+                                          }
+                                        })
+                                      )
+                                    }
+
+                                    return (
+                                      <>
+                                        <div className="flex justify-between items-center">
+                                          <h3 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
+                                            Foreign Keys của cột này
+                                          </h3>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={
+                                              addForeignKeyForCurrentColumn
+                                            }
+                                          >
+                                            <Plus className="w-4 h-4 mr-2" />{' '}
+                                            Add Foreign Key
+                                          </Button>
+                                        </div>
+                                        {relatedForeignKeys.map((fk) => (
+                                          <div
+                                            key={fk.id}
+                                            className="border p-4 rounded-md space-y-4 bg-neutral-50/50"
+                                          >
+                                            <div className="flex justify-between items-center">
+                                              <div className="flex items-center gap-3">
+                                                <Label className="font-medium text-neutral-700">
+                                                  Target Table:
+                                                </Label>
+                                                <Select
+                                                  value={fk.targetTableId}
+                                                  onValueChange={(val) =>
+                                                    val &&
+                                                    updateDraftFk(fk.id, {
+                                                      targetTableId: val,
+                                                      columnMapping:
+                                                        fk.columnMapping.map(
+                                                          (m) => ({
+                                                            ...m,
+                                                            targetColumnId: ''
+                                                          })
+                                                        )
+                                                    })
+                                                  }
+                                                >
+                                                  <SelectTrigger className="w-[200px] bg-white">
+                                                    <SelectValue placeholder="Select table" />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    {tables
+                                                      .filter(
+                                                        (t) =>
+                                                          t.id !==
+                                                          activeTable.id
+                                                      )
+                                                      .map((t) => (
+                                                        <SelectItem
+                                                          key={t.id}
+                                                          value={t.id}
+                                                        >
+                                                          {t.name}
+                                                        </SelectItem>
+                                                      ))}
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
                                               <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="text-neutral-400 hover:text-red-500"
+                                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
                                                 onClick={() =>
-                                                  removeForeignKeyMapping(
-                                                    activeTable.id,
-                                                    fk.id,
-                                                    idx
-                                                  )
+                                                  removeDraftFk(fk.id)
                                                 }
                                               >
-                                                <X className="w-4 h-4" />
+                                                <Trash2 className="w-4 h-4" />
                                               </Button>
                                             </div>
-                                          )
+
+                                            {fk.targetTableId && (
+                                              <div className="space-y-3 pl-4 border-l-2 border-blue-200">
+                                                <Label className="text-xs text-neutral-500 uppercase font-semibold">
+                                                  Column Mapping
+                                                </Label>
+                                                {fk.columnMapping.map(
+                                                  (mapping, idx) => (
+                                                    <div
+                                                      key={idx}
+                                                      className="flex items-center gap-3"
+                                                    >
+                                                      <Select
+                                                        value={
+                                                          mapping.sourceColumnId
+                                                        }
+                                                        onValueChange={(val) =>
+                                                          val &&
+                                                          updateDraftFkMapping(
+                                                            fk.id,
+                                                            idx,
+                                                            {
+                                                              sourceColumnId:
+                                                                val
+                                                            }
+                                                          )
+                                                        }
+                                                      >
+                                                        <SelectTrigger className="w-[180px] bg-white">
+                                                          <SelectValue placeholder="Source Column" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                          {activeTable.columns.map(
+                                                            (c) => (
+                                                              <SelectItem
+                                                                key={c.id}
+                                                                value={c.id}
+                                                              >
+                                                                {c.name}
+                                                              </SelectItem>
+                                                            )
+                                                          )}
+                                                        </SelectContent>
+                                                      </Select>
+                                                      <span className="text-neutral-400 font-mono text-sm">
+                                                        REFERENCES
+                                                      </span>
+                                                      <Select
+                                                        value={
+                                                          mapping.targetColumnId
+                                                        }
+                                                        onValueChange={(val) =>
+                                                          val &&
+                                                          updateDraftFkMapping(
+                                                            fk.id,
+                                                            idx,
+                                                            {
+                                                              targetColumnId:
+                                                                val
+                                                            }
+                                                          )
+                                                        }
+                                                      >
+                                                        <SelectTrigger className="w-[180px] bg-white">
+                                                          <SelectValue placeholder="Target Column" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                          {tables
+                                                            .find(
+                                                              (t) =>
+                                                                t.id ===
+                                                                fk.targetTableId
+                                                            )
+                                                            ?.columns.map(
+                                                              (c) => (
+                                                                <SelectItem
+                                                                  key={c.id}
+                                                                  value={c.id}
+                                                                >
+                                                                  {c.name}
+                                                                </SelectItem>
+                                                              )
+                                                            )}
+                                                        </SelectContent>
+                                                      </Select>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="text-neutral-400 hover:text-red-500"
+                                                        onClick={() =>
+                                                          removeDraftFkMapping(
+                                                            fk.id,
+                                                            idx
+                                                          )
+                                                        }
+                                                      >
+                                                        <X className="w-4 h-4" />
+                                                      </Button>
+                                                    </div>
+                                                  )
+                                                )}
+                                                <Button
+                                                  variant="secondary"
+                                                  size="sm"
+                                                  className="mt-2 text-xs"
+                                                  onClick={() =>
+                                                    addDraftFkMapping(fk.id)
+                                                  }
+                                                >
+                                                  <Plus className="w-3 h-3 mr-1" />{' '}
+                                                  Add Column Pair
+                                                </Button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                        {relatedForeignKeys.length === 0 && (
+                                          <div className="text-center py-6 border border-dashed rounded-md text-neutral-500 text-sm">
+                                            Cột này chưa tham gia foreign key
+                                            nào.
+                                          </div>
                                         )}
-                                        <Button
-                                          variant="secondary"
-                                          size="sm"
-                                          className="mt-2 text-xs"
-                                          onClick={() =>
-                                            addForeignKeyMapping(
-                                              activeTable.id,
-                                              fk.id
-                                            )
-                                          }
-                                        >
-                                          <Plus className="w-3 h-3 mr-1" /> Add
-                                          Column Pair
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                                {activeTable.foreignKeys.length === 0 && (
-                                  <div className="text-center py-6 border border-dashed rounded-md text-neutral-500 text-sm">
-                                    No foreign keys defined for this table.
-                                  </div>
-                                )}
+                                      </>
+                                    )
+                                  })()}
                               </div>
                             </div>
                             <DialogFooter className="flex items-center justify-end">
                               <Button
                                 onClick={() => {
                                   if (editingColumn) {
+                                    updateTable(activeTable.id, {
+                                      foreignKeys:
+                                        editingColumn.draftForeignKeys
+                                    })
                                     updateColumn(
                                       activeTable.id,
                                       editingColumn.col

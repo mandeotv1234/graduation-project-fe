@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -22,6 +22,14 @@ import {
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import { RichTextEditor } from '@/components/shared/rich-text-editor'
 import { RubricTestGrader } from './rubric-test-grader'
 import { TeacherSqlEditor } from './teacher-sql-editor'
@@ -36,8 +44,10 @@ import {
   ExamQuestionItem,
   CreateExamQuestionBatch,
   GradingRubric,
+  SpecificationDataset,
   TeacherExamTemplateVersionsResponse,
-  UpdateExamQuestionRequest
+  UpdateExamQuestionRequest,
+  SpecificationSchemaJsonTable
 } from '@/lib/types'
 import { PATH } from '@/lib/constants'
 import { CreateTableRubricEditor } from './create-table-rubric-editor'
@@ -46,6 +56,14 @@ import { InsertDataTestGrader } from './insert-data-test-grader'
 import { SelectQueryRubricEditor } from './select-query-rubric-editor'
 import { SelectQueryTestGrader } from './select-query-test-grader'
 import { QuestionItem } from './question-item'
+import {
+  generateCreateTableQuestionFromSchema,
+  sanitizeSchemaTables
+} from './create-table-question-generator'
+import {
+  generateInsertDataQuestionFromDataset,
+  getDatasetTableNames
+} from './insert-data-question-generator'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -63,6 +81,8 @@ interface ExamQuestionsViewProps {
   canShareTemplate: boolean
   shareDisabledReason?: string
   variant?: 'standalone' | 'embedded'
+  specificationSchemaJson?: string | SpecificationSchemaJsonTable[] | null
+  specificationDatasets?: SpecificationDataset[] | null
 }
 
 interface QuestionFormState extends CreateExamQuestionBatch {
@@ -80,7 +100,9 @@ export function ExamQuestionsView({
   templateManagement,
   canShareTemplate,
   shareDisabledReason,
-  variant = 'standalone'
+  variant = 'standalone',
+  specificationSchemaJson,
+  specificationDatasets
 }: ExamQuestionsViewProps) {
   const { callApi, isLoading } = useApi()
   const router = useRouter()
@@ -101,6 +123,42 @@ export function ExamQuestionsView({
   // Batch form state — multiple questions
   const [pendingQuestions, setPendingQuestions] = useState<QuestionFormState[]>(
     []
+  )
+  const [createTableSelections, setCreateTableSelections] = useState<
+    Record<string, string[]>
+  >({})
+  const [createTableOptions, setCreateTableOptions] = useState<
+    Record<string, { includeForeignKeys: boolean }>
+  >({})
+  const [createTableModalOpen, setCreateTableModalOpen] = useState<
+    Record<string, boolean>
+  >({})
+  const [insertDataModalOpen, setInsertDataModalOpen] = useState<
+    Record<string, boolean>
+  >({})
+  const [insertDataSelections, setInsertDataSelections] = useState<
+    Record<string, string>
+  >({})
+  const [insertDataTableSelections, setInsertDataTableSelections] = useState<
+    Record<string, string[]>
+  >({})
+  const availableSchemaTables = useMemo(() => {
+    try {
+      const parsed =
+        typeof specificationSchemaJson === 'string'
+          ? JSON.parse(specificationSchemaJson || '[]')
+          : specificationSchemaJson || []
+      return sanitizeSchemaTables(parsed)
+    } catch {
+      return []
+    }
+  }, [specificationSchemaJson])
+  const availableDatasets = useMemo(
+    () =>
+      (specificationDatasets || []).filter(
+        (dataset) => !!dataset.dataScript?.trim()
+      ),
+    [specificationDatasets]
   )
 
   const handleShareAsTemplate = async () => {
@@ -141,6 +199,168 @@ export function ExamQuestionsView({
 
   const removeQuestion = (id: string) => {
     setPendingQuestions((prev) => prev.filter((q) => q.id !== id))
+    setCreateTableSelections((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    setCreateTableOptions((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    setCreateTableModalOpen((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    setInsertDataModalOpen((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    setInsertDataSelections((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    setInsertDataTableSelections((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+  }
+
+  const toggleCreateTableSelection = (
+    questionId: string,
+    tableName: string,
+    checked: boolean
+  ) => {
+    setCreateTableSelections((prev) => {
+      const existing = prev[questionId] || []
+      const nextValues = checked
+        ? [...existing, tableName]
+        : existing.filter((name) => name !== tableName)
+      return { ...prev, [questionId]: nextValues }
+    })
+  }
+
+  const selectAllCreateTables = (questionId: string) => {
+    setCreateTableSelections((prev) => ({
+      ...prev,
+      [questionId]: availableSchemaTables.map((table) => table.tableName)
+    }))
+  }
+
+  const clearAllCreateTables = (questionId: string) => {
+    setCreateTableSelections((prev) => ({ ...prev, [questionId]: [] }))
+  }
+
+  const updateCreateTableOption = (
+    questionId: string,
+    key: 'includeForeignKeys',
+    value: boolean
+  ) => {
+    setCreateTableOptions((prev) => ({
+      ...prev,
+      [questionId]: {
+        includeForeignKeys:
+          key === 'includeForeignKeys'
+            ? value
+            : (prev[questionId]?.includeForeignKeys ?? true)
+      }
+    }))
+  }
+
+  const handleAutoGenerateCreateTableQuestion = (questionId: string) => {
+    const selected = createTableSelections[questionId] || []
+    if (selected.length === 0) {
+      toast.error('Vui lòng chọn ít nhất một bảng để sinh câu hỏi')
+      return
+    }
+    const options = createTableOptions[questionId] || {
+      includeForeignKeys: true
+    }
+    const generated = generateCreateTableQuestionFromSchema(
+      availableSchemaTables,
+      selected,
+      options
+    )
+    if (!generated.content || !generated.correctQuery) {
+      toast.error('Không thể sinh câu hỏi từ schema hiện tại')
+      return
+    }
+    updateQuestion(questionId, {
+      content: generated.content,
+      correctQuery: generated.correctQuery,
+      questionType: 'CREATE_TABLE'
+    })
+    toast.success('Đã tự sinh nội dung và đáp án cho câu CREATE TABLE')
+    setCreateTableModalOpen((prev) => ({ ...prev, [questionId]: false }))
+  }
+
+  const handleQuestionTypeChange = (questionId: string, nextType: string) => {
+    updateQuestion(questionId, { questionType: nextType })
+    if (nextType === 'CREATE_TABLE') {
+      setCreateTableModalOpen((prev) => ({ ...prev, [questionId]: true }))
+    }
+    if (nextType === 'INSERT_DATA') {
+      const defaultDataset = availableDatasets[0]
+      const defaultTable = defaultDataset
+        ? getDatasetTableNames(defaultDataset)[0] || ''
+        : ''
+      setInsertDataModalOpen((prev) => ({ ...prev, [questionId]: true }))
+      setInsertDataSelections((prev) => ({
+        ...prev,
+        [questionId]: prev[questionId] || defaultDataset?.name || ''
+      }))
+      setInsertDataTableSelections((prev) => ({
+        ...prev,
+        [questionId]: prev[questionId] || (defaultTable ? [defaultTable] : [])
+      }))
+    }
+  }
+
+  const handleAutoGenerateInsertDataQuestion = (questionId: string) => {
+    const selectedDatasetName = insertDataSelections[questionId]
+    if (!selectedDatasetName) {
+      toast.error('Vui lòng chọn một dataset để sinh câu hỏi INSERT DATA')
+      return
+    }
+    const dataset = availableDatasets.find(
+      (item) => item.name === selectedDatasetName
+    )
+    if (!dataset) {
+      toast.error('Không tìm thấy dataset đã chọn')
+      return
+    }
+    const selectedTableNames = insertDataTableSelections[questionId] || []
+    const generated = generateInsertDataQuestionFromDataset(
+      dataset,
+      selectedTableNames
+    )
+    if (!generated.content || !generated.correctQuery) {
+      toast.error('Dataset chưa có data script để sinh đáp án')
+      return
+    }
+    updateQuestion(questionId, {
+      content: generated.content,
+      correctQuery: generated.correctQuery,
+      questionType: 'INSERT_DATA'
+    })
+    toast.success('Đã tự sinh nội dung và đáp án cho câu INSERT DATA')
+    setInsertDataModalOpen((prev) => ({ ...prev, [questionId]: false }))
+  }
+
+  const selectAllInsertTables = (questionId: string, tableNames: string[]) => {
+    setInsertDataTableSelections((prev) => ({
+      ...prev,
+      [questionId]: tableNames
+    }))
+  }
+
+  const clearAllInsertTables = (questionId: string) => {
+    setInsertDataTableSelections((prev) => ({ ...prev, [questionId]: [] }))
   }
 
   const [updatingQuestionId, setUpdatingQuestionId] = useState<number | null>(
@@ -529,6 +749,304 @@ export function ExamQuestionsView({
                   key={q.id}
                   className="rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-all hover:shadow-md"
                 >
+                  <Dialog
+                    open={createTableModalOpen[q.id] ?? false}
+                    onOpenChange={(open) =>
+                      setCreateTableModalOpen((prev) => ({
+                        ...prev,
+                        [q.id]: open
+                      }))
+                    }
+                  >
+                    <DialogContent className="sm:max-w-xl">
+                      <DialogHeader>
+                        <DialogTitle>
+                          Sinh câu CREATE TABLE từ schema
+                        </DialogTitle>
+                        <DialogDescription>
+                          Chọn bảng và bấm sinh để tự điền nội dung đề bài và
+                          đáp án chuẩn.
+                        </DialogDescription>
+                      </DialogHeader>
+                      {availableSchemaTables.length === 0 ? (
+                        <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                          Chưa có schemaJson trong đặc tả của đề thi để sinh tự
+                          động.
+                        </p>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-medium text-muted-foreground">
+                                Chọn bảng cần tạo
+                              </p>
+                              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    availableSchemaTables.length > 0 &&
+                                    (createTableSelections[q.id] || [])
+                                      .length === availableSchemaTables.length
+                                  }
+                                  onChange={(event) => {
+                                    if (event.target.checked) {
+                                      selectAllCreateTables(q.id)
+                                    } else {
+                                      clearAllCreateTables(q.id)
+                                    }
+                                  }}
+                                />
+                                Chọn tất cả
+                              </label>
+                            </div>
+                            <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
+                              {availableSchemaTables.map((table) => {
+                                const checked = (
+                                  createTableSelections[q.id] || []
+                                ).includes(table.tableName)
+                                return (
+                                  <label
+                                    key={`${q.id}-${table.tableName}`}
+                                    className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background/80"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={(event) =>
+                                        toggleCreateTableSelection(
+                                          q.id,
+                                          table.tableName,
+                                          event.target.checked
+                                        )
+                                      }
+                                    />
+                                    {table.tableName}
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          </div>
+                          <div className="rounded-md border bg-background px-3 py-2">
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  createTableOptions[q.id]
+                                    ?.includeForeignKeys ?? true
+                                }
+                                onChange={(event) =>
+                                  updateCreateTableOption(
+                                    q.id,
+                                    'includeForeignKeys',
+                                    event.target.checked
+                                  )
+                                }
+                              />
+                              Bao gồm khóa ngoại
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            setCreateTableModalOpen((prev) => ({
+                              ...prev,
+                              [q.id]: false
+                            }))
+                          }
+                        >
+                          Đóng
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            handleAutoGenerateCreateTableQuestion(q.id)
+                          }
+                          disabled={availableSchemaTables.length === 0}
+                        >
+                          Sinh nội dung và đáp án
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog
+                    open={insertDataModalOpen[q.id] ?? false}
+                    onOpenChange={(open) =>
+                      setInsertDataModalOpen((prev) => ({
+                        ...prev,
+                        [q.id]: open
+                      }))
+                    }
+                  >
+                    <DialogContent className="sm:max-w-xl">
+                      <DialogHeader>
+                        <DialogTitle>
+                          Sinh câu INSERT DATA từ dataset
+                        </DialogTitle>
+                        <DialogDescription>
+                          Chọn một dataset để tự điền nội dung đề bài và đáp án
+                          chuẩn.
+                        </DialogDescription>
+                      </DialogHeader>
+                      {availableDatasets.length === 0 ? (
+                        <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                          Chưa có dataset có data script trong đặc tả của đề
+                          thi.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Chọn dataset
+                          </p>
+                          <select
+                            value={insertDataSelections[q.id] || ''}
+                            onChange={(event) => {
+                              const nextDatasetName = event.target.value
+                              setInsertDataSelections((prev) => ({
+                                ...prev,
+                                [q.id]: nextDatasetName
+                              }))
+                              const nextDataset = availableDatasets.find(
+                                (dataset) => dataset.name === nextDatasetName
+                              )
+                              const nextTableName = nextDataset
+                                ? getDatasetTableNames(nextDataset)[0] || ''
+                                : ''
+                              setInsertDataTableSelections((prev) => ({
+                                ...prev,
+                                [q.id]: nextTableName ? [nextTableName] : []
+                              }))
+                            }}
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <option value="" disabled>
+                              -- Chọn dataset --
+                            </option>
+                            {availableDatasets.map((dataset) => (
+                              <option
+                                key={`${q.id}-${dataset.id ?? dataset.name}`}
+                                value={dataset.name}
+                              >
+                                {dataset.name}
+                              </option>
+                            ))}
+                          </select>
+                          {(() => {
+                            const selectedDatasetName =
+                              insertDataSelections[q.id]
+                            const selectedDataset = availableDatasets.find(
+                              (dataset) => dataset.name === selectedDatasetName
+                            )
+                            const tableNames = selectedDataset
+                              ? getDatasetTableNames(selectedDataset)
+                              : []
+                            if (tableNames.length === 0) return null
+
+                            return (
+                              <div className="pt-2 space-y-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-xs font-medium text-muted-foreground">
+                                    Chọn table trong dataset
+                                  </p>
+                                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <input
+                                      type="checkbox"
+                                      checked={
+                                        tableNames.length > 0 &&
+                                        (insertDataTableSelections[q.id] || [])
+                                          .length === tableNames.length
+                                      }
+                                      onChange={(event) => {
+                                        if (event.target.checked) {
+                                          selectAllInsertTables(
+                                            q.id,
+                                            tableNames
+                                          )
+                                        } else {
+                                          clearAllInsertTables(q.id)
+                                        }
+                                      }}
+                                    />
+                                    Chọn tất cả
+                                  </label>
+                                </div>
+                                <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
+                                  {tableNames.map((tableName) => {
+                                    const selectedTables =
+                                      insertDataTableSelections[q.id] || []
+                                    const checked =
+                                      selectedTables.includes(tableName)
+                                    return (
+                                      <label
+                                        key={`${q.id}-${selectedDatasetName}-${tableName}`}
+                                        className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background/80"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={(event) => {
+                                            setInsertDataTableSelections(
+                                              (prev) => {
+                                                const existing =
+                                                  prev[q.id] || []
+                                                let nextValues = existing
+                                                if (event.target.checked) {
+                                                  nextValues = [
+                                                    ...existing,
+                                                    tableName
+                                                  ]
+                                                } else {
+                                                  nextValues = existing.filter(
+                                                    (name) => name !== tableName
+                                                  )
+                                                }
+                                                return {
+                                                  ...prev,
+                                                  [q.id]: nextValues
+                                                }
+                                              }
+                                            )
+                                          }}
+                                        />
+                                        {tableName}
+                                      </label>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      )}
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            setInsertDataModalOpen((prev) => ({
+                              ...prev,
+                              [q.id]: false
+                            }))
+                          }
+                        >
+                          Đóng
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            handleAutoGenerateInsertDataQuestion(q.id)
+                          }
+                          disabled={availableDatasets.length === 0}
+                        >
+                          Sinh nội dung và đáp án
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
                   {/* Card Header */}
                   <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/20 px-5 py-3 border-b border-border">
                     <div className="flex items-center gap-4">
@@ -542,9 +1060,7 @@ export function ExamQuestionsView({
                         <select
                           value={q.questionType}
                           onChange={(e) =>
-                            updateQuestion(q.id, {
-                              questionType: e.target.value
-                            })
+                            handleQuestionTypeChange(q.id, e.target.value)
                           }
                           className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
@@ -554,6 +1070,36 @@ export function ExamQuestionsView({
                             </option>
                           ))}
                         </select>
+                        {q.questionType === 'CREATE_TABLE' && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setCreateTableModalOpen((prev) => ({
+                                ...prev,
+                                [q.id]: true
+                              }))
+                            }
+                          >
+                            Mở modal CREATE
+                          </Button>
+                        )}
+                        {q.questionType === 'INSERT_DATA' && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setInsertDataModalOpen((prev) => ({
+                                ...prev,
+                                [q.id]: true
+                              }))
+                            }
+                          >
+                            Mở modal INSERT
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -904,6 +1450,8 @@ export function ExamQuestionsView({
               isDeleting={deletingQuestionId === q.id}
               allQuestions={questions}
               examId={examId}
+              specificationSchemaJson={specificationSchemaJson}
+              specificationDatasets={specificationDatasets ?? []}
             />
           ))}
         </div>

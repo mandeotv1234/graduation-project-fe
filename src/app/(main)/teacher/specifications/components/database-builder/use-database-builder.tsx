@@ -414,6 +414,22 @@ export function useDatabaseBuilder(initialState?: AppState) {
     }))
   }
 
+  const replaceState = (nextState: AppState) => {
+    setHistory((curr) => ({
+      past: [...curr.past, curr.present],
+      present: nextState,
+      future: []
+    }))
+
+    if (nextState.tables.length > 0) {
+      setActiveView({ type: 'schema', id: nextState.tables[0].id })
+    } else if (nextState.datasets.length > 0) {
+      setActiveView({ type: 'dataset', id: nextState.datasets[0].id })
+    } else {
+      setActiveView({ type: 'schema', id: '' })
+    }
+  }
+
   // --- Dataset Actions ---
   const addDataset = () => {
     const newDatasetId = `ds-${Date.now()}`
@@ -480,6 +496,7 @@ export function useDatabaseBuilder(initialState?: AppState) {
     addForeignKeyMapping,
     updateForeignKeyMapping,
     removeForeignKeyMapping,
+    replaceState,
     addDataset,
     updateDataset,
     deleteDataset

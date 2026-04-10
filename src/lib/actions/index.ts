@@ -30,6 +30,8 @@ export * from '@/lib/actions/notification.action'
 export {
   getSpecifications,
   createSpecification,
+  generateSpecificationSchemaByAI,
+  generateSpecificationSchemaFromDDL,
   getExamSpecification,
   saveExamSpecification,
   createExamQuestionsBatch,

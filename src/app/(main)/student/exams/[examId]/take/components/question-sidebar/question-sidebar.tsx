@@ -9,6 +9,8 @@ interface QuestionSidebarProps {
   currentIndex: number
   answers: Record<number, string>
   onSelect: (index: number) => void
+  onSelectOverview?: () => void
+  isOverviewSelected?: boolean
   header?: React.ReactNode
 }
 
@@ -26,6 +28,8 @@ export function QuestionSidebar({
   currentIndex,
   answers,
   onSelect,
+  onSelectOverview,
+  isOverviewSelected = false,
   header
 }: QuestionSidebarProps) {
   return (
@@ -38,8 +42,46 @@ export function QuestionSidebar({
         </h3>
 
         <div className={styles.list}>
+          {onSelectOverview && (
+            <button
+              onClick={onSelectOverview}
+              className={cn(
+                styles.item,
+                'group',
+                isOverviewSelected ? styles.itemActive : styles.itemInactive
+              )}
+            >
+              {isOverviewSelected && <div className={styles.activeStrip} />}
+              <span
+                className={cn(
+                  styles.indexCircle,
+                  isOverviewSelected
+                    ? styles.indexCircleActive
+                    : styles.indexCircleIdle
+                )}
+              >
+                Đ
+              </span>
+              <div className={styles.content}>
+                <p
+                  className={cn(
+                    styles.questionTitle,
+                    isOverviewSelected
+                      ? styles.questionTitleActive
+                      : styles.questionTitleInactive
+                  )}
+                >
+                  Đặc tả
+                </p>
+                <p className={styles.meta}>
+                  <span className={styles.metaType}>SPEC</span>
+                </p>
+              </div>
+            </button>
+          )}
+
           {questions.map((q, index) => {
-            const isActive = index === currentIndex
+            const isActive = !isOverviewSelected && index === currentIndex
             const hasAnswer = !!answers[q.id]?.trim()
 
             return (

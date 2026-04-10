@@ -47,6 +47,8 @@ export const ENDPOINTS = Object.freeze({
   // Teacher - Specifications
   SPECIFICATIONS: '/specifications',
   SPECIFICATIONS_V2: '/specifications/v2',
+  SPECIFICATIONS_AI_SCHEMA: '/specifications/ai-schema',
+  SPECIFICATIONS_SCHEMA_FROM_DDL: '/specifications/schema-from-ddl',
   SPECIFICATION_DETAIL: (specificationId: number) =>
     `/specifications/${specificationId}`,
 

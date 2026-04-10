@@ -16,7 +16,18 @@ export type SpecificationSchemaJsonColumn = {
   autoIncrement?: boolean
 }
 
+export type SpecificationSchemaJsonForeignKey = {
+  name?: string
+  sourceColumns: string[]
+  targetTable: string
+  targetColumns: string[]
+  onDelete?: string
+  onUpdate?: string
+}
+
 export type SpecificationSchemaJsonTable = {
   tableName: string
+  script?: string
   columns: SpecificationSchemaJsonColumn[]
+  foreignKeys?: SpecificationSchemaJsonForeignKey[]
 }

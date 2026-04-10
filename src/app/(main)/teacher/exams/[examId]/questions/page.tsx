@@ -70,6 +70,8 @@ export default async function ExamQuestionsPage({
       templateManagement={templateManagementResponse.data ?? null}
       canShareTemplate={hasValidSpecification && questions.length > 0}
       shareDisabledReason={shareDisabledReason}
+      specificationSchemaJson={specificationResponse.data?.schemaJson ?? null}
+      specificationDatasets={specificationResponse.data?.datasets ?? []}
     />
   )
 }
