@@ -49,18 +49,20 @@ const ALL_TARGET_OPTIONS: Array<{ value: GradingRuleTarget; label: string }> = [
   { value: 'ROW_ORDER', label: 'Thứ tự dòng' }
 ]
 
-const CREATE_TARGET_OPTIONS: Array<{ value: GradingRuleTarget; label: string }> =
-  ALL_TARGET_OPTIONS.filter((option) =>
-    [
-      'TABLE',
-      'COLUMN',
-      'DATA_TYPE',
-      'PRIMARY_KEY',
-      'FOREIGN_KEY',
-      'CONSTRAINT_LOCAL',
-      'COLUMN_ORDER'
-    ].includes(option.value)
-  )
+const CREATE_TARGET_OPTIONS: Array<{
+  value: GradingRuleTarget
+  label: string
+}> = ALL_TARGET_OPTIONS.filter((option) =>
+  [
+    'TABLE',
+    'COLUMN',
+    'DATA_TYPE',
+    'PRIMARY_KEY',
+    'FOREIGN_KEY',
+    'CONSTRAINT_LOCAL',
+    'COLUMN_ORDER'
+  ].includes(option.value)
+)
 
 const SELECT_TARGET_OPTIONS = ALL_TARGET_OPTIONS
 
@@ -114,7 +116,10 @@ const SELECT_CONDITION_OPTIONS: Record<
 }
 
 const CREATE_CONDITION_OPTIONS: Partial<
-  Record<GradingRuleTarget, Array<{ value: GradingRuleCondition; label: string }>>
+  Record<
+    GradingRuleTarget,
+    Array<{ value: GradingRuleCondition; label: string }>
+  >
 > = {
   TABLE: [
     { value: 'IS_MISSING', label: 'Bị thiếu' },
@@ -181,7 +186,10 @@ const SELECT_MODIFIER_OPTIONS: Record<
 }
 
 const CREATE_MODIFIER_OPTIONS: Partial<
-  Record<GradingRuleTarget, Array<{ value: GradingRuleModifier; label: string }>>
+  Record<
+    GradingRuleTarget,
+    Array<{ value: GradingRuleModifier; label: string }>
+  >
 > = {
   TABLE: [{ value: 'IGNORE_CASE', label: 'Bỏ qua hoa/thường tên bảng' }],
   COLUMN: [{ value: 'IGNORE_CASE', label: 'Bỏ qua hoa/thường tên cột' }],
@@ -218,7 +226,11 @@ const ACTION_OPTIONS: Array<{ value: GradingRuleAction; label: string }> = [
 ]
 
 const VALID_ACTIONS = new Set(ACTION_OPTIONS.map((opt) => opt.value))
-const FAIL_ACTIONS = new Set<GradingRuleAction>(['FAIL_ITEM', 'FAIL_ALL', 'IGNORE'])
+const FAIL_ACTIONS = new Set<GradingRuleAction>([
+  'FAIL_ITEM',
+  'FAIL_ALL',
+  'IGNORE'
+])
 
 function toNumber(value: unknown, defaultValue: number) {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -282,8 +294,7 @@ function getConditionLabel(
   return (
     getConditionOptions(target, questionType).find(
       (opt) => opt.value === condition
-    )?.label ||
-    condition
+    )?.label || condition
   )
 }
 
@@ -299,8 +310,7 @@ function getModifierLabel(
   return (
     getModifierOptions(target, questionType).find(
       (opt) => opt.value === modifier
-    )?.label ||
-    modifier
+    )?.label || modifier
   )
 }
 
@@ -328,8 +338,7 @@ function buildFriendlyRuleName(
   contextText = ''
 ) {
   const target = rule.target || getDefaultTarget(questionType)
-  const condition =
-    rule.condition || getDefaultCondition(target, questionType)
+  const condition = rule.condition || getDefaultCondition(target, questionType)
 
   const columnHint = extractColumnHintFromText(contextText)
   if (columnHint && target === 'CELL_VALUE') {
@@ -397,7 +406,9 @@ function normalizeRule(
     : defaultTarget
 
   const conditionOptions = getConditionOptions(target, questionType)
-  const condition = conditionOptions.some((opt) => opt.value === input.condition)
+  const condition = conditionOptions.some(
+    (opt) => opt.value === input.condition
+  )
     ? (input.condition as GradingRuleCondition)
     : getDefaultCondition(target, questionType)
 
@@ -409,9 +420,8 @@ function normalizeRule(
     getModifierOptions(target, questionType).map((modifier) => modifier.value)
   )
   const modifiers = Array.isArray(input.modifiers)
-    ? input.modifiers.filter(
-        (item): item is GradingRuleModifier =>
-          validModifiers.has(item as GradingRuleModifier)
+    ? input.modifiers.filter((item): item is GradingRuleModifier =>
+        validModifiers.has(item as GradingRuleModifier)
       )
     : []
 
@@ -435,7 +445,10 @@ function normalizeRule(
   }
 }
 
-function buildRuleSummary(rule: InsertDataGradingRule, questionType: RuleQuestionType) {
+function buildRuleSummary(
+  rule: InsertDataGradingRule,
+  questionType: RuleQuestionType
+) {
   const specialDescription =
     typeof rule.description === 'string' ? rule.description.trim() : ''
 
@@ -444,8 +457,7 @@ function buildRuleSummary(rule: InsertDataGradingRule, questionType: RuleQuestio
   }
 
   const target = rule.target || getDefaultTarget(questionType)
-  const condition =
-    rule.condition || getDefaultCondition(target, questionType)
+  const condition = rule.condition || getDefaultCondition(target, questionType)
   const action = rule.action || 'DEDUCT_POINTS'
   const penaltyValue = Math.max(0, toNumber(rule.penalty_value, 0))
   const modifiers = Array.isArray(rule.modifiers) ? rule.modifiers : []
@@ -511,7 +523,8 @@ function selectBestGeneratedRule(
       keywords.reduce(
         (sum, keyword) => (blob.includes(keyword) ? sum + 1 : sum),
         0
-      ) - index * 0.01
+      ) -
+      index * 0.01
 
     if (score > bestScore) {
       bestScore = score
@@ -634,7 +647,9 @@ export function GradingRulesEditor({
   const saveRule = () => {
     if (specialMode) {
       const description =
-        typeof ruleDraft.description === 'string' ? ruleDraft.description.trim() : ''
+        typeof ruleDraft.description === 'string'
+          ? ruleDraft.description.trim()
+          : ''
       if (!description) {
         toast.error('Rule đặc biệt bắt buộc có mô tả')
         return
@@ -702,20 +717,6 @@ export function GradingRulesEditor({
             })
             .join('\n')
 
-    const questionTypeConstraint =
-      questionType === 'CREATE_TABLE'
-        ? [
-            '## Giới hạn Rule Engine cho CREATE_TABLE',
-            '- Chỉ dùng target: TABLE, COLUMN, DATA_TYPE, PRIMARY_KEY, FOREIGN_KEY, CONSTRAINT_LOCAL, COLUMN_ORDER.',
-            '- Chỉ dùng condition theo metadata: IS_MISSING, IS_EXTRA, NOT_EQUAL, TYPE_MISMATCH, LENGTH_MISMATCH, REFERENCE_ERROR, OUT_OF_ORDER.',
-            '- Không dùng target liên quan dữ liệu như ROW, CELL_VALUE, ROW_ORDER.',
-            '- Modifiers ưu tiên cho CREATE: IGNORE_CASE, MATCH_FAMILY_TYPE, IGNORE_CONSTRAINT_NAME, IGNORE_LENGTH.'
-          ].join('\n')
-        : [
-            '## Rule Engine cho SELECT_QUERY',
-            '- Có thể dùng cả target liên quan dữ liệu: ROW, CELL_VALUE, ROW_ORDER.'
-          ].join('\n')
-
     const outputInstruction =
       mode === 'single'
         ? '- Chỉ trả về DUY NHẤT 1 rule phù hợp nhất theo prompt.'
@@ -730,14 +731,9 @@ export function GradingRulesEditor({
         : '',
       `## Yêu cầu giáo viên\n${teacherPrompt.trim()}`,
       `## Quy tắc hiện có\n${existingRulesContext}`,
-      questionTypeConstraint,
-      '## Năng lực JSON được phép',
-      '- Rule thường: { rule_name, target, condition, modifiers, action, penalty_value, description }.',
-      '- Rule đặc biệt: chỉ có { description } nếu là ngoại lệ nghiệp vụ khó biểu diễn.',
       outputInstruction,
       '- Mỗi rule cần đại diện cho một lỗi/điều kiện khác nhau, không lặp nội dung.',
-      '- Ưu tiên tên quy tắc thân thiện tiếng Việt, ngắn gọn, có dấu.',
-      '- Chỉ trả về JSON hợp lệ, không kèm giải thích ngoài JSON.'
+      '- Ưu tiên tên quy tắc thân thiện tiếng Việt, ngắn gọn, có dấu.'
     ]
       .filter(Boolean)
       .join('\n\n')
@@ -759,7 +755,7 @@ export function GradingRulesEditor({
     )
 
     const aiQuestionType =
-      questionType === 'CREATE_TABLE' ? 'INSERT_DATA' : questionType
+      questionType === 'CREATE_TABLE' ? 'CREATE_TABLE_RULES' : questionType
 
     setIsGeneratingByAi(true)
     try {
@@ -792,9 +788,9 @@ export function GradingRulesEditor({
           ? root.grading_rules
           : []
 
-      const generatedRules = (rawGenerated as Partial<InsertDataGradingRule>[]).map(
-        (rule, idx) => normalizeRule(rule, idx, questionType)
-      )
+      const generatedRules = (
+        rawGenerated as Partial<InsertDataGradingRule>[]
+      ).map((rule, idx) => normalizeRule(rule, idx, questionType))
 
       if (generatedRules.length === 0) {
         toast.error('AI chưa tạo được quy tắc phù hợp từ prompt hiện tại')
@@ -849,7 +845,7 @@ export function GradingRulesEditor({
       requestedRuleCount
     )
     const aiQuestionType =
-      questionType === 'CREATE_TABLE' ? 'INSERT_DATA' : questionType
+      questionType === 'CREATE_TABLE' ? 'CREATE_TABLE_RULES' : questionType
 
     setIsGeneratingMultipleByAi(true)
     try {
@@ -883,16 +879,20 @@ export function GradingRulesEditor({
           : []
 
       const nextStartIndex = normalizedRules.length
-      const nextRules = (rawGenerated as Partial<InsertDataGradingRule>[])
-        .slice(0, requestedRuleCount)
-        .map((rule, idx) => {
-          const normalized = normalizeRule(rule, nextStartIndex + idx, questionType)
+      const nextRules = (rawGenerated as Partial<InsertDataGradingRule>[]).map(
+        (rule, idx) => {
+          const normalized = normalizeRule(
+            rule,
+            nextStartIndex + idx,
+            questionType
+          )
           return ensureFriendlyRuleName(
             normalized,
             questionType,
             [multiPrompt, normalized.description || ''].join(' ')
           )
-        })
+        }
+      )
 
       if (nextRules.length === 0) {
         toast.error('AI chưa tạo được quy tắc phù hợp từ prompt hiện tại')
@@ -930,7 +930,8 @@ export function GradingRulesEditor({
 
       {normalizedRules.length === 0 && (
         <div className="rounded-md border border-dashed border-border bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
-          Chưa có quy tắc nâng cao. Bạn có thể thêm thủ công hoặc dùng AI trong modal.
+          Chưa có quy tắc nâng cao. Bạn có thể thêm thủ công hoặc dùng AI trong
+          modal.
         </div>
       )}
 
@@ -938,7 +939,7 @@ export function GradingRulesEditor({
         {normalizedRules.map((rule, idx) => {
           const title = isDescriptionOnlySpecialRule(rule)
             ? `Rule đặc biệt #${idx + 1}`
-            : (rule.rule_name || buildRuleName(idx))
+            : rule.rule_name || buildRuleName(idx)
 
           return (
             <div
@@ -947,7 +948,9 @@ export function GradingRulesEditor({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-sub-primary">{title}</p>
+                  <p className="text-xs font-semibold text-sub-primary">
+                    {title}
+                  </p>
                   <p className="text-sm text-foreground leading-relaxed">
                     {buildRuleSummary(rule, questionType)}
                   </p>
@@ -1112,7 +1115,8 @@ export function GradingRulesEditor({
                       <select
                         value={draftTarget}
                         onChange={(event) => {
-                          const nextTarget = event.target.value as GradingRuleTarget
+                          const nextTarget = event.target
+                            .value as GradingRuleTarget
                           updateDraft((current) => {
                             const nextConditionOptions = getConditionOptions(
                               nextTarget,
@@ -1149,7 +1153,8 @@ export function GradingRulesEditor({
                         value={draftCondition}
                         onChange={(event) =>
                           updateDraft(() => ({
-                            condition: event.target.value as GradingRuleCondition
+                            condition: event.target
+                              .value as GradingRuleCondition
                           }))
                         }
                         className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
@@ -1169,9 +1174,11 @@ export function GradingRulesEditor({
                       <select
                         value={draftAction}
                         onChange={(event) => {
-                          const nextAction = event.target.value as GradingRuleAction
+                          const nextAction = event.target
+                            .value as GradingRuleAction
                           updateDraft((current) => {
-                            const currentAction = current.action || 'DEDUCT_POINTS'
+                            const currentAction =
+                              current.action || 'DEDUCT_POINTS'
                             if (FAIL_ACTIONS.has(nextAction)) {
                               return { action: nextAction, penalty_value: 0 }
                             }
@@ -1203,14 +1210,22 @@ export function GradingRulesEditor({
                       </label>
                       <input
                         type="number"
-                        value={Math.max(0, toNumber(ruleDraft.penalty_value, 0))}
+                        value={Math.max(
+                          0,
+                          toNumber(ruleDraft.penalty_value, 0)
+                        )}
                         onChange={(event) =>
                           updateDraft(() => ({
-                            penalty_value: Math.max(0, Number(event.target.value))
+                            penalty_value: Math.max(
+                              0,
+                              Number(event.target.value)
+                            )
                           }))
                         }
                         min={0}
-                        max={draftAction === 'DEDUCT_PERCENTAGE' ? 100 : undefined}
+                        max={
+                          draftAction === 'DEDUCT_PERCENTAGE' ? 100 : undefined
+                        }
                         step={draftAction === 'DEDUCT_PERCENTAGE' ? 1 : 0.01}
                         disabled={FAIL_ACTIONS.has(draftAction)}
                         className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
@@ -1261,8 +1276,8 @@ export function GradingRulesEditor({
             >
               {editingRuleIndex !== null ? (
                 <div className="rounded-md border border-dashed border-border bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
-                  Chế độ tạo nhiều quy tắc chỉ dùng khi thêm mới. Hãy đóng modal sửa
-                  hiện tại và bấm Thêm quy tắc để dùng tab này.
+                  Chế độ tạo nhiều quy tắc chỉ dùng khi thêm mới. Hãy đóng modal
+                  sửa hiện tại và bấm Thêm quy tắc để dùng tab này.
                 </div>
               ) : (
                 <div className="rounded-md border border-border bg-surface p-2.5 space-y-2">
