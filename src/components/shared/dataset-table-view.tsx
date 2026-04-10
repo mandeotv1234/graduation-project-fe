@@ -117,23 +117,28 @@ export function DatasetTableView({ sql, tableData }: DatasetTableViewProps) {
       {parsedTables.map((parsedData) => (
         <div
           key={parsedData.tableName}
-          className="rounded-md border border-border"
+          className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm"
         >
-          <div className="bg-muted/50 px-4 py-2 font-medium text-sm border-b border-border text-primary">
-            Bảng: {parsedData.tableName} ({parsedData.rows.length} dòng)
+          <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2.5">
+            <div className="text-sm font-semibold text-primary">
+              Bảng: {parsedData.tableName}
+            </div>
+            <div className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[11px] text-muted-foreground">
+              {parsedData.rows.length} dòng
+            </div>
           </div>
-          <ScrollArea className="w-full whitespace-nowrap rounded-b-md">
-            <div className="max-h-60 overflow-auto">
+          <ScrollArea className="w-full whitespace-nowrap rounded-b-lg">
+            <div className="max-h-[360px] overflow-auto">
               <Table>
-                <TableHeader className="sticky top-0 bg-muted z-10 shadow-sm border-b border-border hover:bg-muted">
-                  <TableRow className="hover:bg-muted">
-                    <TableHead className="w-12 text-center border-r border-border">
+                <TableHeader className="sticky top-0 z-10 border-b border-border bg-muted/80 backdrop-blur supports-backdrop-filter:bg-muted/60">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-12 border-r border-border text-center font-semibold text-foreground">
                       #
                     </TableHead>
                     {parsedData.columns.map((col, idx) => (
                       <TableHead
                         key={`${parsedData.tableName}-${col}-${idx}`}
-                        className="font-semibold text-foreground px-4 truncate border-r border-border min-w-[120px] max-w-[300px]"
+                        className="min-w-[140px] max-w-[320px] truncate border-r border-border px-4 font-semibold text-foreground"
                       >
                         {col}
                       </TableHead>
@@ -154,15 +159,15 @@ export function DatasetTableView({ sql, tableData }: DatasetTableViewProps) {
                     parsedData.rows.map((row, rIdx) => (
                       <TableRow
                         key={`${parsedData.tableName}-row-${rIdx}`}
-                        className="hover:bg-muted/30"
+                        className="odd:bg-background even:bg-muted/20 hover:bg-blue-50/60 dark:hover:bg-blue-900/10"
                       >
-                        <TableCell className="text-center text-muted-foreground border-r border-border">
+                        <TableCell className="border-r border-border text-center text-muted-foreground">
                           {rIdx + 1}
                         </TableCell>
                         {parsedData.columns.map((_, cIdx) => (
                           <TableCell
                             key={`${parsedData.tableName}-${rIdx}-${cIdx}`}
-                            className="px-4 truncate max-w-[300px] border-r border-border py-1"
+                            className="max-w-[320px] truncate border-r border-border px-4 py-2 align-top"
                           >
                             {row[cIdx] === 'null' ? (
                               <span className="text-muted-foreground/60 italic">

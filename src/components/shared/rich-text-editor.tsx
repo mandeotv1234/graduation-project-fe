@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -66,6 +66,15 @@ export function RichTextEditor({
       }
     }
   })
+
+  useEffect(() => {
+    if (!editor) return
+    const normalizedIncoming = (content || '').trim()
+    const normalizedCurrent = editor.getHTML().trim()
+    if (normalizedIncoming !== normalizedCurrent) {
+      editor.commands.setContent(content || '', { emitUpdate: false })
+    }
+  }, [content, editor])
 
   // Set placeholder using simple CSS if needed, or by an extension.
   // For simplicity, we just rely on standard editor area if not empty.

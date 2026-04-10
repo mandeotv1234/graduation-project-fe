@@ -298,12 +298,13 @@ interface InsertDataRubricEditorProps {
 }
 
 export function InsertDataRubricEditor({
-  totalPoints,
+  totalPoints: totalPointsProp,
   rubric,
   onChange,
   correctQuery,
   questionContent
 }: InsertDataRubricEditorProps) {
+  const totalPoints = toNumber(totalPointsProp, 0)
   const currentRubric = normalizeInsertRubric(
     rubric ?? createDefaultRubric(totalPoints),
     totalPoints
@@ -354,9 +355,10 @@ export function InsertDataRubricEditor({
   const allocatedPoints = useMemo(() => {
     let sum = 0
     for (const t of tables) {
-      sum += t.table_points
+      sum += toNumber(t.table_points, 0)
     }
-    return Math.round(sum * 100) / 100
+    const rounded = Math.round(sum * 100) / 100
+    return Number.isFinite(rounded) ? rounded : 0
   }, [tables])
 
   const pointsDiff = Math.round((totalPoints - allocatedPoints) * 100) / 100
@@ -370,11 +372,14 @@ export function InsertDataRubricEditor({
     const newTables = tables.map((t) => {
       const roundedTablePts = Math.round(perTable * 100) / 100
 
-      const numRows = t.expected_data.length || 1
+      const rowLen = Array.isArray(t.expected_data) ? t.expected_data.length : 0
+      const numRows = rowLen || 1
       const defaultMissingRowPenalty =
         Math.round((roundedTablePts / numRows) * 100) / 100
 
-      let newCols = [...t.columns_config]
+      let newCols = [
+        ...(Array.isArray(t.columns_config) ? t.columns_config : [])
+      ]
       if (newCols.length > 0) {
         // Points per row divided into column points
         const pointsPerCol =
@@ -676,6 +681,13 @@ function TableEditor({
   onChange: (t: InsertDataExpectedDataset) => void
   onRemove: () => void
 }) {
+  const expectedData = Array.isArray(table.expected_data)
+    ? table.expected_data
+    : []
+  const columnsConfig = Array.isArray(table.columns_config)
+    ? table.columns_config
+    : []
+
   const handlePasteData = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     e.preventDefault()
     const clipboardData = e.clipboardData.getData('text')
@@ -689,7 +701,7 @@ function TableEditor({
 
     // Auto-detect if pasting headers
     // We assume if table.columns_config is empty, first line is headers
-    let cols = [...table.columns_config]
+    let cols = [...columnsConfig]
     let dataStartIdx = 0
 
     // basic CSV/TSV parser (tab or comma separated)
@@ -733,7 +745,7 @@ function TableEditor({
       onChange({
         ...table,
         columns_config: cols,
-        expected_data: [...table.expected_data, ...newRows]
+        expected_data: [...expectedData, ...newRows]
       })
       toast.success(`Đã dán và phân tích ${newRows.length} dòng dữ liệu`)
     } else {
@@ -760,7 +772,7 @@ function TableEditor({
           {table.table_name || 'Bảng chưa đặt tên'}
         </span>
         <span className="text-xs text-muted-foreground">
-          ({table.expected_data.length} dòng · {table.table_points}đ)
+          ({expectedData.length} dòng · {table.table_points}đ)
         </span>
         <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
           <button
@@ -860,10 +872,7 @@ function TableEditor({
                 onClick={() =>
                   onChange({
                     ...table,
-                    columns_config: [
-                      ...table.columns_config,
-                      createDefaultColumn()
-                    ]
+                    columns_config: [...columnsConfig, createDefaultColumn()]
                   })
                 }
                 className="gap-1 text-xs h-6"
@@ -871,7 +880,7 @@ function TableEditor({
                 <Plus className="h-3 w-3" /> Thêm cột
               </Button>
             </div>
-            {table.columns_config.length > 0 && (
+            {columnsConfig.length > 0 && (
               <div className="overflow-x-auto rounded-md border border-border">
                 <table className="w-full text-xs">
                   <thead className="bg-muted/50 border-b border-border">
@@ -892,7 +901,7 @@ function TableEditor({
                     </tr>
                   </thead>
                   <tbody>
-                    {table.columns_config.map((col, cIdx) => (
+                    {columnsConfig.map((col, cIdx) => (
                       <tr
                         key={cIdx}
                         className={`${col.is_primary_key ? 'bg-amber-500/5' : ''} border-b last:border-0 border-border hover:bg-muted/20`}
@@ -902,7 +911,7 @@ function TableEditor({
                             type="text"
                             value={col.name}
                             onChange={(e) => {
-                              const newCols = [...table.columns_config]
+                              const newCols = [...columnsConfig]
                               newCols[cIdx].name = e.target.value
                               onChange({ ...table, columns_config: newCols })
                             }}
@@ -915,7 +924,7 @@ function TableEditor({
                             type="checkbox"
                             checked={col.is_primary_key}
                             onChange={(e) => {
-                              const newCols = [...table.columns_config]
+                              const newCols = [...columnsConfig]
                               newCols[cIdx].is_primary_key = e.target.checked
                               onChange({ ...table, columns_config: newCols })
                             }}
@@ -927,7 +936,7 @@ function TableEditor({
                             type="number"
                             value={col.points}
                             onChange={(e) => {
-                              const newCols = [...table.columns_config]
+                              const newCols = [...columnsConfig]
                               newCols[cIdx].points = Number(e.target.value)
                               onChange({ ...table, columns_config: newCols })
                             }}
@@ -940,7 +949,7 @@ function TableEditor({
                           <select
                             value={col.match_type}
                             onChange={(e) => {
-                              const newCols = [...table.columns_config]
+                              const newCols = [...columnsConfig]
                               newCols[cIdx].match_type = e.target
                                 .value as MatchType
                               onChange({ ...table, columns_config: newCols })
@@ -960,7 +969,7 @@ function TableEditor({
                             onClick={() =>
                               onChange({
                                 ...table,
-                                columns_config: table.columns_config.filter(
+                                columns_config: columnsConfig.filter(
                                   (_, i) => i !== cIdx
                                 )
                               })
@@ -983,8 +992,7 @@ function TableEditor({
             <div className="flex items-center justify-between">
               <h5 className="flex items-center gap-1.5 text-xs font-bold text-foreground justify-between uppercase tracking-wider">
                 <Rows4 className="h-3.5 w-3.5 text-teal-600" />
-                Data Records / Dữ liệu mẫu (Số dòng:{' '}
-                {table.expected_data.length})
+                Data Records / Dữ liệu mẫu (Số dòng: {expectedData.length})
               </h5>
               <div className="flex gap-2">
                 <Button
@@ -1003,10 +1011,10 @@ function TableEditor({
                   onClick={() => {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const emptyRow: any = {}
-                    table.columns_config.forEach((c) => (emptyRow[c.name] = ''))
+                    columnsConfig.forEach((c) => (emptyRow[c.name] = ''))
                     onChange({
                       ...table,
-                      expected_data: [...table.expected_data, emptyRow]
+                      expected_data: [...expectedData, emptyRow]
                     })
                   }}
                   className="gap-1 text-xs h-6"
@@ -1024,102 +1032,101 @@ function TableEditor({
               onChange={() => {}}
             />
 
-            {table.expected_data.length > 0 &&
-              table.columns_config.length > 0 && (
-                <div className="overflow-x-auto rounded-md border border-border mt-2">
-                  <table className="w-full text-xs min-w-max">
-                    <thead className="bg-muted/50 border-b border-border">
-                      <tr>
-                        <th className="px-2 py-2 text-center w-8 text-muted-foreground">
-                          #
-                        </th>
-                        {table.columns_config.map((col, cIdx) => (
-                          <th
-                            key={cIdx}
-                            className="px-3 py-2 text-left font-semibold"
-                          >
-                            {col.name}{' '}
-                            {col.is_primary_key && (
-                              <span
-                                className="text-amber-500 font-bold ml-1"
-                                title="Primary Key"
-                              >
-                                🔑
-                              </span>
-                            )}
-                          </th>
-                        ))}
-                        <th className="px-2 py-2 w-8"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {table.expected_data.map((row, rIdx) => (
-                        <tr
-                          key={rIdx}
-                          className="border-b last:border-0 border-border hover:bg-muted/10"
+            {expectedData.length > 0 && columnsConfig.length > 0 && (
+              <div className="overflow-x-auto rounded-md border border-border mt-2">
+                <table className="w-full text-xs min-w-max">
+                  <thead className="bg-muted/50 border-b border-border">
+                    <tr>
+                      <th className="px-2 py-2 text-center w-8 text-muted-foreground">
+                        #
+                      </th>
+                      {columnsConfig.map((col, cIdx) => (
+                        <th
+                          key={cIdx}
+                          className="px-3 py-2 text-left font-semibold"
                         >
-                          <td className="px-2 py-2 text-center text-muted-foreground font-mono">
-                            {rIdx + 1}
-                          </td>
-                          {table.columns_config.map((col, cIdx) => (
-                            <td
-                              key={`${rIdx}-${cIdx}`}
-                              className="px-3 py-2 align-top"
+                          {col.name}{' '}
+                          {col.is_primary_key && (
+                            <span
+                              className="text-amber-500 font-bold ml-1"
+                              title="Primary Key"
                             >
-                              {/* Minimal editable cell */}
-                              <input
-                                type="text"
-                                value={
-                                  row[col.name] !== null &&
-                                  row[col.name] !== undefined
-                                    ? String(row[col.name])
-                                    : ''
-                                }
-                                onChange={(e) => {
-                                  const newRows = [...table.expected_data]
-                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                  let val: any = e.target.value
-                                  if (val === 'null') val = null
-                                  else if (val === 'true') val = true
-                                  else if (val === 'false') val = false
-                                  else if (
-                                    !isNaN(Number(val)) &&
-                                    val.trim() !== ''
-                                  )
-                                    val = Number(val)
-
-                                  newRows[rIdx] = {
-                                    ...newRows[rIdx],
-                                    [col.name]: val
-                                  }
-                                  onChange({ ...table, expected_data: newRows })
-                                }}
-                                className="w-full bg-transparent border-b border-transparent focus:border-ring outline-none"
-                              />
-                            </td>
-                          ))}
-                          <td className="px-2 py-2 text-center align-top">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                onChange({
-                                  ...table,
-                                  expected_data: table.expected_data.filter(
-                                    (_, i) => i !== rIdx
-                                  )
-                                })
-                              }
-                              className="inline-flex h-5 w-5 items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </td>
-                        </tr>
+                              🔑
+                            </span>
+                          )}
+                        </th>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      <th className="px-2 py-2 w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {expectedData.map((row, rIdx) => (
+                      <tr
+                        key={rIdx}
+                        className="border-b last:border-0 border-border hover:bg-muted/10"
+                      >
+                        <td className="px-2 py-2 text-center text-muted-foreground font-mono">
+                          {rIdx + 1}
+                        </td>
+                        {columnsConfig.map((col, cIdx) => (
+                          <td
+                            key={`${rIdx}-${cIdx}`}
+                            className="px-3 py-2 align-top"
+                          >
+                            {/* Minimal editable cell */}
+                            <input
+                              type="text"
+                              value={
+                                row[col.name] !== null &&
+                                row[col.name] !== undefined
+                                  ? String(row[col.name])
+                                  : ''
+                              }
+                              onChange={(e) => {
+                                const newRows = [...expectedData]
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                let val: any = e.target.value
+                                if (val === 'null') val = null
+                                else if (val === 'true') val = true
+                                else if (val === 'false') val = false
+                                else if (
+                                  !isNaN(Number(val)) &&
+                                  val.trim() !== ''
+                                )
+                                  val = Number(val)
+
+                                newRows[rIdx] = {
+                                  ...newRows[rIdx],
+                                  [col.name]: val
+                                }
+                                onChange({ ...table, expected_data: newRows })
+                              }}
+                              className="w-full bg-transparent border-b border-transparent focus:border-ring outline-none"
+                            />
+                          </td>
+                        ))}
+                        <td className="px-2 py-2 text-center align-top">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onChange({
+                                ...table,
+                                expected_data: expectedData.filter(
+                                  (_, i) => i !== rIdx
+                                )
+                              })
+                            }
+                            className="inline-flex h-5 w-5 items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

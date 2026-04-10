@@ -11,6 +11,7 @@ export function SpecificationCreateView() {
     name: '',
     description: ''
   })
+
   return (
     <div className="space-y-6 rounded-2xl border border-primary/20 bg-card p-6 shadow-sm">
       <div className="space-y-8">

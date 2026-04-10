@@ -378,7 +378,7 @@ export function TeacherExamDetailContent({
                           value={yesNo(displayExam.isPublished)}
                         />
                         <SettingRow
-                          label="Làm tối đa"
+                          label="Số lần làm tối đa"
                           value={displayExam.maxAttempts}
                         />
                         <SettingRow
@@ -392,10 +392,28 @@ export function TeacherExamDetailContent({
                           )}
                         />
                         <SettingRow
-                          label="Hiện điểm"
+                          label="Hiển thị điểm"
                           value={mapScoreDisplayMode(
                             displayExam.settings?.scoreDisplayMode
                           )}
+                        />
+                        <SettingRow
+                          label="Cho phép nộp trễ"
+                          value={yesNo(displayExam.settings?.allowOvertime)}
+                        />
+                        <SettingRow
+                          label="Cho phép xem lại bài"
+                          value={yesNo(displayExam.settings?.allowReview)}
+                        />
+                        <SettingRow
+                          label="Xem kết quả sau khi nộp bài"
+                          value={yesNo(
+                            displayExam.settings?.showResultAfterSubmit
+                          )}
+                        />
+                        <SettingRow
+                          label="Nạp schema giáo viên"
+                          value={yesNo(displayExam.settings?.isLoadDdl)}
                         />
                       </dl>
                     </div>
@@ -421,7 +439,7 @@ export function TeacherExamDetailContent({
                       <dl className="space-y-3 text-sm">
                         <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
                           <dt className="text-[13px] text-muted-foreground">
-                            Chống Copy
+                            Chống Copy/Paste
                           </dt>
                           <dd className="text-right text-[13px] font-medium text-foreground">
                             {yesNo(displayExam.settings?.preventCopyPaste)}
@@ -429,7 +447,7 @@ export function TeacherExamDetailContent({
                         </div>
                         <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
                           <dt className="text-[13px] text-muted-foreground">
-                            Toàn màn hình
+                            Bắt buộc toàn màn hình
                           </dt>
                           <dd className="text-right text-[13px] font-medium text-foreground">
                             {yesNo(displayExam.settings?.forceFullscreen)}
@@ -437,7 +455,7 @@ export function TeacherExamDetailContent({
                         </div>
                         <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
                           <dt className="text-[13px] text-muted-foreground">
-                            Đổi tab
+                            Giám sát chuyển Tab
                           </dt>
                           <dd className="text-right text-[13px] font-medium text-foreground">
                             {yesNo(displayExam.settings?.trackTabSwitch)}
@@ -445,36 +463,12 @@ export function TeacherExamDetailContent({
                         </div>
                         <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
                           <dt className="text-[13px] text-muted-foreground">
-                            Nộp khi vi phạm
+                            Tự động nộp khi vi phạm
                           </dt>
                           <dd className="text-right text-[13px] font-medium text-foreground">
                             {yesNo(displayExam.settings?.autoSubmitOnViolation)}
                             {displayExam.settings?.autoSubmitOnViolation &&
                               ` (Tối đa ${displayExam.settings?.maxViolations ?? 3} lần)`}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                          <dt className="text-[13px] text-muted-foreground">
-                            Xem lại sau nộp
-                          </dt>
-                          <dd className="text-right text-[13px] font-medium text-foreground">
-                            {yesNo(displayExam.settings?.allowReview)}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                          <dt className="text-[13px] text-muted-foreground">
-                            Xem kết quả ngay
-                          </dt>
-                          <dd className="text-right text-[13px] font-medium text-foreground">
-                            {yesNo(displayExam.settings?.showResultAfterSubmit)}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                          <dt className="text-[13px] text-muted-foreground">
-                            Được nộp trễ
-                          </dt>
-                          <dd className="text-right text-[13px] font-medium text-foreground">
-                            {yesNo(displayExam.settings?.allowOvertime)}
                           </dd>
                         </div>
                       </dl>
@@ -526,6 +520,8 @@ export function TeacherExamDetailContent({
             templateManagement={templateManagement}
             canShareTemplate={canShareTemplate}
             shareDisabledReason={shareDisabledReason}
+            specificationSchemaJson={displaySpecification?.schemaJson ?? null}
+            specificationDatasets={displaySpecification?.datasets ?? []}
           />
         </TabsContent>
 

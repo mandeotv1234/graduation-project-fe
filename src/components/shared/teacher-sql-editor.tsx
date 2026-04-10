@@ -28,6 +28,8 @@ interface TeacherSqlEditorProps {
   height?: string
   readOnly?: boolean
   showExpandButton?: boolean
+  /** Mặc định bật số dòng; truyền `off` để tắt (ví dụ ô DDL gọn hơn). */
+  lineNumbers?: 'on' | 'off'
 }
 
 export function TeacherSqlEditor({
@@ -35,7 +37,8 @@ export function TeacherSqlEditor({
   onChange,
   height = '100%',
   readOnly = false,
-  showExpandButton = true
+  showExpandButton = true,
+  lineNumbers = 'on'
 }: TeacherSqlEditorProps) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const monacoRef = useRef<Monaco | null>(null)
@@ -56,9 +59,9 @@ export function TeacherSqlEditor({
 
     editor.updateOptions({
       fontSize: 14,
-      lineNumbers: 'on',
-      lineNumbersMinChars: 2,
-      lineDecorationsWidth: 6,
+      lineNumbers,
+      lineNumbersMinChars: lineNumbers === 'off' ? 0 : 2,
+      lineDecorationsWidth: lineNumbers === 'off' ? 14 : 6,
       glyphMargin: false,
       folding: false,
       minimap: { enabled: false },
@@ -84,9 +87,9 @@ export function TeacherSqlEditor({
     scrollbar: { alwaysConsumeMouseWheel: false },
     scrollBeyondLastLine: false,
     fontSize: 14,
-    lineNumbers: 'on',
-    lineNumbersMinChars: 2,
-    lineDecorationsWidth: 6,
+    lineNumbers,
+    lineNumbersMinChars: lineNumbers === 'off' ? 0 : 2,
+    lineDecorationsWidth: lineNumbers === 'off' ? 14 : 6,
     glyphMargin: false,
     folding: false,
     wordWrap: 'on',

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import {
   ChevronDown,
   ChevronUp,
@@ -16,9 +17,30 @@ import {
   Play
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { RichTextEditor } from '@/components/shared/rich-text-editor'
-import { ExamQuestionItem, UpdateExamQuestionRequest } from '@/lib/types'
+import {
+  ExamQuestionItem,
+  SpecificationDataset,
+  SpecificationSchemaJsonTable,
+  UpdateExamQuestionRequest
+} from '@/lib/types'
+import {
+  generateCreateTableQuestionFromSchema,
+  sanitizeSchemaTables
+} from './create-table-question-generator'
+import {
+  generateInsertDataQuestionFromDataset,
+  getDatasetTableNames
+} from './insert-data-question-generator'
 import { CreateTableRubricEditor } from './create-table-rubric-editor'
 import { InsertDataRubricEditor } from './insert-data-rubric-editor'
 import { SelectQueryRubricEditor } from './select-query-rubric-editor'
@@ -62,7 +84,9 @@ export function QuestionItem({
   isUpdating,
   isDeleting,
   allQuestions,
-  examId
+  examId,
+  specificationSchemaJson,
+  specificationDatasets
 }: {
   question: ExamQuestionItem
   onDelete: (id: number) => void
@@ -71,9 +95,52 @@ export function QuestionItem({
   isDeleting: boolean
   allQuestions: ExamQuestionItem[]
   examId: number
+  specificationSchemaJson?: string | SpecificationSchemaJsonTable[] | null
+  specificationDatasets?: SpecificationDataset[] | null
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+
+  const [createTableModalOpen, setCreateTableModalOpen] = useState(false)
+  const [insertDataModalOpen, setInsertDataModalOpen] = useState(false)
+  const [editCreateTableSelections, setEditCreateTableSelections] = useState<
+    string[]
+  >([])
+  const [editCreateTableIncludeFk, setEditCreateTableIncludeFk] = useState(true)
+  const [editInsertDatasetName, setEditInsertDatasetName] = useState('')
+  const [editInsertTableNames, setEditInsertTableNames] = useState<string[]>([])
+
+  const availableSchemaTables = useMemo(() => {
+    try {
+      const parsed =
+        typeof specificationSchemaJson === 'string'
+          ? JSON.parse(specificationSchemaJson || '[]')
+          : specificationSchemaJson || []
+      return sanitizeSchemaTables(parsed)
+    } catch {
+      return []
+    }
+  }, [specificationSchemaJson])
+
+  const availableDatasets = useMemo(
+    () =>
+      (specificationDatasets || []).filter(
+        (dataset) => !!dataset.dataScript?.trim()
+      ),
+    [specificationDatasets]
+  )
+
+  const selectedInsertDataset = useMemo(
+    () =>
+      availableDatasets.find((d) => d.name === editInsertDatasetName) ?? null,
+    [availableDatasets, editInsertDatasetName]
+  )
+
+  const insertDatasetTableNames = useMemo(
+    () =>
+      selectedInsertDataset ? getDatasetTableNames(selectedInsertDataset) : [],
+    [selectedInsertDataset]
+  )
 
   const [editForm, setEditForm] = useState({
     content: question.content || '',
@@ -88,6 +155,129 @@ export function QuestionItem({
       : null
   })
 
+  const openEdit = () => {
+    setEditForm({
+      content: question.content || '',
+      correctQuery: question.correctQuery || '',
+      verifyScript: question.verifyScript || '',
+      points: question.points || 1,
+      difficultyLevel: question.difficultyLevel || 1,
+      orderIndex: question.orderIndex || 1,
+      questionType: question.questionType || 'SELECT_QUERY',
+      rubricData: question.gradingRubric
+        ? JSON.parse(question.gradingRubric)
+        : null
+    })
+    setCreateTableModalOpen(false)
+    setInsertDataModalOpen(false)
+    setEditCreateTableSelections([])
+    setEditCreateTableIncludeFk(true)
+    setEditInsertDatasetName('')
+    setEditInsertTableNames([])
+    setIsEditing(true)
+  }
+
+  const handleEditQuestionTypeChange = (
+    nextType: ExamQuestionItem['questionType']
+  ) => {
+    setEditForm((prev) => ({ ...prev, questionType: nextType }))
+    setCreateTableModalOpen(false)
+    setInsertDataModalOpen(false)
+    if (nextType === 'CREATE_TABLE') {
+      setCreateTableModalOpen(true)
+    }
+    if (nextType === 'INSERT_DATA') {
+      const defaultDataset = availableDatasets[0]
+      const defaultTable = defaultDataset
+        ? getDatasetTableNames(defaultDataset)[0] || ''
+        : ''
+      setEditInsertDatasetName(defaultDataset?.name || '')
+      setEditInsertTableNames(defaultTable ? [defaultTable] : [])
+      setInsertDataModalOpen(true)
+    }
+  }
+
+  const toggleEditCreateTableSelection = (
+    tableName: string,
+    checked: boolean
+  ) => {
+    setEditCreateTableSelections((prev) =>
+      checked ? [...prev, tableName] : prev.filter((name) => name !== tableName)
+    )
+  }
+
+  const selectAllEditCreateTables = () => {
+    setEditCreateTableSelections(
+      availableSchemaTables.map((table) => table.tableName)
+    )
+  }
+
+  const clearAllEditCreateTables = () => {
+    setEditCreateTableSelections([])
+  }
+
+  const handleAutoGenerateCreateTableEdit = () => {
+    if (editCreateTableSelections.length === 0) {
+      toast.error('Vui lòng chọn ít nhất một bảng để sinh câu hỏi')
+      return
+    }
+    const generated = generateCreateTableQuestionFromSchema(
+      availableSchemaTables,
+      editCreateTableSelections,
+      { includeForeignKeys: editCreateTableIncludeFk }
+    )
+    if (!generated.content || !generated.correctQuery) {
+      toast.error('Không thể sinh câu hỏi từ schema hiện tại')
+      return
+    }
+    setEditForm((prev) => ({
+      ...prev,
+      content: generated.content,
+      correctQuery: generated.correctQuery,
+      questionType: 'CREATE_TABLE'
+    }))
+    toast.success('Đã tự sinh nội dung và đáp án cho câu CREATE TABLE')
+    setCreateTableModalOpen(false)
+  }
+
+  const handleAutoGenerateInsertDataEdit = () => {
+    if (!editInsertDatasetName) {
+      toast.error('Vui lòng chọn một dataset để sinh câu hỏi INSERT DATA')
+      return
+    }
+    const dataset = availableDatasets.find(
+      (item) => item.name === editInsertDatasetName
+    )
+    if (!dataset) {
+      toast.error('Không tìm thấy dataset đã chọn')
+      return
+    }
+    const generated = generateInsertDataQuestionFromDataset(
+      dataset,
+      editInsertTableNames
+    )
+    if (!generated.content || !generated.correctQuery) {
+      toast.error('Dataset chưa có data script để sinh đáp án')
+      return
+    }
+    setEditForm((prev) => ({
+      ...prev,
+      content: generated.content,
+      correctQuery: generated.correctQuery,
+      questionType: 'INSERT_DATA'
+    }))
+    toast.success('Đã tự sinh nội dung và đáp án cho câu INSERT DATA')
+    setInsertDataModalOpen(false)
+  }
+
+  const selectAllEditInsertTables = (tableNames: string[]) => {
+    setEditInsertTableNames(tableNames)
+  }
+
+  const clearAllEditInsertTables = () => {
+    setEditInsertTableNames([])
+  }
+
   const handleUpdate = () => {
     onUpdate(question.id, {
       ...editForm,
@@ -101,8 +291,231 @@ export function QuestionItem({
   if (isEditing) {
     return (
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-all">
+        <Dialog
+          open={createTableModalOpen}
+          onOpenChange={setCreateTableModalOpen}
+        >
+          <DialogContent className="sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Sinh câu CREATE TABLE từ schema</DialogTitle>
+              <DialogDescription>
+                Chọn bảng và bấm sinh để tự điền nội dung đề bài và đáp án
+                chuẩn.
+              </DialogDescription>
+            </DialogHeader>
+            {availableSchemaTables.length === 0 ? (
+              <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                Chưa có schemaJson trong đặc tả của đề thi để sinh tự động.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Chọn bảng cần tạo
+                    </p>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={
+                          availableSchemaTables.length > 0 &&
+                          editCreateTableSelections.length ===
+                            availableSchemaTables.length
+                        }
+                        onChange={(event) => {
+                          if (event.target.checked) {
+                            selectAllEditCreateTables()
+                          } else {
+                            clearAllEditCreateTables()
+                          }
+                        }}
+                      />
+                      Chọn tất cả
+                    </label>
+                  </div>
+                  <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
+                    {availableSchemaTables.map((table) => {
+                      const checked = editCreateTableSelections.includes(
+                        table.tableName
+                      )
+                      return (
+                        <label
+                          key={table.tableName}
+                          className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background/80"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(event) =>
+                              toggleEditCreateTableSelection(
+                                table.tableName,
+                                event.target.checked
+                              )
+                            }
+                          />
+                          {table.tableName}
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className="rounded-md border bg-background px-3 py-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={editCreateTableIncludeFk}
+                      onChange={(event) =>
+                        setEditCreateTableIncludeFk(event.target.checked)
+                      }
+                    />
+                    Bao gồm khóa ngoại
+                  </label>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateTableModalOpen(false)}
+              >
+                Đóng
+              </Button>
+              <Button
+                type="button"
+                onClick={handleAutoGenerateCreateTableEdit}
+                disabled={availableSchemaTables.length === 0}
+              >
+                Sinh nội dung và đáp án
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={insertDataModalOpen}
+          onOpenChange={setInsertDataModalOpen}
+        >
+          <DialogContent className="sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Sinh câu INSERT DATA từ dataset</DialogTitle>
+              <DialogDescription>
+                Chọn một dataset để tự điền nội dung đề bài và đáp án chuẩn.
+              </DialogDescription>
+            </DialogHeader>
+            {availableDatasets.length === 0 ? (
+              <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                Chưa có dataset có data script trong đặc tả của đề thi.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Chọn dataset
+                </p>
+                <select
+                  value={editInsertDatasetName}
+                  onChange={(event) => {
+                    const nextDatasetName = event.target.value
+                    setEditInsertDatasetName(nextDatasetName)
+                    const nextDataset = availableDatasets.find(
+                      (dataset) => dataset.name === nextDatasetName
+                    )
+                    const nextTableName = nextDataset
+                      ? getDatasetTableNames(nextDataset)[0] || ''
+                      : ''
+                    setEditInsertTableNames(
+                      nextTableName ? [nextTableName] : []
+                    )
+                  }}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="" disabled>
+                    -- Chọn dataset --
+                  </option>
+                  {availableDatasets.map((dataset) => (
+                    <option
+                      key={dataset.id ?? dataset.name}
+                      value={dataset.name}
+                    >
+                      {dataset.name}
+                    </option>
+                  ))}
+                </select>
+                {insertDatasetTableNames.length > 0 && (
+                  <div className="pt-2 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        Chọn table trong dataset
+                      </p>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={
+                            insertDatasetTableNames.length > 0 &&
+                            editInsertTableNames.length ===
+                              insertDatasetTableNames.length
+                          }
+                          onChange={(event) => {
+                            if (event.target.checked) {
+                              selectAllEditInsertTables(insertDatasetTableNames)
+                            } else {
+                              clearAllEditInsertTables()
+                            }
+                          }}
+                        />
+                        Chọn tất cả
+                      </label>
+                    </div>
+                    <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
+                      {insertDatasetTableNames.map((tableName) => {
+                        const checked = editInsertTableNames.includes(tableName)
+                        return (
+                          <label
+                            key={`${editInsertDatasetName}-${tableName}`}
+                            className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background/80"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(event) => {
+                                setEditInsertTableNames((prev) => {
+                                  if (event.target.checked) {
+                                    return [...prev, tableName]
+                                  }
+                                  return prev.filter((n) => n !== tableName)
+                                })
+                              }}
+                            />
+                            {tableName}
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setInsertDataModalOpen(false)}
+              >
+                Đóng
+              </Button>
+              <Button
+                type="button"
+                onClick={handleAutoGenerateInsertDataEdit}
+                disabled={availableDatasets.length === 0}
+              >
+                Sinh nội dung và đáp án
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/20 px-5 py-3 border-b border-border">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
               <input
                 type="number"
@@ -116,18 +529,16 @@ export function QuestionItem({
                 className="w-10 rounded-md border-transparent bg-transparent text-center focus:border-border font-bold p-0 text-primary"
               />
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">
                 Loại:
               </span>
               <select
                 value={editForm.questionType}
                 onChange={(e) =>
-                  setEditForm((prev) => ({
-                    ...prev,
-                    questionType: e.target
-                      .value as ExamQuestionItem['questionType']
-                  }))
+                  handleEditQuestionTypeChange(
+                    e.target.value as ExamQuestionItem['questionType']
+                  )
                 }
                 className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium"
               >
@@ -137,6 +548,26 @@ export function QuestionItem({
                   </option>
                 ))}
               </select>
+              {editForm.questionType === 'CREATE_TABLE' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCreateTableModalOpen(true)}
+                >
+                  Mở modal CREATE
+                </Button>
+              )}
+              {editForm.questionType === 'INSERT_DATA' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setInsertDataModalOpen(true)}
+                >
+                  Mở modal INSERT
+                </Button>
+              )}
             </div>
           </div>
 
@@ -399,7 +830,7 @@ export function QuestionItem({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsEditing(true)}
+              onClick={openEdit}
               className="h-8 w-8 p-0"
             >
               <Edit className="h-4 w-4" />

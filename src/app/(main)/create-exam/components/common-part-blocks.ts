@@ -284,7 +284,6 @@ export const createBlocksFromSpecification = (
         ? `Mã SQL DML: ${datasetName}`
         : `Mã SQL DML: Dataset ${index + 1}`
       block.data.sql = dataset.dataScript ?? ''
-      // @ts-expect-error - tableData might be returned from backend DTO depending on API spec iteration
       block.data.tableData = dataset.tableData ?? ''
       block.visibleToStudent = dataset.visibleToStudent ?? false
       block.data.displayMode = block.data.tableData ? 'data' : 'script'
