@@ -40,6 +40,7 @@ export {
   testGradeInsertData,
   testGradeSelectData,
   executeSelectTestCaseConfig,
-  buildInsertTablesFromAnswer
+  buildInsertTablesFromAnswer,
+  buildCreateTablesFromAnswer
 } from '@/lib/actions/exam-specification.action'
 export * from '@/lib/actions/library.action'

@@ -289,14 +289,14 @@ export interface RubricColumn {
   name: string
   expected_type: string
   is_nullable: boolean
-  missing_column_penalty: number
-  type_mismatch_penalty: number
+  missing_column_penalty?: number
+  type_mismatch_penalty?: number
 }
 
 export interface RubricConstraint {
   type: ConstraintType
   columns: string[]
-  missing_constraint_penalty: number
+  missing_constraint_penalty?: number
   references_table?: string
   references_columns?: string[]
   expression?: string
@@ -304,14 +304,14 @@ export interface RubricConstraint {
 
 export interface RubricTable {
   expected_name: string
-  missing_table_penalty: number
-  missing_penalty_action: MissingPenaltyAction
+  missing_table_penalty?: number
+  missing_penalty_action?: MissingPenaltyAction
   columns: RubricColumn[]
   constraints: RubricConstraint[]
 }
 
 export interface CreateTableGradingPayload {
-  grading_settings: GradingSettings
+  grading_settings?: GradingSettings
   grading_rules?: InsertDataGradingRule[]
   tables: RubricTable[]
 }
@@ -361,6 +361,7 @@ export type GradingRuleCondition =
   | 'REFERENCE_ERROR'
 
 export type GradingRuleModifier =
+  | 'IGNORE_CASE'
   | 'TO_LOWERCASE'
   | 'TRIM_WHITESPACE'
   | 'REMOVE_ALL_WHITESPACE'
@@ -370,6 +371,8 @@ export type GradingRuleModifier =
   | 'CAST_TO_FLOAT'
   | 'ROUND_TO_INT'
   | 'ROUND_2_DECIMALS'
+  | 'IGNORE_CONSTRAINT_NAME'
+  | 'IGNORE_LENGTH'
   | 'MATCH_FAMILY_TYPE'
   | 'SORT_ASC'
 

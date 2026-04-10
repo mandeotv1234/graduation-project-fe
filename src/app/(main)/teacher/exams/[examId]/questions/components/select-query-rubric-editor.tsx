@@ -290,7 +290,7 @@ export function SelectQueryRubricEditor({
       ...r,
       grading_payload: {
         ...(r.grading_payload as SelectQueryGradingPayload),
-          grading_rules,
+        grading_rules: gradingRules,
         global_grading_rules: {
           ...(r.grading_payload as SelectQueryGradingPayload)
             .global_grading_rules,
@@ -305,7 +305,7 @@ export function SelectQueryRubricEditor({
       ...r,
       grading_payload: {
         ...(r.grading_payload as SelectQueryGradingPayload),
-        grading_rules,
+        grading_rules: gradingRules,
         test_cases: cases
       }
     }))
@@ -486,16 +486,6 @@ export function SelectQueryRubricEditor({
             </>
           )}
         </Button>
-
-        <label className="flex h-9 items-center gap-2 rounded-md border border-border bg-sub-background px-3 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={enforceExactPoints}
-            onChange={(e) => setEnforceExactPoints(e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-sub-primary"
-          />
-          AI cân đúng tổng điểm
-        </label>
 
         <Button
           type="button"

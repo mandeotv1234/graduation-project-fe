@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { buildInsertTablesFromAnswer, generateGradingRubric } from '@/lib/actions'
 import {
   GradingRubric,
@@ -812,7 +813,9 @@ function normalizeAiGeneratedRuleForEditor(
   ].join(' ')
 
   const friendlyRuleName =
-    !currentRuleName || isLikelyUnfriendlyRuleName(currentRuleName)
+    !currentRuleName ||
+    !hasVietnameseDiacritics(currentRuleName) ||
+    isLikelyUnfriendlyRuleName(currentRuleName)
       ? buildFriendlyRuleName(promptConstrainedRule, namingContext)
       : currentRuleName
 
@@ -914,8 +917,13 @@ export function InsertDataRubricEditor({
   const [ruleDraft, setRuleDraft] = useState<InsertDataGradingRule>(
     createDefaultInsertRule(0)
   )
+  const [modalTab, setModalTab] = useState<'single' | 'multiple'>('single')
   const [modalPrompt, setModalPrompt] = useState('')
+  const [multiPrompt, setMultiPrompt] = useState('')
+  const [multiRuleCount, setMultiRuleCount] = useState(3)
   const [isGeneratingByAi, setIsGeneratingByAi] = useState(false)
+  const [isGeneratingMultipleByAi, setIsGeneratingMultipleByAi] =
+    useState(false)
   const [isBuildingTables, setIsBuildingTables] = useState(false)
   const [showAdvancedJson, setShowAdvancedJson] = useState(false)
   const [advancedJsonText, setAdvancedJsonText] = useState('')
@@ -970,15 +978,21 @@ export function InsertDataRubricEditor({
 
   const openAddRuleModal = () => {
     setEditingRuleIndex(null)
+    setModalTab('single')
     setRuleDraft(createDefaultInsertRule(gradingRules.length))
     setModalPrompt('')
+    setMultiPrompt('')
+    setMultiRuleCount(3)
     setIsRuleModalOpen(true)
   }
 
   const openEditRuleModal = (ruleIndex: number) => {
     setEditingRuleIndex(ruleIndex)
+    setModalTab('single')
     setRuleDraft(normalizeInsertRule(gradingRules[ruleIndex], ruleIndex))
     setModalPrompt('')
+    setMultiPrompt('')
+    setMultiRuleCount(3)
     setIsRuleModalOpen(true)
   }
 
@@ -1217,6 +1231,146 @@ export function InsertDataRubricEditor({
       toast.error('Lỗi khi gọi AI. Vui lòng thử lại.')
     } finally {
       setIsGeneratingByAi(false)
+    }
+  }
+
+  const handleGenerateMultipleRulesByAi = async () => {
+    if (editingRuleIndex !== null) {
+      toast.error('Tab tạo nhiều quy tắc chỉ dùng khi thêm mới.')
+      return
+    }
+
+    if (!correctQuery?.trim()) {
+      toast.error('Vui lòng nhập SQL đáp án trước khi dùng AI')
+      return
+    }
+
+    if (!multiPrompt.trim()) {
+      toast.error('Vui lòng nhập prompt cho tab tạo nhiều quy tắc')
+      return
+    }
+
+    const requestedRuleCount = Math.min(10, Math.max(2, multiRuleCount))
+
+    const existingRulesContext =
+      gradingRules.length === 0
+        ? '- Chưa có quy tắc nào.'
+        : gradingRules
+            .map((rule, index) => {
+              const specialDescription =
+                typeof rule.description === 'string' ? rule.description.trim() : ''
+              if (isDescriptionOnlySpecialRule(rule) && specialDescription.length > 0) {
+                return `${index + 1}. [SPECIAL] description="${specialDescription}"`
+              }
+
+              return `${index + 1}. ${rule.rule_name || `RULE_${index + 1}`} | target=${rule.target || 'ROW'} | condition=${rule.condition || 'IS_MISSING'} | action=${rule.action || 'DEDUCT_POINTS'} | penalty=${Math.max(0, toNumber(rule.penalty_value, 0))}`
+            })
+            .join('\n')
+
+    const tableContext =
+      tables.length === 0
+        ? '- Chưa có cấu hình bảng nào.'
+        : tables
+            .map((table) => {
+              const tableName = (table.table_name || '').trim() || 'UNKNOWN_TABLE'
+              const columns = Array.isArray(table.columns_config)
+                ? table.columns_config
+                : []
+              const gradedColumns = columns
+                .filter((column) => column.is_graded !== false)
+                .map((column) => String(column.name || '').trim())
+                .filter(Boolean)
+              const ignoredColumns = columns
+                .filter((column) => column.is_graded === false)
+                .map((column) => String(column.name || '').trim())
+                .filter(Boolean)
+
+              return [
+                `- ${tableName}`,
+                `graded_columns=[${gradedColumns.join(', ') || 'none'}]`,
+                `ignored_columns=[${ignoredColumns.join(', ') || 'none'}]`,
+                `row_strategy=${table.row_grading_strategy || 'PARTIAL_BY_COLUMN'}`
+              ].join(' | ')
+            })
+            .join('\n')
+
+    const composedQuestionContent = [
+      questionContent?.trim()
+        ? `## Ngữ cảnh đề bài\n${questionContent.trim()}`
+        : '',
+      `## Yêu cầu giáo viên\n${multiPrompt.trim()}`,
+      `## Quy tắc hiện có\n${existingRulesContext}`,
+      `## Cấu hình bảng hiện có\n${tableContext}`,
+      '## Năng lực JSON bạn được phép tận dụng',
+      '- Rule thường: { rule_name, target, condition, modifiers, action, penalty_value, description }.',
+      '- Rule đặc biệt: chỉ có { description } cho các ràng buộc nghiệp vụ khó biểu diễn bằng rule thường.',
+      '- Với rule thường: luôn điền thêm description bằng tiếng Việt dễ hiểu cho giáo viên.',
+      `- Trả về CHÍNH XÁC ${requestedRuleCount} rule trong grading_rules.`,
+      '- Mỗi rule phản ánh một lỗi/điều kiện khác nhau, không trùng lặp nội dung.',
+      '- rule_name phải thân thiện, ngắn gọn, ưu tiên tiếng Việt có dấu.',
+      '- modifiers chỉ được thêm khi prompt nêu rõ. Nếu prompt không yêu cầu, để modifiers = [].',
+      '- target hỗ trợ: TABLE, COLUMN, DATA_TYPE, PRIMARY_KEY, FOREIGN_KEY, CONSTRAINT_LOCAL, COLUMN_ORDER, ROW, CELL_VALUE, ROW_ORDER.',
+      '- condition hỗ trợ: IS_MISSING, IS_EXTRA, IS_NULL, NOT_EQUAL, OUT_OF_ORDER, TYPE_MISMATCH, LENGTH_MISMATCH, REFERENCE_ERROR.',
+      '- action hỗ trợ: DEDUCT_POINTS, DEDUCT_PERCENTAGE, FAIL_ITEM, FAIL_ALL, IGNORE.',
+      '- Không chỉnh sửa tables trong lần generate này.',
+      '- Chỉ trả về JSON hợp lệ, không kèm giải thích ngoài JSON.'
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+
+    setIsGeneratingMultipleByAi(true)
+    try {
+      const result = await generateGradingRubric({
+        correctQuery: correctQuery.trim(),
+        questionContent: composedQuestionContent,
+        totalPoints,
+        questionType: 'INSERT_DATA',
+        enforceExactTotalPoints: true
+      })
+
+      if (!result.data) {
+        toast.error(result.message || 'AI không thể tạo gợi ý quy tắc')
+        return
+      }
+
+      const parsed: GradingRubric =
+        typeof result.data === 'string' ? JSON.parse(result.data) : result.data
+
+      const parsedRoot = parsed as unknown as Record<string, unknown>
+      const parsedPayload =
+        (parsedRoot.grading_payload || {}) as Record<string, unknown>
+
+      const rawGeneratedRules = Array.isArray(parsedPayload.grading_rules)
+        ? parsedPayload.grading_rules
+        : Array.isArray(parsedRoot.grading_rules)
+          ? parsedRoot.grading_rules
+          : []
+
+      const nextStartIndex = gradingRules.length
+      const nextRules = (rawGeneratedRules as Partial<InsertDataGradingRule>[])
+        .slice(0, requestedRuleCount)
+        .map((rule, idx) => {
+          const normalizedSource = normalizeInsertRule(rule, nextStartIndex + idx)
+          return normalizeAiGeneratedRuleForEditor(
+            normalizedSource,
+            nextStartIndex + idx,
+            multiPrompt
+          )
+        })
+
+      if (nextRules.length === 0) {
+        toast.error('AI chưa tạo được quy tắc phù hợp từ prompt hiện tại')
+        return
+      }
+
+      setGradingRules([...gradingRules, ...nextRules])
+      setIsRuleModalOpen(false)
+      toast.success(`AI đã thêm ${nextRules.length} quy tắc vào danh sách.`)
+    } catch (error) {
+      console.error('AI generate multiple rule draft failed:', error)
+      toast.error('Lỗi khi gọi AI. Vui lòng thử lại.')
+    } finally {
+      setIsGeneratingMultipleByAi(false)
     }
   }
 
@@ -1478,218 +1632,323 @@ export function InsertDataRubricEditor({
       </div>
 
       <Dialog open={isRuleModalOpen} onOpenChange={setIsRuleModalOpen}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingRuleIndex === null
-                ? 'Thêm thẻ quy tắc chấm điểm'
-                : 'Sửa thẻ quy tắc chấm điểm'}
-            </DialogTitle>
-            <DialogDescription>
-              Bạn có thể nhập prompt để AI điền nhanh, hoặc tự chọn tay đầy đủ
-              các giá trị trong thẻ quy tắc.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-3xl max-h-[calc(100dvh-2rem)] overflow-hidden p-0 gap-0 flex flex-col">
+          <Tabs
+            value={modalTab}
+            onValueChange={(value) =>
+              setModalTab(value as 'single' | 'multiple')
+            }
+            className="flex-1 min-h-0 gap-0"
+          >
+            <DialogHeader className="space-y-2 border-b border-border px-4 pt-4 pb-2">
+              <DialogTitle>
+                {editingRuleIndex === null
+                  ? 'Thêm thẻ quy tắc chấm điểm'
+                  : 'Sửa thẻ quy tắc chấm điểm'}
+              </DialogTitle>
+              <DialogDescription>
+                Bạn có thể nhập prompt để AI điền nhanh, hoặc tự chọn tay đầy đủ
+                các giá trị trong thẻ quy tắc.
+              </DialogDescription>
 
-          <div className="space-y-4">
-            <div className="rounded-md border border-border bg-surface p-3 space-y-2">
-              <label className="text-xs font-semibold text-foreground">
-                Prompt cho AI
-              </label>
-              <textarea
-                value={modalPrompt}
-                onChange={(event) => setModalPrompt(event.target.value)}
-                rows={3}
-                placeholder="Ví dụ: Nếu thiếu dòng thì trừ 0.25 điểm, sai giá trị ô thì trừ 0.1 điểm và bỏ qua hoa/thường."
-                className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateRuleByAi}
-                  disabled={isGeneratingByAi}
-                  className="gap-2"
+              <TabsList className="h-9 w-full justify-start rounded-none border-b border-border bg-transparent p-0">
+                <TabsTrigger
+                  value="single"
+                  className="h-9 flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-xs font-semibold data-[state=active]:border-sub-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                 >
-                  {isGeneratingByAi ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      AI đang tạo quy tắc nháp...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      AI điền nháp 1 quy tắc
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
+                  Tạo 1 quy tắc
+                </TabsTrigger>
+                <TabsTrigger
+                  value="multiple"
+                  className="h-9 flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-3 text-xs font-semibold data-[state=active]:border-sub-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  Tạo nhiều quy tắc
+                </TabsTrigger>
+              </TabsList>
+            </DialogHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {!isSpecialRuleDraft && (
+            <TabsContent
+              value="single"
+              className="mt-0 flex-1 min-h-0 space-y-3 overflow-y-auto px-4 py-3"
+            >
+              <div className="rounded-md border border-border bg-surface p-2.5 space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Prompt cho AI
+                </label>
+                <textarea
+                  value={modalPrompt}
+                  onChange={(event) => setModalPrompt(event.target.value)}
+                  rows={2}
+                  placeholder="Ví dụ: Nếu thiếu dòng thì trừ 0.25 điểm, sai giá trị ô thì trừ 0.1 điểm và bỏ qua hoa/thường."
+                  className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateRuleByAi}
+                    disabled={isGeneratingByAi}
+                    className="gap-2"
+                  >
+                    {isGeneratingByAi ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        AI đang tạo quy tắc nháp...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        AI điền nháp 1 quy tắc
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {!isSpecialRuleDraft && (
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-medium text-muted-foreground">
+                      Tên quy tắc
+                    </label>
+                    <input
+                      type="text"
+                      value={ruleDraft.rule_name || ''}
+                      onChange={(event) =>
+                        updateRuleDraft(() => ({ rule_name: event.target.value }))
+                      }
+                      placeholder="Ví dụ: RULE_MISSING_ROW"
+                      className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-[11px] font-medium text-muted-foreground">
-                    Tên quy tắc
+                    Mô tả / ghi chú (hiển thị cho mọi quy tắc)
                   </label>
-                  <input
-                    type="text"
-                    value={ruleDraft.rule_name || ''}
+                  <textarea
+                    value={ruleDraft.description || ''}
                     onChange={(event) =>
-                      updateRuleDraft(() => ({ rule_name: event.target.value }))
+                      updateRuleDraft(() => ({
+                        description: event.target.value
+                      }))
                     }
-                    placeholder="Ví dụ: RULE_MISSING_ROW"
+                    rows={2}
+                    placeholder="Ví dụ: Nếu thiếu dữ liệu tham chiếu nền thì bỏ qua so khớp cột A, chỉ chấm cột B và C."
                     className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
                   />
                 </div>
-              )}
 
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[11px] font-medium text-muted-foreground">
-                  Mô tả / ghi chú (hiển thị cho mọi quy tắc)
-                </label>
-                <textarea
-                  value={ruleDraft.description || ''}
-                  onChange={(event) =>
-                    updateRuleDraft(() => ({
-                      description: event.target.value
-                    }))
-                  }
-                  rows={2}
-                  placeholder="Ví dụ: Nếu thiếu dữ liệu tham chiếu nền thì bỏ qua so khớp cột A, chỉ chấm cột B và C."
-                  className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
-                />
+                {!isSpecialRuleDraft && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-muted-foreground">
+                        Đối tượng chấm
+                      </label>
+                      <select
+                        value={draftTarget}
+                        onChange={(event) =>
+                          handleDraftTargetChange(event.target.value as GradingRuleTarget)
+                        }
+                        className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
+                      >
+                        {INSERT_RULE_TARGET_OPTIONS.map((targetOption) => (
+                          <option key={targetOption.value} value={targetOption.value}>
+                            {targetOption.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-muted-foreground">
+                        Lỗi vi phạm
+                      </label>
+                      <select
+                        value={draftCondition}
+                        onChange={(event) =>
+                          updateRuleDraft(() => ({
+                            condition: event.target.value as GradingRuleCondition
+                          }))
+                        }
+                        className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
+                      >
+                        {draftConditionOptions.map((conditionOption) => (
+                          <option key={conditionOption.value} value={conditionOption.value}>
+                            {conditionOption.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-muted-foreground">
+                        Hình thức xử lý
+                      </label>
+                      <select
+                        value={draftAction}
+                        onChange={(event) =>
+                          handleDraftActionChange(event.target.value as GradingRuleAction)
+                        }
+                        className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
+                      >
+                        {INSERT_RULE_ACTION_OPTIONS.map((actionOption) => (
+                          <option key={actionOption.value} value={actionOption.value}>
+                            {actionOption.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-muted-foreground">
+                        {draftAction === 'DEDUCT_PERCENTAGE'
+                          ? 'Tỷ lệ trừ (%)'
+                          : 'Điểm trừ'}
+                      </label>
+                      <input
+                        type="number"
+                        value={Math.max(0, toNumber(ruleDraft.penalty_value, 0))}
+                        onChange={(event) =>
+                          updateRuleDraft(() => ({
+                            penalty_value: Math.max(0, Number(event.target.value))
+                          }))
+                        }
+                        min={0}
+                        max={draftAction === 'DEDUCT_PERCENTAGE' ? 100 : undefined}
+                        step={draftAction === 'DEDUCT_PERCENTAGE' ? 1 : 0.01}
+                        disabled={FAIL_ACTIONS.has(draftAction)}
+                        className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
-              {!isSpecialRuleDraft && (
-                <>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-muted-foreground">
-                      Đối tượng chấm
-                    </label>
-                    <select
-                      value={draftTarget}
-                      onChange={(event) =>
-                        handleDraftTargetChange(event.target.value as GradingRuleTarget)
-                      }
-                      className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
-                    >
-                      {INSERT_RULE_TARGET_OPTIONS.map((targetOption) => (
-                        <option key={targetOption.value} value={targetOption.value}>
-                          {targetOption.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              {!isSpecialRuleDraft && draftModifierOptions.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    Bộ tiền xử lý / châm chước
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {draftModifierOptions.map((modifierOption) => {
+                      const checked =
+                        Array.isArray(ruleDraft.modifiers) &&
+                        ruleDraft.modifiers.includes(modifierOption.value)
 
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-muted-foreground">
-                      Lỗi vi phạm
-                    </label>
-                    <select
-                      value={draftCondition}
-                      onChange={(event) =>
-                        updateRuleDraft(() => ({
-                          condition: event.target.value as GradingRuleCondition
-                        }))
-                      }
-                      className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
-                    >
-                      {draftConditionOptions.map((conditionOption) => (
-                        <option key={conditionOption.value} value={conditionOption.value}>
-                          {conditionOption.label}
-                        </option>
-                      ))}
-                    </select>
+                      return (
+                        <label
+                          key={modifierOption.value}
+                          className="inline-flex items-center gap-2 rounded border border-border bg-card px-2.5 py-1.5 text-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleDraftModifier(modifierOption.value)}
+                            className="h-3.5 w-3.5 rounded border-border accent-sub-primary"
+                          />
+                          {modifierOption.label}
+                        </label>
+                      )
+                    })}
                   </div>
+                </div>
+              )}
+            </TabsContent>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-muted-foreground">
-                      Hình thức xử lý
-                    </label>
-                    <select
-                      value={draftAction}
-                      onChange={(event) =>
-                        handleDraftActionChange(event.target.value as GradingRuleAction)
-                      }
-                      className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
-                    >
-                      {INSERT_RULE_ACTION_OPTIONS.map((actionOption) => (
-                        <option key={actionOption.value} value={actionOption.value}>
-                          {actionOption.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+            <TabsContent
+              value="multiple"
+              className="mt-0 flex-1 min-h-0 space-y-3 overflow-y-auto px-4 py-3"
+            >
+              <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                Tab này tạo nhanh nhiều quy tắc và thêm trực tiếp vào danh sách hiện tại.
+              </div>
 
+              {editingRuleIndex !== null ? (
+                <div className="rounded-md border border-dashed border-border bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
+                  Chế độ tạo nhiều quy tắc chỉ dùng khi thêm mới. Hãy đóng modal sửa
+                  hiện tại và bấm Thêm quy tắc chấm điểm để dùng tab này.
+                </div>
+              ) : (
+                <div className="rounded-md border border-border bg-surface p-2.5 space-y-2">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-muted-foreground">
-                      {draftAction === 'DEDUCT_PERCENTAGE'
-                        ? 'Tỷ lệ trừ (%)'
-                        : 'Điểm trừ'}
+                    <label className="text-xs font-semibold text-foreground">
+                      Prompt cho AI tạo nhiều quy tắc
                     </label>
-                    <input
-                      type="number"
-                      value={Math.max(0, toNumber(ruleDraft.penalty_value, 0))}
-                      onChange={(event) =>
-                        updateRuleDraft(() => ({
-                          penalty_value: Math.max(0, Number(event.target.value))
-                        }))
-                      }
-                      min={0}
-                      max={draftAction === 'DEDUCT_PERCENTAGE' ? 100 : undefined}
-                      step={draftAction === 'DEDUCT_PERCENTAGE' ? 1 : 0.01}
-                      disabled={FAIL_ACTIONS.has(draftAction)}
-                      className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                    <textarea
+                      value={multiPrompt}
+                      onChange={(event) => setMultiPrompt(event.target.value)}
+                      rows={3}
+                      placeholder="Ví dụ: Tạo bộ quy tắc cho lỗi thiếu dòng, thiếu cột, sai giá trị ô, sai thứ tự dòng và sai kiểu dữ liệu."
+                      className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
                   </div>
-                </>
-              )}
-            </div>
 
-            {!isSpecialRuleDraft && draftModifierOptions.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[11px] font-medium text-muted-foreground">
-                  Bộ tiền xử lý / châm chước
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {draftModifierOptions.map((modifierOption) => {
-                    const checked =
-                      Array.isArray(ruleDraft.modifiers) &&
-                      ruleDraft.modifiers.includes(modifierOption.value)
-
-                    return (
-                      <label
-                        key={modifierOption.value}
-                        className="inline-flex items-center gap-2 rounded border border-border bg-card px-2.5 py-1.5 text-xs"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleDraftModifier(modifierOption.value)}
-                          className="h-3.5 w-3.5 rounded border-border accent-sub-primary"
-                        />
-                        {modifierOption.label}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-end">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        Số quy tắc mong muốn (2-10)
                       </label>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+                      <input
+                        type="number"
+                        min={2}
+                        max={10}
+                        value={multiRuleCount}
+                        onChange={(event) => {
+                          const parsed = Number(event.target.value)
+                          if (!Number.isFinite(parsed)) {
+                            setMultiRuleCount(2)
+                            return
+                          }
+                          setMultiRuleCount(Math.min(10, Math.max(2, Math.round(parsed))))
+                        }}
+                        className="w-full rounded-md border border-border bg-card px-2.5 py-2 text-sm"
+                      />
+                    </div>
 
-          <DialogFooter>
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateMultipleRulesByAi}
+                        disabled={isGeneratingMultipleByAi}
+                        className="gap-2"
+                      >
+                        {isGeneratingMultipleByAi ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            AI đang tạo nhiều quy tắc...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" />
+                            AI tạo nhiều quy tắc
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="border-t border-border bg-background px-4 py-3">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsRuleModalOpen(false)}
             >
-              Hủy
+              {modalTab === 'multiple' ? 'Đóng' : 'Hủy'}
             </Button>
-            <Button type="button" onClick={saveRuleFromModal}>
-              Lưu thẻ quy tắc
-            </Button>
+            {modalTab === 'single' && (
+              <Button type="button" onClick={saveRuleFromModal}>
+                Lưu thẻ quy tắc
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

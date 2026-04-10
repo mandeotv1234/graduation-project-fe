@@ -6,6 +6,7 @@ import {
   ApiResponse,
   ExamSpecification,
   InsertDataExpectedDataset,
+  RubricTable,
   SaveExamSpecificationRequest,
   CreateExamQuestionsBatchRequest,
   ExamQuestionItem,
@@ -212,4 +213,19 @@ export async function buildInsertTablesFromAnswer(
   }>
 > {
   return apiClient.post(ENDPOINTS.EXAM_BUILD_INSERT_TABLES(examId), data)
+}
+
+export async function buildCreateTablesFromAnswer(
+  examId: number,
+  data: {
+    correctQuery: string
+  }
+): Promise<
+  ApiResponse<{
+    tables: RubricTable[]
+    preparedCount: number
+    targetTableCount: number
+  }>
+> {
+  return apiClient.post(ENDPOINTS.EXAM_BUILD_CREATE_TABLES(examId), data)
 }
