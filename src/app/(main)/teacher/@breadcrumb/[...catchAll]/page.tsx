@@ -211,7 +211,7 @@ export default async function TeacherBreadcrumbSlot({
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-2 pt-1">
+    <nav aria-label="Breadcrumb" className="mb-2 pt-1 pb-3">
       <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
         {items.map((item, index) => {
           const isLast = index === items.length - 1

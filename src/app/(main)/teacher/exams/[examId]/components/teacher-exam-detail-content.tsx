@@ -205,10 +205,10 @@ export function TeacherExamDetailContent({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
+      <section className="rounded-xl bg-sub-primary/90 p-5 shadow-sm md:p-6">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-on-primary md:text-3xl">
               {displayExam.title}
             </h1>
             <span
@@ -217,7 +217,7 @@ export function TeacherExamDetailContent({
               {statusMeta.label}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted">
             Quản lý thông tin, cấu hình và ngân hàng câu hỏi của bài thi.
           </p>
         </div>
@@ -271,33 +271,33 @@ export function TeacherExamDetailContent({
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
-        className="w-full gap-6"
+        className="w-full bg-card shadow-sm p-2 space-y-0 rounded-xl"
       >
-        <TabsList className="h-auto w-full max-w-full flex-wrap justify-start gap-1 rounded-xl border border-border bg-muted p-1.5 shadow-sm sm:inline-flex sm:w-auto">
+        <TabsList className="h-12 w-full justify-start rounded-none border-b bg-transparent p-0">
           <TabsTrigger
             value="overview"
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+            className="relative h-12 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
           >
-            Tổng quan &amp; Cài đặt
+            Tổng quan và Cài đặt
           </TabsTrigger>
 
           <TabsTrigger
             value="questions"
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+            className="relative h-12 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
           >
             Câu hỏi ({questionCount})
           </TabsTrigger>
 
           <TabsTrigger
             value="library"
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+            className="relative h-12 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
           >
             Quản trị phiên bản thư viện
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-0 space-y-5 outline-none">
-          <section className="space-y-5 rounded-xl border border-border bg-card p-5 shadow-sm md:space-y-6 md:p-6">
+          <section className="space-y-5 rounded-xl p-5 md:space-y-6 md:p-6">
             {/* Batch 1 — Tổng quan */}
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

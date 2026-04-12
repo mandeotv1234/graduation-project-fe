@@ -108,10 +108,10 @@ export function QuestionItem({
 
   if (isEditing) {
     return (
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-all">
+      <div className="rounded-xl bg-card shadow-sm overflow-hidden transition-all">
         <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/20 px-5 py-3 border-b border-border">
           <div className="flex items-center gap-4">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sub-primary/10 text-sm font-bold text-sub-primary">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sub-primary/10 text-sm font-bold text-sub-primary">
               <input
                 type="number"
                 value={editForm.orderIndex}
@@ -121,7 +121,7 @@ export function QuestionItem({
                     orderIndex: Number(e.target.value)
                   }))
                 }
-                className="w-10 rounded-md border-transparent bg-transparent text-center focus:border-border font-bold p-0 text-sub-primary"
+                className="w-108 ml-3 rounded-md border-transparent bg-transparent text-center focus:border-border font-bold p-0 text-sub-primary"
               />
             </span>
             <div className="flex items-center gap-2">
@@ -233,8 +233,7 @@ export function QuestionItem({
             <div className="space-y-2">
               <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                 <span className="flex items-center gap-1.5">
-                  <Code2 className="h-4 w-4 text-sub-primary" /> Đáp án (Correct
-                  Query)
+                  <Code2 className="h-4 w-4 text-sub-primary" /> Tạo đáp án
                 </span>
               </label>
               {editForm.questionType === 'CREATE_TABLE' && (
@@ -396,7 +395,7 @@ export function QuestionItem({
   }
 
   return (
-    <div className="rounded-sm shadow-sm bg-card transition-all hover:shadow-md border border-border">
+    <div className="rounded-sm shadow-sm bg-card transition-all hover:shadow-md">
       <div className="p-5">
         <div className="flex items-start gap-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sub-primary/10 text-sm font-bold text-sub-primary">
@@ -494,7 +493,7 @@ export function QuestionItem({
           >
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <Code2 className="h-3.5 w-3.5" /> Đáp án (Correct Query)
+                <Code2 className="h-3.5 w-3.5" /> Đáp án
               </div>
               <div className="h-[180px] overflow-hidden rounded-lg border border-border bg-sub-background">
                 <TeacherSqlEditor
@@ -523,8 +522,8 @@ export function QuestionItem({
                 </div>
               </div>
             )}
-            </div>
           </div>
+        </div>
       )}
     </div>
   )

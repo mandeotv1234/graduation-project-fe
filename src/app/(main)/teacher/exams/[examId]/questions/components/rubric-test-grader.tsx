@@ -1,17 +1,18 @@
 'use client'
 
-import React, { useState } from 'react'
-import {
-  Play,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Loader2
-} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { GradingRubric } from '@/lib/types'
 import { testGradeCreateTable } from '@/lib/actions'
+import { GradingRubric } from '@/lib/types'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Play,
+  XCircle
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 
 interface GradeDetail {
@@ -177,11 +178,17 @@ export function RubricTestGrader({
           </div>
 
           {/* Detail breakdown */}
-          <div className="rounded-lg border border-border overflow-hidden">
-            <div className="bg-muted/30 px-4 py-2.5 border-b border-border">
+          <div className="rounded-lg shadow-sm overflow-hidden">
+            <div className="flex items-center justify-start gap-2 bg-muted/30 px-4 py-2.5 border-b border-border">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Chi tiết chấm điểm ({result.details.length} mục)
+                Chi tiết chấm điểm
               </span>
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground bg-muted font-semibold"
+              >
+                {result.details.length} mục
+              </Badge>
             </div>
             <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
               {result.details.map((detail, idx) => (
@@ -222,5 +229,3 @@ export function RubricTestGrader({
     </div>
   )
 }
-
-

@@ -68,6 +68,8 @@ export const ENDPOINTS = Object.freeze({
   EXAM_RESULTS: (examId: number) => `/exams/${examId}/results`,
   EXAM_RESULT_DETAIL: (examId: number, resultId: number) =>
     `/exams/${examId}/results/${resultId}`,
+  RULE_PRESETS: '/exams/rule-presets',
+  RULE_PRESET_DELETE: (id: number) => `/exams/rule-presets/${id}`,
 
   // Teacher - Notifications
   NOTIFICATIONS: '/notifications',

@@ -23,7 +23,10 @@ export {
   updateTeacherExamSettings,
   getTeacherExamTemplateVersions,
   getExamResults,
-  getTeacherSubmissionDetail
+  getTeacherSubmissionDetail,
+  getRulePresets,
+  createRulePreset,
+  deleteRulePreset
 } from '@/lib/actions/teacher.action'
 export * from '@/lib/actions/anti-cheat.action'
 export * from '@/lib/actions/notification.action'

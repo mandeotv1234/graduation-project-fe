@@ -1,63 +1,98 @@
 'use client'
 
-import React, { useState } from 'react'
+import {
+  ArrowRight,
+  Award,
+  Box,
+  Code2,
+  Database,
+  FunctionSquare,
+  Hash,
+  Loader2,
+  Plus,
+  Save,
+  Search,
+  Settings,
+  Share2,
+  Sparkles,
+  Table2,
+  Terminal,
+  Users,
+  X,
+  Zap
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
-  Plus,
-  Hash,
-  Save,
-  Share2,
-  Settings,
-  X,
-  Trash2,
-  Loader2,
-  Code2,
-  Terminal,
-  Sparkles,
-  Users,
-  Play,
-  ArrowRight
-} from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { Button } from '@/components/ui/button'
 import { RichTextEditor } from '@/components/shared/rich-text-editor'
-import { RubricTestGrader } from './rubric-test-grader'
-import { TeacherSqlEditor } from './teacher-sql-editor'
+import { Button } from '@/components/ui/button'
 import {
-  createExamQuestionsBatch,
-  shareExamAsTemplate,
-  deleteExamQuestion,
-  updateExamQuestion
-} from '@/lib/actions'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import { useApi } from '@/hooks/use-api'
 import {
-  ExamQuestionItem,
+  createExamQuestionsBatch,
+  deleteExamQuestion,
+  shareExamAsTemplate,
+  updateExamQuestion
+} from '@/lib/actions'
+import { PATH } from '@/lib/constants'
+import {
   CreateExamQuestionBatch,
-  GradingRubric,
+  ExamQuestionItem,
   ExamSpecification,
+  GradingRubric,
   SpecificationDetailResponse,
   TeacherExamTemplateVersionsResponse,
   UpdateExamQuestionRequest
 } from '@/lib/types'
-import { PATH } from '@/lib/constants'
 import { CreateTableRubricEditor } from './create-table-rubric-editor'
 import { InsertDataRubricEditor } from './insert-data-rubric-editor'
 import { InsertDataTestGrader } from './insert-data-test-grader'
+import { QuestionItem } from './question-item'
+import { RubricTestGrader } from './rubric-test-grader'
 import { SelectQueryRubricEditor } from './select-query-rubric-editor'
 import { SelectQueryTestGrader } from './select-query-test-grader'
-import { QuestionItem } from './question-item'
-import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
-import { InsertQueryFromSpec } from './insert-query-from-spec'
+import { TeacherSqlEditor } from './teacher-sql-editor'
 
 const QUESTION_TYPES = [
-  { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
-  { value: 'INSERT_DATA', label: 'INSERT DATA' },
-  { value: 'SELECT_QUERY', label: 'SELECT QUERY' },
-  { value: 'TRIGGER', label: 'TRIGGER' },
-  { value: 'FUNCTION', label: 'FUNCTION' },
-  { value: 'STORED_PROCEDURE', label: 'STORED PROCEDURE' }
+  {
+    value: 'CREATE_TABLE',
+    label: 'CREATE TABLE',
+    icon: Table2,
+    desc: 'Tạo cấu trúc bảng'
+  },
+  {
+    value: 'INSERT_DATA',
+    label: 'INSERT DATA',
+    icon: Database,
+    desc: 'Thêm dữ liệu'
+  },
+  {
+    value: 'SELECT_QUERY',
+    label: 'SELECT QUERY',
+    icon: Search,
+    desc: 'Truy vấn bảng'
+  },
+  { value: 'TRIGGER', label: 'TRIGGER', icon: Zap, desc: 'Ràng buộc tự động' },
+  {
+    value: 'FUNCTION',
+    label: 'FUNCTION',
+    icon: FunctionSquare,
+    desc: 'Hàm xử lý'
+  },
+  {
+    value: 'STORED_PROCEDURE',
+    label: 'STORED PROCEDURE',
+    icon: Box,
+    desc: 'Thủ tục lưu trữ'
+  }
 ]
 
 interface ExamQuestionsViewProps {
@@ -73,6 +108,7 @@ interface ExamQuestionsViewProps {
 interface QuestionFormState extends CreateExamQuestionBatch {
   id: string // temp id for form
   rubricData?: GradingRubric | null
+  wizardStep?: number
 }
 
 function formatVersionTimestamp(value?: string) {
@@ -92,7 +128,6 @@ export function ExamQuestionsView({
   const router = useRouter()
   const pathname = usePathname()
   const [questions, setQuestions] = useState(initialQuestions)
-  const [showAddForm, setShowAddForm] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
 
   const versions = templateManagement?.versions ?? []
@@ -104,10 +139,10 @@ export function ExamQuestionsView({
   const isDedicatedQuestionsPage =
     pathname === PATH.TEACHER_EXAM_QUESTIONS(examId)
 
-  // Batch form state — multiple questions
-  const [pendingQuestions, setPendingQuestions] = useState<QuestionFormState[]>(
-    []
-  )
+  // Single wizard form state
+  const [creatingQuestion, setCreatingQuestion] =
+    useState<QuestionFormState | null>(null)
+  const [isTypeSelectorOpen, setIsTypeSelectorOpen] = useState(false)
 
   const handleShareAsTemplate = async () => {
     setIsSharing(true)
@@ -124,29 +159,25 @@ export function ExamQuestionsView({
     }
   }
 
-  const addEmptyQuestion = () => {
+  const startCreatingQuestion = (type: string) => {
     const newQuestion: QuestionFormState = {
       id: Date.now().toString(),
       content: '',
       correctQuery: '',
       verifyScript: '',
       points: 1,
-      orderIndex: questions.length + pendingQuestions.length + 1,
-      questionType: 'SELECT_QUERY',
+      orderIndex: questions.length + 1,
+      questionType: type as QuestionFormState['questionType'],
       difficultyLevel: 1,
-      rubricData: null
+      rubricData: null,
+      wizardStep: 1
     }
-    setPendingQuestions((prev) => [...prev, newQuestion])
+    setCreatingQuestion(newQuestion)
+    setIsTypeSelectorOpen(false)
   }
 
-  const updateQuestion = (id: string, updates: Partial<QuestionFormState>) => {
-    setPendingQuestions((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, ...updates } : q))
-    )
-  }
-
-  const removeQuestion = (id: string) => {
-    setPendingQuestions((prev) => prev.filter((q) => q.id !== id))
+  const updateCreatingQuestion = (updates: Partial<QuestionFormState>) => {
+    setCreatingQuestion((prev) => (prev ? { ...prev, ...updates } : null))
   }
 
   const [updatingQuestionId, setUpdatingQuestionId] = useState<number | null>(
@@ -187,43 +218,47 @@ export function ExamQuestionsView({
     }
   }
 
-  const handleSubmitQuestions = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmitQuestion = async () => {
+    if (!creatingQuestion) return
+    const q = creatingQuestion
 
-    if (pendingQuestions.length === 0) {
-      toast.error('Vui lòng thêm ít nhất một câu hỏi')
+    if (!q.content.trim()) {
+      toast.error('Vui lòng nhập nội dung đề bài')
       return
     }
-
-    // Validate all questions
-    for (const q of pendingQuestions) {
-      if (!q.content.trim()) {
-        toast.error(`Câu hỏi #${q.orderIndex}: vui lòng nhập nội dung`)
-        return
-      }
-      if (q.questionType === 'INSERT_DATA' && !q.correctQuery?.trim()) {
+    if (q.questionType === 'INSERT_DATA' && !q.correctQuery?.trim()) {
+      toast.error(
+        'Câu INSERT DATA: vui lòng nhập script đáp án chuẩn trước khi tạo rubric AI'
+      )
+      return
+    }
+    if (!q.points || q.points <= 0) {
+      toast.error('Điểm phải lớn hơn 0')
+      return
+    }
+    if (
+      ['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(q.questionType)
+    ) {
+      if (!q.rubricData) {
         toast.error(
-          `Câu hỏi #${q.orderIndex} (INSERT DATA): vui lòng nhập script đáp án chuẩn trước khi tạo rubric AI`
+          'Vui lòng hoàn thành Bước 3 (Thiết lập cách chấm điểm chấm điểm) trước khi lưu'
         )
         return
       }
-      if (!q.points || q.points <= 0) {
-        toast.error(`Câu hỏi #${q.orderIndex}: điểm phải lớn hơn 0`)
-        return
-      }
     }
 
-    // Prepare batch request (excluding the temporary id)
-    const questionsToCreate = pendingQuestions.map((q) => ({
-      content: q.content,
-      correctQuery: q.correctQuery,
-      verifyScript: q.verifyScript,
-      points: q.points,
-      orderIndex: q.orderIndex,
-      questionType: q.questionType,
-      difficultyLevel: q.difficultyLevel,
-      gradingRubric: q.rubricData ? JSON.stringify(q.rubricData) : undefined
-    }))
+    const questionsToCreate = [
+      {
+        content: q.content,
+        correctQuery: q.correctQuery,
+        verifyScript: q.verifyScript,
+        points: q.points,
+        orderIndex: q.orderIndex,
+        questionType: q.questionType,
+        difficultyLevel: q.difficultyLevel,
+        gradingRubric: q.rubricData ? JSON.stringify(q.rubricData) : undefined
+      }
+    ]
 
     const result = await callApi(
       createExamQuestionsBatch(examId, { questions: questionsToCreate }),
@@ -232,20 +267,15 @@ export function ExamQuestionsView({
 
     if (result.data) {
       setQuestions((prev) => [...prev, ...result.data!.questions])
-      setPendingQuestions([])
-      setShowAddForm(false)
-      toast.success(`${result.data.totalCreated} câu hỏi được tạo thành công`)
+      setCreatingQuestion(null)
+      toast.success('Đã tạo câu hỏi thành công')
     }
   }
 
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
-  const pendingTotalPoints = pendingQuestions.reduce(
-    (sum, q) => sum + q.points,
-    0
-  )
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4">
       {/* Header */}
       <div className="flex flex-col gap-3 pt-4 pb-1 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 border-l-4 border-primary/60 pl-3">
@@ -272,16 +302,11 @@ export function ExamQuestionsView({
           </div>
         </div>
 
-        {variant === 'embedded' && !showAddForm && (
+        {variant === 'embedded' && !creatingQuestion && (
           <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
             <Button
               className="gap-2"
-              onClick={() => {
-                setShowAddForm(true)
-                if (pendingQuestions.length === 0) {
-                  addEmptyQuestion()
-                }
-              }}
+              onClick={() => setIsTypeSelectorOpen(true)}
             >
               <Plus className="h-4 w-4" />
               Thêm câu hỏi
@@ -289,7 +314,7 @@ export function ExamQuestionsView({
           </div>
         )}
 
-        {variant === 'standalone' && !showAddForm && (
+        {variant === 'standalone' && !creatingQuestion && (
           <div className="flex flex-col items-end gap-2">
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Link href={PATH.TEACHER_EXAM_DETAIL(examId)}>
@@ -323,12 +348,7 @@ export function ExamQuestionsView({
                 </Button>
               )}
               <Button
-                onClick={() => {
-                  setShowAddForm(true)
-                  if (pendingQuestions.length === 0) {
-                    addEmptyQuestion()
-                  }
-                }}
+                onClick={() => setIsTypeSelectorOpen(true)}
                 className="gap-2"
               >
                 <Plus className="h-4 w-4" />
@@ -343,6 +363,43 @@ export function ExamQuestionsView({
           </div>
         )}
       </div>
+
+      <Dialog open={isTypeSelectorOpen} onOpenChange={setIsTypeSelectorOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Chọn loại câu hỏi</DialogTitle>
+            <DialogDescription>
+              Loại câu hỏi sẽ quyết định cách hệ thống hỗ trợ biên soạn và chấm
+              điểm tự động. Vui lòng chọn bên dưới:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            {QUESTION_TYPES.map((t) => {
+              const Icon = t.icon
+              return (
+                <Button
+                  key={t.value}
+                  variant="outline"
+                  className="h-auto p-4 flex flex-col items-center justify-center gap-3 border-border hover:border-primary hover:bg-primary/5 transition-all text-center"
+                  onClick={() => startCreatingQuestion(t.value)}
+                >
+                  <div className="p-3 bg-sub-background rounded-full group-hover:bg-primary/10">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-foreground mb-1">
+                      {t.label}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-normal">
+                      {t.desc}
+                    </div>
+                  </div>
+                </Button>
+              )
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {isDedicatedQuestionsPage && (canManage || versions.length > 0) && (
         <section className="rounded-2xl border border-sub-primary/15 bg-linear-to-br from-sub-primary/6 via-card to-card p-5 shadow-sm">
@@ -485,223 +542,237 @@ export function ExamQuestionsView({
         </section>
       )}
 
-      {/* Add questions form (batch) */}
-      {showAddForm && (
-        <form onSubmit={handleSubmitQuestions} className="space-y-6">
-          {/* Form Header */}
-          <div className="flex items-center justify-between bg-muted/30 p-4 rounded-xl border border-border">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                Thêm câu hỏi mới
-                <span className="bg-sub-primary/10 text-sub-primary text-xs px-2.5 py-0.5 rounded-full font-medium">
-                  {pendingQuestions.length} câu
-                </span>
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Biên soạn nội dung, đáp án và cấu hình chấm điểm cho từng câu
-                hỏi.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addEmptyQuestion}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Thêm câu hỏi
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setPendingQuestions([])
-                  setShowAddForm(false)
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+      {/* Add Single Question Wizard */}
+      {creatingQuestion &&
+        (() => {
+          const q = creatingQuestion
+          const step = q.wizardStep || 1
+          const hasWizard = [
+            'CREATE_TABLE',
+            'INSERT_DATA',
+            'SELECT_QUERY'
+          ].includes(q.questionType)
 
-          {/* Pending Questions List (Cards instead of Table) */}
-          {pendingQuestions.length > 0 && (
-            <div className="space-y-6">
-              {pendingQuestions.map((q, idx) => (
-                <div
-                  key={q.id}
-                  className="rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-all hover:shadow-md"
-                >
-                  {/* Card Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/20 px-5 py-3 border-b border-border">
-                    <div className="flex items-center gap-4">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sub-primary/10 text-sm font-bold text-sub-primary">
-                        {idx + 1}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Loại:
-                        </span>
-                        <select
-                          value={q.questionType}
-                          onChange={(e) =>
-                            updateQuestion(q.id, {
-                              questionType: e.target.value
-                            })
-                          }
-                          className="rounded-md border border-border bg-sub-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          {QUESTION_TYPES.map((t) => (
-                            <option key={t.value} value={t.value}>
-                              {t.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Điểm:
-                        </label>
-                        <input
-                          type="number"
-                          value={q.points}
-                          onChange={(e) =>
-                            updateQuestion(q.id, {
-                              points: Number(e.target.value)
-                            })
-                          }
-                          min={0.5}
-                          step={0.5}
-                          className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Độ khó:
-                        </label>
-                        <input
-                          type="number"
-                          value={q.difficultyLevel ?? 1}
-                          onChange={(e) =>
-                            updateQuestion(q.id, {
-                              difficultyLevel: Number(e.target.value)
-                            })
-                          }
-                          min={1}
-                          max={5}
-                          className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        />
-                      </div>
-                      <div className="h-5 w-px bg-border mx-1"></div>
-                      <button
-                        type="button"
-                        onClick={() => removeQuestion(q.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        title="Xóa câu hỏi"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+          return (
+            <div className="rounded-xl border border-border bg-card shadow-lg overflow-hidden transition-all mb-8">
+              {/* Header */}
+              <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/20 px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sub-primary/10 text-sm font-bold text-sub-primary">
+                    <Sparkles className="h-4 w-4" />
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-foreground">
+                      Đang tạo câu hỏi mới
+                    </span>
                   </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setCreatingQuestion(null)}
+                  >
+                    <X className="h-5 w-5 text-muted-foreground" />
+                  </Button>
+                </div>
+              </div>
 
-                  {/* Card Body */}
-                  <div className="p-5 space-y-6">
-                    {/* Content */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-foreground">
-                        Nội dung đề bài
-                      </label>
-                      <div className="rounded-md border border-border overflow-hidden">
-                        <RichTextEditor
-                          content={q.content}
-                          onChange={(html) =>
-                            updateQuestion(q.id, {
-                              content: html
-                            })
-                          }
-                          placeholder="Mô tả yêu cầu câu hỏi..."
-                          minHeight="120px"
-                        />
+              {/* Stepper Header */}
+              <div className="px-6 py-5 bg-card border-b border-border/50 overflow-x-auto">
+                <nav aria-label="Progress" className="min-w-fit">
+                  <ol role="list" className="flex items-center">
+                    {(hasWizard
+                      ? [
+                          { step: 1, label: 'Nội dung & Đáp án' },
+                          { step: 2, label: 'Cấu hình kỳ vọng' },
+                          { step: 3, label: 'Thiết lập cách chấm điểm' },
+                          { step: 4, label: 'Hoàn thành' }
+                        ]
+                      : [
+                          { step: 1, label: 'Nội dung & Đáp án' },
+                          { step: 4, label: 'Hoàn thành' }
+                        ]
+                    ).map((s, i, arr) => (
+                      <li
+                        key={s.step}
+                        className={`relative flex items-center ${i !== arr.length - 1 ? 'flex-1' : ''}`}
+                      >
+                        <div
+                          className="flex items-center cursor-pointer group select-none"
+                          onClick={() => {
+                            if (
+                              s.step > step &&
+                              step === 1 &&
+                              (!q.content || !q.correctQuery)
+                            ) {
+                              toast.error(
+                                'Vui lòng nhập nội dung đề bài và đáp án chuẩn'
+                              )
+                              return
+                            }
+                            updateCreatingQuestion({ wizardStep: s.step })
+                          }}
+                        >
+                          <span
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                              step === s.step
+                                ? 'border-primary bg-primary text-primary-foreground shadow-sm scale-110'
+                                : step > s.step
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-muted-foreground/30 bg-muted text-muted-foreground hover:border-primary/50'
+                            }`}
+                          >
+                            <span className="text-sm font-semibold">
+                              {s.step}
+                            </span>
+                          </span>
+                          <span
+                            className={`ml-3 text-sm font-medium whitespace-nowrap transition-colors duration-200 hidden sm:block ${
+                              step === s.step
+                                ? 'text-foreground font-bold'
+                                : step > s.step
+                                  ? 'text-primary'
+                                  : 'text-muted-foreground/60 group-hover:text-muted-foreground/80'
+                            }`}
+                          >
+                            {s.label}
+                          </span>
+                        </div>
+
+                        {i !== arr.length - 1 && (
+                          <div className="flex-1 min-w-[2rem] mx-4 sm:mx-6">
+                            <div
+                              className={`h-[2px] w-full rounded-full transition-colors duration-300 ${
+                                step > s.step
+                                  ? 'bg-primary'
+                                  : 'bg-muted-foreground/20'
+                              }`}
+                            />
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </nav>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-5 space-y-6">
+                {/* Step 1 & 4: Content and SQL Editors */}
+                {(step === 1 || step === 4) && (
+                  <div
+                    className={`space-y-6 ${step === 4 ? 'opacity-90' : ''}`}
+                  >
+                    <div className="space-y-6">
+                      {/* Meta Settings */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-5 rounded-lg bg-muted/10 border border-border/50">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Loại câu hỏi
+                          </label>
+                          <select
+                            value={q.questionType}
+                            onChange={(e) =>
+                              updateCreatingQuestion({
+                                questionType: e.target
+                                  .value as QuestionFormState['questionType'],
+                                wizardStep: 1
+                              })
+                            }
+                            className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm font-medium"
+                            disabled={step === 4}
+                          >
+                            {QUESTION_TYPES.map((t) => (
+                              <option key={t.value} value={t.value}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Điểm số
+                          </label>
+                          <input
+                            type="number"
+                            value={q.points}
+                            onChange={(e) =>
+                              updateCreatingQuestion({
+                                points: Number(e.target.value)
+                              })
+                            }
+                            min={0.5}
+                            step={0.5}
+                            className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm"
+                            readOnly={step === 4}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Độ khó (1-5)
+                          </label>
+                          <input
+                            type="number"
+                            value={q.difficultyLevel ?? 1}
+                            onChange={(e) =>
+                              updateCreatingQuestion({
+                                difficultyLevel: Number(e.target.value)
+                              })
+                            }
+                            min={1}
+                            max={5}
+                            className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm"
+                            readOnly={step === 4}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Main Content */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-foreground">
+                          Nội dung câu hỏi{' '}
+                          <span className="text-destructive">*</span>
+                        </label>
+                        <div className="min-h-[160px] rounded-md border border-border bg-background">
+                          <RichTextEditor
+                            content={q.content}
+                            onChange={(val) =>
+                              updateCreatingQuestion({ content: val })
+                            }
+                            placeholder="Nhập yêu cầu câu hỏi..."
+                            editable={step !== 4}
+                          />
+                        </div>
                       </div>
                     </div>
 
                     {/* SQL Editors */}
                     <div
-                      className={`grid gap-5 ${
-                        [
-                          'CREATE_TABLE',
-                          'INSERT_DATA',
-                          'SELECT_QUERY'
-                        ].includes(q.questionType)
-                          ? 'grid-cols-1'
-                          : 'grid-cols-1 lg:grid-cols-2'
-                      }`}
+                      className={`grid gap-5 ${!hasWizard ? 'lg:grid-cols-2' : ''}`}
                     >
                       <div className="space-y-2">
                         <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                           <span className="flex items-center gap-1.5">
-                            <Code2 className="h-4 w-4 text-sub-primary" />
-                            Đáp án (Correct Query)
+                            <Code2 className="h-4 w-4 text-primary" />
+                            Đáp án chuẩn{' '}
+                            <span className="text-destructive">*</span>
                           </span>
                         </label>
-                        {q.questionType === 'CREATE_TABLE' && (
-                          <CreateTableQueryFromSpec
-                            specification={specification}
-                            onApply={(sql) =>
-                              updateQuestion(q.id, {
-                                correctQuery: sql
-                              })
-                            }
-                          />
-                        )}
-                        {q.questionType === 'INSERT_DATA' && (
-                          <InsertQueryFromSpec
-                            specification={specification}
-                            onApply={(sql) =>
-                              updateQuestion(q.id, {
-                                correctQuery: sql
-                              })
-                            }
-                          />
-                        )}
-                        <div className="h-[160px] overflow-hidden rounded-md border border-border bg-sub-background">
+                        <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
                           <TeacherSqlEditor
                             value={q.correctQuery}
                             onChange={(value) =>
-                              updateQuestion(q.id, {
+                              updateCreatingQuestion({
                                 correctQuery: value || ''
                               })
                             }
                             height="100%"
+                            readOnly={step === 4}
                           />
                         </div>
-                        {!q.correctQuery &&
-                          q.questionType !== 'INSERT_DATA' && (
-                            <p className="flex items-center gap-1.5 text-[11px] text-sub-primary italic">
-                              <Sparkles className="h-3 w-3" />
-                              AI sẽ tự động tạo đáp án dựa trên nội dung đề bài
-                            </p>
-                          )}
-                        {!q.correctQuery &&
-                          q.questionType === 'INSERT_DATA' && (
-                            <p className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 italic">
-                              <Sparkles className="h-3 w-3" />
-                              Câu INSERT DATA cần script đáp án chuẩn để AI tạo
-                              rubric chấm điểm chính xác
-                            </p>
-                          )}
                       </div>
-                      {![
-                        'CREATE_TABLE',
-                        'INSERT_DATA',
-                        'SELECT_QUERY'
-                      ].includes(q.questionType) && (
+                      {!hasWizard && (
                         <div className="space-y-2">
                           <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                             <span className="flex items-center gap-1.5">
@@ -713,11 +784,12 @@ export function ExamQuestionsView({
                             <TeacherSqlEditor
                               value={q.verifyScript}
                               onChange={(value) =>
-                                updateQuestion(q.id, {
+                                updateCreatingQuestion({
                                   verifyScript: value || ''
                                 })
                               }
                               height="100%"
+                              readOnly={step === 4}
                             />
                           </div>
                           {!q.verifyScript && (
@@ -728,204 +800,161 @@ export function ExamQuestionsView({
                           )}
                         </div>
                       )}
-
                     </div>
+                  </div>
+                )}
 
-                    {/* Rubric Editors */}
-                    {(q.questionType === 'CREATE_TABLE' ||
-                      q.questionType === 'INSERT_DATA' ||
-                      q.questionType === 'SELECT_QUERY') && (
-                      <div className="rounded-lg border border-sub-primary/20 p-4 space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-sub-primary">
-                          <Sparkles className="h-4 w-4" />
-                          Cấu hình quy tắc chấm điểm
-                        </h4>
-                        {q.questionType === 'CREATE_TABLE' && (
-                          <div className="space-y-4">
-                            <CreateTableRubricEditor
-                              examId={examId}
-                              totalPoints={q.points}
-                              rubric={q.rubricData ?? null}
-                              onChange={(rubric) =>
-                                updateQuestion(q.id, {
-                                  rubricData: rubric
-                                })
-                              }
-                              correctQuery={q.correctQuery}
-                              questionContent={q.content}
-                            />
-                            <div className="mt-4 pt-4 border-t border-sub-primary/10">
-                              <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                                <Play className="h-4 w-4" />
-                                Vùng chấm thử
-                              </h4>
-                              <RubricTestGrader
-                                rubric={q.rubricData ?? null}
-                                correctQuery={q.correctQuery}
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {q.questionType === 'INSERT_DATA' && (
-                          <div className="space-y-4">
-                            <InsertDataRubricEditor
-                              examId={examId}
-                              totalPoints={q.points}
-                              rubric={q.rubricData ?? null}
-                              onChange={(rubric) =>
-                                updateQuestion(q.id, {
-                                  rubricData: rubric
-                                })
-                              }
-                              correctQuery={q.correctQuery}
-                              questionContent={q.content}
-                            />
-                            <div className="mt-4 pt-4 border-t border-emerald-500/10">
-                              <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                                <Play className="h-4 w-4" />
-                                Vùng giả lập chấm thi INSERT
-                              </h4>
-                              <InsertDataTestGrader
-                                rubric={q.rubricData ?? null}
-                                correctQuery={q.correctQuery}
-                                examId={examId}
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {q.questionType === 'SELECT_QUERY' && (
-                          <div className="space-y-4">
-                            <SelectQueryRubricEditor
-                              examId={examId}
-                              totalPoints={q.points}
-                              rubric={q.rubricData ?? null}
-                              onChange={(rubric) =>
-                                updateQuestion(q.id, {
-                                  rubricData: rubric
-                                })
-                              }
-                              correctQuery={q.correctQuery}
-                              questionContent={q.content}
-                              contextQueries={[
-                                ...questions
-                                  .filter(
-                                    (item) =>
-                                      item.id !== Number(q.id) &&
-                                      (item.questionType === 'CREATE_TABLE' ||
-                                        item.questionType === 'INSERT_DATA') &&
-                                      Boolean(item.correctQuery?.trim())
-                                  )
-                                  .map((item) => ({
-                                    questionType: item.questionType,
-                                    content: item.content,
-                                    correctQuery: item.correctQuery
-                                  })),
-                                ...pendingQuestions
-                                  .filter(
-                                    (item) =>
-                                      item.id !== q.id &&
-                                      (item.questionType === 'CREATE_TABLE' ||
-                                        item.questionType === 'INSERT_DATA') &&
-                                      Boolean(item.correctQuery?.trim())
-                                  )
-                                  .map((item) => ({
-                                    questionType: item.questionType,
-                                    content: item.content,
-                                    correctQuery: item.correctQuery
-                                  }))
-                              ]}
-                              dependencyOptions={[
-                                ...questions.map((existingQ) => ({
-                                  value: String(existingQ.id),
-                                  label: `#${existingQ.orderIndex} - Câu đã lưu`
-                                })),
-                                ...pendingQuestions
-                                  .filter((other) => other.id !== q.id)
-                                  .map((other) => ({
-                                    value: other.id,
-                                    label: `#${other.orderIndex} - Câu đang tạo`
-                                  }))
-                              ]}
-                            />
-                            <div className="mt-4 pt-4 border-t border-violet-500/10">
-                              <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                                <Play className="h-4 w-4" />
-                                Vùng chấm thử SELECT
-                              </h4>
-                              <SelectQueryTestGrader
-                                examId={examId}
-                                rubric={q.rubricData ?? null}
-                                correctQuery={q.correctQuery}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                {/* Step 2 & 3: Rubric Editors */}
+                {(step === 2 || step === 3) && hasWizard && (
+                  <div className="rounded-lg p-4 space-y-4">
+                    <h4 className="flex items-center gap-2 text-sm font-bold text-sub-primary">
+                      <Sparkles className="h-4 w-4" />
+                      {step === 2
+                        ? 'Bước 2: Cấu hình kỳ vọng kỳ vọng từ đáp án'
+                        : 'Bước 3: Thiết lập cách chấm điểm chấm điểm AI'}
+                    </h4>
+                    {q.questionType === 'CREATE_TABLE' && (
+                      <CreateTableRubricEditor
+                        examId={examId}
+                        totalPoints={q.points}
+                        rubric={q.rubricData ?? null}
+                        onChange={(rubric) =>
+                          updateCreatingQuestion({ rubricData: rubric })
+                        }
+                        correctQuery={q.correctQuery}
+                        questionContent={q.content}
+                        wizardStep={step}
+                      />
+                    )}
+                    {q.questionType === 'INSERT_DATA' && (
+                      <InsertDataRubricEditor
+                        examId={examId}
+                        totalPoints={q.points}
+                        rubric={q.rubricData ?? null}
+                        onChange={(rubric) =>
+                          updateCreatingQuestion({ rubricData: rubric })
+                        }
+                        correctQuery={q.correctQuery}
+                        questionContent={q.content}
+                        wizardStep={step}
+                      />
+                    )}
+                    {q.questionType === 'SELECT_QUERY' && (
+                      <SelectQueryRubricEditor
+                        examId={examId}
+                        totalPoints={q.points}
+                        rubric={q.rubricData ?? null}
+                        onChange={(rubric) =>
+                          updateCreatingQuestion({ rubricData: rubric })
+                        }
+                        correctQuery={q.correctQuery}
+                        questionContent={q.content}
+                        contextQueries={questions
+                          .filter(
+                            (item) =>
+                              (item.questionType === 'CREATE_TABLE' ||
+                                item.questionType === 'INSERT_DATA') &&
+                              Boolean(item.correctQuery?.trim())
+                          )
+                          .map((item) => ({
+                            questionType: item.questionType,
+                            content: item.content,
+                            correctQuery: item.correctQuery
+                          }))}
+                        wizardStep={step}
+                      />
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Form Actions (Sticky Bottom Bar) */}
-          <div className="sticky bottom-4 z-10 flex items-center justify-between rounded-xl border border-border bg-sub-background/95 backdrop-blur supports-backdrop-filter:bg-sub-background/80 p-4 shadow-lg">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-foreground">
-                  Tổng kết
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {pendingQuestions.length} câu hỏi · {pendingTotalPoints} điểm
-                </span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addEmptyQuestion}
-                className="gap-2 ml-4"
-              >
-                <Plus className="h-4 w-4" />
-                Thêm câu hỏi nữa
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setPendingQuestions([])
-                  setShowAddForm(false)
-                }}
-              >
-                Hủy bỏ
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading || pendingQuestions.length === 0}
-                className="gap-2 min-w-[140px]"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Đang lưu...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    {`Lưu ${pendingQuestions.length} câu`}
-                  </>
                 )}
-              </Button>
+
+                {/* Step 4: Final Grader Preview */}
+                {step === 4 && (
+                  <div className="rounded-lg border border-border p-4 space-y-4 bg-muted/10">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Award className="h-5 w-5 text-sub-primary" />
+                      <h3 className="text-lg font-bold">Chấm thử & Xác nhận</h3>
+                    </div>
+                    {q.questionType === 'CREATE_TABLE' && (
+                      <RubricTestGrader
+                        correctQuery={q.correctQuery}
+                        rubric={q.rubricData ?? null}
+                      />
+                    )}
+                    {q.questionType === 'INSERT_DATA' && (
+                      <InsertDataTestGrader
+                        examId={examId}
+                        correctQuery={q.correctQuery}
+                        rubric={q.rubricData ?? null}
+                      />
+                    )}
+                    {q.questionType === 'SELECT_QUERY' && (
+                      <SelectQueryTestGrader
+                        examId={examId}
+                        correctQuery={q.correctQuery}
+                        rubric={q.rubricData ?? null}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Stepper Navigation */}
+              <div className="flex items-center justify-between gap-3 p-4 bg-muted/10 border-t border-border">
+                <Button
+                  variant="ghost"
+                  onClick={() => setCreatingQuestion(null)}
+                >
+                  Hủy bỏ
+                </Button>
+                <div className="flex items-center gap-3">
+                  {step > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        let prev = step - 1
+                        if (prev === 3 && !hasWizard) prev = 1
+                        updateCreatingQuestion({ wizardStep: prev })
+                      }}
+                    >
+                      Quay lại
+                    </Button>
+                  )}
+                  {step < 4 ? (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (step === 1 && (!q.content || !q.correctQuery)) {
+                          toast.error(
+                            'Vui lòng nhập nội dung đề bài và đáp án chuẩn'
+                          )
+                          return
+                        }
+                        let nxt = step + 1
+                        if (nxt === 2 && !hasWizard) nxt = 4
+                        updateCreatingQuestion({ wizardStep: nxt })
+                      }}
+                    >
+                      Bước tiếp theo <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  ) : (
+                    <Button onClick={handleSubmitQuestion} disabled={isLoading}>
+                      {isLoading ? (
+                        <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Hoàn thành & Lưu câu hỏi
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </form>
-      )}
+          )
+        })()}
 
       {/* Questions list */}
-      {questions.length === 0 && !showAddForm ? (
+      {questions.length === 0 && !creatingQuestion ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
           <Hash className="h-10 w-10 text-muted-foreground/40" />
           <h3 className="mt-4 text-lg font-semibold text-foreground">

@@ -9,14 +9,16 @@ export default function TeacherLayout({
   breadcrumb: React.ReactNode
 }) {
   return (
-    <div className="fixed inset-0 z-0 flex flex-col overflow-hidden bg-background">
-      <TeacherHeader />
-      {/* Shell full viewport; chỉ cột <main> cuộn — sidebar không theo document scroll */}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="hidden min-h-0 w-[240px] shrink-0 overflow-hidden border-r border-border py-4 pl-6 pr-6 lg:block">
-          <TeacherSidebar />
-        </div>
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-6 lg:px-8">
+    <div className="fixed inset-0 z-0 flex overflow-hidden bg-surface-container-lowest/50">
+      {/* Sidebar - Cột trái kéo dài toàn màn hình */}
+      <div className="hidden w-[260px] shrink-0 lg:flex lg:flex-col bg-surface-container-sub-low/70">
+        <TeacherSidebar />
+      </div>
+
+      {/* Content - Phần bên phải chứa Header và Main */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <TeacherHeader />
+        <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-[1600px]">
             {breadcrumb}
             {children}
