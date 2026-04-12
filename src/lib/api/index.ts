@@ -1,8 +1,8 @@
-import qs from 'qs'
-import { redirect } from 'next/navigation'
+import { COOKIE_BASE_OPTIONS, ENDPOINTS } from '@/lib/constants'
 import { ApiResponse, RefreshTokenResponse } from '@/lib/types'
 import { getCookie, setCookie, toExpiryDate } from '@/lib/utils'
-import { ENDPOINTS, COOKIE_BASE_OPTIONS } from '@/lib/constants'
+import { redirect } from 'next/navigation'
+import qs from 'qs'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 const SSR_API_TRACE = process.env.SSR_API_TRACE === 'true'
@@ -30,11 +30,11 @@ export class ApiClient {
     }
 
     if (payload) {
-      console.log(`[ApiClient] ${message}`, payload)
+      // console.log(`[ApiClient] ${message}`, payload)
       return
     }
 
-    console.log(`[ApiClient] ${message}`)
+    // console.log(`[ApiClient] ${message}`)
   }
 
   private previewBody(value: unknown) {
@@ -42,8 +42,9 @@ export class ApiClient {
       return undefined
     }
 
-    const text = typeof value === 'string' ? value : JSON.stringify(value)
-    return text.length > 800 ? `${text.slice(0, 800)}...` : text
+    const text =
+      typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+    return text
   }
 
   private async traceResponse(response: Response, stage: string, url: string) {

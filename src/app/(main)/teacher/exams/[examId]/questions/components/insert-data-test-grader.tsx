@@ -1,17 +1,18 @@
 'use client'
 
-import React, { useState } from 'react'
-import {
-  Play,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Loader2
-} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { GradingRubric } from '@/lib/types'
 import { testGradeInsertData } from '@/lib/actions'
+import { GradingRubric } from '@/lib/types'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Play,
+  XCircle
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 
 interface GradeDetail {
@@ -98,7 +99,8 @@ export function InsertDataTestGrader({
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
         <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-amber-500" />
-        Vui lòng tạo rubric dữ liệu (tables/expected_data) trước khi sử dụng chức năng chấm thử INSERT.
+        Vui lòng tạo rubric dữ liệu (tables/expected_data) trước khi sử dụng
+        chức năng chấm thử INSERT.
       </div>
     )
   }
@@ -107,7 +109,7 @@ export function InsertDataTestGrader({
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
         <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-amber-500" />
-        Vui lòng nhập SQL đáp án (Correct Query) chứa INSERT VALUES mẫu.
+        Vui lòng nhập SQL đáp án chứa INSERT VALUES mẫu.
       </div>
     )
   }
@@ -187,11 +189,16 @@ export function InsertDataTestGrader({
 
           {/* Detail breakdown */}
           <div className="rounded-lg border border-border overflow-hidden bg-card">
-            <div className="bg-muted/30 px-4 py-2.5 border-b border-border">
+            <div className="flex items-center gap-2 bg-muted/30 px-4 py-2.5 border-b border-border">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Chi tiết vết chấm từng dòng dữ liệu ({result.details.length} báo
-                cáo)
+                Chi tiết vết chấm từng dòng dữ liệu
               </span>
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground bg-muted font-semibold"
+              >
+                {result.details.length}
+              </Badge>
             </div>
             <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
               {result.details.map((detail, idx) => (
@@ -226,5 +233,3 @@ export function InsertDataTestGrader({
     </div>
   )
 }
-
-

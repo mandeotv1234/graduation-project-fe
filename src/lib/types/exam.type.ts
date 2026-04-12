@@ -501,7 +501,6 @@ export interface SelectExpectedColumnConfig {
 }
 
 export interface SelectExpectedResult {
-  expected_row_count: number
   columns_config: SelectExpectedColumnConfig[]
   rows: Array<Array<string | number | boolean | null>>
 }
@@ -509,15 +508,12 @@ export interface SelectExpectedResult {
 export interface SelectTestCase {
   case_id: string
   case_name: string
-  is_hidden: boolean
-  weight_ratio: number
-  setup_dependency_id?: string
+  penalty_value: number
   setup_custom_script?: string
   expected_result: SelectExpectedResult
 }
 
 export interface SelectQueryGradingPayload {
-  global_grading_rules: SelectGlobalGradingRules
   grading_rules?: InsertDataGradingRule[]
   test_cases: SelectTestCase[]
 }
@@ -549,7 +545,24 @@ export interface SaveExamSpecificationRequest {
       description: string
       isPrimaryKey: boolean
       isNullable: boolean
-      orderIndex: number
     }[]
   }[]
+}
+
+// ===== Rule Presets =====
+
+export interface RulePreset {
+  id: number
+  teacherId: number
+  name: string
+  questionType: string
+  rulesJson: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateRulePresetRequest {
+  name: string
+  questionType: string
+  rulesJson: string
 }

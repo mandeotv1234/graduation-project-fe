@@ -321,7 +321,7 @@ export function CreateTableQueryFromSpec({
     <div className="rounded-md border border-primary/25 bg-primary/5 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-xs font-medium text-foreground">
-          Chọn bảng từ đặc tả để tạo `correctQuery`
+          Chọn bảng từ đặc tả để tạo đáp án
         </p>
         <Button
           type="button"

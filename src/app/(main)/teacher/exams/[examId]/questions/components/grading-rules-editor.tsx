@@ -1,9 +1,18 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { Loader2, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react'
+import {
+  FileText,
+  Loader2,
+  Pencil,
+  Plus,
+  Save,
+  Sparkles,
+  Trash2
+} from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,17 +23,23 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { generateGradingRubric } from '@/lib/actions'
 import {
+  createRulePreset,
+  deleteRulePreset,
+  generateGradingRubric,
+  getRulePresets
+} from '@/lib/actions'
+import {
+  GradingRubric,
   GradingRuleAction,
   GradingRuleCondition,
   GradingRuleModifier,
   GradingRuleTarget,
-  GradingRubric,
-  InsertDataGradingRule
+  InsertDataGradingRule,
+  RulePreset
 } from '@/lib/types'
 
-type RuleQuestionType = 'CREATE_TABLE' | 'SELECT_QUERY'
+export type RuleQuestionType = 'CREATE_TABLE' | 'SELECT_QUERY' | 'INSERT_DATA'
 
 interface GradingRulesEditorProps {
   questionType: RuleQuestionType
@@ -34,6 +49,7 @@ interface GradingRulesEditorProps {
   correctQuery?: string
   questionContent?: string
   contextSummary?: string
+  onTablesPatch?: (tablePatches: Array<Record<string, unknown>>) => void
 }
 
 const ALL_TARGET_OPTIONS: Array<{ value: GradingRuleTarget; label: string }> = [
@@ -370,6 +386,161 @@ function ensureFriendlyRuleName(
   }
 }
 
+function normalizeForPromptMatching(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+}
+
+function inferBatchModifiersFromPrompt(
+  target: GradingRuleTarget,
+  condition: GradingRuleCondition,
+  prompt: string
+) {
+  const normalized = normalizeForPromptMatching(prompt)
+  const modifiers: GradingRuleModifier[] = []
+
+  if (
+    target === 'TABLE' &&
+    (normalized.includes('hoa thuong') ||
+      normalized.includes('chu hoa') ||
+      normalized.includes('chu thuong') ||
+      normalized.includes('phan biet hoa'))
+  ) {
+    modifiers.push('IGNORE_CASE')
+  }
+
+  if (
+    target === 'FOREIGN_KEY' &&
+    (normalized.includes('ten khoa ngoai') ||
+      normalized.includes('ten fk') ||
+      normalized.includes('ten rang buoc'))
+  ) {
+    modifiers.push('IGNORE_CONSTRAINT_NAME')
+  }
+
+  if (
+    target === 'DATA_TYPE' &&
+    condition === 'LENGTH_MISMATCH' &&
+    (normalized.includes('do dai') ||
+      normalized.includes('kich thuoc') ||
+      normalized.includes('length'))
+  ) {
+    modifiers.push('IGNORE_LENGTH')
+  }
+
+  return modifiers
+}
+
+function normalizeBatchRuleForAppend(
+  input: Partial<InsertDataGradingRule>,
+  index: number,
+  questionType: RuleQuestionType,
+  promptText: string
+): InsertDataGradingRule | null {
+  const normalized = normalizeRule(input, index, questionType)
+  if (isDescriptionOnlySpecialRule(normalized)) {
+    return normalized
+  }
+
+  const preferredName =
+    typeof input.rule_name === 'string' && input.rule_name.trim().length > 0
+      ? input.rule_name.trim()
+      : typeof input.rule_id === 'string' && input.rule_id.trim().length > 0
+        ? input.rule_id.trim()
+        : normalized.rule_name || buildRuleName(index)
+
+  const target = normalized.target || getDefaultTarget(questionType)
+  const condition =
+    normalized.condition || getDefaultCondition(target, questionType)
+
+  const rawAction = normalized.action || 'DEDUCT_POINTS'
+  const action: GradingRuleAction =
+    rawAction === 'DEDUCT_PERCENTAGE' ? 'DEDUCT_PERCENTAGE' : 'DEDUCT_POINTS'
+
+  const penaltyValue =
+    action === 'DEDUCT_PERCENTAGE'
+      ? Math.min(100, Math.max(1, toNumber(normalized.penalty_value, 5)))
+      : action === 'DEDUCT_POINTS'
+        ? Math.max(0.1, toNumber(normalized.penalty_value, 0.25))
+        : 0
+
+  const inferred = inferBatchModifiersFromPrompt(target, condition, promptText)
+  const validModifierSet = new Set(
+    getModifierOptions(target, questionType).map((item) => item.value)
+  )
+  const mergedModifiers = Array.from(
+    new Set([...(normalized.modifiers || []), ...inferred])
+  ).filter((item) =>
+    validModifierSet.has(item as GradingRuleModifier)
+  ) as GradingRuleModifier[]
+
+  return {
+    ...normalized,
+    rule_name: preferredName,
+    target,
+    condition,
+    modifiers: mergedModifiers,
+    action,
+    penalty_value: penaltyValue
+  }
+}
+
+function buildStrictRuleSignature(
+  rule: InsertDataGradingRule,
+  questionType: RuleQuestionType
+) {
+  if (isDescriptionOnlySpecialRule(rule)) {
+    return `special:${(rule.description || '').trim().toLowerCase()}`
+  }
+
+  const target = rule.target || getDefaultTarget(questionType)
+  const condition = rule.condition || getDefaultCondition(target, questionType)
+  const action = rule.action || 'DEDUCT_POINTS'
+  const modifiers = Array.isArray(rule.modifiers)
+    ? [...rule.modifiers].sort().join(',')
+    : ''
+
+  return `${target}|${condition}|${action}|${modifiers}`
+}
+
+function buildBroadRuleSignature(
+  rule: InsertDataGradingRule,
+  questionType: RuleQuestionType
+) {
+  if (isDescriptionOnlySpecialRule(rule)) {
+    return `special:${(rule.description || '').trim().toLowerCase()}`
+  }
+
+  const target = rule.target || getDefaultTarget(questionType)
+  const condition = rule.condition || getDefaultCondition(target, questionType)
+  const action = rule.action || 'DEDUCT_POINTS'
+  return `${target}|${condition}|${action}`
+}
+
+function buildTargetConditionGuide(questionType: RuleQuestionType) {
+  return getTargetOptions(questionType)
+    .map((targetOption) => {
+      const conditions = getConditionOptions(targetOption.value, questionType)
+        .map((condition) => condition.value)
+        .join(', ')
+      return `- ${targetOption.value}: ${conditions}`
+    })
+    .join('\n')
+}
+
+function buildTargetModifierGuide(questionType: RuleQuestionType) {
+  return getTargetOptions(questionType)
+    .map((targetOption) => {
+      const modifiers = getModifierOptions(targetOption.value, questionType)
+        .map((modifier) => modifier.value)
+        .join(', ')
+      return `- ${targetOption.value}: ${modifiers || '(không modifier)'}`
+    })
+    .join('\n')
+}
+
 function isDescriptionOnlySpecialRule(rule: Partial<InsertDataGradingRule>) {
   const description =
     typeof rule.description === 'string' ? rule.description.trim() : ''
@@ -394,7 +565,15 @@ function normalizeRule(
     typeof input.description === 'string' ? input.description.trim() : ''
 
   if (isDescriptionOnlySpecialRule(input)) {
-    return { description }
+    return {
+      rule_name:
+        typeof input.rule_name === 'string' && input.rule_name.trim()
+          ? input.rule_name.trim()
+          : typeof input.rule_id === 'string' && input.rule_id.trim()
+            ? input.rule_id.trim()
+            : buildRuleName(index),
+      description
+    }
   }
 
   const targetOptions = getTargetOptions(questionType)
@@ -482,7 +661,14 @@ function buildRuleSummary(
     actionText = 'không trừ điểm'
   }
 
-  return `Nếu phát hiện "${getConditionLabel(target, condition, questionType)}" trên "${getTargetLabel(target)}"${modifierText} thì ${actionText}.`
+  const targetLabel = getTargetLabel(target).toLowerCase()
+  const conditionLabel = getConditionLabel(
+    target,
+    condition,
+    questionType
+  ).toLowerCase()
+
+  return `Nếu phát hiện ${targetLabel} ${conditionLabel}${modifierText.toLowerCase()} thì ${actionText}.`
 }
 
 function extractPromptKeywords(prompt: string) {
@@ -540,6 +726,7 @@ export function GradingRulesEditor({
   totalPoints,
   rules,
   onChange,
+  onTablesPatch,
   correctQuery,
   questionContent,
   contextSummary
@@ -570,6 +757,71 @@ export function GradingRulesEditor({
       questionType
     )
   )
+
+  const [presets, setPresets] = useState<RulePreset[]>([])
+  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false)
+  const [isSavingPreset, setIsSavingPreset] = useState(false)
+  const [newPresetName, setNewPresetName] = useState('')
+  const [isLoadingPresets, setIsLoadingPresets] = useState(false)
+
+  const loadPresets = async () => {
+    setIsLoadingPresets(true)
+    try {
+      const res = await getRulePresets(questionType)
+      if (res.data) setPresets(res.data)
+    } catch {
+      // console.error(e)
+    } finally {
+      setIsLoadingPresets(false)
+    }
+  }
+
+  const handleSavePreset = async () => {
+    if (!newPresetName.trim()) {
+      toast.error('Vui lòng nhập tên mẫu')
+      return
+    }
+    if (normalizedRules.length === 0) {
+      toast.error('Không có quy tắc nào để lưu')
+      return
+    }
+    setIsSavingPreset(true)
+    try {
+      await createRulePreset({
+        name: newPresetName.trim(),
+        questionType,
+        rulesJson: JSON.stringify(normalizedRules)
+      })
+      toast.success('Đã lưu mẫu quy tắc')
+      setNewPresetName('')
+      loadPresets()
+    } catch {
+      toast.error('Lỗi khi lưu mẫu')
+    } finally {
+      setIsSavingPreset(false)
+    }
+  }
+
+  const handleApplyPreset = (preset: RulePreset) => {
+    try {
+      const parsed = JSON.parse(preset.rulesJson)
+      onChange(parsed)
+      toast.success(`Đã áp dụng mẫu: ${preset.name}`)
+      setIsPresetModalOpen(false)
+    } catch {
+      toast.error('Lỗi khi đọc dữ liệu mẫu')
+    }
+  }
+
+  const handleDeletePreset = async (id: number) => {
+    try {
+      await deleteRulePreset(id)
+      setPresets((prev) => prev.filter((p) => p.id !== id))
+      toast.success('Đã xóa mẫu')
+    } catch {
+      toast.error('Lỗi khi xóa mẫu')
+    }
+  }
 
   const normalizedRules = useMemo(
     () => rules.map((rule, idx) => normalizeRule(rule, idx, questionType)),
@@ -717,10 +969,46 @@ export function GradingRulesEditor({
             })
             .join('\n')
 
+    const targetConditionGuide = buildTargetConditionGuide(questionType)
+    const targetModifierGuide = buildTargetModifierGuide(questionType)
+
+    let questionTypeConstraint = ''
+    if (questionType === 'CREATE_TABLE') {
+      questionTypeConstraint = [
+        '## Rule theo CREATE_TABLE',
+        '- Chỉ dùng target thuộc nhóm cấu trúc: TABLE, COLUMN, DATA_TYPE, PRIMARY_KEY, FOREIGN_KEY, CONSTRAINT_LOCAL, COLUMN_ORDER.',
+        '- Rule phải bám vào grading_payload.tables (expected_name, columns, constraints), không bịa dữ liệu ngoài ngữ cảnh.',
+        '- Với FOREIGN_KEY/PRIMARY_KEY/CONSTRAINT_LOCAL, rule phải thể hiện đúng lỗi về cột tham chiếu hoặc ràng buộc.',
+        '- Không sinh target dữ liệu (ROW, CELL_VALUE, ROW_ORDER) cho CREATE_TABLE.'
+      ].join('\n')
+    } else if (questionType === 'INSERT_DATA') {
+      questionTypeConstraint = [
+        '## Rule theo INSERT_DATA',
+        '- Có thể dùng cả target cấu trúc và target dữ liệu tùy theo yêu cầu (chủ yếu là target dữ liệu như ROW, CELL_VALUE).',
+        '- NẾU giáo viên nhắc đến "thứ tự insert", "khóa ngoại", "tham chiếu", "ràng buộc", hoặc "workaround" => BẮT BUỘC tạo rule với target="FOREIGN_KEY" và condition="REFERENCE_ERROR".'
+      ].join('\n')
+    } else {
+      questionTypeConstraint = [
+        '## Rule theo SELECT_QUERY',
+        '- Có thể dùng cả target cấu trúc và dữ liệu tùy theo yêu cầu prompt.',
+        '- Nếu đề có ORDER BY thì ưu tiên thêm rule ROW_ORDER với condition OUT_OF_ORDER khi phù hợp.'
+      ].join('\n')
+    }
+
+    const actionConstraint =
+      mode === 'multiple'
+        ? '- Hệ thống chấm theo nguyên tắc sai thì trừ: CHỈ dùng action DEDUCT_POINTS hoặc DEDUCT_PERCENTAGE; penalty_value > 0.'
+        : '- Ưu tiên action theo nguyên tắc sai thì trừ, tránh FAIL_ALL nếu không có yêu cầu rõ ràng.'
+
     const outputInstruction =
       mode === 'single'
         ? '- Chỉ trả về DUY NHẤT 1 rule phù hợp nhất theo prompt.'
-        : `- Trả về CHÍNH XÁC ${requestedRuleCount} rule trong grading_rules.`
+        : [
+            `- BẮT BUỘC trả về ĐÚNG ${requestedRuleCount} rule trong grading_payload.grading_rules. Phải trả đủ số lượng yêu cầu.`,
+            '- Được phép tạo 2 rule cùng target nhưng khác condition, hoặc cùng target+condition nhưng khác penalty_value/action để đủ số lượng.',
+            '- Chế độ batch: chỉ tạo thêm rule mới, không sửa rule cũ.',
+            '- CHỈ trả về tables khi người dùng YÊU CẦU RÕ RÀNG xử phạt riêng một đối tượng cụ thể. Với quy tắc chung, KHÔNG sinh tables.'
+          ].join('\n')
 
     return [
       questionContent?.trim()
@@ -731,9 +1019,32 @@ export function GradingRulesEditor({
         : '',
       `## Yêu cầu giáo viên\n${teacherPrompt.trim()}`,
       `## Quy tắc hiện có\n${existingRulesContext}`,
+      '## Contract JSON rubric bắt buộc',
+      '- Chỉ trả về JSON hợp lệ, không markdown, không giải thích ngoài JSON.',
+      '- Root: { question_category, total_points, grading_payload }.',
+      '- grading_payload phải có grading_rules.',
+      '- NẾU có yêu cầu xử phạt riêng / đích danh cho 1 đối tượng cụ thể, thì MẢNG tables của grading_payload PHẢI TRẢ VỀ phần tử chứa đúng `expected_name` và cấu hình penalty tương ứng (như `missing_table_penalty`, mảng `columns`, mảng `constraints`). Hệ thống sẽ tự merge vào tables hiện có.',
+      '- YÊU CẦU NGHIÊM NGẶT VỀ TABLES: CHỈ sinh ra các cấu hình như mảng columns, constraints, missing_table_penalty khi thực sự ĐƯỢC NGƯỜI DÙNG NHẮC ĐẾN. KHÔNG tự chế ra các cấu trúc dư thừa nếu không có yêu cầu đặc biệt về chúng. NẾU KHÔNG có bất kì tác động đích danh nào, mảng `tables` BẮT BUỘC bỏ trống hoặc không tồn tại `[]`.',
+      '- Với các rule chấm điểm thông thường, BẮT BUỘC có đủ field: { rule_name, target, condition, modifiers, action, penalty_value, description? }.',
+      '- NGOẠI LỆ DUY NHẤT: Với luật có tác động đích danh đối tượng thông qua mảng `tables`, ở mảng `grading_rules` PHẢI TẠO THÊM một "rule đặc biệt" CHỈ GIỮ LẠI `rule_name` và `description` (TUYỆT ĐỐI BỎ QUA các trường target, condition, modifiers, action, penalty_value) làm nhiệm vụ chú thích (ví dụ rule_name: "Quy định riêng cho...", description: "Quy định chi tiết lấy từ yêu cầu người dùng..."). TUYỆT ĐỐI KHÔNG sinh rule thông thường trừ điểm để tránh trừ điểm 2 lần.',
+      '## Enum target -> condition hợp lệ',
+      targetConditionGuide,
+      '## Enum target -> modifiers hợp lệ',
+      targetModifierGuide,
+      questionTypeConstraint,
+      actionConstraint,
       outputInstruction,
-      '- Mỗi rule cần đại diện cho một lỗi/điều kiện khác nhau, không lặp nội dung.',
-      '- Ưu tiên tên quy tắc thân thiện tiếng Việt, ngắn gọn, có dấu.'
+      '- Mỗi rule cần đại diện cho một lỗi/điều kiện khác nhau, không lặp nội dung hoặc chú thích.',
+      '- Nếu prompt có yêu cầu châm chước (hoa/thường, tên ràng buộc, độ dài), chọn modifier phù hợp; nếu không có thì modifiers = [].',
+      '- Ưu tiên tên quy tắc tiếng Việt ngắn gọn, có dấu; tránh tên chung chung như RULE_1.',
+      '## *** QUY TẮC BẮT BUỘC VỀ TÊN ĐỐI TƯỢNG — ĐỌC KỸ TRƯỚC KHI TẠO RULE ***',
+      '- TUYỆT ĐỐI CẤM nhúng tên bảng, tên cột, tên ràng buộc CỤ THỂ từ đề bài hoặc SQL đáp án (ví dụ: CONGTY, CONGTRINH, NHANVIEN, MaCT, MaDT, TenCT...) vào `rule_name` hoặc `description` của BẤT KỲ rule nào.',
+      '- CHỈ ĐƯỢC PHÉP dùng tên cụ thể khi người dùng viết ĐÍCH DANH trong prompt, tức là có đề cấp đến các định danh trong 1 câu prompt thì lúc này mới dùng rule đặc biệt (chỉ dùng rule đặc biệt khi bạn suy nghĩ kỹ và thấy nó là cần thiết): "tạo rule riêng cho bảng X" hoặc "trừ điểm riêng cột Y".',
+      '- Rule PHẢI dùng từ ngữ TỔNG QUÁT: "bảng", "cột", "dòng dữ liệu", "giá trị ô", "khóa chính", "khóa ngoại" thay vì tên cụ thể.',
+      '- Ví dụ ĐÚNG cho CREATE_TABLE: rule_name="Thiếu ràng buộc PRIMARY KEY", description="Nếu phát hiện khóa chính bị thiếu thì trừ 0.5 điểm".',
+      '- Ví dụ ĐÚNG cho INSERT_DATA: rule_name="Thiếu dòng dữ liệu", description="Nếu phát hiện dòng dữ liệu bị thiếu thì trừ 0.5 điểm".',
+      '- Ví dụ SAI: rule_name="Thiếu dữ liệu cho bảng CONGTY" hoặc rule_name="Thiếu PRIMARY KEY cho bảng CONGTY" — KHÔNG ĐƯỢC nhắc tên bảng/cột cụ thể.',
+      '- Ngữ cảnh đề bài và SQL đáp án chỉ để THAM KHẢO loại target/condition hợp lệ, TUYỆT ĐỐI KHÔNG gắn tên cụ thể từ đó vào rule.'
     ]
       .filter(Boolean)
       .join('\n\n')
@@ -787,6 +1098,14 @@ export function GradingRulesEditor({
         : Array.isArray(root.grading_rules)
           ? root.grading_rules
           : []
+
+      if (
+        typeof onTablesPatch === 'function' &&
+        Array.isArray(payload.tables) &&
+        payload.tables.length > 0
+      ) {
+        onTablesPatch(payload.tables)
+      }
 
       const generatedRules = (
         rawGenerated as Partial<InsertDataGradingRule>[]
@@ -878,24 +1197,72 @@ export function GradingRulesEditor({
           ? root.grading_rules
           : []
 
-      const nextStartIndex = normalizedRules.length
-      const nextRules = (rawGenerated as Partial<InsertDataGradingRule>[]).map(
-        (rule, idx) => {
-          const normalized = normalizeRule(
-            rule,
-            nextStartIndex + idx,
-            questionType
-          )
-          return ensureFriendlyRuleName(
-            normalized,
-            questionType,
-            [multiPrompt, normalized.description || ''].join(' ')
-          )
-        }
+      if (
+        typeof onTablesPatch === 'function' &&
+        Array.isArray(payload.tables) &&
+        payload.tables.length > 0
+      ) {
+        onTablesPatch(payload.tables)
+      }
+
+      const rawGeneratedRules = rawGenerated as Partial<InsertDataGradingRule>[]
+      const existingStrictSignatures = new Set(
+        normalizedRules
+          .filter((rule) => !isDescriptionOnlySpecialRule(rule))
+          .map((rule) => buildStrictRuleSignature(rule, questionType))
+      )
+      const existingBroadSignatures = new Set(
+        normalizedRules
+          .filter((rule) => !isDescriptionOnlySpecialRule(rule))
+          .map((rule) => buildBroadRuleSignature(rule, questionType))
       )
 
+      const nextRules: InsertDataGradingRule[] = []
+      for (
+        let idx = 0;
+        idx < rawGeneratedRules.length && nextRules.length < requestedRuleCount;
+        idx++
+      ) {
+        const candidate = normalizeBatchRuleForAppend(
+          rawGeneratedRules[idx],
+          normalizedRules.length + nextRules.length,
+          questionType,
+          multiPrompt
+        )
+        if (!candidate) {
+          continue
+        }
+
+        const withFriendlyName = ensureFriendlyRuleName(
+          candidate,
+          questionType,
+          [multiPrompt, candidate.description || ''].join(' ')
+        )
+        const strictSignature = buildStrictRuleSignature(
+          withFriendlyName,
+          questionType
+        )
+        const broadSignature = buildBroadRuleSignature(
+          withFriendlyName,
+          questionType
+        )
+
+        if (
+          existingStrictSignatures.has(strictSignature) ||
+          existingBroadSignatures.has(broadSignature)
+        ) {
+          continue
+        }
+
+        existingStrictSignatures.add(strictSignature)
+        existingBroadSignatures.add(broadSignature)
+        nextRules.push(withFriendlyName)
+      }
+
       if (nextRules.length === 0) {
-        toast.error('AI chưa tạo được quy tắc phù hợp từ prompt hiện tại')
+        toast.error(
+          'AI chưa tạo được rule mới hợp lệ (không trùng và đúng kiểu trừ điểm)'
+        )
         return
       }
 
@@ -911,21 +1278,42 @@ export function GradingRulesEditor({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 space-y-4 shadow-sm">
+    <div className="rounded-lg bg-card space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h4 className="text-sm font-bold text-foreground">
-          Quy tắc chấm điểm nâng cao ({normalizedRules.length})
+        <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+          Quy tắc chấm điểm nâng cao
+          <Badge
+            variant="secondary"
+            className="rounded-full px-2.5 py-0.5 text-xs"
+          >
+            {normalizedRules.length}
+          </Badge>
         </h4>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={openAddModal}
-          className="h-9 px-4 text-sm"
-        >
-          <Plus className="h-4 w-4 mr-1.5" />
-          Thêm quy tắc
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              loadPresets()
+              setIsPresetModalOpen(true)
+            }}
+            className="h-9 px-4 text-sm whitespace-nowrap"
+          >
+            <FileText className="h-4 w-4 mr-1.5" />
+            Mẫu quy tắc
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={openAddModal}
+            className="h-9 px-4 text-sm whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Thêm quy tắc
+          </Button>
+        </div>
       </div>
 
       {normalizedRules.length === 0 && (
@@ -1092,7 +1480,7 @@ export function GradingRulesEditor({
 
               <div className="space-y-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground">
-                  Mô tả / ghi chú
+                  Mô tả
                 </label>
                 <textarea
                   value={ruleDraft.description || ''}
@@ -1337,6 +1725,110 @@ export function GradingRulesEditor({
               </Button>
             )}
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- PRESET MODAL --- */}
+      <Dialog open={isPresetModalOpen} onOpenChange={setIsPresetModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mẫu quy tắc chấm điểm</DialogTitle>
+            <DialogDescription>
+              Lưu hoặc tải bộ quy tắc cho loại câu hỏi hiện tại.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Tên mẫu quy tắc mới..."
+                value={newPresetName}
+                onChange={(e) => setNewPresetName(e.target.value)}
+                className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm"
+              />
+              <Button
+                onClick={handleSavePreset}
+                disabled={
+                  isSavingPreset ||
+                  !newPresetName.trim() ||
+                  normalizedRules.length === 0
+                }
+                size="sm"
+              >
+                {isSavingPreset ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Lưu làm mẫu mới
+              </Button>
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <div className="flex justify-between items-center mb-2">
+                <h5 className="text-xs font-semibold">
+                  Danh sách mẫu đã lưu của bạn
+                </h5>
+              </div>
+
+              {isLoadingPresets ? (
+                <div className="py-8 text-center flex flex-col items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mb-2" />
+                  <span className="text-sm text-muted-foreground">
+                    Đang tải...
+                  </span>
+                </div>
+              ) : presets.length === 0 ? (
+                <div className="py-8 flex flex-col items-center justify-center bg-sub-background border border-dashed rounded-md">
+                  <p className="text-sm text-muted-foreground">
+                    Bạn chưa lưu mẫu nào.
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {presets.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex flex-col gap-2 p-3 rounded-md border border-border bg-sub-background"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className="text-sm font-semibold text-sub-primary truncate"
+                          title={p.name}
+                        >
+                          {p.name}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(p.createdAt).toLocaleDateString('vi-VN')}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleApplyPreset(p)}
+                            className="h-7 text-xs px-2"
+                          >
+                            Áp dụng mẫu này
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePreset(p.id)}
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

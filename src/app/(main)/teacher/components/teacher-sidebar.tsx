@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookOpen, Database, Library } from 'lucide-react'
+import { BookOpen, Database, Library, GraduationCap } from 'lucide-react'
 
 import { PATH } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -32,8 +32,25 @@ export function TeacherSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-full">
-      <nav className="space-y-1.5">
+    <aside className="w-full flex flex-col h-full pl-6 pr-6 py-4">
+      <div className="flex items-center shrink-0 mb-6 mt-1 px-1">
+        <Link
+          href={PATH.TEACHER_CLASSES}
+          className="flex items-center gap-2.5 text-foreground transition-colors hover:text-primary"
+        >
+          <GraduationCap className="h-6 w-6 text-primary shrink-0" />
+          <div className="flex flex-col">
+            <span className="text-lg font-medium leading-none tracking-tight whitespace-nowrap">
+              DATN Portal
+            </span>
+            <span className="mt-1 w-fit rounded bg-primary/10 px-1 py-0.5 text-[9px] font-bold text-primary tracking-widest uppercase leading-none">
+              Teacher
+            </span>
+          </div>
+        </Link>
+      </div>
+
+      <nav className="space-y-1.5 flex-1">
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname.startsWith(item.href) ||
@@ -43,33 +60,39 @@ export function TeacherSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                'group flex items-start gap-3 rounded-xl border px-3 py-3 transition-all',
+                'group flex items-center gap-4 rounded-2xl px-4 py-3.5 transition-all outline-none',
                 isActive
-                  ? 'border-primary/20 bg-primary/10 shadow-sm'
-                  : 'border-transparent hover:border-border/70 hover:bg-accent/70'
+                  ? 'bg-primary-container text-on-primary-container shadow-md shadow-primary-container/20'
+                  : 'text-on-surface hover:bg-surface-variant/50'
               )}
             >
-              <span
+              <item.icon
                 className={cn(
-                  'mt-0.5 rounded-lg p-2 transition-colors',
+                  'h-5 w-5 shrink-0 transition-transform duration-300',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground'
+                    ? 'text-on-primary-container scale-110'
+                    : 'text-outline group-hover:text-primary-fixed-dim group-hover:scale-110'
                 )}
-              >
-                <item.icon className="h-4 w-4" />
-              </span>
-              <span className="min-w-0">
+                strokeWidth={isActive ? 2.5 : 2}
+              />
+              <span className="min-w-0 flex flex-col">
                 <span
                   className={cn(
-                    'block text-sm font-semibold leading-none transition-colors',
-                    isActive ? 'text-primary' : 'text-foreground'
+                    'block text-sm font-medium tracking-tight',
+                    isActive ? 'text-on-primary-container' : 'text-on-surface'
                   )}
                 >
                   {item.label}
                 </span>
                 {item.description && (
-                  <span className="mt-1 block text-xs text-muted-foreground">
+                  <span
+                    className={cn(
+                      'mt-0.5 block text-xs font-medium',
+                      isActive
+                        ? 'text-on-primary-container/80'
+                        : 'text-outline-variant'
+                    )}
+                  >
                     {item.description}
                   </span>
                 )}
