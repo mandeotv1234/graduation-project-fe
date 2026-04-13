@@ -52,6 +52,7 @@ import {
   TeacherExamTemplateVersionsResponse,
   UpdateExamQuestionRequest
 } from '@/lib/types'
+import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
 import { CreateTableRubricEditor } from './create-table-rubric-editor'
 import { InsertDataRubricEditor } from './insert-data-rubric-editor'
 import { InsertDataTestGrader } from './insert-data-test-grader'
@@ -759,6 +760,14 @@ export function ExamQuestionsView({
                             <span className="text-destructive">*</span>
                           </span>
                         </label>
+                        {q.questionType === 'CREATE_TABLE' && step !== 4 && (
+                          <CreateTableQueryFromSpec
+                            specification={specification}
+                            onApply={(sql) =>
+                              updateCreatingQuestion({ correctQuery: sql })
+                            }
+                          />
+                        )}
                         <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
                           <TeacherSqlEditor
                             value={q.correctQuery}

@@ -24,6 +24,10 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  getSystemRulePresets,
+  type SystemRulePreset
+} from '@/lib/constants/system-rule-presets'
+import {
   createRulePreset,
   deleteRulePreset,
   generateGradingRubric,
@@ -763,6 +767,10 @@ export function GradingRulesEditor({
   const [isSavingPreset, setIsSavingPreset] = useState(false)
   const [newPresetName, setNewPresetName] = useState('')
   const [isLoadingPresets, setIsLoadingPresets] = useState(false)
+  const systemPresets = useMemo(
+    () => getSystemRulePresets(questionType),
+    [questionType]
+  )
 
   const loadPresets = async () => {
     setIsLoadingPresets(true)
@@ -811,6 +819,15 @@ export function GradingRulesEditor({
     } catch {
       toast.error('Lỗi khi đọc dữ liệu mẫu')
     }
+  }
+
+  const handleApplySystemPreset = (preset: SystemRulePreset) => {
+    const normalizedPresetRules = preset.rules.map((rule, idx) =>
+      normalizeRule(rule, idx, questionType)
+    )
+    onChange(normalizedPresetRules)
+    toast.success(`Đã áp dụng mẫu hệ thống: ${preset.name}`)
+    setIsPresetModalOpen(false)
   }
 
   const handleDeletePreset = async (id: number) => {
@@ -1763,6 +1780,50 @@ export function GradingRulesEditor({
                 )}
                 Lưu làm mẫu mới
               </Button>
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <div className="mb-2 flex items-center justify-between">
+                <h5 className="text-xs font-semibold">Mẫu hệ thống</h5>
+                <Badge variant="secondary" className="text-[10px]">
+                  Gợi ý
+                </Badge>
+              </div>
+
+              {systemPresets.length === 0 ? (
+                <div className="py-4 text-sm text-muted-foreground">
+                  Chưa có mẫu hệ thống cho loại câu hỏi này.
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {systemPresets.map((preset) => (
+                    <li
+                      key={preset.id}
+                      className="flex flex-col gap-2 rounded-md border border-primary/20 bg-primary/5 p-3"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-primary">
+                          {preset.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {preset.description}
+                        </p>
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleApplySystemPreset(preset)}
+                          className="h-7 text-xs px-2.5"
+                        >
+                          Áp dụng mẫu hệ thống
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="pt-4 border-t border-border">
