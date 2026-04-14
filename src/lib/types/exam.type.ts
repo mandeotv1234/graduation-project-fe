@@ -289,7 +289,6 @@ export interface ExamSpecification {
   visibleToStudent?: boolean
   schemaDiagram?: string
   schemaDiagramVisibleToStudent?: boolean
-  schemaJson?: string | import('@/lib/types').SpecificationSchemaJsonTable[]
   description: string
   entities: SpecEntity[]
   datasets?: SpecDataset[]

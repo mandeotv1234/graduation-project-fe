@@ -844,6 +844,7 @@ export function GradingRulesEditor({
     () => rules.map((rule, idx) => normalizeRule(rule, idx, questionType)),
     [questionType, rules]
   )
+  const shouldScrollRules = normalizedRules.length > 5
 
   const draftTarget = ruleDraft.target || defaultTarget
   const draftCondition =
@@ -1340,7 +1341,11 @@ export function GradingRulesEditor({
         </div>
       )}
 
-      <div className="space-y-3">
+      <div
+        className={`space-y-3 ${
+          shouldScrollRules ? 'max-h-[30rem] overflow-y-auto pr-1' : ''
+        }`}
+      >
         {normalizedRules.map((rule, idx) => {
           const title = isDescriptionOnlySpecialRule(rule)
             ? `Rule đặc biệt #${idx + 1}`

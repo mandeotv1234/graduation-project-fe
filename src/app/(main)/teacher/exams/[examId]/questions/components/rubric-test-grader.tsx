@@ -31,11 +31,13 @@ interface GradeResult {
 interface RubricTestGraderProps {
   rubric: GradingRubric | null
   correctQuery?: string
+  totalPoints?: number
 }
 
 export function RubricTestGrader({
   rubric,
-  correctQuery
+  correctQuery,
+  totalPoints
 }: RubricTestGraderProps) {
   const [studentSql, setStudentSql] = useState('')
   const [result, setResult] = useState<GradeResult | null>(null)
@@ -45,6 +47,15 @@ export function RubricTestGrader({
     tables?: unknown[]
   } | null
   const hasRubric = Array.isArray(payload?.tables) && payload.tables.length > 0
+  const rubricTotalPoints =
+    typeof rubric?.total_points === 'number' &&
+    Number.isFinite(rubric.total_points)
+      ? rubric.total_points
+      : 1
+  const effectiveTotalPoints =
+    typeof totalPoints === 'number' && Number.isFinite(totalPoints)
+      ? totalPoints
+      : rubricTotalPoints
 
   const handleTest = async () => {
     if (!rubric || !studentSql.trim() || !correctQuery?.trim()) return
@@ -57,7 +68,7 @@ export function RubricTestGrader({
         correctQuery: correctQuery.trim(),
         studentQuery: studentSql.trim(),
         gradingRubric: JSON.stringify(rubric),
-        totalPoints: rubric.total_points
+        totalPoints: effectiveTotalPoints
       })
 
       if (response.data) {

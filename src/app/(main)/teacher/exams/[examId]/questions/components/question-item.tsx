@@ -88,7 +88,7 @@ export function QuestionItem({
   isDeleting,
   allQuestions,
   specification = null,
-  examId
+  examId,
   specificationSchemaJson,
   specificationDatasets
 }: {
@@ -798,6 +798,7 @@ export function QuestionItem({
                     <RubricTestGrader
                       rubric={editForm.rubricData}
                       correctQuery={editForm.correctQuery}
+                      totalPoints={editForm.points}
                     />
                   )}
                   {editForm.questionType === 'INSERT_DATA' && (
@@ -805,6 +806,7 @@ export function QuestionItem({
                       rubric={editForm.rubricData}
                       correctQuery={editForm.correctQuery}
                       examId={examId}
+                      totalPoints={editForm.points}
                     />
                   )}
                   {editForm.questionType === 'SELECT_QUERY' && (
@@ -812,6 +814,7 @@ export function QuestionItem({
                       examId={examId}
                       rubric={editForm.rubricData}
                       correctQuery={editForm.correctQuery}
+                      totalPoints={editForm.points}
                     />
                   )}
                 </div>
@@ -951,8 +954,8 @@ export function QuestionItem({
                 </div>
               </div>
             )}
-            </div>
           </div>
+        </div>
       )}
     </div>
   )
