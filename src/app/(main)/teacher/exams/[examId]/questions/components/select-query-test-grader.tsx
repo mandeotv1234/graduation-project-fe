@@ -32,12 +32,14 @@ interface SelectQueryTestGraderProps {
   examId: number
   rubric: GradingRubric | null
   correctQuery?: string
+  totalPoints?: number
 }
 
 export function SelectQueryTestGrader({
   examId,
   rubric,
-  correctQuery
+  correctQuery,
+  totalPoints
 }: SelectQueryTestGraderProps) {
   const [studentSql, setStudentSql] = useState('')
   const [isGrading, setIsGrading] = useState(false)
@@ -50,6 +52,15 @@ export function SelectQueryTestGrader({
     Array.isArray((rubric.grading_payload as any)?.test_cases) &&
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (rubric.grading_payload as any).test_cases.length > 0
+  const rubricTotalPoints =
+    typeof rubric?.total_points === 'number' &&
+    Number.isFinite(rubric.total_points)
+      ? rubric.total_points
+      : 1
+  const effectiveTotalPoints =
+    typeof totalPoints === 'number' && Number.isFinite(totalPoints)
+      ? totalPoints
+      : rubricTotalPoints
 
   const handleTest = async () => {
     if (!rubric || !studentSql.trim()) {
@@ -63,7 +74,7 @@ export function SelectQueryTestGrader({
         studentQuery: studentSql.trim(),
         correctQuery: correctQuery?.trim() || '',
         gradingRubric: JSON.stringify(rubric),
-        totalPoints: rubric.total_points
+        totalPoints: effectiveTotalPoints
       })
 
       if (response.data) {
@@ -94,7 +105,7 @@ export function SelectQueryTestGrader({
 
   return (
     <div className="space-y-3">
-      <div className="h-[180px] overflow-hidden rounded border border-border bg-background">
+      <div className="h-[180px] overflow-hidden rounded border border-border bg-sub-background">
         <TeacherSqlEditor
           value={studentSql}
           onChange={(value) => {

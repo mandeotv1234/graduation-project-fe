@@ -1,17 +1,18 @@
 'use client'
 
-import React, { useState } from 'react'
-import {
-  Play,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Loader2
-} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { GradingRubric } from '@/lib/types'
 import { testGradeCreateTable } from '@/lib/actions'
+import { GradingRubric } from '@/lib/types'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Play,
+  XCircle
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 
 interface GradeDetail {
@@ -30,11 +31,13 @@ interface GradeResult {
 interface RubricTestGraderProps {
   rubric: GradingRubric | null
   correctQuery?: string
+  totalPoints?: number
 }
 
 export function RubricTestGrader({
   rubric,
-  correctQuery
+  correctQuery,
+  totalPoints
 }: RubricTestGraderProps) {
   const [studentSql, setStudentSql] = useState('')
   const [result, setResult] = useState<GradeResult | null>(null)
@@ -44,6 +47,15 @@ export function RubricTestGrader({
     tables?: unknown[]
   } | null
   const hasRubric = Array.isArray(payload?.tables) && payload.tables.length > 0
+  const rubricTotalPoints =
+    typeof rubric?.total_points === 'number' &&
+    Number.isFinite(rubric.total_points)
+      ? rubric.total_points
+      : 1
+  const effectiveTotalPoints =
+    typeof totalPoints === 'number' && Number.isFinite(totalPoints)
+      ? totalPoints
+      : rubricTotalPoints
 
   const handleTest = async () => {
     if (!rubric || !studentSql.trim() || !correctQuery?.trim()) return
@@ -56,7 +68,7 @@ export function RubricTestGrader({
         correctQuery: correctQuery.trim(),
         studentQuery: studentSql.trim(),
         gradingRubric: JSON.stringify(rubric),
-        totalPoints: rubric.total_points
+        totalPoints: effectiveTotalPoints
       })
 
       if (response.data) {
@@ -101,7 +113,7 @@ export function RubricTestGrader({
         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           SQL của sinh viên (CREATE TABLE)
         </label>
-        <div className="h-40 overflow-hidden rounded-md border border-border bg-background">
+        <div className="h-40 overflow-hidden rounded-md border border-border bg-sub-background">
           <TeacherSqlEditor
             value={studentSql}
             onChange={(value) => {
@@ -177,11 +189,17 @@ export function RubricTestGrader({
           </div>
 
           {/* Detail breakdown */}
-          <div className="rounded-lg border border-border overflow-hidden">
-            <div className="bg-muted/30 px-4 py-2.5 border-b border-border">
+          <div className="rounded-lg shadow-sm overflow-hidden">
+            <div className="flex items-center justify-start gap-2 bg-muted/30 px-4 py-2.5 border-b border-border">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Chi tiết chấm điểm ({result.details.length} mục)
+                Chi tiết chấm điểm
               </span>
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground bg-muted font-semibold"
+              >
+                {result.details.length} mục
+              </Badge>
             </div>
             <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
               {result.details.map((detail, idx) => (

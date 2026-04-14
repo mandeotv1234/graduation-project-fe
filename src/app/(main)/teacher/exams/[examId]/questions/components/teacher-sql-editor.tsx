@@ -114,7 +114,7 @@ export function TeacherSqlEditor({
               type="button"
               variant="outline"
               size="icon"
-              className="absolute top-2 right-2 z-10 h-7 w-7 bg-background/90"
+              className="absolute top-2 right-2 z-10 h-7 w-7 bg-sub-background/90"
               title="Mo rong khung SQL"
             >
               <Maximize2 className="h-3.5 w-3.5" />
@@ -124,7 +124,7 @@ export function TeacherSqlEditor({
             <DialogHeader>
               <DialogTitle>SQL Editor</DialogTitle>
             </DialogHeader>
-            <div className="h-full min-h-0 overflow-hidden rounded-md border border-border bg-background">
+            <div className="h-full min-h-0 overflow-hidden rounded-md border border-border bg-sub-background">
               <Editor
                 height="100%"
                 language="sql"
@@ -153,3 +153,4 @@ export function TeacherSqlEditor({
     </div>
   )
 }
+

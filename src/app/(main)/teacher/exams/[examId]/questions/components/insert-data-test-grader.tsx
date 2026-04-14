@@ -1,17 +1,18 @@
 'use client'
 
-import React, { useState } from 'react'
-import {
-  Play,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Loader2
-} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-import { GradingRubric } from '@/lib/types'
 import { testGradeInsertData } from '@/lib/actions'
+import { GradingRubric } from '@/lib/types'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Play,
+  XCircle
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 
 interface GradeDetail {
@@ -31,21 +32,52 @@ interface InsertDataTestGraderProps {
   rubric: GradingRubric | null
   correctQuery?: string
   examId: number
+  totalPoints?: number
 }
 
 export function InsertDataTestGrader({
   rubric,
   correctQuery,
-  examId
+  examId,
+  totalPoints
 }: InsertDataTestGraderProps) {
   const [studentSql, setStudentSql] = useState('')
   const [result, setResult] = useState<GradeResult | null>(null)
   const [isGrading, setIsGrading] = useState(false)
 
-  const payload = (rubric?.grading_payload ?? null) as {
-    tables?: unknown[]
-  } | null
-  const hasRubric = Array.isArray(payload?.tables) && payload.tables.length > 0
+  const rubricRoot = (rubric as unknown as Record<string, unknown>) || null
+  const payload =
+    rubricRoot?.grading_payload &&
+    typeof rubricRoot.grading_payload === 'object' &&
+    !Array.isArray(rubricRoot.grading_payload)
+      ? (rubricRoot.grading_payload as Record<string, unknown>)
+      : null
+
+  const payloadTables = Array.isArray(payload?.tables)
+    ? (payload.tables as unknown[])
+    : null
+  const payloadLegacyTables = Array.isArray(payload?.expected_datasets)
+    ? (payload.expected_datasets as unknown[])
+    : null
+  const rootTables = Array.isArray(rubricRoot?.tables)
+    ? (rubricRoot.tables as unknown[])
+    : null
+  const rootLegacyTables = Array.isArray(rubricRoot?.expected_datasets)
+    ? (rubricRoot.expected_datasets as unknown[])
+    : null
+
+  const resolvedTables =
+    payloadTables ?? payloadLegacyTables ?? rootTables ?? rootLegacyTables ?? []
+  const hasRubric = resolvedTables.length > 0
+  const rubricTotalPoints =
+    typeof rubric?.total_points === 'number' &&
+    Number.isFinite(rubric.total_points)
+      ? rubric.total_points
+      : 1
+  const effectiveTotalPoints =
+    typeof totalPoints === 'number' && Number.isFinite(totalPoints)
+      ? totalPoints
+      : rubricTotalPoints
 
   const handleTest = async () => {
     if (!rubric || !studentSql.trim() || !correctQuery?.trim()) return
@@ -58,7 +90,7 @@ export function InsertDataTestGrader({
         correctQuery: correctQuery.trim(),
         studentQuery: studentSql.trim(),
         gradingRubric: JSON.stringify(rubric),
-        totalPoints: rubric.total_points
+        totalPoints: effectiveTotalPoints
       })
 
       if (response.data) {
@@ -78,7 +110,8 @@ export function InsertDataTestGrader({
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
         <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-amber-500" />
-        Vui lòng tạo rubric dữ liệu trước khi sử dụng chức năng chấm thử INSERT.
+        Vui lòng tạo rubric dữ liệu (tables/expected_data) trước khi sử dụng
+        chức năng chấm thử INSERT.
       </div>
     )
   }
@@ -87,7 +120,7 @@ export function InsertDataTestGrader({
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
         <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-amber-500" />
-        Vui lòng nhập SQL đáp án (Correct Query) chứa INSERT VALUES mẫu.
+        Vui lòng nhập SQL đáp án chứa INSERT VALUES mẫu.
       </div>
     )
   }
@@ -102,7 +135,7 @@ export function InsertDataTestGrader({
         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           SQL CỦA SINH VIÊN (LỆNH INSERT DỮ LIỆU)
         </label>
-        <div className="h-40 overflow-hidden rounded-md border border-border bg-background">
+        <div className="h-40 overflow-hidden rounded-md border border-border bg-sub-background">
           <TeacherSqlEditor
             value={studentSql}
             onChange={(value) => {
@@ -167,11 +200,16 @@ export function InsertDataTestGrader({
 
           {/* Detail breakdown */}
           <div className="rounded-lg border border-border overflow-hidden bg-card">
-            <div className="bg-muted/30 px-4 py-2.5 border-b border-border">
+            <div className="flex items-center gap-2 bg-muted/30 px-4 py-2.5 border-b border-border">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Chi tiết vết chấm từng dòng dữ liệu ({result.details.length} báo
-                cáo)
+                Chi tiết vết chấm từng dòng dữ liệu
               </span>
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground bg-muted font-semibold"
+              >
+                {result.details.length}
+              </Badge>
             </div>
             <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
               {result.details.map((detail, idx) => (

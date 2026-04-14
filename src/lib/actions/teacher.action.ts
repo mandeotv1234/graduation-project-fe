@@ -25,7 +25,9 @@ import {
   OverrideSubmissionRequest,
   OverrideSubmissionResponse,
   RegradeResponse,
-  RegradeAllResponse
+  RegradeAllResponse,
+  RulePreset,
+  CreateRulePresetRequest
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -190,6 +192,27 @@ export async function regradeAllExamResults(
   examId: number
 ): Promise<ApiResponse<RegradeAllResponse>> {
   return apiClient.post<RegradeAllResponse>(ENDPOINTS.EXAM_REGRADE_ALL(examId))
+}
+
+// ===== Rule Presets =====
+
+export async function getRulePresets(
+  questionType: string
+): Promise<ApiResponse<RulePreset[]>> {
+  return apiClient.get<RulePreset[]>(ENDPOINTS.RULE_PRESETS, {
+    queries: { questionType },
+    cache: 'no-store'
+  })
+}
+
+export async function createRulePreset(
+  data: CreateRulePresetRequest
+): Promise<ApiResponse<RulePreset>> {
+  return apiClient.post<RulePreset>(ENDPOINTS.RULE_PRESETS, data)
+}
+
+export async function deleteRulePreset(id: number): Promise<ApiResponse<null>> {
+  return apiClient.delete<null>(ENDPOINTS.RULE_PRESET_DELETE(id))
 }
 
 // ===== Specifications =====

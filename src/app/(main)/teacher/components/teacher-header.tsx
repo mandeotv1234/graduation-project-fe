@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { LogOut, GraduationCap } from 'lucide-react'
+import { LogOut, GraduationCap, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { ModeToggle } from '@/components/shared/mode-toggle'
 import { TeacherNotificationBell } from '@/app/(main)/teacher/components/teacher-notification-bell'
 import { PATH } from '@/lib/constants'
@@ -34,20 +35,29 @@ export function TeacherHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-header-background/80 backdrop-blur-lg">
-      <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 backdrop-blur-lg border-b border-border/60">
+      <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href={PATH.TEACHER_CLASSES}
-          className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-foreground transition-colors hover:text-primary"
+          className="flex lg:hidden items-center gap-2 text-lg font-semibold tracking-tight text-foreground transition-colors"
         >
           <GraduationCap className="h-6 w-6 text-primary" />
           <span>DATN Portal</span>
-          <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-            Teacher
-          </span>
         </Link>
 
-        <div className="flex items-center gap-4">
+        {/* Thanh tìm kiếm hiển thị trên Desktop */}
+        <div className="hidden lg:flex flex-1 items-center max-w-md ml-48 mr-4">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Tìm kiếm lớp học, chức năng..."
+              className="w-full h-9 pl-9 bg-surface-container/50 focus-visible:ring-1 focus-visible:border-border focus-visible:bg-surface-container-lowest rounded-full transition-all shadow-none border-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 ml-auto">
           {user && (
             <div className="hidden border-r border-border pr-4 text-right md:block">
               <p className="text-sm font-semibold text-foreground leading-none">

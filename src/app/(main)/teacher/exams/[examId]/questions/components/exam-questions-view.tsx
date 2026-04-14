@@ -45,6 +45,8 @@ import {
   CreateExamQuestionBatch,
   GradingRubric,
   SpecificationDataset,
+  ExamSpecification,
+  SpecificationDetailResponse,
   TeacherExamTemplateVersionsResponse,
   UpdateExamQuestionRequest,
   SpecificationSchemaJsonTable
@@ -64,6 +66,8 @@ import {
   generateInsertDataQuestionFromDataset,
   getDatasetTableNames
 } from './insert-data-question-generator'
+import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
+import { InsertQueryFromSpec } from './insert-query-from-spec'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -77,6 +81,7 @@ const QUESTION_TYPES = [
 interface ExamQuestionsViewProps {
   examId: number
   initialQuestions: ExamQuestionItem[]
+  specification?: ExamSpecification | SpecificationDetailResponse | null
   templateManagement: TeacherExamTemplateVersionsResponse | null
   canShareTemplate: boolean
   shareDisabledReason?: string
@@ -88,6 +93,7 @@ interface ExamQuestionsViewProps {
 interface QuestionFormState extends CreateExamQuestionBatch {
   id: string // temp id for form
   rubricData?: GradingRubric | null
+  wizardStep?: number
 }
 
 function formatVersionTimestamp(value?: string) {
@@ -97,6 +103,7 @@ function formatVersionTimestamp(value?: string) {
 export function ExamQuestionsView({
   examId,
   initialQuestions,
+  specification = null,
   templateManagement,
   canShareTemplate,
   shareDisabledReason,
@@ -186,7 +193,8 @@ export function ExamQuestionsView({
       orderIndex: questions.length + pendingQuestions.length + 1,
       questionType: 'SELECT_QUERY',
       difficultyLevel: 1,
-      rubricData: null
+      rubricData: null,
+      wizardStep: 1
     }
     setPendingQuestions((prev) => [...prev, newQuestion])
   }
@@ -198,7 +206,13 @@ export function ExamQuestionsView({
   }
 
   const removeQuestion = (id: string) => {
-    setPendingQuestions((prev) => prev.filter((q) => q.id !== id))
+    setPendingQuestions((prev) => {
+      const next = prev.filter((q) => q.id !== id)
+      if (next.length === 0) {
+        setShowAddForm(false)
+      }
+      return next
+    })
     setCreateTableSelections((prev) => {
       const next = { ...prev }
       delete next[id]
@@ -300,7 +314,7 @@ export function ExamQuestionsView({
   }
 
   const handleQuestionTypeChange = (questionId: string, nextType: string) => {
-    updateQuestion(questionId, { questionType: nextType })
+    updateQuestion(questionId, { questionType: nextType, wizardStep: 1 })
     if (nextType === 'CREATE_TABLE') {
       setCreateTableModalOpen((prev) => ({ ...prev, [questionId]: true }))
     }
@@ -401,62 +415,60 @@ export function ExamQuestionsView({
     }
   }
 
-  const handleSubmitQuestions = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmitSingleQuestion = async (questionId: string) => {
+    const q = pendingQuestions.find((item) => item.id === questionId)
+    if (!q) return
 
-    if (pendingQuestions.length === 0) {
-      toast.error('Vui lòng thêm ít nhất một câu hỏi')
+    if (!q.content.trim()) {
+      toast.error('Vui lòng nhập nội dung câu hỏi')
+      return
+    }
+    if (!q.correctQuery?.trim()) {
+      toast.error('Vui lòng nhập đáp án chuẩn trước khi lưu')
+      return
+    }
+    if (q.questionType === 'INSERT_DATA' && !q.correctQuery?.trim()) {
+      toast.error(
+        'Câu INSERT DATA cần script đáp án chuẩn trước khi tạo rubric AI'
+      )
+      return
+    }
+    if (!q.points || q.points <= 0) {
+      toast.error('Điểm phải lớn hơn 0')
       return
     }
 
-    // Validate all questions
-    for (const q of pendingQuestions) {
-      if (!q.content.trim()) {
-        toast.error(`Câu hỏi #${q.orderIndex}: vui lòng nhập nội dung`)
-        return
-      }
-      if (q.questionType === 'INSERT_DATA' && !q.correctQuery?.trim()) {
-        toast.error(
-          `Câu hỏi #${q.orderIndex} (INSERT DATA): vui lòng nhập script đáp án chuẩn trước khi tạo rubric AI`
-        )
-        return
-      }
-      if (!q.points || q.points <= 0) {
-        toast.error(`Câu hỏi #${q.orderIndex}: điểm phải lớn hơn 0`)
-        return
-      }
+    const payload = {
+      questions: [
+        {
+          content: q.content,
+          correctQuery: q.correctQuery,
+          verifyScript: q.verifyScript,
+          points: q.points,
+          orderIndex: q.orderIndex,
+          questionType: q.questionType,
+          difficultyLevel: q.difficultyLevel,
+          gradingRubric: q.rubricData ? JSON.stringify(q.rubricData) : undefined
+        }
+      ]
     }
 
-    // Prepare batch request (excluding the temporary id)
-    const questionsToCreate = pendingQuestions.map((q) => ({
-      content: q.content,
-      correctQuery: q.correctQuery,
-      verifyScript: q.verifyScript,
-      points: q.points,
-      orderIndex: q.orderIndex,
-      questionType: q.questionType,
-      difficultyLevel: q.difficultyLevel,
-      gradingRubric: q.rubricData ? JSON.stringify(q.rubricData) : undefined
-    }))
-
     const result = await callApi(
-      createExamQuestionsBatch(examId, { questions: questionsToCreate }),
+      createExamQuestionsBatch(examId, payload),
       false
     )
-
-    if (result.data) {
-      setQuestions((prev) => [...prev, ...result.data!.questions])
-      setPendingQuestions([])
+    const createdQuestions = result.data?.questions ?? []
+    if (createdQuestions.length > 0) {
+      setQuestions((prev) => [...prev, ...createdQuestions])
+      setPendingQuestions((prev) =>
+        prev.filter((item) => item.id !== questionId)
+      )
       setShowAddForm(false)
-      toast.success(`${result.data.totalCreated} câu hỏi được tạo thành công`)
+      toast.success('Đã tạo câu hỏi thành công')
     }
   }
 
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0)
-  const pendingTotalPoints = pendingQuestions.reduce(
-    (sum, q) => sum + q.points,
-    0
-  )
 
   return (
     <div className="space-y-8">
@@ -559,7 +571,7 @@ export function ExamQuestionsView({
       </div>
 
       {isDedicatedQuestionsPage && (canManage || versions.length > 0) && (
-        <section className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.06] via-card to-card p-5 shadow-sm">
+        <section className="rounded-2xl border border-sub-primary/15 bg-linear-to-br from-sub-primary/6 via-card to-card p-5 shadow-sm">
           <div className="space-y-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="space-y-2">
@@ -579,7 +591,7 @@ export function ExamQuestionsView({
                       : 'Chưa public'}
                   </span>
                   {versions.length > 0 && (
-                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                    <span className="rounded-full bg-sub-primary/10 px-2.5 py-1 text-xs font-medium text-sub-primary">
                       {visibleVersions.length}/{versions.length} phiên bản hiển
                       thị
                     </span>
@@ -663,7 +675,7 @@ export function ExamQuestionsView({
                     >
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                          <span className="rounded-full bg-sub-primary/10 px-2.5 py-0.5 text-xs font-medium text-sub-primary">
                             v{version.version}
                           </span>
                           <span
@@ -701,31 +713,18 @@ export function ExamQuestionsView({
 
       {/* Add questions form (batch) */}
       {showAddForm && (
-        <form onSubmit={handleSubmitQuestions} className="space-y-6">
+        <div className="space-y-6">
           {/* Form Header */}
           <div className="flex items-center justify-between bg-muted/30 p-4 rounded-xl border border-border">
             <div>
               <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                Thêm câu hỏi mới
-                <span className="bg-primary/10 text-primary text-xs px-2.5 py-0.5 rounded-full font-medium">
-                  {pendingQuestions.length} câu
-                </span>
+                Tạo câu hỏi theo từng bước
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Biên soạn nội dung, đáp án và cấu hình chấm điểm cho từng câu
-                hỏi.
+                Hoàn thành từng bước rồi bấm Tiếp theo để qua bước kế tiếp.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addEmptyQuestion}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Thêm câu hỏi
-              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -744,687 +743,824 @@ export function ExamQuestionsView({
           {/* Pending Questions List (Cards instead of Table) */}
           {pendingQuestions.length > 0 && (
             <div className="space-y-6">
-              {pendingQuestions.map((q, idx) => (
-                <div
-                  key={q.id}
-                  className="rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-all hover:shadow-md"
-                >
-                  <Dialog
-                    open={createTableModalOpen[q.id] ?? false}
-                    onOpenChange={(open) =>
-                      setCreateTableModalOpen((prev) => ({
-                        ...prev,
-                        [q.id]: open
-                      }))
-                    }
+              {pendingQuestions.slice(0, 1).map((q, idx) => {
+                const step = q.wizardStep || 1
+                const hasWizard = [
+                  'CREATE_TABLE',
+                  'INSERT_DATA',
+                  'SELECT_QUERY'
+                ].includes(q.questionType)
+                const stepItems = hasWizard
+                  ? [
+                      { step: 1, label: 'Nội dung & đáp án' },
+                      { step: 2, label: 'Cấu hình kỳ vọng' },
+                      { step: 3, label: 'Quy tắc chấm điểm' },
+                      { step: 4, label: 'Hoàn tất' }
+                    ]
+                  : [
+                      { step: 1, label: 'Nội dung & đáp án' },
+                      { step: 4, label: 'Hoàn tất' }
+                    ]
+
+                return (
+                  <div
+                    key={q.id}
+                    className="rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-all hover:shadow-md"
                   >
-                    <DialogContent className="sm:max-w-xl">
-                      <DialogHeader>
-                        <DialogTitle>
-                          Sinh câu CREATE TABLE từ schema
-                        </DialogTitle>
-                        <DialogDescription>
-                          Chọn bảng và bấm sinh để tự điền nội dung đề bài và
-                          đáp án chuẩn.
-                        </DialogDescription>
-                      </DialogHeader>
-                      {availableSchemaTables.length === 0 ? (
-                        <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                          Chưa có schemaJson trong đặc tả của đề thi để sinh tự
-                          động.
-                        </p>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs font-medium text-muted-foreground">
-                                Chọn bảng cần tạo
-                              </p>
-                              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Dialog
+                      open={createTableModalOpen[q.id] ?? false}
+                      onOpenChange={(open) =>
+                        setCreateTableModalOpen((prev) => ({
+                          ...prev,
+                          [q.id]: open
+                        }))
+                      }
+                    >
+                      <DialogContent className="sm:max-w-xl">
+                        <DialogHeader>
+                          <DialogTitle>
+                            Sinh câu CREATE TABLE từ schema
+                          </DialogTitle>
+                          <DialogDescription>
+                            Chọn bảng và bấm sinh để tự điền nội dung đề bài và
+                            đáp án chuẩn.
+                          </DialogDescription>
+                        </DialogHeader>
+                        {availableSchemaTables.length === 0 ? (
+                          <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                            Chưa có schemaJson trong đặc tả của đề thi để sinh
+                            tự động.
+                          </p>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  Chọn bảng cần tạo
+                                </p>
+                                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      availableSchemaTables.length > 0 &&
+                                      (createTableSelections[q.id] || [])
+                                        .length === availableSchemaTables.length
+                                    }
+                                    onChange={(event) => {
+                                      if (event.target.checked) {
+                                        selectAllCreateTables(q.id)
+                                      } else {
+                                        clearAllCreateTables(q.id)
+                                      }
+                                    }}
+                                  />
+                                  Chọn tất cả
+                                </label>
+                              </div>
+                              <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
+                                {availableSchemaTables.map((table) => {
+                                  const checked = (
+                                    createTableSelections[q.id] || []
+                                  ).includes(table.tableName)
+                                  return (
+                                    <label
+                                      key={`${q.id}-${table.tableName}`}
+                                      className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background/80"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={(event) =>
+                                          toggleCreateTableSelection(
+                                            q.id,
+                                            table.tableName,
+                                            event.target.checked
+                                          )
+                                        }
+                                      />
+                                      {table.tableName}
+                                    </label>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                            <div className="rounded-md border bg-background px-3 py-2">
+                              <label className="flex items-center gap-2 text-sm">
                                 <input
                                   type="checkbox"
                                   checked={
-                                    availableSchemaTables.length > 0 &&
-                                    (createTableSelections[q.id] || [])
-                                      .length === availableSchemaTables.length
+                                    createTableOptions[q.id]
+                                      ?.includeForeignKeys ?? true
                                   }
-                                  onChange={(event) => {
-                                    if (event.target.checked) {
-                                      selectAllCreateTables(q.id)
-                                    } else {
-                                      clearAllCreateTables(q.id)
-                                    }
-                                  }}
+                                  onChange={(event) =>
+                                    updateCreateTableOption(
+                                      q.id,
+                                      'includeForeignKeys',
+                                      event.target.checked
+                                    )
+                                  }
                                 />
-                                Chọn tất cả
+                                Bao gồm khóa ngoại
                               </label>
                             </div>
-                            <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
-                              {availableSchemaTables.map((table) => {
-                                const checked = (
-                                  createTableSelections[q.id] || []
-                                ).includes(table.tableName)
-                                return (
-                                  <label
-                                    key={`${q.id}-${table.tableName}`}
-                                    className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background/80"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={checked}
-                                      onChange={(event) =>
-                                        toggleCreateTableSelection(
-                                          q.id,
-                                          table.tableName,
-                                          event.target.checked
-                                        )
-                                      }
-                                    />
-                                    {table.tableName}
-                                  </label>
-                                )
-                              })}
-                            </div>
                           </div>
-                          <div className="rounded-md border bg-background px-3 py-2">
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                checked={
-                                  createTableOptions[q.id]
-                                    ?.includeForeignKeys ?? true
-                                }
-                                onChange={(event) =>
-                                  updateCreateTableOption(
-                                    q.id,
-                                    'includeForeignKeys',
-                                    event.target.checked
-                                  )
-                                }
-                              />
-                              Bao gồm khóa ngoại
-                            </label>
-                          </div>
-                        </div>
-                      )}
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() =>
-                            setCreateTableModalOpen((prev) => ({
-                              ...prev,
-                              [q.id]: false
-                            }))
-                          }
-                        >
-                          Đóng
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() =>
-                            handleAutoGenerateCreateTableQuestion(q.id)
-                          }
-                          disabled={availableSchemaTables.length === 0}
-                        >
-                          Sinh nội dung và đáp án
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  <Dialog
-                    open={insertDataModalOpen[q.id] ?? false}
-                    onOpenChange={(open) =>
-                      setInsertDataModalOpen((prev) => ({
-                        ...prev,
-                        [q.id]: open
-                      }))
-                    }
-                  >
-                    <DialogContent className="sm:max-w-xl">
-                      <DialogHeader>
-                        <DialogTitle>
-                          Sinh câu INSERT DATA từ dataset
-                        </DialogTitle>
-                        <DialogDescription>
-                          Chọn một dataset để tự điền nội dung đề bài và đáp án
-                          chuẩn.
-                        </DialogDescription>
-                      </DialogHeader>
-                      {availableDatasets.length === 0 ? (
-                        <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-                          Chưa có dataset có data script trong đặc tả của đề
-                          thi.
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-muted-foreground">
-                            Chọn dataset
-                          </p>
-                          <select
-                            value={insertDataSelections[q.id] || ''}
-                            onChange={(event) => {
-                              const nextDatasetName = event.target.value
-                              setInsertDataSelections((prev) => ({
-                                ...prev,
-                                [q.id]: nextDatasetName
-                              }))
-                              const nextDataset = availableDatasets.find(
-                                (dataset) => dataset.name === nextDatasetName
-                              )
-                              const nextTableName = nextDataset
-                                ? getDatasetTableNames(nextDataset)[0] || ''
-                                : ''
-                              setInsertDataTableSelections((prev) => ({
-                                ...prev,
-                                [q.id]: nextTableName ? [nextTableName] : []
-                              }))
-                            }}
-                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          >
-                            <option value="" disabled>
-                              -- Chọn dataset --
-                            </option>
-                            {availableDatasets.map((dataset) => (
-                              <option
-                                key={`${q.id}-${dataset.id ?? dataset.name}`}
-                                value={dataset.name}
-                              >
-                                {dataset.name}
-                              </option>
-                            ))}
-                          </select>
-                          {(() => {
-                            const selectedDatasetName =
-                              insertDataSelections[q.id]
-                            const selectedDataset = availableDatasets.find(
-                              (dataset) => dataset.name === selectedDatasetName
-                            )
-                            const tableNames = selectedDataset
-                              ? getDatasetTableNames(selectedDataset)
-                              : []
-                            if (tableNames.length === 0) return null
-
-                            return (
-                              <div className="pt-2 space-y-2">
-                                <div className="flex items-center justify-between gap-2">
-                                  <p className="text-xs font-medium text-muted-foreground">
-                                    Chọn table trong dataset
-                                  </p>
-                                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <input
-                                      type="checkbox"
-                                      checked={
-                                        tableNames.length > 0 &&
-                                        (insertDataTableSelections[q.id] || [])
-                                          .length === tableNames.length
-                                      }
-                                      onChange={(event) => {
-                                        if (event.target.checked) {
-                                          selectAllInsertTables(
-                                            q.id,
-                                            tableNames
-                                          )
-                                        } else {
-                                          clearAllInsertTables(q.id)
-                                        }
-                                      }}
-                                    />
-                                    Chọn tất cả
-                                  </label>
-                                </div>
-                                <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
-                                  {tableNames.map((tableName) => {
-                                    const selectedTables =
-                                      insertDataTableSelections[q.id] || []
-                                    const checked =
-                                      selectedTables.includes(tableName)
-                                    return (
-                                      <label
-                                        key={`${q.id}-${selectedDatasetName}-${tableName}`}
-                                        className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background/80"
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          checked={checked}
-                                          onChange={(event) => {
-                                            setInsertDataTableSelections(
-                                              (prev) => {
-                                                const existing =
-                                                  prev[q.id] || []
-                                                let nextValues = existing
-                                                if (event.target.checked) {
-                                                  nextValues = [
-                                                    ...existing,
-                                                    tableName
-                                                  ]
-                                                } else {
-                                                  nextValues = existing.filter(
-                                                    (name) => name !== tableName
-                                                  )
-                                                }
-                                                return {
-                                                  ...prev,
-                                                  [q.id]: nextValues
-                                                }
-                                              }
-                                            )
-                                          }}
-                                        />
-                                        {tableName}
-                                      </label>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                            )
-                          })()}
-                        </div>
-                      )}
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() =>
-                            setInsertDataModalOpen((prev) => ({
-                              ...prev,
-                              [q.id]: false
-                            }))
-                          }
-                        >
-                          Đóng
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() =>
-                            handleAutoGenerateInsertDataQuestion(q.id)
-                          }
-                          disabled={availableDatasets.length === 0}
-                        >
-                          Sinh nội dung và đáp án
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-
-                  {/* Card Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/20 px-5 py-3 border-b border-border">
-                    <div className="flex items-center gap-4">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                        {idx + 1}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Loại:
-                        </span>
-                        <select
-                          value={q.questionType}
-                          onChange={(e) =>
-                            handleQuestionTypeChange(q.id, e.target.value)
-                          }
-                          className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          {QUESTION_TYPES.map((t) => (
-                            <option key={t.value} value={t.value}>
-                              {t.label}
-                            </option>
-                          ))}
-                        </select>
-                        {q.questionType === 'CREATE_TABLE' && (
+                        )}
+                        <DialogFooter>
                           <Button
                             type="button"
-                            size="sm"
                             variant="outline"
                             onClick={() =>
                               setCreateTableModalOpen((prev) => ({
                                 ...prev,
-                                [q.id]: true
+                                [q.id]: false
                               }))
                             }
                           >
-                            Mở modal CREATE
+                            Đóng
                           </Button>
-                        )}
-                        {q.questionType === 'INSERT_DATA' && (
                           <Button
                             type="button"
-                            size="sm"
+                            onClick={() =>
+                              handleAutoGenerateCreateTableQuestion(q.id)
+                            }
+                            disabled={availableSchemaTables.length === 0}
+                          >
+                            Sinh nội dung và đáp án
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog
+                      open={insertDataModalOpen[q.id] ?? false}
+                      onOpenChange={(open) =>
+                        setInsertDataModalOpen((prev) => ({
+                          ...prev,
+                          [q.id]: open
+                        }))
+                      }
+                    >
+                      <DialogContent className="sm:max-w-xl">
+                        <DialogHeader>
+                          <DialogTitle>
+                            Sinh câu INSERT DATA từ dataset
+                          </DialogTitle>
+                          <DialogDescription>
+                            Chọn một dataset để tự điền nội dung đề bài và đáp
+                            án chuẩn.
+                          </DialogDescription>
+                        </DialogHeader>
+                        {availableDatasets.length === 0 ? (
+                          <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                            Chưa có dataset có data script trong đặc tả của đề
+                            thi.
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              Chọn dataset
+                            </p>
+                            <select
+                              value={insertDataSelections[q.id] || ''}
+                              onChange={(event) => {
+                                const nextDatasetName = event.target.value
+                                setInsertDataSelections((prev) => ({
+                                  ...prev,
+                                  [q.id]: nextDatasetName
+                                }))
+                                const nextDataset = availableDatasets.find(
+                                  (dataset) => dataset.name === nextDatasetName
+                                )
+                                const nextTableName = nextDataset
+                                  ? getDatasetTableNames(nextDataset)[0] || ''
+                                  : ''
+                                setInsertDataTableSelections((prev) => ({
+                                  ...prev,
+                                  [q.id]: nextTableName ? [nextTableName] : []
+                                }))
+                              }}
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              <option value="" disabled>
+                                -- Chọn dataset --
+                              </option>
+                              {availableDatasets.map((dataset) => (
+                                <option
+                                  key={`${q.id}-${dataset.id ?? dataset.name}`}
+                                  value={dataset.name}
+                                >
+                                  {dataset.name}
+                                </option>
+                              ))}
+                            </select>
+                            {(() => {
+                              const selectedDatasetName =
+                                insertDataSelections[q.id]
+                              const selectedDataset = availableDatasets.find(
+                                (dataset) =>
+                                  dataset.name === selectedDatasetName
+                              )
+                              const tableNames = selectedDataset
+                                ? getDatasetTableNames(selectedDataset)
+                                : []
+                              if (tableNames.length === 0) return null
+
+                              return (
+                                <div className="pt-2 space-y-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-xs font-medium text-muted-foreground">
+                                      Chọn table trong dataset
+                                    </p>
+                                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <input
+                                        type="checkbox"
+                                        checked={
+                                          tableNames.length > 0 &&
+                                          (
+                                            insertDataTableSelections[q.id] ||
+                                            []
+                                          ).length === tableNames.length
+                                        }
+                                        onChange={(event) => {
+                                          if (event.target.checked) {
+                                            selectAllInsertTables(
+                                              q.id,
+                                              tableNames
+                                            )
+                                          } else {
+                                            clearAllInsertTables(q.id)
+                                          }
+                                        }}
+                                      />
+                                      Chọn tất cả
+                                    </label>
+                                  </div>
+                                  <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3">
+                                    {tableNames.map((tableName) => {
+                                      const selectedTables =
+                                        insertDataTableSelections[q.id] || []
+                                      const checked =
+                                        selectedTables.includes(tableName)
+                                      return (
+                                        <label
+                                          key={`${q.id}-${selectedDatasetName}-${tableName}`}
+                                          className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-background/80"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={(event) => {
+                                              setInsertDataTableSelections(
+                                                (prev) => {
+                                                  const existing =
+                                                    prev[q.id] || []
+                                                  let nextValues = existing
+                                                  if (event.target.checked) {
+                                                    nextValues = [
+                                                      ...existing,
+                                                      tableName
+                                                    ]
+                                                  } else {
+                                                    nextValues =
+                                                      existing.filter(
+                                                        (name) =>
+                                                          name !== tableName
+                                                      )
+                                                  }
+                                                  return {
+                                                    ...prev,
+                                                    [q.id]: nextValues
+                                                  }
+                                                }
+                                              )
+                                            }}
+                                          />
+                                          {tableName}
+                                        </label>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )
+                            })()}
+                          </div>
+                        )}
+                        <DialogFooter>
+                          <Button
+                            type="button"
                             variant="outline"
                             onClick={() =>
                               setInsertDataModalOpen((prev) => ({
                                 ...prev,
-                                [q.id]: true
+                                [q.id]: false
                               }))
                             }
                           >
-                            Mở modal INSERT
+                            Đóng
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() =>
+                              handleAutoGenerateInsertDataQuestion(q.id)
+                            }
+                            disabled={availableDatasets.length === 0}
+                          >
+                            Sinh nội dung và đáp án
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* Card Header */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/20 px-5 py-3 border-b border-border">
+                      <div className="flex items-center gap-4">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sub-primary/10 text-sm font-bold text-sub-primary">
+                          {idx + 1}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Loại:
+                          </span>
+                          <select
+                            value={q.questionType}
+                            onChange={(e) =>
+                              handleQuestionTypeChange(q.id, e.target.value)
+                            }
+                            disabled={step === 4}
+                            className="rounded-md border border-border bg-sub-background px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            {QUESTION_TYPES.map((t) => (
+                              <option key={t.value} value={t.value}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                          {q.questionType === 'CREATE_TABLE' && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={step === 4}
+                              onClick={() =>
+                                setCreateTableModalOpen((prev) => ({
+                                  ...prev,
+                                  [q.id]: true
+                                }))
+                              }
+                            >
+                              Mở modal CREATE
+                            </Button>
+                          )}
+                          {q.questionType === 'INSERT_DATA' && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={step === 4}
+                              onClick={() =>
+                                setInsertDataModalOpen((prev) => ({
+                                  ...prev,
+                                  [q.id]: true
+                                }))
+                              }
+                            >
+                              Mở modal INSERT
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-medium text-muted-foreground">
+                            Điểm:
+                          </label>
+                          <input
+                            type="number"
+                            value={q.points}
+                            onChange={(e) =>
+                              updateQuestion(q.id, {
+                                points: Number(e.target.value)
+                              })
+                            }
+                            min={0.5}
+                            step={0.5}
+                            readOnly={step === 4}
+                            className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-medium text-muted-foreground">
+                            Độ khó:
+                          </label>
+                          <input
+                            type="number"
+                            value={q.difficultyLevel ?? 1}
+                            onChange={(e) =>
+                              updateQuestion(q.id, {
+                                difficultyLevel: Number(e.target.value)
+                              })
+                            }
+                            min={1}
+                            max={5}
+                            readOnly={step === 4}
+                            className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          />
+                        </div>
+                        <div className="h-5 w-px bg-border mx-1"></div>
+                        <button
+                          type="button"
+                          onClick={() => removeQuestion(q.id)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          title="Xóa câu hỏi"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-b border-border/70 bg-card/40 px-5 py-4 overflow-x-auto">
+                      <ol className="flex min-w-fit items-center">
+                        {stepItems.map((item, itemIndex) => (
+                          <li
+                            key={`${q.id}-${item.step}`}
+                            className={`relative flex items-center ${
+                              itemIndex !== stepItems.length - 1 ? 'flex-1' : ''
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  item.step > step &&
+                                  step === 1 &&
+                                  (!q.content?.trim() ||
+                                    !q.correctQuery?.trim())
+                                ) {
+                                  toast.error(
+                                    'Vui lòng nhập nội dung đề bài và đáp án chuẩn trước khi qua bước tiếp theo'
+                                  )
+                                  return
+                                }
+                                updateQuestion(q.id, { wizardStep: item.step })
+                              }}
+                              className="group inline-flex items-center"
+                            >
+                              <span
+                                className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-semibold transition-all ${
+                                  step === item.step
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : step > item.step
+                                      ? 'border-primary bg-primary/10 text-primary'
+                                      : 'border-muted-foreground/30 bg-muted text-muted-foreground group-hover:border-primary/50'
+                                }`}
+                              >
+                                {item.step}
+                              </span>
+                              <span
+                                className={`ml-3 hidden whitespace-nowrap text-sm sm:block ${
+                                  step === item.step
+                                    ? 'font-semibold text-foreground'
+                                    : step > item.step
+                                      ? 'text-primary'
+                                      : 'text-muted-foreground'
+                                }`}
+                              >
+                                {item.label}
+                              </span>
+                            </button>
+                            {itemIndex !== stepItems.length - 1 && (
+                              <div className="mx-4 h-px min-w-8 flex-1 bg-border/70" />
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+
+                    {/* Card Body */}
+                    <div className="p-5 space-y-6">
+                      {(step === 1 || step === 4) && (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-foreground">
+                              Nội dung đề bài
+                            </label>
+                            <div className="rounded-md border border-border overflow-hidden">
+                              <RichTextEditor
+                                content={q.content}
+                                onChange={(html) =>
+                                  updateQuestion(q.id, {
+                                    content: html
+                                  })
+                                }
+                                placeholder="Mô tả yêu cầu câu hỏi..."
+                                minHeight="120px"
+                                editable={step !== 4}
+                              />
+                            </div>
+                          </div>
+
+                          <div
+                            className={`grid gap-5 ${
+                              [
+                                'CREATE_TABLE',
+                                'INSERT_DATA',
+                                'SELECT_QUERY'
+                              ].includes(q.questionType)
+                                ? 'grid-cols-1'
+                                : 'grid-cols-1 lg:grid-cols-2'
+                            }`}
+                          >
+                            <div className="space-y-2">
+                              <label className="flex items-center justify-between text-sm font-semibold text-foreground">
+                                <span className="flex items-center gap-1.5">
+                                  <Code2 className="h-4 w-4 text-sub-primary" />
+                                  Đáp án (Correct Query)
+                                </span>
+                              </label>
+                              {q.questionType === 'CREATE_TABLE' && (
+                                <CreateTableQueryFromSpec
+                                  specification={specification}
+                                  onApply={(sql) =>
+                                    updateQuestion(q.id, {
+                                      correctQuery: sql
+                                    })
+                                  }
+                                />
+                              )}
+                              {q.questionType === 'INSERT_DATA' && (
+                                <InsertQueryFromSpec
+                                  specification={specification}
+                                  onApply={(sql) =>
+                                    updateQuestion(q.id, {
+                                      correctQuery: sql
+                                    })
+                                  }
+                                />
+                              )}
+                              <div className="h-[160px] overflow-hidden rounded-md border border-border bg-sub-background">
+                                <TeacherSqlEditor
+                                  value={q.correctQuery}
+                                  onChange={(value) =>
+                                    updateQuestion(q.id, {
+                                      correctQuery: value || ''
+                                    })
+                                  }
+                                  height="100%"
+                                  readOnly={step === 4}
+                                />
+                              </div>
+                              {!q.correctQuery &&
+                                q.questionType !== 'INSERT_DATA' && (
+                                  <p className="flex items-center gap-1.5 text-[11px] text-sub-primary italic">
+                                    <Sparkles className="h-3 w-3" />
+                                    AI sẽ tự động tạo đáp án dựa trên nội dung
+                                    đề bài
+                                  </p>
+                                )}
+                              {!q.correctQuery &&
+                                q.questionType === 'INSERT_DATA' && (
+                                  <p className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 italic">
+                                    <Sparkles className="h-3 w-3" />
+                                    Câu INSERT DATA cần script đáp án chuẩn để
+                                    AI tạo rubric
+                                  </p>
+                                )}
+                            </div>
+                            {![
+                              'CREATE_TABLE',
+                              'INSERT_DATA',
+                              'SELECT_QUERY'
+                            ].includes(q.questionType) && (
+                              <div className="space-y-2">
+                                <label className="flex items-center justify-between text-sm font-semibold text-foreground">
+                                  <span className="flex items-center gap-1.5">
+                                    <Terminal className="h-4 w-4 text-muted-foreground" />
+                                    Script kiểm thử (Verify Script)
+                                  </span>
+                                </label>
+                                <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
+                                  <TeacherSqlEditor
+                                    value={q.verifyScript}
+                                    onChange={(value) =>
+                                      updateQuestion(q.id, {
+                                        verifyScript: value || ''
+                                      })
+                                    }
+                                    height="100%"
+                                    readOnly={step === 4}
+                                  />
+                                </div>
+                                {!q.verifyScript && (
+                                  <p className="flex items-center gap-1.5 text-[11px] text-primary italic">
+                                    <Sparkles className="h-3 w-3" />
+                                    AI sẽ tự động tạo script dựa trên nội dung
+                                    đề bài
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {(step === 2 || step === 3) && hasWizard && (
+                        <div className="rounded-lg border border-sub-primary/20 p-4 space-y-4">
+                          <h4 className="flex items-center gap-2 text-sm font-bold text-sub-primary">
+                            <Sparkles className="h-4 w-4" />
+                            {step === 2
+                              ? 'Bước 2: Cấu hình kỳ vọng'
+                              : 'Bước 3: Thiết lập quy tắc chấm điểm'}
+                          </h4>
+                          {q.questionType === 'CREATE_TABLE' && (
+                            <CreateTableRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              wizardStep={step}
+                            />
+                          )}
+                          {q.questionType === 'INSERT_DATA' && (
+                            <InsertDataRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              wizardStep={step}
+                            />
+                          )}
+                          {q.questionType === 'SELECT_QUERY' && (
+                            <SelectQueryRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              contextQueries={[
+                                ...questions
+                                  .filter(
+                                    (item) =>
+                                      item.id !== Number(q.id) &&
+                                      (item.questionType === 'CREATE_TABLE' ||
+                                        item.questionType === 'INSERT_DATA') &&
+                                      Boolean(item.correctQuery?.trim())
+                                  )
+                                  .map((item) => ({
+                                    questionType: item.questionType,
+                                    content: item.content,
+                                    correctQuery: item.correctQuery
+                                  })),
+                                ...pendingQuestions
+                                  .filter(
+                                    (item) =>
+                                      item.id !== q.id &&
+                                      (item.questionType === 'CREATE_TABLE' ||
+                                        item.questionType === 'INSERT_DATA') &&
+                                      Boolean(item.correctQuery?.trim())
+                                  )
+                                  .map((item) => ({
+                                    questionType: item.questionType,
+                                    content: item.content,
+                                    correctQuery: item.correctQuery
+                                  }))
+                              ]}
+                              dependencyOptions={[
+                                ...questions.map((existingQ) => ({
+                                  value: String(existingQ.id),
+                                  label: `#${existingQ.orderIndex} - Câu đã lưu`
+                                })),
+                                ...pendingQuestions
+                                  .filter((other) => other.id !== q.id)
+                                  .map((other) => ({
+                                    value: other.id,
+                                    label: `#${other.orderIndex} - Câu đang tạo`
+                                  }))
+                              ]}
+                              wizardStep={step}
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {step === 4 &&
+                        (q.questionType === 'CREATE_TABLE' ||
+                          q.questionType === 'INSERT_DATA' ||
+                          q.questionType === 'SELECT_QUERY') && (
+                          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                            <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
+                              <Play className="h-4 w-4" />
+                              Kiểm thử rubric
+                            </h4>
+                            {q.questionType === 'CREATE_TABLE' && (
+                              <RubricTestGrader
+                                rubric={q.rubricData ?? null}
+                                correctQuery={q.correctQuery}
+                                totalPoints={q.points}
+                              />
+                            )}
+                            {q.questionType === 'INSERT_DATA' && (
+                              <InsertDataTestGrader
+                                rubric={q.rubricData ?? null}
+                                correctQuery={q.correctQuery}
+                                examId={examId}
+                                totalPoints={q.points}
+                              />
+                            )}
+                            {q.questionType === 'SELECT_QUERY' && (
+                              <SelectQueryTestGrader
+                                examId={examId}
+                                rubric={q.rubricData ?? null}
+                                correctQuery={q.correctQuery}
+                                totalPoints={q.points}
+                              />
+                            )}
+                          </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/10 px-5 py-4">
+                      <p className="text-xs text-muted-foreground">
+                        Bước {step}/4
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {step > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              let prevStep = step - 1
+                              if (prevStep === 3 && !hasWizard) prevStep = 1
+                              updateQuestion(q.id, { wizardStep: prevStep })
+                            }}
+                          >
+                            Quay lại
+                          </Button>
+                        )}
+                        {step < 4 ? (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                step === 1 &&
+                                (!q.content?.trim() || !q.correctQuery?.trim())
+                              ) {
+                                toast.error(
+                                  'Vui lòng nhập nội dung đề bài và đáp án chuẩn trước khi qua bước tiếp theo'
+                                )
+                                return
+                              }
+                              let nextStep = step + 1
+                              if (nextStep === 2 && !hasWizard) nextStep = 4
+                              updateQuestion(q.id, { wizardStep: nextStep })
+                            }}
+                          >
+                            Bước tiếp theo
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            onClick={() => handleSubmitSingleQuestion(q.id)}
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Đang lưu...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="mr-2 h-4 w-4" />
+                                Hoàn tất và lưu câu hỏi
+                              </>
+                            )}
                           </Button>
                         )}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Điểm:
-                        </label>
-                        <input
-                          type="number"
-                          value={q.points}
-                          onChange={(e) =>
-                            updateQuestion(q.id, {
-                              points: Number(e.target.value)
-                            })
-                          }
-                          min={0.5}
-                          step={0.5}
-                          className="w-16 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Độ khó:
-                        </label>
-                        <input
-                          type="number"
-                          value={q.difficultyLevel ?? 1}
-                          onChange={(e) =>
-                            updateQuestion(q.id, {
-                              difficultyLevel: Number(e.target.value)
-                            })
-                          }
-                          min={1}
-                          max={5}
-                          className="w-16 rounded-md border border-border bg-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        />
-                      </div>
-                      <div className="h-5 w-px bg-border mx-1"></div>
-                      <button
-                        type="button"
-                        onClick={() => removeQuestion(q.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        title="Xóa câu hỏi"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
                   </div>
-
-                  {/* Card Body */}
-                  <div className="p-5 space-y-6">
-                    {/* Content */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-foreground">
-                        Nội dung đề bài
-                      </label>
-                      <div className="rounded-md border border-border overflow-hidden">
-                        <RichTextEditor
-                          content={q.content}
-                          onChange={(html) =>
-                            updateQuestion(q.id, {
-                              content: html
-                            })
-                          }
-                          placeholder="Mô tả yêu cầu câu hỏi..."
-                          minHeight="120px"
-                        />
-                      </div>
-                    </div>
-
-                    {/* SQL Editors */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                      <div className="space-y-2">
-                        <label className="flex items-center justify-between text-sm font-semibold text-foreground">
-                          <span className="flex items-center gap-1.5">
-                            <Code2 className="h-4 w-4 text-primary" />
-                            Đáp án (Correct Query)
-                          </span>
-                        </label>
-                        <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
-                          <TeacherSqlEditor
-                            value={q.correctQuery}
-                            onChange={(value) =>
-                              updateQuestion(q.id, {
-                                correctQuery: value || ''
-                              })
-                            }
-                            height="100%"
-                          />
-                        </div>
-                        {!q.correctQuery &&
-                          q.questionType !== 'INSERT_DATA' && (
-                            <p className="flex items-center gap-1.5 text-[11px] text-primary italic">
-                              <Sparkles className="h-3 w-3" />
-                              AI sẽ tự động tạo đáp án dựa trên nội dung đề bài
-                            </p>
-                          )}
-                        {!q.correctQuery &&
-                          q.questionType === 'INSERT_DATA' && (
-                            <p className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 italic">
-                              <Sparkles className="h-3 w-3" />
-                              Câu INSERT DATA cần script đáp án chuẩn để AI tạo
-                              rubric chấm điểm chính xác
-                            </p>
-                          )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="flex items-center justify-between text-sm font-semibold text-foreground">
-                          <span className="flex items-center gap-1.5">
-                            <Terminal className="h-4 w-4 text-muted-foreground" />
-                            Script kiểm thử (Verify Script)
-                          </span>
-                        </label>
-                        <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
-                          <TeacherSqlEditor
-                            value={q.verifyScript}
-                            onChange={(value) =>
-                              updateQuestion(q.id, {
-                                verifyScript: value || ''
-                              })
-                            }
-                            height="100%"
-                          />
-                        </div>
-                        {!q.verifyScript && (
-                          <p className="flex items-center gap-1.5 text-[11px] text-primary italic">
-                            <Sparkles className="h-3 w-3" />
-                            AI sẽ tự động tạo script dựa trên nội dung đề bài
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Rubric Editors */}
-                    {q.questionType === 'CREATE_TABLE' && (
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-primary">
-                          <Sparkles className="h-4 w-4" />
-                          Cấu hình quy tắc chấm điểm (Rubric)
-                        </h4>
-                        <CreateTableRubricEditor
-                          totalPoints={q.points}
-                          rubric={q.rubricData ?? null}
-                          onChange={(rubric) =>
-                            updateQuestion(q.id, { rubricData: rubric })
-                          }
-                          correctQuery={q.correctQuery}
-                          questionContent={q.content}
-                        />
-
-                        <div className="mt-4 pt-4 border-t border-primary/10">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                            <Play className="h-4 w-4" />
-                            Vùng chấm thử
-                          </h4>
-                          <RubricTestGrader
-                            rubric={q.rubricData ?? null}
-                            correctQuery={q.correctQuery}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {q.questionType === 'INSERT_DATA' && (
-                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                          <Sparkles className="h-4 w-4" />
-                          Cấu hình quy tắc chấm điểm Cột & Dữ liệu
-                        </h4>
-                        <InsertDataRubricEditor
-                          totalPoints={q.points}
-                          rubric={q.rubricData ?? null}
-                          onChange={(rubric) =>
-                            updateQuestion(q.id, { rubricData: rubric })
-                          }
-                          correctQuery={q.correctQuery}
-                          questionContent={q.content}
-                        />
-
-                        <div className="mt-4 pt-4 border-t border-emerald-500/10">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                            <Play className="h-4 w-4" />
-                            Vùng giả lập chấm thi INSERT
-                          </h4>
-                          <InsertDataTestGrader
-                            rubric={q.rubricData ?? null}
-                            correctQuery={q.correctQuery}
-                            examId={examId}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {q.questionType === 'SELECT_QUERY' && (
-                      <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-4 space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-violet-600 dark:text-violet-400">
-                          <Sparkles className="h-4 w-4" />
-                          Cấu hình rubric SELECT theo test case
-                        </h4>
-
-                        <SelectQueryRubricEditor
-                          totalPoints={q.points}
-                          rubric={q.rubricData ?? null}
-                          onChange={(rubric) =>
-                            updateQuestion(q.id, { rubricData: rubric })
-                          }
-                          correctQuery={q.correctQuery}
-                          questionContent={q.content}
-                          contextQueries={[
-                            ...questions
-                              .filter(
-                                (item) =>
-                                  item.id !== Number(q.id) &&
-                                  (item.questionType === 'CREATE_TABLE' ||
-                                    item.questionType === 'INSERT_DATA') &&
-                                  Boolean(item.correctQuery?.trim())
-                              )
-                              .map((item) => ({
-                                questionType: item.questionType,
-                                content: item.content,
-                                correctQuery: item.correctQuery
-                              })),
-                            ...pendingQuestions
-                              .filter(
-                                (item) =>
-                                  item.id !== q.id &&
-                                  (item.questionType === 'CREATE_TABLE' ||
-                                    item.questionType === 'INSERT_DATA') &&
-                                  Boolean(item.correctQuery?.trim())
-                              )
-                              .map((item) => ({
-                                questionType: item.questionType,
-                                content: item.content,
-                                correctQuery: item.correctQuery
-                              }))
-                          ]}
-                          dependencyOptions={[
-                            ...questions.map((existingQ) => ({
-                              value: String(existingQ.id),
-                              label: `#${existingQ.orderIndex} - Câu đã lưu`
-                            })),
-                            ...pendingQuestions
-                              .filter((other) => other.id !== q.id)
-                              .map((other) => ({
-                                value: other.id,
-                                label: `#${other.orderIndex} - Câu đang tạo`
-                              }))
-                          ]}
-                        />
-
-                        <div className="mt-4 pt-4 border-t border-violet-500/10">
-                          <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 mb-3">
-                            <Play className="h-4 w-4" />
-                            Vùng chấm thử SELECT
-                          </h4>
-                          <SelectQueryTestGrader
-                            examId={examId}
-                            rubric={q.rubricData ?? null}
-                            correctQuery={q.correctQuery}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
-
-          {/* Form Actions (Sticky Bottom Bar) */}
-          <div className="sticky bottom-4 z-10 flex items-center justify-between rounded-xl border border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 p-4 shadow-lg">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-foreground">
-                  Tổng kết
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {pendingQuestions.length} câu hỏi · {pendingTotalPoints} điểm
-                </span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addEmptyQuestion}
-                className="gap-2 ml-4"
-              >
-                <Plus className="h-4 w-4" />
-                Thêm câu hỏi nữa
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setPendingQuestions([])
-                  setShowAddForm(false)
-                }}
-              >
-                Hủy bỏ
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading || pendingQuestions.length === 0}
-                className="gap-2 min-w-[140px]"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Đang lưu...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    {`Lưu ${pendingQuestions.length} câu`}
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </form>
+        </div>
       )}
 
       {/* Questions list */}
@@ -1449,6 +1585,7 @@ export function ExamQuestionsView({
               isUpdating={updatingQuestionId === q.id}
               isDeleting={deletingQuestionId === q.id}
               allQuestions={questions}
+              specification={specification}
               examId={examId}
               specificationSchemaJson={specificationSchemaJson}
               specificationDatasets={specificationDatasets ?? []}

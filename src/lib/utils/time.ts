@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Parse a date string from backend (Java LocalDateTime) into a Date object.
  * Returns Invalid Date when input is nullish.
  */

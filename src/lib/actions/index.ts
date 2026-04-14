@@ -26,7 +26,10 @@ export {
   getTeacherSubmissionDetail,
   overrideSubmissionScore,
   regradeExamResult,
-  regradeAllExamResults
+  regradeAllExamResults,
+  getRulePresets,
+  createRulePreset,
+  deleteRulePreset
 } from '@/lib/actions/teacher.action'
 export * from '@/lib/actions/anti-cheat.action'
 export * from '@/lib/actions/notification.action'
@@ -43,6 +46,9 @@ export {
   generateGradingRubric,
   testGradeCreateTable,
   testGradeInsertData,
-  testGradeSelectData
+  testGradeSelectData,
+  executeSelectTestCaseConfig,
+  buildInsertTablesFromAnswer,
+  buildCreateTablesFromAnswer
 } from '@/lib/actions/exam-specification.action'
 export * from '@/lib/actions/library.action'

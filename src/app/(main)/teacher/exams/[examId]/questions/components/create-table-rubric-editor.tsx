@@ -1,34 +1,30 @@
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
-import {
-  Plus,
-  Trash2,
-  Table2,
-  Columns3,
-  Link2,
-  Settings2,
-  ChevronDown,
-  ChevronRight,
-  AlertTriangle,
-  CheckCircle2,
-  Sparkles,
-  Equal,
-  Loader2
-} from 'lucide-react'
-import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { generateGradingRubric } from '@/lib/actions'
+import { buildCreateTablesFromAnswer } from '@/lib/actions'
 import {
+  ConstraintType,
   GradingRubric,
-  GradingSettings,
-  RubricTable,
+  InsertDataGradingRule,
+  MissingPenaltyAction,
   RubricColumn,
   RubricConstraint,
-  ConstraintType,
-  SyntaxErrorAction,
-  MissingPenaltyAction
+  RubricTable
 } from '@/lib/types'
+import {
+  ChevronDown,
+  ChevronRight,
+  Columns3,
+  Link2,
+  Loader2,
+  Plus,
+  Table2,
+  Trash2
+} from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { GradingRulesEditor } from './grading-rules-editor'
 
 // ===== Default factories =====
 
@@ -37,12 +33,7 @@ function createDefaultRubric(totalPoints: number): GradingRubric {
     total_points: totalPoints,
     question_category: 'CREATE_TABLE',
     grading_payload: {
-      grading_settings: {
-        syntax_error_action: 'FAIL_ALL',
-        case_sensitive_names: false,
-        allow_implicit_constraints: true,
-        positive_only_scoring: false
-      },
+      grading_rules: [],
       tables: []
     }
   }
@@ -51,8 +42,6 @@ function createDefaultRubric(totalPoints: number): GradingRubric {
 function createDefaultTable(): RubricTable {
   return {
     expected_name: '',
-    existence_points: 0.1,
-    missing_penalty_action: 'SKIP_TABLE',
     columns: [],
     constraints: []
   }
@@ -62,205 +51,143 @@ function createDefaultColumn(): RubricColumn {
   return {
     name: '',
     expected_type: 'VARCHAR',
-    is_nullable: true,
-    points: 0.05,
-    type_mismatch_penalty: 0.02
+    is_nullable: true
   }
 }
 
 function createDefaultConstraint(): RubricConstraint {
   return {
     type: 'PRIMARY_KEY',
-    columns: [],
-    points: 0.1,
-    missing_penalty: 0.05
+    columns: []
   }
 }
 
-function toBoolean(value: unknown, defaultValue: boolean): boolean {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'number') return value !== 0
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase()
-    if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true
-    if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false
+function parseOptionalPenalty(value: unknown): number | undefined {
+  if (value === null || value === undefined) {
+    return undefined
   }
-  return defaultValue
+
+  if (typeof value === 'string' && value.trim() === '') {
+    return undefined
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return undefined
+  }
+
+  return Math.max(0, parsed)
 }
 
-function toSyntaxErrorAction(value: unknown): SyntaxErrorAction {
-  return value === 'PARTIAL' ? 'PARTIAL' : 'FAIL_ALL'
+function hasAnySpecialPenaltyValue(tables: RubricTable[]): boolean {
+  return tables.some((table) => {
+    if (typeof table.missing_table_penalty === 'number') return true
+
+    const hasColumnPenalty = table.columns.some(
+      (column) =>
+        typeof column.missing_column_penalty === 'number' ||
+        typeof column.type_mismatch_penalty === 'number'
+    )
+    if (hasColumnPenalty) return true
+
+    return table.constraints.some(
+      (constraint) => typeof constraint.missing_constraint_penalty === 'number'
+    )
+  })
+}
+
+function sanitizeSpecialPenaltyFields(
+  tables: RubricTable[],
+  enabled: boolean
+): RubricTable[] {
+  if (enabled) {
+    return tables.map((table) => ({
+      ...table,
+      missing_penalty_action: table.missing_penalty_action ?? 'SKIP_TABLE',
+      columns: (table.columns ?? []).map((column) => ({
+        ...column
+      })),
+      constraints: (table.constraints ?? []).map((constraint) => ({
+        ...constraint
+      }))
+    }))
+  }
+
+  return tables.map((table) => {
+    const tableRest = { ...table }
+    delete tableRest.missing_table_penalty
+    delete tableRest.missing_penalty_action
+
+    return {
+      ...tableRest,
+      columns: (table.columns ?? []).map((column) => {
+        const columnRest = { ...column }
+        delete columnRest.missing_column_penalty
+        delete columnRest.type_mismatch_penalty
+        return columnRest
+      }),
+      constraints: (table.constraints ?? []).map((constraint) => {
+        const constraintRest = { ...constraint }
+        delete constraintRest.missing_constraint_penalty
+        return constraintRest
+      })
+    }
+  })
 }
 
 function normalizeCreateTablePayload(
   payload: GradingRubric['grading_payload'] | undefined
 ): {
-  grading_settings: GradingSettings
+  grading_rules: InsertDataGradingRule[]
   tables: RubricTable[]
 } {
-  const defaultSettings: GradingSettings = {
-    syntax_error_action: 'FAIL_ALL',
-    case_sensitive_names: false,
-    allow_implicit_constraints: true,
-    positive_only_scoring: false
-  }
-
   if (!payload || typeof payload !== 'object') {
     return {
-      grading_settings: defaultSettings,
+      grading_rules: [],
       tables: []
     }
   }
 
   const payloadRecord = payload as Record<string, unknown>
-  const rawSettings =
-    payloadRecord.grading_settings &&
-    typeof payloadRecord.grading_settings === 'object'
-      ? (payloadRecord.grading_settings as Record<string, unknown>)
-      : {}
-
-  const settings: GradingSettings = {
-    syntax_error_action: toSyntaxErrorAction(rawSettings.syntax_error_action),
-    case_sensitive_names: toBoolean(rawSettings.case_sensitive_names, false),
-    allow_implicit_constraints: toBoolean(
-      rawSettings.allow_implicit_constraints,
-      true
-    ),
-    positive_only_scoring: toBoolean(rawSettings.positive_only_scoring, false)
-  }
 
   return {
-    grading_settings: settings,
+    grading_rules: Array.isArray(payloadRecord.grading_rules)
+      ? (payloadRecord.grading_rules as InsertDataGradingRule[])
+      : [],
     tables: Array.isArray(payloadRecord.tables)
-      ? (payloadRecord.tables as RubricTable[])
+      ? (payloadRecord.tables as RubricTable[]).map((table) => ({
+          ...table,
+          missing_table_penalty: parseOptionalPenalty(
+            table.missing_table_penalty
+          ),
+          missing_penalty_action: table.missing_penalty_action,
+          columns: (table.columns ?? []).map((column) => ({
+            ...column,
+            missing_column_penalty: parseOptionalPenalty(
+              column.missing_column_penalty
+            ),
+            type_mismatch_penalty: parseOptionalPenalty(
+              column.type_mismatch_penalty
+            )
+          })),
+          constraints: (table.constraints ?? []).map((constraint) => ({
+            ...constraint,
+            missing_constraint_penalty: parseOptionalPenalty(
+              constraint.missing_constraint_penalty
+            )
+          }))
+        }))
       : []
   }
 }
 
-function round2(value: number): number {
-  return Math.round(value * 100) / 100
-}
-
-function rebalanceCreateTablePoints(
-  tables: RubricTable[],
-  totalPoints: number
-): RubricTable[] {
-  if (tables.length === 0) {
-    return tables
-  }
-
-  type PointBucket =
-    | { type: 'table'; tableIdx: number; value: number }
-    | { type: 'column'; tableIdx: number; colIdx: number; value: number }
-    | {
-        type: 'constraint'
-        tableIdx: number
-        constraintIdx: number
-        value: number
-      }
-
-  const buckets: PointBucket[] = []
-  tables.forEach((table, tableIdx) => {
-    buckets.push({
-      type: 'table',
-      tableIdx,
-      value: Math.max(0, Number(table.existence_points) || 0)
-    })
-
-    table.columns.forEach((column, colIdx) => {
-      buckets.push({
-        type: 'column',
-        tableIdx,
-        colIdx,
-        value: Math.max(0, Number(column.points) || 0)
-      })
-    })
-
-    table.constraints.forEach((constraint, constraintIdx) => {
-      buckets.push({
-        type: 'constraint',
-        tableIdx,
-        constraintIdx,
-        value: Math.max(0, Number(constraint.points) || 0)
-      })
-    })
-  })
-
-  if (buckets.length === 0) {
-    return tables
-  }
-
-  const totalCents = Math.max(0, Math.round(totalPoints * 100))
-  const weightSum = buckets.reduce((sum, bucket) => sum + bucket.value, 0)
-  const fallbackWeight = weightSum > 0 ? 0 : 1
-
-  const weighted = buckets.map((bucket) => {
-    const weight = weightSum > 0 ? bucket.value : fallbackWeight
-    const raw = (weight / (weightSum || buckets.length)) * totalCents
-    const cents = Math.floor(raw)
-    return { ...bucket, cents, fraction: raw - cents }
-  })
-
-  let assigned = weighted.reduce((sum, bucket) => sum + bucket.cents, 0)
-  let remainder = totalCents - assigned
-  if (remainder > 0) {
-    const order = [...weighted]
-      .map((bucket, idx) => ({ idx, fraction: bucket.fraction }))
-      .sort((a, b) => b.fraction - a.fraction)
-    let i = 0
-    while (remainder > 0) {
-      weighted[order[i % order.length].idx].cents += 1
-      remainder -= 1
-      i += 1
-    }
-  }
-
-  const nextTables = tables.map((table) => ({
-    ...table,
-    columns: table.columns.map((column) => ({ ...column })),
-    constraints: table.constraints.map((constraint) => ({ ...constraint }))
-  }))
-
-  weighted.forEach((bucket) => {
-    const nextPoints = bucket.cents / 100
-    if (bucket.type === 'table') {
-      nextTables[bucket.tableIdx].existence_points = nextPoints
-      return
-    }
-
-    if (bucket.type === 'column') {
-      const original = tables[bucket.tableIdx].columns[bucket.colIdx]
-      const ratio =
-        original.points > 0
-          ? original.type_mismatch_penalty / original.points
-          : 0.4
-      nextTables[bucket.tableIdx].columns[bucket.colIdx] = {
-        ...nextTables[bucket.tableIdx].columns[bucket.colIdx],
-        points: nextPoints,
-        type_mismatch_penalty: round2(Math.max(0, nextPoints * ratio))
-      }
-      return
-    }
-
-    const original = tables[bucket.tableIdx].constraints[bucket.constraintIdx]
-    const ratio =
-      original.points > 0 ? original.missing_penalty / original.points : 0.5
-    nextTables[bucket.tableIdx].constraints[bucket.constraintIdx] = {
-      ...nextTables[bucket.tableIdx].constraints[bucket.constraintIdx],
-      points: nextPoints,
-      missing_penalty: round2(Math.max(0, nextPoints * ratio))
-    }
-  })
-
-  assigned = weighted.reduce((sum, bucket) => sum + bucket.cents, 0)
-  if (assigned !== totalCents) {
-    const delta = round2((totalCents - assigned) / 100)
-    nextTables[0].existence_points = round2(
-      Math.max(0, nextTables[0].existence_points + delta)
-    )
-  }
-
-  return nextTables
+function normalizeSqlTypeBase(type: string): string {
+  const normalized = (type || '').trim().toUpperCase()
+  if (!normalized) return 'VARCHAR'
+  const parenIndex = normalized.indexOf('(')
+  const noParams =
+    parenIndex >= 0 ? normalized.substring(0, parenIndex) : normalized
+  return noParams.trim() || 'VARCHAR'
 }
 
 const SQL_TYPES = [
@@ -303,34 +230,59 @@ const CONSTRAINT_TYPES: { value: ConstraintType; label: string }[] = [
 // ===== Props =====
 
 interface CreateTableRubricEditorProps {
+  examId: number
   totalPoints: number
   rubric: GradingRubric | null
   onChange: (rubric: GradingRubric) => void
   correctQuery?: string
   questionContent?: string
+  wizardStep?: number
 }
 
 export function CreateTableRubricEditor({
+  examId,
   totalPoints,
   rubric,
   onChange,
   correctQuery,
-  questionContent
+  questionContent,
+  wizardStep
 }: CreateTableRubricEditorProps) {
   const currentRubric = rubric ?? createDefaultRubric(totalPoints)
+  const rubricRef = useRef<GradingRubric>(currentRubric)
+
+  useEffect(() => {
+    rubricRef.current = currentRubric
+  }, [currentRubric])
+
   const payload = normalizeCreateTablePayload(currentRubric.grading_payload)
-  const settings = payload.grading_settings
+  const gradingRules = payload.grading_rules
   const tables = payload.tables
+  const hasSpecialPenaltyConfig = useMemo(
+    () => hasAnySpecialPenaltyValue(tables),
+    [tables]
+  )
 
   // ===== Helper to update rubric immutably =====
   const updateRubric = useCallback(
     (updater: (draft: GradingRubric) => GradingRubric) => {
-      onChange(updater({ ...currentRubric }))
+      const next = updater({ ...rubricRef.current })
+      rubricRef.current = next
+      onChange(next)
     },
-    [currentRubric, onChange]
+    [onChange]
   )
 
-  const updateSettings = (partial: Partial<GradingSettings>) => {
+  const setTables = (
+    newTables: RubricTable[],
+    options?: { specialPenaltyEnabled?: boolean }
+  ) => {
+    const specialPenaltyEnabled =
+      options?.specialPenaltyEnabled ?? showSpecialPenalties
+    const sanitizedTables = sanitizeSpecialPenaltyFields(
+      newTables,
+      specialPenaltyEnabled
+    )
     updateRubric((r) => {
       const normalizedPayload = normalizeCreateTablePayload(r.grading_payload)
       return {
@@ -338,67 +290,26 @@ export function CreateTableRubricEditor({
         total_points: totalPoints,
         question_category: 'CREATE_TABLE',
         grading_payload: {
-          ...normalizedPayload,
-          grading_settings: {
-            ...normalizedPayload.grading_settings,
-            ...partial
-          }
+          grading_rules: normalizedPayload.grading_rules,
+          tables: sanitizedTables
         }
       }
     })
   }
 
-  const setTables = (newTables: RubricTable[]) => {
+  const setGradingRules = (newRules: InsertDataGradingRule[]) => {
     updateRubric((r) => {
       const normalizedPayload = normalizeCreateTablePayload(r.grading_payload)
       return {
         ...r,
         total_points: totalPoints,
         question_category: 'CREATE_TABLE',
-        grading_payload: { ...normalizedPayload, tables: newTables }
+        grading_payload: {
+          grading_rules: newRules,
+          tables: normalizedPayload.tables
+        }
       }
     })
-  }
-
-  // ===== Points calculation =====
-  const allocatedPoints = useMemo(() => {
-    let sum = 0
-    for (const t of tables) {
-      sum += t.existence_points
-      for (const c of t.columns) sum += c.points
-      for (const cn of t.constraints) sum += cn.points
-    }
-    return Math.round(sum * 100) / 100
-  }, [tables])
-
-  const pointsDiff = Math.round((totalPoints - allocatedPoints) * 100) / 100
-
-  // ===== Auto distribute points =====
-  const autoDistributePoints = () => {
-    if (tables.length === 0) return
-    const perTable = totalPoints / tables.length
-    const newTables = tables.map((t) => {
-      const existPts = Math.round(perTable * 0.1 * 100) / 100
-      const totalItems = t.columns.length + t.constraints.length
-      if (totalItems === 0) return { ...t, existence_points: perTable }
-      const remaining = perTable - existPts
-      const perItem = Math.round((remaining / totalItems) * 100) / 100
-      return {
-        ...t,
-        existence_points: existPts,
-        columns: t.columns.map((c) => ({
-          ...c,
-          points: perItem,
-          type_mismatch_penalty: Math.round(perItem * 0.4 * 100) / 100
-        })),
-        constraints: t.constraints.map((cn) => ({
-          ...cn,
-          points: perItem,
-          missing_penalty: Math.round(perItem * 0.5 * 100) / 100
-        }))
-      }
-    })
-    setTables(newTables)
   }
 
   // ===== Table-level expand/collapse =====
@@ -410,260 +321,308 @@ export function CreateTableRubricEditor({
   }
 
   // ===== AI Generate =====
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [enforceExactPoints, setEnforceExactPoints] = useState(true)
+  const [isBuildingTables, setIsBuildingTables] = useState(false)
+  const [showSpecialPenalties, setShowSpecialPenalties] = useState<boolean>(
+    hasSpecialPenaltyConfig
+  )
 
-  const handleAiGenerate = async () => {
+  useEffect(() => {
+    if (hasSpecialPenaltyConfig) {
+      setShowSpecialPenalties(true)
+    }
+  }, [hasSpecialPenaltyConfig])
+
+  const tableContextSummary = useMemo(() => {
+    if (tables.length === 0) {
+      return '- Chưa có bảng nào trong rubric CREATE TABLE.'
+    }
+
+    return tables
+      .map((table) => {
+        const tableName = table.expected_name?.trim() || 'UNKNOWN_TABLE'
+        const columns = table.columns
+          .map((column) => column.name?.trim())
+          .filter(Boolean)
+        const constraints = table.constraints
+          .map((constraint) => constraint.type)
+          .filter(Boolean)
+
+        return [
+          `- ${tableName}`,
+          `columns=[${columns.join(', ') || 'none'}]`,
+          `constraints=[${constraints.join(', ') || 'none'}]`
+        ].join(' | ')
+      })
+      .join('\n')
+  }, [tables])
+
+  const handleBuildTablesFromAnswer = async () => {
     if (!correctQuery?.trim()) {
-      toast.error('Vui lòng nhập SQL đáp án (Correct Query) trước khi dùng AI')
+      toast.error('Vui long nhap SQL dap an truoc khi dung cau truc bang')
       return
     }
 
-    setIsGenerating(true)
+    setIsBuildingTables(true)
     try {
-      const result = await generateGradingRubric({
-        correctQuery: correctQuery.trim(),
-        questionContent: questionContent || '',
-        totalPoints,
-        questionType: 'CREATE_TABLE',
-        enforceExactTotalPoints: enforceExactPoints
+      const result = await buildCreateTablesFromAnswer(examId, {
+        correctQuery: correctQuery.trim()
       })
 
-      if (result.data) {
-        const parsed: GradingRubric =
-          typeof result.data === 'string'
-            ? JSON.parse(result.data)
-            : result.data
-
-        const parsedPayload = normalizeCreateTablePayload(
-          parsed.grading_payload
-        )
-        const parsedTables = parsedPayload.tables
-
-        const nextTables = enforceExactPoints
-          ? rebalanceCreateTablePoints(parsedTables, totalPoints)
-          : parsedTables
-
-        const nextRubric: GradingRubric = {
-          ...parsed,
-          total_points: totalPoints,
-          question_category: 'CREATE_TABLE',
-          grading_payload: {
-            ...parsedPayload,
-            tables: nextTables
-          }
-        }
-
-        onChange(nextRubric)
-
-        // Auto-expand all tables
-        const expanded: Record<number, boolean> = {}
-        nextTables.forEach((_, i) => {
-          expanded[i] = true
-        })
-        setExpandedTables(expanded)
-
-        toast.success(
-          `AI đã tạo rubric thành công (${nextTables.length} bảng${enforceExactPoints ? ', đã cân đúng tổng điểm' : ''})`
-        )
-      } else {
-        toast.error(result.message || 'AI không thể tạo rubric')
+      if (!result.data) {
+        toast.error(result.message || 'Khong the dung cau truc bang tu dap an')
+        return
       }
-    } catch (err) {
-      console.error('AI rubric generation failed:', err)
-      toast.error('Lỗi khi gọi AI. Vui lòng thử lại.')
+
+      const generatedTables = Array.isArray(result.data.tables)
+        ? (result.data.tables as RubricTable[])
+        : []
+
+      if (generatedTables.length === 0) {
+        toast.error('Khong tao duoc tables tu SQL dap an')
+        return
+      }
+
+      setShowSpecialPenalties(false)
+      setTables(generatedTables, { specialPenaltyEnabled: false })
+      toast.success(`Đã tạo ${generatedTables.length} bảng từ SQL đáp án`)
+    } catch (error) {
+      console.error('Build CREATE tables from answer failed:', error)
+      toast.error('Lỗi khi dựng cấu trúc bảng từ đáp án. Vui lòng thử lại.')
     } finally {
-      setIsGenerating(false)
+      setIsBuildingTables(false)
     }
   }
 
+  const isWizardMode = typeof wizardStep === 'number'
+
+  // Auto-trigger build when entering Step 2 with empty tables
+  const hasAutoTriggeredRef = useRef(false)
+  useEffect(() => {
+    if (
+      isWizardMode &&
+      wizardStep === 2 &&
+      tables.length === 0 &&
+      correctQuery?.trim() &&
+      !isBuildingTables &&
+      !hasAutoTriggeredRef.current
+    ) {
+      hasAutoTriggeredRef.current = true
+      handleBuildTablesFromAnswer()
+    }
+  }, [wizardStep, isWizardMode, tables.length, correctQuery, isBuildingTables])
+
   return (
     <div className="space-y-5">
-      {/* AI Generate + Points summary bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          type="button"
-          variant="default"
-          size="sm"
-          onClick={handleAiGenerate}
-          disabled={isGenerating}
-          className="gap-2 bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md h-9 px-4"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Đang tạo...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              AI Tạo Rubric
-            </>
-          )}
-        </Button>
-
-        <label className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={enforceExactPoints}
-            onChange={(e) => setEnforceExactPoints(e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-primary"
-          />
-          AI cân đúng tổng điểm
-        </label>
-
-        <div
-          className={`flex-1 flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium border ${
-            pointsDiff === 0
-              ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-              : 'bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-400'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {pointsDiff === 0 ? (
-              <CheckCircle2 className="h-4 w-4" />
+      {(!isWizardMode || wizardStep === 2) && (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleBuildTablesFromAnswer}
+            disabled={isBuildingTables}
+            className="h-9 px-4 text-sm font-semibold"
+          >
+            {isBuildingTables ? (
+              <>
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                Đang tạo bảng...
+              </>
             ) : (
-              <AlertTriangle className="h-4 w-4" />
+              <>
+                <Table2 className="mr-1.5 h-4 w-4" />
+                Dùng cấu trúc bảng từ đáp án
+              </>
             )}
-            <span>
-              Đã phân bổ: <strong>{allocatedPoints}</strong> / {totalPoints}{' '}
-              điểm
-              {pointsDiff !== 0 && (
-                <span className="ml-2 text-xs">
-                  (
-                  {pointsDiff > 0
-                    ? `Còn thiếu ${pointsDiff}`
-                    : `Dư ${Math.abs(pointsDiff)}`}{' '}
-                  điểm)
-                </span>
-              )}
-            </span>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={autoDistributePoints}
-            className="gap-1 text-xs h-7"
-          >
-            <Equal className="h-3 w-3" />
-            Phân bổ đều
           </Button>
-        </div>
-      </div>
 
-      {/* Zone 1: General Settings */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
-        <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
-          <Settings2 className="h-4 w-4 text-primary" />
-          Cấu hình chung
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Xử lý lỗi cú pháp
-            </label>
-            <select
-              value={settings.syntax_error_action}
-              onChange={(e) =>
-                updateSettings({
-                  syntax_error_action: e.target.value as SyntaxErrorAction
+          <label className="flex items-center gap-2 rounded-md border border-border bg-sub-background px-3 py-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={showSpecialPenalties}
+              onChange={(e) => {
+                const enabled = e.target.checked
+                setShowSpecialPenalties(enabled)
+                setTables(tables, { specialPenaltyEnabled: enabled })
+              }}
+              className="h-4 w-4 rounded border-border accent-sub-primary"
+            />
+            Bật trọng số đặc biệt theo bảng/cột/ràng buộc
+          </label>
+        </div>
+      )}
+
+      {(!isWizardMode || wizardStep === 3) && (
+        <GradingRulesEditor
+          questionType="CREATE_TABLE"
+          totalPoints={totalPoints}
+          rules={gradingRules}
+          onChange={setGradingRules}
+          onTablesPatch={(tablePatches) => {
+            if (!tablePatches || tablePatches.length === 0) return
+            const nextTables = [...tables]
+            let hasChanges = false
+            tablePatches.forEach((patch: Record<string, unknown>) => {
+              if (!patch || typeof patch.expected_name !== 'string') return
+              const expectedName = patch.expected_name as string
+              const normalizedName = expectedName.trim().toLowerCase()
+              const idx = nextTables.findIndex(
+                (t) =>
+                  (t.expected_name || '').trim().toLowerCase() ===
+                  normalizedName
+              )
+              if (idx >= 0) {
+                const tableToUpdate = nextTables[idx]
+                const nextTable = { ...tableToUpdate }
+
+                if (patch.missing_table_penalty !== undefined) {
+                  nextTable.missing_table_penalty = Number(
+                    patch.missing_table_penalty
+                  )
+                }
+                if (patch.missing_penalty_action !== undefined) {
+                  nextTable.missing_penalty_action =
+                    patch.missing_penalty_action as MissingPenaltyAction
+                }
+
+                if (
+                  Array.isArray(patch.columns) &&
+                  Array.isArray(nextTable.columns)
+                ) {
+                  patch.columns.forEach((patchCol: Record<string, unknown>) => {
+                    const colName =
+                      typeof patchCol.name === 'string' ? patchCol.name : ''
+                    const matchedCol = nextTable.columns.find(
+                      (c) => c.name?.toLowerCase() === colName.toLowerCase()
+                    )
+                    if (matchedCol) {
+                      if (patchCol.missing_column_penalty !== undefined)
+                        matchedCol.missing_column_penalty = Number(
+                          patchCol.missing_column_penalty
+                        )
+                      if (patchCol.type_mismatch_penalty !== undefined)
+                        matchedCol.type_mismatch_penalty = Number(
+                          patchCol.type_mismatch_penalty
+                        )
+                    }
+                  })
+                }
+
+                if (
+                  Array.isArray(patch.constraints) &&
+                  Array.isArray(nextTable.constraints)
+                ) {
+                  patch.constraints.forEach(
+                    (patchCons: Record<string, unknown>) => {
+                      const consType =
+                        typeof patchCons.type === 'string' ? patchCons.type : ''
+                      const matchedCons = nextTable.constraints.find(
+                        (c) => c.type === consType
+                      )
+                      if (matchedCons) {
+                        if (patchCons.missing_constraint_penalty !== undefined)
+                          matchedCons.missing_constraint_penalty = Number(
+                            patchCons.missing_constraint_penalty
+                          )
+                      }
+                    }
+                  )
+                }
+
+                nextTables[idx] = nextTable
+                hasChanges = true
+              } else {
+                nextTables.push({
+                  expected_name: expectedName,
+                  missing_table_penalty:
+                    patch.missing_table_penalty !== undefined
+                      ? Number(patch.missing_table_penalty)
+                      : undefined,
+                  missing_penalty_action:
+                    (patch.missing_penalty_action as MissingPenaltyAction) ||
+                    'SKIP_TABLE',
+                  columns: Array.isArray(patch.columns)
+                    ? (patch.columns as RubricColumn[])
+                    : [],
+                  constraints: Array.isArray(patch.constraints)
+                    ? (patch.constraints as RubricConstraint[])
+                    : []
                 })
+                hasChanges = true
               }
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            })
+
+            if (hasChanges) {
+              setTables(nextTables, { specialPenaltyEnabled: true })
+              setShowSpecialPenalties(true)
+              toast.success(
+                'Đã tự động nhận diện và cập nhật trọng số đặc biệt phần cấu trúc bảng/cột.'
+              )
+            }
+          }}
+          correctQuery={correctQuery}
+          questionContent={questionContent}
+          contextSummary={tableContextSummary}
+        />
+      )}
+
+      {/* Tables + Columns + Constraints */}
+      {(!isWizardMode || wizardStep === 2) && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
+              Danh sách bảng
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2 py-0 text-[10px]"
+              >
+                {tables.length}
+              </Badge>
+            </h4>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setTables([...tables, createDefaultTable()])
+                setExpandedTables((prev) => ({
+                  ...prev,
+                  [tables.length]: true
+                }))
+              }}
+              className="gap-1 text-xs h-7"
             >
-              <option value="FAIL_ALL">0 điểm toàn bộ (FAIL_ALL)</option>
-              <option value="PARTIAL">Chấm từng phần (PARTIAL)</option>
-            </select>
+              <Plus className="h-3 w-3" />
+              Thêm bảng
+            </Button>
           </div>
 
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.case_sensitive_names}
-              onChange={(e) =>
-                updateSettings({ case_sensitive_names: e.target.checked })
-              }
-              className="h-4 w-4 rounded border-border accent-primary"
-            />
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Phân biệt hoa/thường
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Tên bảng, cột phải khớp chính xác
-              </p>
+          {tables.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-border rounded-lg">
+              Chưa có bảng nào. Nhấn &quot;Thêm bảng&quot; để bắt đầu cấu hình
+              rubric.
             </div>
-          </label>
+          )}
 
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={Boolean(settings.positive_only_scoring)}
-              onChange={(e) =>
-                updateSettings({ positive_only_scoring: e.target.checked })
-              }
-              className="h-4 w-4 rounded border-border accent-primary"
+          {tables.map((table, tableIdx) => (
+            <TableEditor
+              key={tableIdx}
+              table={table}
+              showSpecialPenaltyFields={showSpecialPenalties}
+              isExpanded={expandedTables[tableIdx] ?? false}
+              onToggle={() => toggleTable(tableIdx)}
+              onChange={(updated) => {
+                const newTables = [...tables]
+                newTables[tableIdx] = updated
+                setTables(newTables)
+              }}
+              onRemove={() => {
+                setTables(tables.filter((_, i) => i !== tableIdx))
+              }}
             />
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Chỉ tính điểm cộng
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Bật lên để tắt trừ điểm, mục sai sẽ không được cộng điểm
-              </p>
-            </div>
-          </label>
+          ))}
         </div>
-      </div>
-
-      {/* Zone 2–4: Tables + Columns + Constraints */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <Table2 className="h-4 w-4 text-primary" />
-            Danh sách bảng ({tables.length})
-          </h4>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setTables([...tables, createDefaultTable()])
-              setExpandedTables((prev) => ({ ...prev, [tables.length]: true }))
-            }}
-            className="gap-1 text-xs h-7"
-          >
-            <Plus className="h-3 w-3" />
-            Thêm bảng
-          </Button>
-        </div>
-
-        {tables.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-border rounded-lg">
-            Chưa có bảng nào. Nhấn &quot;Thêm bảng&quot; để bắt đầu cấu hình
-            rubric.
-          </div>
-        )}
-
-        {tables.map((table, tableIdx) => (
-          <TableEditor
-            key={tableIdx}
-            table={table}
-            positiveOnlyScoring={Boolean(settings.positive_only_scoring)}
-            isExpanded={expandedTables[tableIdx] ?? false}
-            onToggle={() => toggleTable(tableIdx)}
-            onChange={(updated) => {
-              const newTables = [...tables]
-              newTables[tableIdx] = updated
-              setTables(newTables)
-            }}
-            onRemove={() => {
-              setTables(tables.filter((_, i) => i !== tableIdx))
-            }}
-          />
-        ))}
-      </div>
+      )}
     </div>
   )
 }
@@ -672,27 +631,21 @@ export function CreateTableRubricEditor({
 
 function TableEditor({
   table,
-  positiveOnlyScoring,
+  showSpecialPenaltyFields,
   isExpanded,
   onToggle,
   onChange,
   onRemove
 }: {
   table: RubricTable
-  positiveOnlyScoring: boolean
+  showSpecialPenaltyFields: boolean
   isExpanded: boolean
   onToggle: () => void
   onChange: (t: RubricTable) => void
   onRemove: () => void
 }) {
-  const colPoints = table.columns.reduce((s, c) => s + c.points, 0)
-  const conPoints = table.constraints.reduce((s, c) => s + c.points, 0)
-  const tableTotal =
-    Math.round((table.existence_points + colPoints + conPoints) * 100) / 100
-
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      {/* Table Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
         onClick={onToggle}
@@ -705,10 +658,6 @@ function TableEditor({
         <Table2 className="h-4 w-4 text-blue-500 shrink-0" />
         <span className="font-mono text-sm font-bold text-foreground">
           {table.expected_name || 'Bảng chưa đặt tên'}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          ({table.columns.length} cột · {table.constraints.length} ràng buộc ·{' '}
-          {tableTotal}đ)
         </span>
         <div
           className="ml-auto flex items-center gap-1"
@@ -727,8 +676,13 @@ function TableEditor({
 
       {isExpanded && (
         <div className="border-t border-border p-4 space-y-5">
-          {/* Table basic info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div
+            className={
+              showSpecialPenaltyFields
+                ? 'grid grid-cols-1 md:grid-cols-3 gap-4'
+                : 'grid grid-cols-1 gap-4'
+            }
+          >
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
                 Tên bảng
@@ -740,54 +694,70 @@ function TableEditor({
                   onChange({ ...table, expected_name: e.target.value })
                 }
                 placeholder="VD: CONGTY"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Điểm tồn tại bảng
-              </label>
-              <input
-                type="number"
-                value={table.existence_points}
-                onChange={(e) =>
-                  onChange({
-                    ...table,
-                    existence_points: Number(e.target.value)
-                  })
-                }
-                min={0}
-                step={0.01}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Khi thiếu bảng
-              </label>
-              <select
-                value={table.missing_penalty_action}
-                onChange={(e) =>
-                  onChange({
-                    ...table,
-                    missing_penalty_action: e.target
-                      .value as MissingPenaltyAction
-                  })
-                }
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="SKIP_TABLE">Bỏ qua (SKIP_TABLE)</option>
-                <option value="ZERO_POINTS">0 điểm (ZERO_POINTS)</option>
-              </select>
-            </div>
+
+            {showSpecialPenaltyFields && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Trừ khi thiếu bảng
+                  </label>
+                  <input
+                    type="number"
+                    value={table.missing_table_penalty ?? ''}
+                    onChange={(e) =>
+                      onChange({
+                        ...table,
+                        missing_table_penalty: parseOptionalPenalty(
+                          e.target.value
+                        )
+                      })
+                    }
+                    min={0}
+                    step={0.01}
+                    className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Khi thiếu bảng
+                  </label>
+                  <select
+                    value={table.missing_penalty_action ?? 'SKIP_TABLE'}
+                    onChange={(e) =>
+                      onChange({
+                        ...table,
+                        missing_penalty_action: e.target
+                          .value as MissingPenaltyAction
+                      })
+                    }
+                    className="w-full rounded-md border border-border bg-sub-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="SKIP_TABLE">
+                      Bỏ qua lỗi con (SKIP_TABLE)
+                    </option>
+                    <option value="ZERO_POINTS">
+                      0 điểm bảng này (ZERO_POINTS)
+                    </option>
+                  </select>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Columns */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h5 className="flex items-center gap-1.5 text-xs font-bold text-foreground uppercase tracking-wider">
-                <Columns3 className="h-3.5 w-3.5 text-violet-500" />
-                Cột ({table.columns.length})
+              <h5 className="flex items-center text-xs font-bold text-foreground uppercase tracking-wider">
+                <Columns3 className="h-3.5 w-3.5 text-violet-500 mr-1.5" />
+                Cột
+                <Badge
+                  variant="secondary"
+                  className="rounded-full px-2 py-0 text-[10px] ml-2 font-semibold"
+                >
+                  {table.columns.length}
+                </Badge>
               </h5>
               <Button
                 type="button"
@@ -811,7 +781,7 @@ function TableEditor({
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/50 border-b border-border">
-                      <th className="px-3 py-2 text-left font-semibold w-[25%]">
+                      <th className="px-3 py-2 text-left font-semibold w-[24%]">
                         Tên cột
                       </th>
                       <th className="px-3 py-2 text-left font-semibold w-[20%]">
@@ -820,15 +790,17 @@ function TableEditor({
                       <th className="px-3 py-2 text-center font-semibold w-[10%]">
                         Nullable
                       </th>
-                      <th className="px-3 py-2 text-center font-semibold w-[15%]">
-                        Điểm
-                      </th>
-                      {!positiveOnlyScoring && (
-                        <th className="px-3 py-2 text-center font-semibold w-[15%]">
+                      {showSpecialPenaltyFields && (
+                        <th className="px-3 py-2 text-center font-semibold w-[18%]">
+                          Trừ khi thiếu cột
+                        </th>
+                      )}
+                      {showSpecialPenaltyFields && (
+                        <th className="px-3 py-2 text-center font-semibold w-[18%]">
                           Trừ sai kiểu
                         </th>
                       )}
-                      <th className="px-3 py-2 text-center font-semibold w-[8%]"></th>
+                      <th className="px-3 py-2 text-center font-semibold w-[10%]"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -847,12 +819,12 @@ function TableEditor({
                               onChange({ ...table, columns: newCols })
                             }}
                             placeholder="MaCT"
-                            className="w-full rounded border border-border bg-background px-2 py-1 font-mono text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            className="w-full rounded border border-border bg-sub-background px-2 py-1 font-mono text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           />
                         </td>
                         <td className="px-3 py-2">
                           <select
-                            value={col.expected_type}
+                            value={normalizeSqlTypeBase(col.expected_type)}
                             onChange={(e) => {
                               const newCols = [...table.columns]
                               newCols[colIdx] = {
@@ -861,7 +833,7 @@ function TableEditor({
                               }
                               onChange({ ...table, columns: newCols })
                             }}
-                            className="w-full rounded border border-border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            className="w-full rounded border border-border bg-sub-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           >
                             {SQL_TYPES.map((t) => (
                               <option key={t} value={t}>
@@ -882,42 +854,48 @@ function TableEditor({
                               }
                               onChange({ ...table, columns: newCols })
                             }}
-                            className="h-4 w-4 rounded border-border accent-primary"
+                            className="h-4 w-4 rounded border-border accent-sub-primary"
                           />
                         </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            value={col.points}
-                            onChange={(e) => {
-                              const newCols = [...table.columns]
-                              newCols[colIdx] = {
-                                ...col,
-                                points: Number(e.target.value)
-                              }
-                              onChange({ ...table, columns: newCols })
-                            }}
-                            min={0}
-                            step={0.01}
-                            className="w-full rounded border border-border bg-background px-2 py-1 text-center text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                          />
-                        </td>
-                        {!positiveOnlyScoring && (
+                        {showSpecialPenaltyFields && (
                           <td className="px-3 py-2">
                             <input
                               type="number"
-                              value={col.type_mismatch_penalty}
+                              value={col.missing_column_penalty ?? ''}
                               onChange={(e) => {
                                 const newCols = [...table.columns]
                                 newCols[colIdx] = {
                                   ...col,
-                                  type_mismatch_penalty: Number(e.target.value)
+                                  missing_column_penalty: parseOptionalPenalty(
+                                    e.target.value
+                                  )
                                 }
                                 onChange({ ...table, columns: newCols })
                               }}
                               min={0}
                               step={0.01}
                               className="w-full rounded border border-border bg-background px-2 py-1 text-center text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            />
+                          </td>
+                        )}
+                        {showSpecialPenaltyFields && (
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              value={col.type_mismatch_penalty ?? ''}
+                              onChange={(e) => {
+                                const newCols = [...table.columns]
+                                newCols[colIdx] = {
+                                  ...col,
+                                  type_mismatch_penalty: parseOptionalPenalty(
+                                    e.target.value
+                                  )
+                                }
+                                onChange({ ...table, columns: newCols })
+                              }}
+                              min={0}
+                              step={0.01}
+                              className="w-full rounded border border-border bg-sub-background px-2 py-1 text-center text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             />
                           </td>
                         )}
@@ -945,12 +923,17 @@ function TableEditor({
             )}
           </div>
 
-          {/* Constraints */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h5 className="flex items-center gap-1.5 text-xs font-bold text-foreground uppercase tracking-wider">
-                <Link2 className="h-3.5 w-3.5 text-amber-500" />
-                Ràng buộc ({table.constraints.length})
+              <h5 className="flex items-center text-xs font-bold text-foreground uppercase tracking-wider">
+                <Link2 className="h-3.5 w-3.5 text-amber-500 mr-1.5" />
+                Ràng buộc
+                <Badge
+                  variant="secondary"
+                  className="rounded-full px-2 py-0 text-[10px] ml-2 font-semibold"
+                >
+                  {table.constraints.length}
+                </Badge>
               </h5>
               <Button
                 type="button"
@@ -976,6 +959,7 @@ function TableEditor({
               <ConstraintEditor
                 key={conIdx}
                 constraint={con}
+                showSpecialPenaltyFields={showSpecialPenaltyFields}
                 availableColumns={table.columns
                   .map((c) => c.name)
                   .filter(Boolean)}
@@ -1005,11 +989,13 @@ function TableEditor({
 
 function ConstraintEditor({
   constraint,
+  showSpecialPenaltyFields,
   availableColumns,
   onChange,
   onRemove
 }: {
   constraint: RubricConstraint
+  showSpecialPenaltyFields: boolean
   availableColumns: string[]
   onChange: (c: RubricConstraint) => void
   onRemove: () => void
@@ -1021,7 +1007,13 @@ function ConstraintEditor({
   return (
     <div className="rounded-md border border-border bg-muted/10 p-3 space-y-3">
       <div className="flex items-start gap-3">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1">
+        <div
+          className={
+            showSpecialPenaltyFields
+              ? 'grid grid-cols-2 md:grid-cols-3 gap-3 flex-1'
+              : 'grid grid-cols-2 gap-3 flex-1'
+          }
+        >
           <div className="space-y-1">
             <label className="text-[10px] font-medium text-muted-foreground uppercase">
               Loại
@@ -1034,7 +1026,7 @@ function ConstraintEditor({
                   type: e.target.value as ConstraintType
                 })
               }
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               {CONSTRAINT_TYPES.map((ct) => (
                 <option key={ct.value} value={ct.value}>
@@ -1057,7 +1049,7 @@ function ConstraintEditor({
                   columns: Array.from(e.target.selectedOptions, (o) => o.value)
                 })
               }
-              className="w-full rounded border border-border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-8"
+              className="w-full rounded border border-border bg-sub-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-8"
             >
               {availableColumns.map((col) => (
                 <option key={col} value={col}>
@@ -1067,40 +1059,28 @@ function ConstraintEditor({
             </select>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-medium text-muted-foreground uppercase">
-              Điểm
-            </label>
-            <input
-              type="number"
-              value={constraint.points}
-              onChange={(e) =>
-                onChange({ ...constraint, points: Number(e.target.value) })
-              }
-              min={0}
-              step={0.01}
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-medium text-muted-foreground uppercase">
-              Trừ khi thiếu
-            </label>
-            <input
-              type="number"
-              value={constraint.missing_penalty}
-              onChange={(e) =>
-                onChange({
-                  ...constraint,
-                  missing_penalty: Number(e.target.value)
-                })
-              }
-              min={0}
-              step={0.01}
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
+          {showSpecialPenaltyFields && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-medium text-muted-foreground uppercase">
+                Trừ khi thiếu
+              </label>
+              <input
+                type="number"
+                value={constraint.missing_constraint_penalty ?? ''}
+                onChange={(e) =>
+                  onChange({
+                    ...constraint,
+                    missing_constraint_penalty: parseOptionalPenalty(
+                      e.target.value
+                    )
+                  })
+                }
+                min={0}
+                step={0.01}
+                className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+          )}
         </div>
 
         <button
@@ -1112,7 +1092,6 @@ function ConstraintEditor({
         </button>
       </div>
 
-      {/* FK-specific fields */}
       {isFk && (
         <div className="grid grid-cols-2 gap-3 pl-0">
           <div className="space-y-1">
@@ -1126,7 +1105,7 @@ function ConstraintEditor({
                 onChange({ ...constraint, references_table: e.target.value })
               }
               placeholder="VD: NHANVIEN"
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
           <div className="space-y-1">
@@ -1146,13 +1125,12 @@ function ConstraintEditor({
                 })
               }
               placeholder="VD: MaNV"
-              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
         </div>
       )}
 
-      {/* CHECK / DEFAULT expression */}
       {(isCheck || isDefault) && (
         <div className="space-y-1">
           <label className="text-[10px] font-medium text-muted-foreground uppercase">
@@ -1165,7 +1143,7 @@ function ConstraintEditor({
               onChange({ ...constraint, expression: e.target.value })
             }
             placeholder={isCheck ? 'VD: Luong > 0' : 'VD: GETDATE()'}
-            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="w-full rounded border border-border bg-sub-background px-2 py-1.5 text-xs font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
       )}

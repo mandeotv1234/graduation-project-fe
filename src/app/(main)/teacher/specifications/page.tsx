@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 
 import { getSpecifications } from '@/lib/actions'
 import { SpecificationsView } from '@/app/(main)/teacher/specifications/components/specifications-view'

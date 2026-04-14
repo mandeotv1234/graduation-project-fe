@@ -61,6 +61,12 @@ export const ENDPOINTS = Object.freeze({
     `/exams/${examId}/test-grade-insert`,
   EXAM_TEST_GRADE_SELECT: (examId: number) =>
     `/exams/${examId}/test-grade-select`,
+  EXAM_RUN_SELECT_TESTCASE: (examId: number) =>
+    `/exams/${examId}/run-select-testcase`,
+  EXAM_BUILD_INSERT_TABLES: (examId: number) =>
+    `/exams/${examId}/build-insert-tables`,
+  EXAM_BUILD_CREATE_TABLES: (examId: number) =>
+    `/exams/${examId}/build-create-tables`,
   EXAM_RESULTS: (examId: number) => `/exams/${examId}/results`,
   EXAM_RESULT_DETAIL: (examId: number, resultId: number) =>
     `/exams/${examId}/results/${resultId}`,
@@ -73,6 +79,8 @@ export const ENDPOINTS = Object.freeze({
   EXAM_REGRADE_RESULT: (examId: number, resultId: number) =>
     `/exams/${examId}/results/${resultId}/regrade`,
   EXAM_REGRADE_ALL: (examId: number) => `/exams/${examId}/regrade-all`,
+  RULE_PRESETS: '/exams/rule-presets',
+  RULE_PRESET_DELETE: (id: number) => `/exams/rule-presets/${id}`,
 
   // Teacher - Notifications
   NOTIFICATIONS: '/notifications',
