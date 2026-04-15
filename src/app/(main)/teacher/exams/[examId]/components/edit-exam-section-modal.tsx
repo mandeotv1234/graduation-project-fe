@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { useApi } from '@/hooks/use-api'
 import { updateExam } from '@/lib/actions'
+import { updateExamWithPdf } from '@/lib/api/exam-client'
 import { TeacherExamDetail } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -74,14 +75,22 @@ export function EditExamSectionModal({
 
   const meta = SECTION_DIALOG[section]
 
-  const onSubmit = async (data: ExamFormValues) => {
+  const onSubmit = async (data: ExamFormValues, pdfFile?: File | null) => {
     const payload = {
       ...data,
       startTime: data.startTime || null,
       endTime: data.endTime || null
     }
 
-    const result = await callApi(updateExam(exam.id, payload), false)
+    let result
+    if (pdfFile) {
+      result = await callApi(
+        updateExamWithPdf(exam.id, payload, pdfFile),
+        false
+      )
+    } else {
+      result = await callApi(updateExam(exam.id, payload), false)
+    }
 
     if (result.code === '200' || result.code === 'OK') {
       const updatedExam = mergeTeacherExamAfterUpdate(
@@ -92,7 +101,6 @@ export function EditExamSectionModal({
 
       toast.success('Cập nhật bài thi thành công')
       setIsOpen(false)
-      // Đợi dialog đóng (animation) rồi mới cập nhật state cha — tránh ExamForm reset / nháy trong lúc đóng
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
       closeTimerRef.current = setTimeout(() => {
         closeTimerRef.current = null
@@ -134,6 +142,9 @@ export function EditExamSectionModal({
               title={meta.title}
               submitLabel="Lưu thay đổi"
               focusSection={section}
+              initialPdfFileName={
+                exam.pdfFilePath ? exam.originalPdfFileName : null
+              }
             />
           </div>
           <div className="flex shrink-0 justify-end border-t border-border bg-background px-6 py-4">

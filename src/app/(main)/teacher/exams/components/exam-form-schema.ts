@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+export type SpecificationMode = 'specification' | 'pdf'
+
 export const examSchema = z.object({
   title: z.string().min(1, 'Vui lòng nhập tiêu đề bài thi'),
   /** 0 = chưa gắn đặc tả; có thể bổ sung sau. */

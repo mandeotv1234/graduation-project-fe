@@ -127,6 +127,8 @@ export interface CreateExamResponse {
   maxAttempts?: number
   lateThreshold?: number
   settings?: ExamSettings
+  pdfFilePath?: string | null
+  originalPdfFileName?: string | null
 }
 
 export interface UpdateTeacherExamSettingsRequest {
@@ -155,6 +157,8 @@ export interface TeacherExamDetail {
   maxAttempts: number
   lateThreshold: number
   settings: ExamSettings
+  pdfFilePath?: string | null
+  originalPdfFileName?: string | null
 }
 
 // GET /api/exams/{examId}/monitor

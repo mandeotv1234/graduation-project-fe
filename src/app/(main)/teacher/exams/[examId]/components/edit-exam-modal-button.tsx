@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { useApi } from '@/hooks/use-api'
 import { updateExam } from '@/lib/actions'
+import { updateExamWithPdf } from '@/lib/api/exam-client'
 import { TeacherExamDetail } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -91,13 +92,22 @@ export function mergeTeacherExamAfterUpdate(
       specFromPayload > 0 ? specFromPayload : Number(exam.specificationId ?? 0)
   }
 
+  const pdfFilePath =
+    resultData != null ? (resultData.pdfFilePath ?? null) : exam.pdfFilePath
+  const originalPdfFileName =
+    resultData != null
+      ? (resultData.originalPdfFileName ?? null)
+      : exam.originalPdfFileName
+
   return {
     ...exam,
     ...(resultData || {}),
     ...payload,
     startTime: payload.startTime,
     endTime: payload.endTime,
-    specificationId
+    specificationId,
+    pdfFilePath,
+    originalPdfFileName
   }
 }
 
@@ -111,14 +121,22 @@ export function EditExamModalButton({
   const { callApi, isLoading } = useApi()
   const [isOpen, setIsOpen] = useState(false)
 
-  const onSubmit = async (data: ExamFormValues) => {
+  const onSubmit = async (data: ExamFormValues, pdfFile?: File | null) => {
     const payload = {
       ...data,
       startTime: data.startTime || null,
       endTime: data.endTime || null
     }
 
-    const result = await callApi(updateExam(exam.id, payload), false)
+    let result
+    if (pdfFile) {
+      result = await callApi(
+        updateExamWithPdf(exam.id, payload, pdfFile),
+        false
+      )
+    } else {
+      result = await callApi(updateExam(exam.id, payload), false)
+    }
 
     if (result.code === '200' || result.code === 'OK') {
       const updatedExam = mergeTeacherExamAfterUpdate(
@@ -162,6 +180,9 @@ export function EditExamModalButton({
               isLoading={isLoading}
               title="Chỉnh sửa bài thi"
               submitLabel="Lưu thay đổi"
+              initialPdfFileName={
+                exam.pdfFilePath ? exam.originalPdfFileName : null
+              }
             />
           </div>
         </DialogContent>

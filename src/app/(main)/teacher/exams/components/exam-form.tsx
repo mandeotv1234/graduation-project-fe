@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, type FieldErrors } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -12,7 +12,9 @@ import {
   ShieldAlert,
   Clock,
   Award,
-  Settings
+  Settings,
+  Upload,
+  X
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -21,7 +23,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { SpecificationResponse } from '@/lib/types'
 import { getSpecifications } from '@/lib/actions'
 
-import { examSchema, ExamFormValues, ExamFormInput } from './exam-form-schema'
+import {
+  examSchema,
+  ExamFormValues,
+  ExamFormInput,
+  SpecificationMode
+} from './exam-form-schema'
 import { ToggleField } from './toggle-field'
 import { cn } from '@/lib/utils'
 
@@ -33,12 +40,14 @@ export type ExamFormFocusSection =
 
 interface ExamFormProps {
   initialData?: Partial<ExamFormInput>
-  onSubmit: (data: ExamFormValues) => Promise<void>
+  onSubmit: (data: ExamFormValues, pdfFile?: File | null) => Promise<void>
   isLoading: boolean
   title: string
   submitLabel: string
   /** Khi set: chỉ hiển thị một nhóm trường (dùng trong modal chỉnh từng phần). */
   focusSection?: ExamFormFocusSection
+  /** Tên file PDF hiện tại (dùng khi edit exam đã có PDF) */
+  initialPdfFileName?: string | null
 }
 
 export function ExamForm({
@@ -47,11 +56,17 @@ export function ExamForm({
   isLoading,
   title,
   submitLabel,
-  focusSection
+  focusSection,
+  initialPdfFileName
 }: ExamFormProps) {
   const [specifications, setSpecifications] = useState<SpecificationResponse[]>(
     []
   )
+  const [specMode, setSpecMode] = useState<SpecificationMode>(
+    initialPdfFileName ? 'pdf' : 'specification'
+  )
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
     register,
@@ -199,7 +214,10 @@ export function ExamForm({
 
       <form
         id="exam-form"
-        onSubmit={handleSubmit(onSubmit, onFormError)}
+        onSubmit={handleSubmit(
+          (data) => onSubmit(data, specMode === 'pdf' ? pdfFile : null),
+          onFormError
+        )}
         className={cn(
           'grid gap-4',
           isFocused ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-3'
@@ -247,40 +265,163 @@ export function ExamForm({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-foreground mb-2 flex items-center justify-between">
-                        <span>Chọn đặc tả CSDL</span>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Đặc tả CSDL
                       </label>
-                      <div className="relative">
-                        <select
-                          {...register('specificationId', {
-                            valueAsNumber: true
-                          })}
-                          value={Number(selectedSpecificationId ?? 0)}
-                          className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSpecMode('specification')
+                            setPdfFile(null)
+                            if (fileInputRef.current)
+                              fileInputRef.current.value = ''
+                          }}
+                          className={cn(
+                            'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                            specMode === 'specification'
+                              ? 'border-blue-500 bg-blue-500/10 text-blue-600'
+                              : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                          )}
                         >
-                          <option value="0">-- Chọn đặc tả CSDL --</option>
-                          {specifications.map((spec) => (
-                            <option key={spec.id} value={spec.id}>
-                              {spec.name ?? `Specification #${spec.id}`}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      </div>
-                      {errors.specificationId && (
-                        <p className="text-destructive text-xs mt-1">
-                          {errors.specificationId.message}
-                        </p>
-                      )}
-                      <div className="mt-2 flex justify-between items-center">
-                        <p className="text-xs text-muted-foreground">
-                          Sơ đồ CSDL sinh viên sẽ làm bài.
-                        </p>
+                          <FileText className="inline h-4 w-4 mr-1.5 -mt-0.5" />
+                          Đặc tả tự tạo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSpecMode('pdf')
+                            register('specificationId').onChange({
+                              target: { value: 0, name: 'specificationId' }
+                            })
+                          }}
+                          className={cn(
+                            'flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                            specMode === 'pdf'
+                              ? 'border-blue-500 bg-blue-500/10 text-blue-600'
+                              : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                          )}
+                        >
+                          <Upload className="inline h-4 w-4 mr-1.5 -mt-0.5" />
+                          Upload file PDF
+                        </button>
                       </div>
                     </div>
 
+                    {specMode === 'specification' ? (
+                      <div>
+                        <div className="relative">
+                          <select
+                            {...register('specificationId', {
+                              valueAsNumber: true
+                            })}
+                            value={Number(selectedSpecificationId ?? 0)}
+                            className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            <option value="0">-- Chọn đặc tả CSDL --</option>
+                            {specifications.map((spec) => (
+                              <option key={spec.id} value={spec.id}>
+                                {spec.name ?? `Specification #${spec.id}`}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        </div>
+                        {errors.specificationId && (
+                          <p className="text-destructive text-xs mt-1">
+                            {errors.specificationId.message}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Sơ đồ CSDL sinh viên sẽ làm bài.
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] ?? null
+                            if (file) {
+                              if (file.type !== 'application/pdf') {
+                                toast.error('Chỉ chấp nhận file PDF')
+                                e.target.value = ''
+                                return
+                              }
+                              if (file.size > 10 * 1024 * 1024) {
+                                toast.error('File PDF không được vượt quá 10MB')
+                                e.target.value = ''
+                                return
+                              }
+                            }
+                            setPdfFile(file)
+                          }}
+                        />
+                        {pdfFile ? (
+                          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                            <FileText className="h-5 w-5 shrink-0 text-red-500" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {pdfFile.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPdfFile(null)
+                                if (fileInputRef.current)
+                                  fileInputRef.current.value = ''
+                              }}
+                              className="rounded-full p-1 hover:bg-muted"
+                            >
+                              <X className="h-4 w-4 text-muted-foreground" />
+                            </button>
+                          </div>
+                        ) : initialPdfFileName && !pdfFile ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-800 dark:bg-green-950/30">
+                              <FileText className="h-5 w-5 shrink-0 text-red-500" />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-foreground">
+                                  {initialPdfFileName}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Đang sử dụng file PDF hiện tại
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-blue-400 hover:bg-blue-500/5"
+                            >
+                              <Upload className="h-4 w-4" />
+                              Thay bằng file PDF mới
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-background px-4 py-6 text-sm text-muted-foreground transition-colors hover:border-blue-400 hover:bg-blue-500/5"
+                          >
+                            <Upload className="h-5 w-5" />
+                            Nhấn để chọn file PDF (tối đa 10MB)
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Thời lượng (phút){' '}

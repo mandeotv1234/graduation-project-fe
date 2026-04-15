@@ -74,6 +74,8 @@ export interface StudentExamDetail {
       nullable: boolean
     }>
   }> | null
+  pdfFilePath?: string | null
+  originalPdfFileName?: string | null
 }
 
 // GET /api/exams/{examId}/questions → ExamQuestionResponseDto

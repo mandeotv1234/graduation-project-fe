@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { PATH } from '@/lib/constants'
 import { createExam } from '@/lib/actions'
+import { createExamWithPdf } from '@/lib/api/exam-client'
 import { useApi } from '@/hooks/use-api'
 import { ExamForm } from '@/app/(main)/teacher/exams/components/exam-form'
 import { ExamFormValues } from '@/app/(main)/teacher/exams/components/exam-form-schema'
@@ -18,8 +19,7 @@ export default function CreateExamPageClient({
   const router = useRouter()
   const { callApi, isLoading } = useApi()
 
-  const onSubmit = async (data: ExamFormValues) => {
-    // Treat empty string dates as undefined
+  const onSubmit = async (data: ExamFormValues, pdfFile?: File | null) => {
     const payload = {
       ...data,
       classId: classIdNum,
@@ -27,7 +27,9 @@ export default function CreateExamPageClient({
       endTime: data.endTime || undefined
     }
 
-    const result = await callApi(createExam(payload))
+    const result = pdfFile
+      ? await callApi(createExamWithPdf(payload, pdfFile))
+      : await callApi(createExam(payload))
 
     if (result.data) {
       router.push(PATH.TEACHER_EXAM_DETAIL(result.data.id))
