@@ -16,6 +16,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { ExecuteSqlResponse } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 type HandleSide = 'left' | 'right'
 export type EdgeConfig = {
@@ -245,12 +246,14 @@ export interface TeacherSchemaDiagramProps {
   diagramData: string
   onChange?: (data: string) => void
   readOnly?: boolean
+  className?: string
 }
 
 export function TeacherSchemaDiagram({
   diagramData,
   onChange,
-  readOnly = false
+  readOnly = false,
+  className
 }: TeacherSchemaDiagramProps) {
   const parsedData = useMemo<SchemaDiagramData | null>(() => {
     try {
@@ -308,7 +311,12 @@ export function TeacherSchemaDiagram({
   )
 
   return (
-    <div className="Flow w-full h-[500px] border border-border rounded-md bg-muted/20 relative">
+    <div
+      className={cn(
+        'Flow w-full h-[500px] border border-border rounded-md bg-muted/20 relative',
+        className
+      )}
+    >
       <Markers />
       <ReactFlow
         nodes={nodes}

@@ -5,16 +5,18 @@ import {
   ArrowUpRight,
   Clock,
   Database,
+  Eye,
   FileText,
   Info,
   Loader2,
   Share2,
   ShieldAlert,
+  Upload,
   Users
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { EditExamSectionModal } from './edit-exam-section-modal'
@@ -30,7 +32,15 @@ import {
   TeacherExamTemplateVersionsResponse
 } from '@/lib/types'
 import { getSpecificationDetail, shareExamAsTemplate } from '@/lib/actions'
+import { fetchExamPdfBlobUrl } from '@/lib/api/pdf-client'
 import { formatDateTime, getExamStatus } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog'
 
 type TeacherExamDetailContentProps = {
   exam: TeacherExamDetail
@@ -153,7 +163,38 @@ export function TeacherExamDetailContent({
   const [activeTab, setActiveTab] = useState<
     'overview' | 'questions' | 'library'
   >('overview')
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false)
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
   const router = useRouter()
+
+  const hasPdf = Boolean(
+    displayExam.pdfFilePath && displayExam.pdfFilePath.trim().length > 0
+  )
+
+  const handleViewPdf = useCallback(async () => {
+    if (pdfBlobUrl) {
+      setPdfViewerOpen(true)
+      return
+    }
+    setPdfLoading(true)
+    setPdfViewerOpen(true)
+    try {
+      const url = await fetchExamPdfBlobUrl(exam.id)
+      setPdfBlobUrl(url)
+    } catch {
+      toast.error('Không thể tải file PDF')
+      setPdfViewerOpen(false)
+    } finally {
+      setPdfLoading(false)
+    }
+  }, [exam.id, pdfBlobUrl])
+
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl)
+    }
+  }, [pdfBlobUrl])
 
   const templateVersions = templateManagement?.versions ?? []
   const canManageTemplate = templateManagement?.canManage ?? false
@@ -174,12 +215,32 @@ export function TeacherExamDetailContent({
 
   const handleExamSaved = (updated: TeacherExamDetail) => {
     setDisplayExam(updated)
-    if (updated.specificationId != null && updated.specificationId > 0) {
-      void getSpecificationDetail(updated.specificationId).then((res) => {
+
+    const updatedHasPdf =
+      updated.pdfFilePath && updated.pdfFilePath.trim().length > 0
+    const updatedHasSpec =
+      updated.specificationId != null && updated.specificationId > 0
+
+    if (updatedHasPdf) {
+      setDisplaySpecification(null)
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl)
+        setPdfBlobUrl(null)
+      }
+    } else if (updatedHasSpec) {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl)
+        setPdfBlobUrl(null)
+      }
+      void getSpecificationDetail(updated.specificationId!).then((res) => {
         if (res.data) setDisplaySpecification(res.data)
       })
     } else {
       setDisplaySpecification(null)
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl)
+        setPdfBlobUrl(null)
+      }
     }
   }
 
@@ -334,7 +395,22 @@ export function TeacherExamDetailContent({
                 icon={<FileText className="h-4 w-4 text-primary/70" />}
                 value={`${questionCount} câu`}
               />
-              {displaySpecification && (
+              {hasPdf ? (
+                <OverviewItem
+                  label="Đặc tả PDF"
+                  icon={<Upload className="h-4 w-4 text-red-500/70" />}
+                  value={displayExam.originalPdfFileName || 'File PDF'}
+                  rightIcon={
+                    <button
+                      onClick={handleViewPdf}
+                      className="rounded-md p-0.5 hover:bg-muted"
+                      title="Xem PDF"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  }
+                />
+              ) : displaySpecification ? (
                 <OverviewItem
                   label="Đặc tả CSDL"
                   icon={<Database className="h-4 w-4 text-primary/70" />}
@@ -349,7 +425,7 @@ export function TeacherExamDetailContent({
                     </Link>
                   }
                 />
-              )}
+              ) : null}
             </div>
 
             <div className="border-t border-border pt-6">
@@ -533,6 +609,31 @@ export function TeacherExamDetailContent({
           />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={pdfViewerOpen} onOpenChange={setPdfViewerOpen}>
+        <DialogContent className="flex h-[95vh] w-[95vw] max-w-[95vw] sm:max-w-[95vw] flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b border-border px-6 py-4">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-red-500" />
+              {displayExam.originalPdfFileName || 'Đặc tả PDF'}
+            </DialogTitle>
+            <DialogDescription>Đặc tả bài thi dạng file PDF</DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1">
+            {pdfLoading ? (
+              <div className="flex h-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : pdfBlobUrl ? (
+              <iframe
+                src={pdfBlobUrl}
+                title={displayExam.originalPdfFileName || 'Exam PDF'}
+                className="h-full w-full border-0"
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
