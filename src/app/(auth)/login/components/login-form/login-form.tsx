@@ -1,11 +1,11 @@
 'use client'
 
-import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
+// import Link from 'next/link'
+// import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+// import { Input } from '@/components/ui/input'
+// import { Label } from '@/components/ui/label'
 import { useLogin } from '@/app/(auth)/login/hooks/use-login'
 import { GoogleIcon } from '@/components/icons/google'
 import { MicrosoftIcon } from '@/components/icons/microsoft'
@@ -13,8 +13,8 @@ import styles from '@/app/(auth)/login/components/login-form/login-form.module.s
 
 export function LoginForm() {
   const {
-    register,
-    formState: { errors },
+    // register,
+    //formState: { errors },
     isLoading,
     handleSubmit,
     onSubmit,
@@ -26,9 +26,10 @@ export function LoginForm() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>Đăng nhập hệ thống</h1>
-        <p className={styles.subtitle}>
-          Đăng nhập với Google hoặc Microsoft nếu chưa đặt mật khẩu
-        </p>
+        <span className={styles.subtitle}>
+          Đăng nhập với Google nếu bạn là Giảng viên hoặc Microsoft nếu bạn là
+          Sinh viên
+        </span>
       </div>
 
       <form
@@ -36,7 +37,7 @@ export function LoginForm() {
         className={styles.form}
         noValidate
       >
-        <div className={styles.fieldGroup}>
+        {/* <div className={styles.fieldGroup}>
           <Label htmlFor="email" className={styles.label}>
             Email
           </Label>
@@ -55,9 +56,9 @@ export function LoginForm() {
               {errors.email.message}
             </p>
           )}
-        </div>
+        </div> */}
 
-        <div className={styles.fieldGroup}>
+        {/* <div className={styles.fieldGroup}>
           <div className={styles.passwordHeader}>
             <Label htmlFor="password" className={styles.label}>
               Mật khẩu
@@ -81,9 +82,9 @@ export function LoginForm() {
               {errors.password.message}
             </p>
           )}
-        </div>
+        </div> */}
 
-        <Button
+        {/* <Button
           type="submit"
           className={styles.submitButton}
           disabled={isLoading}
@@ -96,16 +97,16 @@ export function LoginForm() {
           ) : (
             'Đăng nhập'
           )}
-        </Button>
+        </Button> */}
       </form>
 
       <div className={styles.divider}>
         <div className={styles.dividerLineWrapper}>
           <span className={styles.dividerLine} />
         </div>
-        <div className={styles.dividerTextWrapper}>
+        {/* <div className={styles.dividerTextWrapper}>
           <span className={styles.dividerText}>Hoặc tiếp tục với</span>
-        </div>
+        </div> */}
       </div>
 
       <div className={styles.socialActions}>
