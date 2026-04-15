@@ -1,8 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { LogOut, GraduationCap } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from '@/components/shared/mode-toggle'
@@ -30,16 +29,7 @@ export function StudentHeader() {
   return (
     <header className={styles.header}>
       <div className={styles.headerContent}>
-        <Link href={PATH.STUDENT_EXAMS} className={styles.logo}>
-          <GraduationCap className={styles.logoIcon} />
-          <span>DATN Portal</span>
-        </Link>
-
-        <nav className={styles.nav}>
-          <Link href={PATH.STUDENT_EXAMS} className={styles.navLink}>
-            Bài thi
-          </Link>
-        </nav>
+        <div className="flex-1" />
 
         <div className={styles.headerActions}>
           {user && (

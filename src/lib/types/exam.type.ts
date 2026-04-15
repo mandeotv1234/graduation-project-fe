@@ -166,6 +166,18 @@ export interface SubmitExamResponse {
   }>
 }
 
+export interface StudentExamResultResponse {
+  id: number
+  examId: number
+  examTitle: string
+  attemptNumber: number
+  totalScore: number
+  maxScore: number
+  submittedAt: string
+  status: GradingStatus
+  allowReview: boolean
+}
+
 export interface TeacherExamResult {
   submissionId: number
   studentId: number

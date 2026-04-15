@@ -12,6 +12,11 @@
       @apply h-8 px-3 text-xs gap-2;
       @apply bg-blue-600 hover:bg-blue-700 text-white shadow-sm;
     }
+
+    .resetButton {
+      @apply h-8 px-3 text-xs gap-2 mr-auto;
+      @apply bg-background border border-destructive/30 hover:bg-destructive/10 text-destructive shadow-sm transition-all;
+    }
   }
 
   .editorWrap {

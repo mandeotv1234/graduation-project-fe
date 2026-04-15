@@ -10,7 +10,7 @@ import { useExamTake } from '@/app/(main)/student/exams/[examId]/take/hooks/use-
 import { useExamDraft } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-draft'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getExamTime } from '@/lib/actions/anti-cheat.action'
-import { getExamSpecification, getMe } from '@/lib/actions'
+import { getExamSpecification, getMe, clearExamSchema } from '@/lib/actions'
 import { User as UserType } from '@/lib/types'
 import { useAntiCheat } from '@/hooks/use-anti-cheat'
 import { useExamTimer } from '@/hooks/use-exam-timer'
@@ -66,6 +66,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     useState<ExamSpecification | null>(null)
   const [isOverviewSelected, setIsOverviewSelected] = useState(true)
   const [specViewMode, setSpecViewMode] = useState<'table' | 'diagram'>('table')
+  const [isClearing, setIsClearing] = useState(false)
   const schemaTablesForOverview = useMemo(() => {
     if (schemaMeta && schemaMeta.length > 0) {
       return schemaMeta.map((table) => ({
@@ -327,6 +328,25 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
 
     applySchemaMeta(schema)
   }, [examTake, applySchemaMeta])
+
+  const handleClearSchema = useCallback(async () => {
+    setIsClearing(true)
+    try {
+      const res = await clearExamSchema(exam.examId)
+      if (res.code === 'OK' || !res.code) {
+        toast.success('Đã xoá sạch các đối tượng trong schema thi!')
+        applySchemaMeta([])
+      } else {
+        toast.error(res.message || 'Xoá schema thất bại')
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Lỗi hệ thống khi xoá schema'
+      toast.error(errorMessage)
+    } finally {
+      setIsClearing(false)
+    }
+  }, [exam.examId, applySchemaMeta])
 
   const formatTime = useCallback((seconds: number): string => {
     const sAbs = Math.abs(seconds)
@@ -840,7 +860,9 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                         examTake.updateAnswer(examTake.currentQuestion.id, val)
                       }
                       onExecute={handleExecuteSqlAndRefreshSchema}
+                      onClearSchema={handleClearSchema}
                       isLoading={examTake.isLoading}
+                      isClearing={isClearing}
                       schema={editorSchema}
                     />
                   ) : (
