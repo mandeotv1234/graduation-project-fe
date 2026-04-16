@@ -22,6 +22,8 @@ export function useApi() {
       'Assignment updated successfully': 'Cập nhật bài tập thành công!',
       'Operation successfully': 'Thao tác thành công!',
       'Login successfully': 'Đăng nhập thành công!',
+      'Google login successfully': 'Đăng nhập Google thành công!',
+      'Microsoft login successfully': 'Đăng nhập Microsoft thành công!',
       'Teacher added to class successfully':
         'Thêm giảng viên vào lớp học thành công!',
       'Teacher removed from class successfully':
