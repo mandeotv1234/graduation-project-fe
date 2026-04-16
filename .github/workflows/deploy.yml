@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - develop
-      - fix/GRAD-116-Fix-UI-login
 
 env:
   REGISTRY: registry.digitalocean.com/graduation
