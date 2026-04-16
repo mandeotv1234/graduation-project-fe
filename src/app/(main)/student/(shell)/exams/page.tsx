@@ -16,7 +16,9 @@ export default async function StudentExamsPage() {
         </p>
       </div>
 
-      <ExamList exams={exams} />
+      <div className="mt-6">
+        <ExamList exams={exams} />
+      </div>
     </div>
   )
 }

@@ -26,6 +26,11 @@ export function useApi() {
         'Thêm giảng viên vào lớp học thành công!',
       'Teacher removed from class successfully':
         'Xóa giảng viên khỏi lớp học thành công!',
+      'Rubric generated successfully': 'Tạo rubric thành công!',
+      'Exam submitted successfully': 'Nộp bài thành công!',
+      'Exam draft saved successfully': 'Lưu bài thi thành công!',
+      'Exam cleared successfully': 'Xóa bài thi thành công!',
+      'Schema cleared successfully': 'Xóa schema thành công!',
       Success: 'Thành công!',
 
       // Error messages

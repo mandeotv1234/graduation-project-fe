@@ -1,8 +1,19 @@
 'use client'
 
-import { Play, Loader2 } from 'lucide-react'
+import { Play, Loader2, RotateCcw } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
 import Editor from '@monaco-editor/react'
 import type { Monaco } from '@monaco-editor/react'
 import type * as monacoType from 'monaco-editor'
@@ -19,7 +30,9 @@ interface SqlEditorPanelProps {
   value: string
   onChange: (value: string) => void
   onExecute: () => void
+  onClearSchema?: () => void
   isLoading: boolean
+  isClearing?: boolean
   /** Optional schema extracted from ExamSpecification for IntelliSense */
   schema?: SchemaTable[]
 }
@@ -28,7 +41,9 @@ export function SqlEditorPanel({
   value,
   onChange,
   onExecute,
+  onClearSchema,
   isLoading,
+  isClearing = false,
   schema = []
 }: SqlEditorPanelProps) {
   const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
@@ -482,9 +497,49 @@ export function SqlEditorPanel({
   return (
     <div className={styles.container}>
       <div className={styles.toolbar}>
+        {onClearSchema && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={isLoading || isClearing}
+                className={styles.resetButton}
+              >
+                {isClearing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3.5 w-3.5" />
+                )}
+                Xoá sạch DB
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Xác nhận xoá toàn bộ dữ liệu?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Hành động này sẽ thực thi lệnh xoá toàn bộ Bảng, Thủ tục, Hàm
+                  và Trigger trong schema của bạn. Bạn sẽ cần thực thi lại các
+                  lệnh CREATE/INSERT để khôi phục cấu trúc.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Huỷ bỏ</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onClearSchema}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Xoá ngay
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
         <Button
           onClick={onExecute}
-          disabled={isLoading}
+          disabled={isLoading || isClearing}
           className={styles.executeButton}
         >
           {isLoading ? (

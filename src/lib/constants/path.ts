@@ -8,6 +8,8 @@ export const PATH = {
   STUDENT_EXAM_DETAIL: (examId: number) => `/student/exams/${examId}`,
   STUDENT_EXAM_TAKE: (examId: number) => `/student/exams/${examId}/take`,
   STUDENT_EXAM_DOING: (examId: number) => `/student/exams/${examId}/take/doing`,
+  STUDENT_EXAM_RESULTS: '/student/results',
+  STUDENT_EXAM_RESULT: (resultId: number) => `/student/results/${resultId}`,
 
   // Teacher paths
   TEACHER_CLASSES: '/teacher/classes',

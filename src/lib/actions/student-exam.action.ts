@@ -11,8 +11,18 @@ import {
   ExecuteSqlRequest,
   ExecuteSqlResponse,
   SubmitExamRequest,
-  SubmitExamResponse
+  SubmitExamResponse,
+  StudentExamResultResponse,
+  PaginatedResult,
+  TeacherExamResultDetail
 } from '@/lib/types'
+
+export interface PaginationParams {
+  page?: number
+  size?: number
+  sortBy?: string
+  order?: 'asc' | 'desc'
+}
 
 export async function getForwardedHeaders() {
   const headersList = await headers()
@@ -63,6 +73,14 @@ export async function executeSql(
   )
 }
 
+export async function clearExamSchema(
+  examId: number
+): Promise<ApiResponse<null>> {
+  return apiClient.post<null>(ENDPOINTS.EXAM_CLEAR_SCHEMA(examId), undefined, {
+    headers: await getForwardedHeaders()
+  })
+}
+
 export async function submitExam(
   examId: number,
   data: SubmitExamRequest
@@ -102,4 +120,36 @@ export async function getExamDraft(
   return apiClient.get<DraftResponse | null>(ENDPOINTS.EXAM_DRAFT(examId), {
     cache: 'no-store'
   })
+}
+
+export async function getMyResults(
+  params: PaginationParams = {}
+): Promise<ApiResponse<PaginatedResult<StudentExamResultResponse>>> {
+  const searchParams = new URLSearchParams()
+  if (params.page !== undefined)
+    searchParams.append('page', params.page.toString())
+  if (params.size !== undefined)
+    searchParams.append('size', params.size.toString())
+  if (params.sortBy) searchParams.append('sortBy', params.sortBy)
+  if (params.order) searchParams.append('order', params.order)
+
+  const queryString = searchParams.toString()
+  const url = queryString
+    ? `${ENDPOINTS.MY_RESULTS}?${queryString}`
+    : ENDPOINTS.MY_RESULTS
+
+  return apiClient.get<PaginatedResult<StudentExamResultResponse>>(url, {
+    cache: 'no-store'
+  })
+}
+
+export async function getMyResultDetail(
+  resultId: number
+): Promise<ApiResponse<TeacherExamResultDetail>> {
+  return apiClient.get<TeacherExamResultDetail>(
+    ENDPOINTS.MY_RESULT_DETAIL(resultId),
+    {
+      cache: 'no-store'
+    }
+  )
 }

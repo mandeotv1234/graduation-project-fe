@@ -10,9 +10,12 @@ export const ENDPOINTS = Object.freeze({
 
   // Student - Exams
   ENROLLED_EXAMS: '/exams/enrolled',
+  MY_RESULTS: '/exams/my-results',
+  MY_RESULT_DETAIL: (resultId: number) => `/exams/my-results/${resultId}`,
   EXAM_DETAIL: (examId: number) => `/exams/${examId}`,
   EXAM_QUESTIONS: (examId: number) => `/exams/${examId}/questions`,
   EXAM_EXECUTE_SQL: (examId: number) => `/exams/${examId}/execute-sql`,
+  EXAM_CLEAR_SCHEMA: (examId: number) => `/exams/${examId}/clear-schema`,
   EXAM_SUBMIT: (examId: number) => `/exams/${examId}/submit`,
   EXAM_DRAFT: (examId: number) => `/exams/${examId}/draft`,
 
