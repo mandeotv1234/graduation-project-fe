@@ -4,16 +4,21 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
+  Play,
   Plus,
   Sparkles,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { generateGradingRubric } from '@/lib/actions'
+import {
+  generateGradingRubric,
+  executeSelectTestCaseConfig
+} from '@/lib/actions'
 import {
   GradingRubric,
   InsertDataGradingRule,
@@ -48,7 +53,7 @@ function createDefaultCase(index: number): SelectTestCase {
     penalty_value: 1,
     setup_custom_script: '',
     expected_result: {
-      columns_config: [{ column_name: 'col1', data_type: 'NVARCHAR' }],
+      columns_config: [{ column_name: 'col1' }],
       rows: [['value1']]
     }
   }
@@ -146,6 +151,7 @@ function normalizeSelectRubric(
 }
 
 export function SelectQueryRubricEditor({
+  examId,
   totalPoints,
   rubric,
   onChange,
@@ -208,6 +214,7 @@ export function SelectQueryRubricEditor({
   const [expandedCases, setExpandedCases] = useState<Record<number, boolean>>(
     {}
   )
+  const [runningCases, setRunningCases] = useState<Record<number, boolean>>({})
 
   const testCaseContextSummary = useMemo(() => {
     if (testCases.length === 0) {
@@ -282,21 +289,6 @@ export function SelectQueryRubricEditor({
   }
 
   const isWizardMode = typeof wizardStep === 'number'
-
-  // Auto-trigger AI generation when entering Step 2 with default placeholder data
-  const hasAutoTriggeredRef = useRef(false)
-  useEffect(() => {
-    if (
-      isWizardMode &&
-      wizardStep === 2 &&
-      correctQuery?.trim() &&
-      !isGenerating &&
-      !hasAutoTriggeredRef.current
-    ) {
-      hasAutoTriggeredRef.current = true
-      handleAiGenerate()
-    }
-  }, [wizardStep, isWizardMode, correctQuery, isGenerating])
 
   return (
     <div className="space-y-4">
@@ -493,40 +485,115 @@ export function SelectQueryRubricEditor({
                     </div>
                   </div>
 
-                  <div className="space-y-4 pt-6 border-t border-outline-variant/20">
+                  <div className="space-y-4 pt-6">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold text-on-surface border-l-4 border-primary pl-3">
                         Dữ liệu kết quả mong đợi
                       </span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 gap-1.5 text-xs shadow-sm bg-surface-container hover:bg-surface-container-highest border-outline-variant/30"
-                        onClick={() => {
-                          const next = [...testCases]
-                          const colsLen =
-                            tc.expected_result.columns_config.length
-                          const emptyRow = Array.from(
-                            { length: colsLen },
-                            () => ''
-                          )
-                          next[idx] = {
-                            ...tc,
-                            expected_result: {
-                              ...tc.expected_result,
-                              rows: [...tc.expected_result.rows, emptyRow]
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1.5 text-xs shadow-sm bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+                          onClick={async () => {
+                            if (!correctQuery?.trim()) {
+                              toast.error(
+                                'Vui lòng nhập SQL đáp án trước khi chạy test case'
+                              )
+                              return
                             }
+                            setRunningCases((prev) => ({
+                              ...prev,
+                              [idx]: true
+                            }))
+                            try {
+                              const result = await executeSelectTestCaseConfig(
+                                examId,
+                                {
+                                  setupCustomScript:
+                                    tc.setup_custom_script || '',
+                                  correctQuery: correctQuery.trim()
+                                }
+                              )
+                              if (!result.data) {
+                                toast.error(
+                                  result.message || 'Không thể chạy test case'
+                                )
+                                return
+                              }
+                              const { columns_config: cols, rows: resultRows } =
+                                result.data
+                              const next = [...testCases]
+                              next[idx] = {
+                                ...tc,
+                                expected_result: {
+                                  columns_config: cols.map((c) => ({
+                                    column_name: c.column_name
+                                  })),
+                                  rows: resultRows
+                                }
+                              }
+                              setTestCases(next)
+                              toast.success(
+                                `Đã cập nhật kết quả mong đợi: ${cols.length} cột, ${resultRows.length} dòng`
+                              )
+                            } catch (error) {
+                              console.error('Run test case failed:', error)
+                              toast.error(
+                                'Lỗi khi chạy test case. Vui lòng kiểm tra script setup và đáp án.'
+                              )
+                            } finally {
+                              setRunningCases((prev) => ({
+                                ...prev,
+                                [idx]: false
+                              }))
+                            }
+                          }}
+                          disabled={runningCases[idx]}
+                        >
+                          {runningCases[idx] ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              Đang chạy...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3.5 w-3.5" />
+                              Chạy test case
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1.5 text-xs shadow-sm bg-surface-container hover:bg-surface-container-highest border-outline-variant/30"
+                          onClick={() => {
+                            const next = [...testCases]
+                            const colsLen =
+                              tc.expected_result.columns_config.length
+                            const emptyRow = Array.from(
+                              { length: colsLen },
+                              () => ''
+                            )
+                            next[idx] = {
+                              ...tc,
+                              expected_result: {
+                                ...tc.expected_result,
+                                rows: [...tc.expected_result.rows, emptyRow]
+                              }
+                            }
+                            setTestCases(next)
+                          }}
+                          disabled={
+                            tc.expected_result.columns_config.length === 0
                           }
-                          setTestCases(next)
-                        }}
-                        disabled={
-                          tc.expected_result.columns_config.length === 0
-                        }
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        Thêm dòng
-                      </Button>
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Thêm dòng
+                        </Button>
+                      </div>
                     </div>
 
                     {tc.expected_result.rows.length > 0 &&
@@ -542,12 +609,93 @@ export function SelectQueryRubricEditor({
                                   (col, colIdx) => (
                                     <th
                                       key={`${tc.case_id}-head-${colIdx}`}
-                                      className="px-4 py-3 font-semibold text-on-surface text-left"
+                                      className="px-2 py-2 text-left group/col-header"
                                     >
-                                      {col.column_name || `Cột ${colIdx + 1}`}
+                                      <div className="flex items-center gap-1">
+                                        <input
+                                          value={col.column_name || ''}
+                                          onChange={(e) => {
+                                            const next = [...testCases]
+                                            const cols = [
+                                              ...tc.expected_result
+                                                .columns_config
+                                            ]
+                                            cols[colIdx] = {
+                                              ...cols[colIdx],
+                                              column_name: e.target.value
+                                            }
+                                            next[idx] = {
+                                              ...tc,
+                                              expected_result: {
+                                                ...tc.expected_result,
+                                                columns_config: cols
+                                              }
+                                            }
+                                            setTestCases(next)
+                                          }}
+                                          placeholder={`Cột ${colIdx + 1}`}
+                                          className="w-full min-w-[80px] bg-transparent px-2 py-1 text-sm font-semibold text-on-surface border border-transparent rounded-md hover:border-outline-variant/40 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const next = [...testCases]
+                                            const cols =
+                                              tc.expected_result.columns_config.filter(
+                                                (_, ci) => ci !== colIdx
+                                              )
+                                            const rows =
+                                              tc.expected_result.rows.map(
+                                                (row) =>
+                                                  row.filter(
+                                                    (_, ci) => ci !== colIdx
+                                                  )
+                                              )
+                                            next[idx] = {
+                                              ...tc,
+                                              expected_result: {
+                                                columns_config: cols,
+                                                rows
+                                              }
+                                            }
+                                            setTestCases(next)
+                                          }}
+                                          className="shrink-0 opacity-0 group-hover/col-header:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+                                          title="Xóa cột"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </div>
                                     </th>
                                   )
                                 )}
+                                <th className="px-2 py-2 w-14">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...testCases]
+                                      const newColName = `col${tc.expected_result.columns_config.length + 1}`
+                                      next[idx] = {
+                                        ...tc,
+                                        expected_result: {
+                                          columns_config: [
+                                            ...tc.expected_result
+                                              .columns_config,
+                                            { column_name: newColName }
+                                          ],
+                                          rows: tc.expected_result.rows.map(
+                                            (row) => [...row, '']
+                                          )
+                                        }
+                                      }
+                                      setTestCases(next)
+                                    }}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-dashed border-outline-variant/40 text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-all"
+                                    title="Thêm cột"
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                  </button>
+                                </th>
                                 <th className="px-3 py-2 w-12" />
                               </tr>
                             </thead>
@@ -595,6 +743,7 @@ export function SelectQueryRubricEditor({
                                       </td>
                                     )
                                   )}
+                                  <td />
                                   <td className="px-3 py-1 text-right">
                                     <button
                                       type="button"

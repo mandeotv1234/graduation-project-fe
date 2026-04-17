@@ -30,11 +30,11 @@ export class ApiClient {
     }
 
     if (payload) {
-      // console.log(`[ApiClient] ${message}`, payload)
+      console.log(`[ApiClient] ${message}`, payload)
       return
     }
 
-    // console.log(`[ApiClient] ${message}`)
+    console.log(`[ApiClient] ${message}`)
   }
 
   private previewBody(value: unknown) {

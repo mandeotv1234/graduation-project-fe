@@ -213,7 +213,7 @@ export async function executeSelectTestCaseConfig(
   }
 ): Promise<
   ApiResponse<{
-    columns_config: { column_name: string; data_type: string }[]
+    columns_config: { column_name: string }[]
     rows: string[][]
   }>
 > {

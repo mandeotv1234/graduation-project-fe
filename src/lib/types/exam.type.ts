@@ -510,7 +510,6 @@ export interface SelectGlobalGradingRules {
 
 export interface SelectExpectedColumnConfig {
   column_name: string
-  data_type: string
 }
 
 export interface SelectExpectedResult {

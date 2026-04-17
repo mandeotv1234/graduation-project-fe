@@ -19,11 +19,17 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { EditExamSectionModal } from './edit-exam-section-modal'
-import { ExamQuestionsView } from '../questions/components/exam-questions-view'
-import { TemplateLibraryManagement } from './template-library-management'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getSpecificationDetail, shareExamAsTemplate } from '@/lib/actions'
+import { fetchExamPdfBlobUrl } from '@/lib/api/pdf-client'
 import { PATH } from '@/lib/constants'
 import {
   ExamQuestionItem,
@@ -31,16 +37,10 @@ import {
   TeacherExamDetail,
   TeacherExamTemplateVersionsResponse
 } from '@/lib/types'
-import { getSpecificationDetail, shareExamAsTemplate } from '@/lib/actions'
-import { fetchExamPdfBlobUrl } from '@/lib/api/pdf-client'
 import { formatDateTime, getExamStatus } from '@/lib/utils'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription
-} from '@/components/ui/dialog'
+import { ExamQuestionsView } from '../questions/components/exam-questions-view'
+import { EditExamSectionModal } from './edit-exam-section-modal'
+import { TemplateLibraryManagement } from './template-library-management'
 
 type TeacherExamDetailContentProps = {
   exam: TeacherExamDetail
@@ -135,12 +135,12 @@ function SettingRow({
   value
 }: {
   label: string
-  value: string | number
+  value: React.ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border/60 py-2 last:border-0 last:pb-0">
-      <dt className="text-[13px] text-muted-foreground">{label}</dt>
-      <dd className="text-right text-[13px] font-medium text-foreground">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:flex-nowrap">
+      <dt className="text-[13px] font-medium text-muted-foreground">{label}</dt>
+      <dd className="text-right text-[13px] font-semibold text-foreground">
         {value}
       </dd>
     </div>
@@ -332,7 +332,7 @@ export function TeacherExamDetailContent({
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
-        className="w-full bg-card shadow-sm p-2 space-y-0 rounded-xl"
+        className="w-full bg-card p-2 space-y-0 rounded-xl"
       >
         <TabsList className="h-12 w-full justify-start rounded-none border-b bg-transparent p-0">
           <TabsTrigger
@@ -431,15 +431,20 @@ export function TeacherExamDetailContent({
             <div className="border-t border-border pt-6">
               <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
                 <div className="flex min-h-0 flex-col gap-4">
-                  <div>
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-500/10">
+                  <div className="overflow-hidden bg-card shadow-sm">
+                    <div className="flex items-center justify-between gap-3 border-b border-border/30 bg-primary/5 px-4 py-3 dark:bg-primary/5">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15">
                           <Database className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <h3 className="text-base font-semibold text-foreground">
-                          Quy định nộp bài
-                        </h3>
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-bold text-foreground">
+                            Quy định nộp bài
+                          </h3>
+                          <p className="truncate text-xs text-muted-foreground">
+                            Quy định xuất bản, điểm số và nộp bài
+                          </p>
+                        </div>
                       </div>
                       <EditExamSectionModal
                         exam={displayExam}
@@ -447,63 +452,66 @@ export function TeacherExamDetailContent({
                         onSaved={handleExamSaved}
                       />
                     </div>
-                    <div className="rounded-lg border bg-background">
-                      <dl className="px-4 pb-3 pt-2 text-sm">
-                        <SettingRow
-                          label="Xuất bản ngay"
-                          value={yesNo(displayExam.isPublished)}
-                        />
-                        <SettingRow
-                          label="Số lần làm tối đa"
-                          value={displayExam.maxAttempts}
-                        />
-                        <SettingRow
-                          label="Ngưỡng nộp trễ"
-                          value={`${displayExam.lateThreshold} phút`}
-                        />
-                        <SettingRow
-                          label="Tính điểm"
-                          value={mapGradingMethod(
-                            displayExam.settings?.gradingMethod
-                          )}
-                        />
-                        <SettingRow
-                          label="Hiển thị điểm"
-                          value={mapScoreDisplayMode(
-                            displayExam.settings?.scoreDisplayMode
-                          )}
-                        />
-                        <SettingRow
-                          label="Cho phép nộp trễ"
-                          value={yesNo(displayExam.settings?.allowOvertime)}
-                        />
-                        <SettingRow
-                          label="Cho phép xem lại bài"
-                          value={yesNo(displayExam.settings?.allowReview)}
-                        />
-                        <SettingRow
-                          label="Xem kết quả sau khi nộp bài"
-                          value={yesNo(
-                            displayExam.settings?.showResultAfterSubmit
-                          )}
-                        />
-                        <SettingRow
-                          label="Nạp schema giáo viên"
-                          value={yesNo(displayExam.settings?.isLoadDdl)}
-                        />
-                      </dl>
-                    </div>
+                    <dl className="divide-y divide-border/30 text-sm">
+                      <SettingRow
+                        label="Xuất bản ngay"
+                        value={yesNo(displayExam.isPublished)}
+                      />
+                      <SettingRow
+                        label="Số lần làm tối đa"
+                        value={displayExam.maxAttempts}
+                      />
+                      <SettingRow
+                        label="Ngưỡng nộp trễ"
+                        value={`${displayExam.lateThreshold} phút`}
+                      />
+                      <SettingRow
+                        label="Tính điểm"
+                        value={mapGradingMethod(
+                          displayExam.settings?.gradingMethod
+                        )}
+                      />
+                      <SettingRow
+                        label="Hiển thị điểm"
+                        value={mapScoreDisplayMode(
+                          displayExam.settings?.scoreDisplayMode
+                        )}
+                      />
+                      <SettingRow
+                        label="Cho phép nộp trễ"
+                        value={yesNo(displayExam.settings?.allowOvertime)}
+                      />
+                      <SettingRow
+                        label="Cho phép xem lại bài"
+                        value={yesNo(displayExam.settings?.allowReview)}
+                      />
+                      <SettingRow
+                        label="Xem kết quả sau khi nộp bài"
+                        value={yesNo(
+                          displayExam.settings?.showResultAfterSubmit
+                        )}
+                      />
+                      <SettingRow
+                        label="Nạp schema giáo viên"
+                        value={yesNo(displayExam.settings?.isLoadDdl)}
+                      />
+                    </dl>
                   </div>
 
-                  <div>
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-rose-500/10">
+                  <div className="overflow-hidden bg-card shadow-sm">
+                    <div className="flex items-center justify-between gap-3 border-b border-border/30 bg-rose-500/5 px-4 py-3 dark:bg-rose-500/10">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/15">
                           <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                         </div>
-                        <h3 className="text-base font-semibold text-foreground">
-                          Cài đặt chống gian lận
-                        </h3>
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-bold text-foreground">
+                            Cài đặt chống gian lận
+                          </h3>
+                          <p className="truncate text-xs text-muted-foreground">
+                            Các thiết lập giám sát và vi phạm
+                          </p>
+                        </div>
                       </div>
                       <EditExamSectionModal
                         exam={displayExam}
@@ -511,54 +519,51 @@ export function TeacherExamDetailContent({
                         onSaved={handleExamSaved}
                       />
                     </div>
-                    <div className="rounded-lg border bg-background p-4">
-                      <dl className="space-y-3 text-sm">
-                        <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                          <dt className="text-[13px] text-muted-foreground">
-                            Chống Copy/Paste
-                          </dt>
-                          <dd className="text-right text-[13px] font-medium text-foreground">
-                            {yesNo(displayExam.settings?.preventCopyPaste)}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                          <dt className="text-[13px] text-muted-foreground">
-                            Bắt buộc toàn màn hình
-                          </dt>
-                          <dd className="text-right text-[13px] font-medium text-foreground">
-                            {yesNo(displayExam.settings?.forceFullscreen)}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                          <dt className="text-[13px] text-muted-foreground">
-                            Giám sát chuyển Tab
-                          </dt>
-                          <dd className="text-right text-[13px] font-medium text-foreground">
-                            {yesNo(displayExam.settings?.trackTabSwitch)}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
-                          <dt className="text-[13px] text-muted-foreground">
-                            Tự động nộp khi vi phạm
-                          </dt>
-                          <dd className="text-right text-[13px] font-medium text-foreground">
+                    <dl className="divide-y divide-border/30 text-sm">
+                      <SettingRow
+                        label="Chống Copy/Paste"
+                        value={yesNo(displayExam.settings?.preventCopyPaste)}
+                      />
+                      <SettingRow
+                        label="Bắt buộc toàn màn hình"
+                        value={yesNo(displayExam.settings?.forceFullscreen)}
+                      />
+                      <SettingRow
+                        label="Giám sát chuyển Tab"
+                        value={yesNo(displayExam.settings?.trackTabSwitch)}
+                      />
+                      <SettingRow
+                        label="Tự động nộp khi vi phạm"
+                        value={
+                          <span>
                             {yesNo(displayExam.settings?.autoSubmitOnViolation)}
-                            {displayExam.settings?.autoSubmitOnViolation &&
-                              ` (Tối đa ${displayExam.settings?.maxViolations ?? 3} lần)`}
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
+                            {displayExam.settings?.autoSubmitOnViolation && (
+                              <span className="ml-1 text-muted-foreground font-normal">
+                                (Tối đa{' '}
+                                {displayExam.settings?.maxViolations ?? 3} lần)
+                              </span>
+                            )}
+                          </span>
+                        }
+                      />
+                    </dl>
                   </div>
                 </div>
 
-                <section className="flex min-h-0 flex-col gap-3 rounded-lg border bg-background p-4 lg:h-full">
-                  <div className="flex shrink-0 items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Info className="h-5 w-5 shrink-0 text-primary" />
-                      <h3 className="text-base font-semibold text-foreground">
-                        Mô tả và nội quy
-                      </h3>
+                <section className="flex min-h-0 flex-col overflow-hidden bg-card shadow-sm lg:h-full">
+                  <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/30 bg-primary/5 px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Info className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-bold text-foreground">
+                          Mô tả và nội quy
+                        </h3>
+                        <p className="truncate text-xs text-muted-foreground">
+                          Thông tin và hướng dẫn cho sinh viên
+                        </p>
+                      </div>
                     </div>
                     <EditExamSectionModal
                       exam={displayExam}
@@ -566,29 +571,38 @@ export function TeacherExamDetailContent({
                       onSaved={handleExamSaved}
                     />
                   </div>
-                  {displayExam.description ? (
-                    <div className="min-h-0 flex-1 overflow-y-auto rounded-md bg-muted/30 p-4 text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                      {displayExam.description}
-                    </div>
-                  ) : (
-                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 rounded-md border border-dashed border-muted-foreground/25 bg-muted/15 px-4 py-10 text-center">
-                      <FileText
-                        className="h-9 w-9 text-muted-foreground/40"
-                        aria-hidden
-                      />
-                      <p className="max-w-md text-sm text-muted-foreground">
-                        Chưa có mô tả và nội quy. Bấm biểu tượng bút để thêm nội
-                        dung.
-                      </p>
-                    </div>
-                  )}
+                  <div className="flex flex-1 flex-col p-4">
+                    {displayExam.description ? (
+                      <div className="min-h-0 flex-1 overflow-y-auto rounded-md bg-muted/20 p-4 text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                        {displayExam.description}
+                      </div>
+                    ) : (
+                      <div className="flex min-h-[300px] flex-1 flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-primary/20 bg-primary/5 px-4 py-10 text-center">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                          <FileText
+                            className="h-8 w-8 text-primary/60"
+                            aria-hidden
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-base font-semibold text-foreground">
+                            Chưa có mô tả
+                          </p>
+                          <p className="max-w-[250px] text-sm text-muted-foreground">
+                            Bấm vào biểu tượng bút ở góc trên để thêm nội quy
+                            hoặc hướng dẫn cho sinh viên
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </section>
               </div>
             </div>
           </section>
         </TabsContent>
 
-        <TabsContent value="questions" className="mt-0 outline-none">
+        <TabsContent value="questions" className="mt-0 outline-none p-3">
           <ExamQuestionsView
             variant="embedded"
             examId={exam.id}

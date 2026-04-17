@@ -1,26 +1,26 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import {
+  ArrowRight,
+  Code2,
+  Hash,
+  Loader2,
+  Play,
+  Plus,
+  Save,
+  Settings,
+  Share2,
+  Sparkles,
+  Terminal,
+  Trash2,
+  Users
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
-  Plus,
-  Hash,
-  Save,
-  Share2,
-  Settings,
-  X,
-  Trash2,
-  Loader2,
-  Code2,
-  Terminal,
-  Sparkles,
-  Users,
-  Play,
-  ArrowRight
-} from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { RichTextEditor } from '@/components/shared/rich-text-editor'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -30,44 +30,43 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { RichTextEditor } from '@/components/shared/rich-text-editor'
-import { RubricTestGrader } from './rubric-test-grader'
-import { TeacherSqlEditor } from './teacher-sql-editor'
-import {
-  createExamQuestionsBatch,
-  shareExamAsTemplate,
-  deleteExamQuestion,
-  updateExamQuestion
-} from '@/lib/actions'
 import { useApi } from '@/hooks/use-api'
 import {
-  ExamQuestionItem,
+  createExamQuestionsBatch,
+  deleteExamQuestion,
+  shareExamAsTemplate,
+  updateExamQuestion
+} from '@/lib/actions'
+import { PATH } from '@/lib/constants'
+import {
   CreateExamQuestionBatch,
+  ExamQuestionItem,
+  ExamSpecification,
   GradingRubric,
   SpecificationDataset,
-  ExamSpecification,
   SpecificationDetailResponse,
+  SpecificationSchemaJsonTable,
   TeacherExamTemplateVersionsResponse,
-  UpdateExamQuestionRequest,
-  SpecificationSchemaJsonTable
+  UpdateExamQuestionRequest
 } from '@/lib/types'
-import { PATH } from '@/lib/constants'
-import { CreateTableRubricEditor } from './create-table-rubric-editor'
-import { InsertDataRubricEditor } from './insert-data-rubric-editor'
-import { InsertDataTestGrader } from './insert-data-test-grader'
-import { SelectQueryRubricEditor } from './select-query-rubric-editor'
-import { SelectQueryTestGrader } from './select-query-test-grader'
-import { QuestionItem } from './question-item'
+import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
 import {
   generateCreateTableQuestionFromSchema,
   sanitizeSchemaTables
 } from './create-table-question-generator'
+import { CreateTableRubricEditor } from './create-table-rubric-editor'
 import {
   generateInsertDataQuestionFromDataset,
   getDatasetTableNames
 } from './insert-data-question-generator'
-import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
+import { InsertDataRubricEditor } from './insert-data-rubric-editor'
+import { InsertDataTestGrader } from './insert-data-test-grader'
 import { InsertQueryFromSpec } from './insert-query-from-spec'
+import { QuestionItem } from './question-item'
+import { RubricTestGrader } from './rubric-test-grader'
+import { SelectQueryRubricEditor } from './select-query-rubric-editor'
+import { SelectQueryTestGrader } from './select-query-test-grader'
+import { TeacherSqlEditor } from './teacher-sql-editor'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -714,32 +713,6 @@ export function ExamQuestionsView({
       {/* Add questions form (batch) */}
       {showAddForm && (
         <div className="space-y-6">
-          {/* Form Header */}
-          <div className="flex items-center justify-between bg-muted/30 p-4 rounded-xl border border-border">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                Tạo câu hỏi theo từng bước
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Hoàn thành từng bước rồi bấm Tiếp theo để qua bước kế tiếp.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setPendingQuestions([])
-                  setShowAddForm(false)
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-
           {/* Pending Questions List (Cards instead of Table) */}
           {pendingQuestions.length > 0 && (
             <div className="space-y-6">
@@ -1274,7 +1247,7 @@ export function ExamQuestionsView({
                               <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                                 <span className="flex items-center gap-1.5">
                                   <Code2 className="h-4 w-4 text-sub-primary" />
-                                  Đáp án (Correct Query)
+                                  Đáp án
                                 </span>
                               </label>
                               {q.questionType === 'CREATE_TABLE' && (
@@ -1310,14 +1283,6 @@ export function ExamQuestionsView({
                                 />
                               </div>
                               {!q.correctQuery &&
-                                q.questionType !== 'INSERT_DATA' && (
-                                  <p className="flex items-center gap-1.5 text-[11px] text-sub-primary italic">
-                                    <Sparkles className="h-3 w-3" />
-                                    AI sẽ tự động tạo đáp án dựa trên nội dung
-                                    đề bài
-                                  </p>
-                                )}
-                              {!q.correctQuery &&
                                 q.questionType === 'INSERT_DATA' && (
                                   <p className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 italic">
                                     <Sparkles className="h-3 w-3" />
@@ -1350,13 +1315,6 @@ export function ExamQuestionsView({
                                     readOnly={step === 4}
                                   />
                                 </div>
-                                {!q.verifyScript && (
-                                  <p className="flex items-center gap-1.5 text-[11px] text-primary italic">
-                                    <Sparkles className="h-3 w-3" />
-                                    AI sẽ tự động tạo script dựa trên nội dung
-                                    đề bài
-                                  </p>
-                                )}
                               </div>
                             )}
                           </div>
@@ -1466,7 +1424,7 @@ export function ExamQuestionsView({
                           <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
                             <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
                               <Play className="h-4 w-4" />
-                              Kiểm thử rubric
+                              Kiểm tra chấm điểm với câu truy vấn
                             </h4>
                             {q.questionType === 'CREATE_TABLE' && (
                               <RubricTestGrader
@@ -1496,9 +1454,17 @@ export function ExamQuestionsView({
                     </div>
 
                     <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/10 px-5 py-4">
-                      <p className="text-xs text-muted-foreground">
-                        Bước {step}/4
-                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          setPendingQuestions([])
+                          setShowAddForm(false)
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Hủy
+                      </Button>
                       <div className="flex items-center gap-2">
                         {step > 1 && (
                           <Button
