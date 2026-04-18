@@ -1,22 +1,19 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import {
-  Loader2,
-  Play,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Info,
-  ChevronDown,
-  ChevronRight
-} from 'lucide-react'
-import { toast } from 'sonner'
-
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { TeacherSqlEditor } from './teacher-sql-editor'
 import { testGradeSelectData } from '@/lib/actions'
 import { GradingRubric } from '@/lib/types'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Play,
+  XCircle
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { TeacherSqlEditor } from './teacher-sql-editor'
 
 interface GradeDetail {
   type: string
@@ -25,29 +22,28 @@ interface GradeDetail {
 }
 
 interface GradeResult {
-  earnedPoints: number
   totalPoints: number
+  earnedPoints: number
   allPassed: boolean
   details: GradeDetail[]
 }
 
 interface SelectQueryTestGraderProps {
-  examId: number
   rubric: GradingRubric | null
   correctQuery?: string
+  examId: number
   totalPoints?: number
 }
 
 export function SelectQueryTestGrader({
-  examId,
   rubric,
   correctQuery,
+  examId,
   totalPoints
 }: SelectQueryTestGraderProps) {
   const [studentSql, setStudentSql] = useState('')
-  const [isGrading, setIsGrading] = useState(false)
   const [result, setResult] = useState<GradeResult | null>(null)
-  const [showInfoDetails, setShowInfoDetails] = useState(false)
+  const [isGrading, setIsGrading] = useState(false)
 
   const hasRubric =
     rubric &&
@@ -67,12 +63,11 @@ export function SelectQueryTestGrader({
       : rubricTotalPoints
 
   const handleTest = async () => {
-    if (!rubric || !studentSql.trim()) {
-      return
-    }
+    if (!rubric || !studentSql.trim()) return
 
     setIsGrading(true)
     setResult(null)
+
     try {
       const response = await testGradeSelectData(examId, {
         studentQuery: studentSql.trim(),
@@ -84,11 +79,11 @@ export function SelectQueryTestGrader({
       if (response.data) {
         setResult(response.data as GradeResult)
       } else {
-        toast.error(response.message || 'Không thể chấm thử câu SELECT')
+        toast.error(response.message || 'Lỗi khi chấm thử')
       }
-    } catch (error) {
-      console.error('SELECT test grade failed:', error)
-      toast.error('Lỗi kết nối khi chấm thử câu SELECT')
+    } catch (err) {
+      console.error('Test grade failed:', err)
+      toast.error('Lỗi kết nối. Vui lòng thử lại.')
     } finally {
       setIsGrading(false)
     }
@@ -96,8 +91,8 @@ export function SelectQueryTestGrader({
 
   if (!hasRubric) {
     return (
-      <div className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-        <AlertTriangle className="h-4 w-4 mx-auto mb-1 text-amber-500" />
+      <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+        <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-amber-500" />
         Vui lòng tạo rubric SELECT theo test case trước khi chấm thử.
       </div>
     )
@@ -107,33 +102,28 @@ export function SelectQueryTestGrader({
     ? (result.earnedPoints / result.totalPoints) * 100
     : 0
 
-  // Split details into main (success/warning/error) and info
-  const mainDetails = useMemo(
-    () => result?.details.filter((d) => d.type !== 'info') ?? [],
-    [result]
-  )
-  const infoDetails = useMemo(
-    () => result?.details.filter((d) => d.type === 'info') ?? [],
-    [result]
-  )
-
   return (
-    <div className="space-y-3">
-      <div className="h-[180px] overflow-hidden rounded border border-border bg-sub-background">
-        <TeacherSqlEditor
-          value={studentSql}
-          onChange={(value) => {
-            setStudentSql(value || '')
-            setResult(null)
-          }}
-          height="100%"
-        />
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          SQL CỦA SINH VIÊN (LỆNH SELECT QUERY)
+        </label>
+        <div className="h-40 overflow-hidden rounded-md border border-border bg-sub-background">
+          <TeacherSqlEditor
+            value={studentSql}
+            onChange={(value) => {
+              setStudentSql(value || '')
+              setResult(null)
+            }}
+            height="100%"
+          />
+        </div>
       </div>
 
       <Button
         type="button"
         onClick={handleTest}
-        disabled={isGrading || !studentSql.trim()}
+        disabled={!studentSql.trim() || isGrading}
         className="gap-2"
       >
         {isGrading ? (
@@ -144,120 +134,87 @@ export function SelectQueryTestGrader({
         ) : (
           <>
             <Play className="h-4 w-4" />
-            Chấm thử
+            Chấm Giả Lập
           </>
         )}
       </Button>
 
+      {/* Results */}
       {result && (
-        <div className="space-y-3">
-          {/* Score summary */}
+        <div className="space-y-3 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+          {/* Score bar */}
           <div
-            className={`rounded-lg border px-4 py-3 flex items-center justify-between ${
-              result.allPassed
-                ? 'border-emerald-500/30 bg-emerald-500/5'
+            className={`rounded-lg border p-4 ${
+              scorePercent >= 90
+                ? 'bg-emerald-500/5 border-emerald-500/20'
                 : scorePercent >= 50
-                  ? 'border-amber-500/30 bg-amber-500/5'
-                  : 'border-red-500/30 bg-red-500/5'
+                  ? 'bg-amber-500/5 border-amber-500/20'
+                  : 'bg-red-500/5 border-red-500/20'
             }`}
           >
-            <div className="flex items-center gap-2 text-sm font-medium">
-              {result.allPassed ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <XCircle className="h-4 w-4 text-red-500" />
-              )}
-              <span>
-                Điểm:{' '}
-                <strong>
-                  {result.earnedPoints.toFixed(2)} /{' '}
-                  {result.totalPoints.toFixed(2)}
-                </strong>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-bold text-foreground">
+                Kết quả chấm điểm SELECT query
+              </span>
+              <span
+                className={`text-2xl font-extrabold ${scorePercent >= 90 ? 'text-emerald-600 dark:text-emerald-400' : scorePercent >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}
+              >
+                {Number(result.earnedPoints).toFixed(2)} /{' '}
+                {result.totalPoints.toFixed(2)}
               </span>
             </div>
-            <span
-              className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                result.allPassed
-                  ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                  : scorePercent >= 50
-                    ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
-                    : 'bg-red-500/20 text-red-700 dark:text-red-400'
-              }`}
-            >
-              {scorePercent.toFixed(0)}%
-            </span>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${scorePercent >= 90 ? 'bg-emerald-500' : scorePercent >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                style={{ width: `${Math.min(100, scorePercent)}%` }}
+              />
+            </div>
           </div>
 
-          {/* Main details (success/warning/error only) */}
-          {mainDetails.length > 0 && (
-            <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
-              {mainDetails.map((d, idx) => (
+          {/* Detail breakdown */}
+          <div className="rounded-lg border border-border overflow-hidden bg-card">
+            <div className="flex items-center gap-2 bg-muted/30 px-4 py-2.5 border-b border-border">
+              <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                Chi tiết vết chấm từng test case
+              </span>
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground bg-muted font-semibold"
+              >
+                {result.details.length}
+              </Badge>
+            </div>
+            <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
+              {result.details.map((detail, idx) => (
                 <div
                   key={idx}
-                  className={`px-3 py-2.5 text-xs flex items-start gap-2 ${
-                    d.type === 'success'
-                      ? 'bg-emerald-500/5'
-                      : d.type === 'warning'
-                        ? 'bg-amber-500/5'
-                        : 'bg-red-500/5'
-                  }`}
+                  className="flex items-start gap-2 px-4 py-2.5 text-xs hover:bg-muted/20 transition-colors"
                 >
-                  {d.type === 'success' && (
+                  {detail.type === 'success' && (
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
                   )}
-                  {d.type === 'warning' && (
+                  {detail.type === 'warning' && (
                     <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
                   )}
-                  {d.type === 'error' && (
+                  {detail.type === 'error' && (
                     <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
                   )}
-                  <span className="flex-1 leading-relaxed">{d.message}</span>
-                  {d.points !== 0 && (
-                    <span
-                      className={`font-mono font-medium shrink-0 ${
-                        d.points < 0 ? 'text-red-600' : 'text-emerald-600'
-                      }`}
-                    >
-                      {d.points > 0 ? '+' : ''}
-                      {d.points}
-                    </span>
+                  {detail.type === 'info' && (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
                   )}
+                  <span className="flex-1 text-foreground wrap-break-word">
+                    {detail.message}
+                  </span>
+                  <span
+                    className={`font-mono font-bold shrink-0 ${detail.points > 0 ? 'text-emerald-600 dark:text-emerald-400' : detail.points < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}
+                  >
+                    {detail.points > 0 ? '+' : ''}
+                    {detail.points}
+                  </span>
                 </div>
               ))}
             </div>
-          )}
-
-          {/* Info details toggle */}
-          {infoDetails.length > 0 && (
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowInfoDetails((prev) => !prev)}
-                className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showInfoDetails ? (
-                  <ChevronDown className="h-3 w-3" />
-                ) : (
-                  <ChevronRight className="h-3 w-3" />
-                )}
-                <Info className="h-3 w-3" />
-                Chi tiết kỹ thuật ({infoDetails.length})
-              </button>
-              {showInfoDetails && (
-                <div className="mt-1.5 rounded border border-border/50 divide-y divide-border/50 overflow-hidden">
-                  {infoDetails.map((d, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-1.5 text-[11px] text-muted-foreground flex items-start gap-2"
-                    >
-                      <Info className="h-3 w-3 shrink-0 mt-0.5 opacity-50" />
-                      <span className="flex-1">{d.message}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </div>
       )}
     </div>

@@ -431,7 +431,7 @@ export function TeacherExamDetailContent({
             <div className="border-t border-border pt-6">
               <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
                 <div className="flex min-h-0 flex-col gap-4">
-                  <div className="overflow-hidden bg-card shadow-sm">
+                  <div className="overflow-hidden bg-card border border-border">
                     <div className="flex items-center justify-between gap-3 border-b border-border/30 bg-primary/5 px-4 py-3 dark:bg-primary/5">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15">
@@ -498,7 +498,7 @@ export function TeacherExamDetailContent({
                     </dl>
                   </div>
 
-                  <div className="overflow-hidden bg-card shadow-sm">
+                  <div className="overflow-hidden bg-card border border-border">
                     <div className="flex items-center justify-between gap-3 border-b border-border/30 bg-rose-500/5 px-4 py-3 dark:bg-rose-500/10">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/15">
@@ -550,7 +550,7 @@ export function TeacherExamDetailContent({
                   </div>
                 </div>
 
-                <section className="flex min-h-0 flex-col overflow-hidden bg-card shadow-sm lg:h-full">
+                <section className="flex min-h-0 flex-col overflow-hidden bg-card border border-border lg:h-full">
                   <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/30 bg-primary/5 px-4 py-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">

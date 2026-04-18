@@ -151,17 +151,17 @@ export function InsertDataTestGrader({
         type="button"
         onClick={handleTest}
         disabled={!studentSql.trim() || isGrading}
-        className="gap-2 bg-slate-800 hover:bg-slate-700 text-white"
+        className="gap-2"
       >
         {isGrading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Đường Data đang chạy...
+            Đang chấm...
           </>
         ) : (
           <>
             <Play className="h-4 w-4" />
-            Giả Lập Chấm Thử Dữ Liệu
+            Chấm Giả Lập
           </>
         )}
       </Button>

@@ -102,6 +102,24 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
     ]
   },
   {
+    id: 'teacher-class-edit-class',
+    kind: 'template',
+    template: '/teacher/classes/:classId/edit',
+    crumbs: [
+      HOME_CRUMB,
+      {
+        label: ':classLabel',
+        href: '/teacher/classes/:classId',
+        clickable: true
+      },
+      {
+        label: 'Chỉnh sửa',
+        href: '/teacher/classes/:classId/edit',
+        clickable: true
+      }
+    ]
+  },
+  {
     id: 'teacher-specifications',
     kind: 'template',
     template: '/teacher/specifications',
