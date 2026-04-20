@@ -1,55 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { toast } from 'sonner'
-import {
-  ChevronDown,
-  ChevronUp,
-  Code2,
-  Terminal,
-  Award,
-  Hash,
-  Trash2,
-  Edit,
-  Save,
-  Loader2,
-  Play
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
-import { TeacherSqlEditor } from './teacher-sql-editor'
 import { RichTextEditor } from '@/components/shared/rich-text-editor'
-import {
-  ExamQuestionItem,
-  SpecificationDataset,
-  SpecificationSchemaJsonTable,
-  UpdateExamQuestionRequest,
-  ExamSpecification,
-  SpecificationDetailResponse
-} from '@/lib/types'
-import {
-  generateCreateTableQuestionFromSchema,
-  sanitizeSchemaTables
-} from './create-table-question-generator'
-import {
-  generateInsertDataQuestionFromDataset,
-  getDatasetTableNames
-} from './insert-data-question-generator'
-import { CreateTableRubricEditor } from './create-table-rubric-editor'
-import { InsertDataRubricEditor } from './insert-data-rubric-editor'
-import { SelectQueryRubricEditor } from './select-query-rubric-editor'
-import { RubricTestGrader } from './rubric-test-grader'
-import { InsertDataTestGrader } from './insert-data-test-grader'
-import { SelectQueryTestGrader } from './select-query-test-grader'
-import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
-import { InsertQueryFromSpec } from './insert-query-from-spec'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,6 +12,55 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import {
+  ExamQuestionItem,
+  ExamSpecification,
+  SpecificationDataset,
+  SpecificationDetailResponse,
+  SpecificationSchemaJsonTable,
+  UpdateExamQuestionRequest
+} from '@/lib/types'
+import {
+  Award,
+  ChevronDown,
+  ChevronUp,
+  Code2,
+  Edit,
+  Hash,
+  Loader2,
+  Play,
+  Save,
+  Terminal,
+  Trash2
+} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
+import {
+  generateCreateTableQuestionFromSchema,
+  sanitizeSchemaTables
+} from './create-table-question-generator'
+import { CreateTableRubricEditor } from './create-table-rubric-editor'
+import {
+  generateInsertDataQuestionFromDataset,
+  getDatasetTableNames
+} from './insert-data-question-generator'
+import { InsertDataRubricEditor } from './insert-data-rubric-editor'
+import { InsertDataTestGrader } from './insert-data-test-grader'
+import { InsertQueryFromSpec } from './insert-query-from-spec'
+import { RubricTestGrader } from './rubric-test-grader'
+import { SelectQueryRubricEditor } from './select-query-rubric-editor'
+import { SelectQueryTestGrader } from './select-query-test-grader'
+import { TeacherSqlEditor } from './teacher-sql-editor'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -827,7 +827,7 @@ export function QuestionItem({
   }
 
   return (
-    <div className="rounded-sm shadow-sm bg-card transition-all hover:shadow-md border border-border">
+    <div className="rounded-sm bg-card transition-all hover:shadow-sm border border-border">
       <div className="p-5">
         <div className="flex items-start gap-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sub-primary/10 text-sm font-bold text-sub-primary">
@@ -854,19 +854,7 @@ export function QuestionItem({
               />
             </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="h-8 w-8 p-0"
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
+          <div className="flex flex-row items-start gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -909,6 +897,18 @@ export function QuestionItem({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="h-8 w-8 p-0"
+            >
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </div>
       </div>
@@ -925,7 +925,7 @@ export function QuestionItem({
           >
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <Code2 className="h-3.5 w-3.5" /> Đáp án (Correct Query)
+                <Code2 className="h-3.5 w-3.5" /> Đáp án
               </div>
               <div className="h-[180px] overflow-hidden rounded-lg border border-border bg-sub-background">
                 <TeacherSqlEditor

@@ -490,7 +490,7 @@ export function InsertDataRubricEditor({
               return (
                 <div
                   key={tIdx}
-                  className="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
+                  className="overflow-hidden rounded-lg border border-border bg-card"
                 >
                   <div
                     onClick={() => toggleTable(tIdx)}
@@ -691,13 +691,13 @@ export function InsertDataRubricEditor({
       )}
 
       {(!isWizardMode || wizardStep === 2) && (
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-4">
           <button
             type="button"
             onClick={() => setShowAdvancedJson((prev) => !prev)}
             className="w-full flex items-center justify-between text-left"
           >
-            <span className="text-sm font-bold text-foreground">
+            <span className="text-sm font-medium text-foreground">
               Tùy chọn nâng cao (Cấu hình với json)
             </span>
             {showAdvancedJson ? (

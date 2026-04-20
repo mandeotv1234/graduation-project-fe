@@ -111,7 +111,7 @@ export function RubricTestGrader({
       {/* Student SQL input */}
       <div className="space-y-2">
         <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          SQL của sinh viên (CREATE TABLE)
+          SQL CỦA SINH VIÊN (LỆNH CREATE TABLE)
         </label>
         <div className="h-40 overflow-hidden rounded-md border border-border bg-sub-background">
           <TeacherSqlEditor
@@ -139,7 +139,7 @@ export function RubricTestGrader({
         ) : (
           <>
             <Play className="h-4 w-4" />
-            Chấm thử
+            Chấm Giả Lập
           </>
         )}
       </Button>
@@ -159,46 +159,34 @@ export function RubricTestGrader({
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold text-foreground">
-                Kết quả chấm thử
+                Kết quả chấm điểm CREATE TABLE
               </span>
               <span
-                className={`text-2xl font-extrabold ${
-                  scorePercent >= 90
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : scorePercent >= 50
-                      ? 'text-amber-600 dark:text-amber-400'
-                      : 'text-red-600 dark:text-red-400'
-                }`}
+                className={`text-2xl font-extrabold ${scorePercent >= 90 ? 'text-emerald-600 dark:text-emerald-400' : scorePercent >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}
               >
-                {result.earnedPoints} / {result.totalPoints}
+                {Number(result.earnedPoints).toFixed(2)} /{' '}
+                {result.totalPoints.toFixed(2)}
               </span>
             </div>
-            {/* Progress bar */}
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  scorePercent >= 90
-                    ? 'bg-emerald-500'
-                    : scorePercent >= 50
-                      ? 'bg-amber-500'
-                      : 'bg-red-500'
-                }`}
+                className={`h-full rounded-full transition-all duration-500 ${scorePercent >= 90 ? 'bg-emerald-500' : scorePercent >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
                 style={{ width: `${Math.min(100, scorePercent)}%` }}
               />
             </div>
           </div>
 
           {/* Detail breakdown */}
-          <div className="rounded-lg shadow-sm overflow-hidden">
-            <div className="flex items-center justify-start gap-2 bg-muted/30 px-4 py-2.5 border-b border-border">
+          <div className="rounded-lg border border-border overflow-hidden bg-card">
+            <div className="flex items-center gap-2 bg-muted/30 px-4 py-2.5 border-b border-border">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Chi tiết chấm điểm
+                Chi tiết vết chấm từng đối tượng
               </span>
               <Badge
                 variant="secondary"
                 className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground bg-muted font-semibold"
               >
-                {result.details.length} mục
+                {result.details.length}
               </Badge>
             </div>
             <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
@@ -216,20 +204,14 @@ export function RubricTestGrader({
                   {detail.type === 'error' && (
                     <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
                   )}
-                  <span className="flex-1 text-foreground">
+                  <span className="flex-1 text-foreground wrap-break-word">
                     {detail.message}
                   </span>
                   <span
-                    className={`font-mono font-bold shrink-0 ${
-                      detail.points > 0
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : detail.points < 0
-                          ? 'text-red-600 dark:text-red-400'
-                          : 'text-muted-foreground'
-                    }`}
+                    className={`font-mono font-bold shrink-0 ${detail.points > 0 ? 'text-emerald-600 dark:text-emerald-400' : detail.points < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}
                   >
                     {detail.points > 0 ? '+' : ''}
-                    {detail.points}đ
+                    {detail.points}
                   </span>
                 </div>
               ))}

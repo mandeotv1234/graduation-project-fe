@@ -172,7 +172,7 @@ export function ClassDetailView({
         </div>
 
         {exams.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border py-10 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-card py-10 text-center">
             <FileText className="mx-auto h-8 w-8 text-muted-foreground/40" />
             <p className="mt-2 text-sm text-muted-foreground">
               Chưa có bài thi nào

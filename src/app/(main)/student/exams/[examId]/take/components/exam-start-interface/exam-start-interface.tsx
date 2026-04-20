@@ -302,8 +302,8 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                 )}
                 {settings?.trackTabSwitch && (
                   <li>
-                    Việc <strong>chuyển đổi thẻ (Tab) hoặc ứng dụng</strong> sẽ
-                    bị giám sát chặt chẽ bằng thuật toán.
+                    Việc <strong>chuyển đổi cửa sổ hoặc ứng dụng</strong> sẽ bị
+                    giám sát chặt chẽ bằng thuật toán.
                   </li>
                 )}
                 {settings?.autoSubmitOnViolation && (
@@ -337,14 +337,13 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                 <div className="mt-5 p-4 bg-background/50 rounded-lg border border-amber-200/40">
                   <p className="font-semibold text-foreground mb-2 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-amber-600" /> Chế độ thi an
-                    toàn (Bắt buộc)
+                    toàn
                   </p>
                   <p className="text-sm text-foreground/80">
                     Hệ thống yêu cầu chế độ toàn màn hình để đảm bảo tính công
-                    bằng. Bạn không được chuyển thẻ nội dung (tab), mở DevTools,
-                    hay sử dụng các phím tắt bị cấm. Mọi vi phạm sẽ được ghi
-                    nhận lại và bài thi sẽ bị tự động nộp nếu vi phạm quá số
-                    lần.
+                    bằng. Bạn không được chuyển cửa sổ, mở DevTools, hay sử dụng
+                    các phím tắt bị cấm. Mọi vi phạm sẽ được ghi nhận lại và bài
+                    thi sẽ bị tự động nộp nếu vi phạm quá số lần.
                   </p>
                 </div>
               )}
