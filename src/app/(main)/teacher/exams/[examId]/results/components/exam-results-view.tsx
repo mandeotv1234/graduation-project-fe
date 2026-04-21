@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Tabs from '@radix-ui/react-tabs'
 import {
@@ -16,7 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  BarChart2
+  BarChart2,
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import styles from './exam-results-view.module.scss'
@@ -58,17 +59,28 @@ export function ExamResultsView({
   const [searchTerm, setSearchTerm] = useState('')
   const [isRegradingAll, setIsRegradingAll] = useState(false)
   const [activeTab, setActiveTab] = useState('results')
+  // Tracks remaining re-grade jobs so socket handler can suppress toasts & block new-entry adds
+  const regradingRemainingRef = useRef(0)
 
   async function handleRegradeAll() {
     setIsRegradingAll(true)
     try {
       const res = await regradeAllExamResults(examId)
       if (res.data) {
-        toast.success(
-          `Đã đưa vào hàng đợi chấm lại ${res.data.queuedCount} bài` +
-            (res.data.skippedCount > 0
-              ? ` (bỏ qua ${res.data.skippedCount} bài chưa hoàn tất)`
-              : '')
+        const { queuedCount, skippedCount } = res.data
+        regradingRemainingRef.current = queuedCount
+        toast.loading(
+          `Đang chấm lại ${queuedCount} bài...` +
+            (skippedCount > 0 ? ` (bỏ qua ${skippedCount} bài)` : ''),
+          { id: 'regrade-progress' }
+        )
+        // Reflect BE state: all completed results reset to PENDING
+        setResults((prev) =>
+          prev.map((r) =>
+            r.status === 'COMPLETED' || r.status === 'FAILED'
+              ? { ...r, status: 'PENDING' as const }
+              : r
+          )
         )
       } else {
         toast.error(res.message ?? 'Không thể chấm lại toàn bộ')
@@ -90,17 +102,29 @@ export function ExamResultsView({
       examId,
       (rawNotification: unknown) => {
         const notification = rawNotification as GradingNotificationDto
+        const isBulkRegrade = regradingRemainingRef.current > 0
+
         setResults((prev: TeacherExamResult[]) => {
+          // Match by submissionId, then by studentId+attemptNumber (attemptNumber optional)
           const index = prev.findIndex(
-            (r) => r.submissionId === notification.submissionId
+            (r) =>
+              (notification.submissionId !== undefined &&
+                r.submissionId === notification.submissionId) ||
+              (r.studentId === notification.studentId &&
+                (notification.attemptNumber === undefined ||
+                  r.attemptNumber === notification.attemptNumber))
           )
 
           const newResult: TeacherExamResult = {
-            submissionId: notification.submissionId || Date.now(),
+            submissionId:
+              notification.submissionId ||
+              prev[index]?.submissionId ||
+              Date.now(),
             studentId: notification.studentId,
             studentName: notification.studentName || 'Học sinh',
             studentEmail: notification.studentEmail || '',
-            attemptNumber: notification.attemptNumber || 1,
+            attemptNumber:
+              notification.attemptNumber || prev[index]?.attemptNumber || 1,
             submittedAt: new Date().toISOString(),
             totalScore: notification.totalScore || notification.score || 0,
             maxScore: notification.maxScore || 10,
@@ -113,14 +137,24 @@ export function ExamResultsView({
             const updated = [...prev]
             updated[index] = newResult
             return updated
-          } else {
-            return [newResult, ...prev]
           }
+          // During bulk re-grade never add new entries — only existing ones are re-graded
+          if (isBulkRegrade) return prev
+          return [newResult, ...prev]
         })
 
-        toast.success(
-          `Học sinh ${notification.studentName || 'Học sinh'} vừa nộp bài. Điểm: ${notification.totalScore || notification.score || 0}`
-        )
+        if (isBulkRegrade) {
+          regradingRemainingRef.current -= 1
+          if (regradingRemainingRef.current <= 0) {
+            toast.success('Đã chấm lại xong tất cả bài', {
+              id: 'regrade-progress'
+            })
+          }
+        } else {
+          const score = notification.totalScore ?? notification.score ?? 0
+          const name = notification.studentName || 'Học sinh'
+          toast.success(`${name} vừa nộp bài — ${score} điểm`)
+        }
       }
     )
 
@@ -142,13 +176,15 @@ export function ExamResultsView({
     currentPage * pageSize
   )
 
+  const gradedResults = results.filter((r) => r.status !== 'PENDING')
   const stats = {
     totalCount: results.length,
-    passed: results.filter((r) => r.totalScore >= 5).length,
+    passed: gradedResults.filter((r) => r.totalScore >= 5).length,
     average:
-      results.length > 0
+      gradedResults.length > 0
         ? (
-            results.reduce((sum, r) => sum + r.totalScore, 0) / results.length
+            gradedResults.reduce((sum, r) => sum + r.totalScore, 0) /
+            gradedResults.length
           ).toFixed(1)
         : 0
   }
@@ -451,8 +487,8 @@ export function ExamResultsView({
                             )}
                           </span>
                         </td>
-                        <td className="text-center px-4">
-                          <span className="text-xs font-semibold px-2 py-1 bg-muted rounded border">
+                        <td className="text-center">
+                          <span className={styles.attemptBadge}>
                             Lần {result.attemptNumber}
                           </span>
                         </td>
@@ -475,21 +511,28 @@ export function ExamResultsView({
                             <span
                               className={`${styles.statusBadge} ${styles.pending}`}
                             >
+                              <Loader2 className="h-3 w-3 animate-spin" />
                               Đang chấm
                             </span>
                           )}
                         </td>
-                        <td className="text-center">
-                          <div className="flex flex-col items-center">
-                            <span
-                              className={`${styles.scoreText} ${result.totalScore >= 5 ? styles.passed : styles.failed}`}
-                            >
-                              {result.totalScore.toFixed(1)}/{result.maxScore}
+                        <td className="text-right pr-6">
+                          {result.status === 'PENDING' ? (
+                            <span className="text-xs text-muted-foreground italic">
+                              Đang chấm...
                             </span>
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-                              {result.totalScore >= 5 ? 'Đạt' : 'Chưa đạt'}
-                            </span>
-                          </div>
+                          ) : (
+                            <div className="flex flex-col items-end">
+                              <span
+                                className={`${styles.scoreText} ${result.totalScore >= 5 ? styles.passed : styles.failed}`}
+                              >
+                                {result.totalScore.toFixed(1)}/{result.maxScore}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                                {result.totalScore >= 5 ? 'Đạt' : 'Chưa đạt'}
+                              </span>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))
