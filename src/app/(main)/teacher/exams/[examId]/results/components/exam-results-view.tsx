@@ -125,9 +125,9 @@ export function ExamResultsView({
             studentEmail: notification.studentEmail || '',
             attemptNumber:
               notification.attemptNumber || prev[index]?.attemptNumber || 1,
-            submittedAt: new Date().toISOString(),
+            submittedAt: prev[index]?.submittedAt ?? new Date().toISOString(),
             totalScore: notification.totalScore || notification.score || 0,
-            maxScore: notification.maxScore || 10,
+            maxScore: notification.maxScore || prev[index]?.maxScore || 10,
             correctCount: notification.correctCount || 0,
             totalQuestions: notification.totalQuestions || 0,
             status: notification.status
