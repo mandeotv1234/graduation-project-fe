@@ -2,10 +2,14 @@
 
 import { useEffect, useRef } from 'react'
 
-import { showWarning } from '@/lib/redux/slices/anti-cheat.slice'
 import { useAppDispatch } from '@/lib/redux/hooks'
+import {
+  resetAntiCheat,
+  showWarning
+} from '@/lib/redux/slices/anti-cheat.slice'
 import { connectStomp, disconnectStomp, getStompClient } from '@/lib/socket'
 import { ViolationNotification } from '@/lib/types'
+import { toast } from 'sonner'
 
 interface UseExamSocketOptions {
   examId: number
@@ -152,6 +156,20 @@ export function useExamSocket({
                 )
                 // Notify the component to handle the exit (allows bypassing guards)
                 onKickedRef.current?.()
+              } else if (payload.type === 'REMINDER') {
+                dispatch(
+                  showWarning(
+                    payload.message ||
+                      'Giáo viên yêu cầu bạn nghiêm túc làm bài.'
+                  )
+                )
+              } else if (payload.type === 'FORCE_SUBMIT') {
+                toast.error(
+                  payload.message ||
+                    'Bài thi của bạn đã bị nộp tự động theo yêu cầu của giáo viên.'
+                )
+                dispatch(resetAntiCheat())
+                setTimeout(() => onForceSubmitRef.current?.(), 2000)
               }
             } catch {
               console.error('[ExamSocket] Failed to parse personal message')

@@ -55,7 +55,8 @@ export async function reportViolation(
     console.log('[Server Action] reportViolation', examId, data.violationType)
     return await apiClient.post<ReportViolationResponse>(
       ENDPOINTS.EXAM_REPORT_VIOLATION(examId),
-      data
+      data,
+      { headers: await getForwardedHeaders() }
     )
   } catch (error: unknown) {
     const msg = extractErrorMessage(error)
