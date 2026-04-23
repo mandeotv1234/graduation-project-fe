@@ -192,6 +192,40 @@ export interface TeacherExamResult {
   submittedAt: string
 }
 
+// ===== Statistics Dashboard Types =====
+
+export interface ScoreDistributionBucket {
+  range: string
+  count: number
+}
+
+export interface QuestionTypeAccuracy {
+  questionType: string
+  totalAttempts: number
+  correctCount: number
+  accuracy: number
+}
+
+export interface SuspiciousStudent {
+  studentId: number
+  studentName: string
+  studentEmail: string
+  violationCount: number
+}
+
+export interface ExamStatistics {
+  totalSubmissions: number
+  averageScore: number
+  maxScore: number
+  minScore: number
+  passRate: number
+  suspiciousCount: number
+  scoreDistribution: ScoreDistributionBucket[]
+  questionTypeAccuracy: QuestionTypeAccuracy[]
+  avgCompletionTimeMinutes: number
+  suspiciousStudents: SuspiciousStudent[]
+}
+
 export interface TeacherExamResultDetail extends TeacherExamResult {
   questionResults: QuestionResultDetail[]
   gradingType: 'AUTO' | 'MANUAL' | 'MIXED'

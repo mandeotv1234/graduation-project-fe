@@ -27,7 +27,8 @@ import {
   RegradeResponse,
   RegradeAllResponse,
   RulePreset,
-  CreateRulePresetRequest
+  CreateRulePresetRequest,
+  ExamStatistics
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -192,6 +193,14 @@ export async function regradeAllExamResults(
   examId: number
 ): Promise<ApiResponse<RegradeAllResponse>> {
   return apiClient.post<RegradeAllResponse>(ENDPOINTS.EXAM_REGRADE_ALL(examId))
+}
+
+export async function getExamStatistics(
+  examId: number
+): Promise<ApiResponse<ExamStatistics>> {
+  return apiClient.get<ExamStatistics>(ENDPOINTS.EXAM_STATISTICS(examId), {
+    cache: 'no-store'
+  })
 }
 
 // ===== Rule Presets =====
