@@ -1,5 +1,6 @@
-import { getExamResults } from '@/lib/actions/teacher.action'
+import { getExamResults, getExamStatistics } from '@/lib/actions/teacher.action'
 import { ExamResultsView } from './components/exam-results-view'
+import type { ExamStatistics } from '@/lib/types'
 
 interface ExamResultsPageProps {
   params: Promise<{
@@ -13,8 +14,19 @@ export default async function ExamResultsPage({
   const { examId } = await params
   const id = Number(examId)
 
-  const response = await getExamResults(id)
-  const initialResults = response.data || []
+  const [resultsResponse, statsResponse] = await Promise.all([
+    getExamResults(id),
+    getExamStatistics(id)
+  ])
 
-  return <ExamResultsView examId={id} initialResults={initialResults} />
+  const initialResults = resultsResponse.data || []
+  const initialStats: ExamStatistics | null = statsResponse.data ?? null
+
+  return (
+    <ExamResultsView
+      examId={id}
+      initialResults={initialResults}
+      initialStats={initialStats}
+    />
+  )
 }

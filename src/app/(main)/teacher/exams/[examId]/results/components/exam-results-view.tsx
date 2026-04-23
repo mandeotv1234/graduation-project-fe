@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import * as Tabs from '@radix-ui/react-tabs'
 import {
   Mail,
   Calendar,
@@ -14,7 +15,8 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  BarChart2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import styles from './exam-results-view.module.scss'
@@ -31,23 +33,31 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
-import { TeacherExamResult, GradingNotificationDto } from '@/lib/types'
+import type {
+  TeacherExamResult,
+  GradingNotificationDto,
+  ExamStatistics
+} from '@/lib/types'
 import { subscribeToTeacherGradingResult } from '@/lib/socket'
 import { regradeAllExamResults } from '@/lib/actions'
+import { ExamStatisticsDashboard } from './exam-statistics-dashboard/exam-statistics-dashboard'
 
 interface ExamResultsViewProps {
   examId: number
   initialResults: TeacherExamResult[]
+  initialStats: ExamStatistics | null
 }
 
 export function ExamResultsView({
   examId,
-  initialResults
+  initialResults,
+  initialStats
 }: ExamResultsViewProps) {
   const router = useRouter()
   const [results, setResults] = useState<TeacherExamResult[]>(initialResults)
   const [searchTerm, setSearchTerm] = useState('')
   const [isRegradingAll, setIsRegradingAll] = useState(false)
+  const [activeTab, setActiveTab] = useState('results')
 
   async function handleRegradeAll() {
     setIsRegradingAll(true)
@@ -86,7 +96,7 @@ export function ExamResultsView({
           )
 
           const newResult: TeacherExamResult = {
-            submissionId: notification.submissionId || Date.now(), // Fallback if missing
+            submissionId: notification.submissionId || Date.now(),
             studentId: notification.studentId,
             studentName: notification.studentName || 'Học sinh',
             studentEmail: notification.studentEmail || '',
@@ -241,217 +251,345 @@ export function ExamResultsView({
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={`${styles.iconWrapper} ${styles.blue}`}>
-            <Users />
-          </div>
-          <div className={styles.statInfo}>
-            <p className={styles.label}>Số học sinh đã nộp</p>
-            <h2 className={styles.value}>{stats.totalCount}</h2>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.iconWrapper} ${styles.green}`}>
-            <CheckCircle2 />
-          </div>
-          <div className={styles.statInfo}>
-            <p className={styles.label}>Đã đạt (&gt;= 5đ)</p>
-            <h2 className={styles.value}>{stats.passed}</h2>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.iconWrapper} ${styles.orange}`}>
-            <Hash />
-          </div>
-          <div className={styles.statInfo}>
-            <p className={styles.label}>Điểm trung bình</p>
-            <h2 className={styles.value}>{stats.average}</h2>
-          </div>
-        </div>
-      </div>
+      {/* ===== Tabs ===== */}
+      <Tabs.Root
+        value={activeTab}
+        onValueChange={setActiveTab}
+        style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+      >
+        <Tabs.List
+          style={{
+            display: 'flex',
+            gap: '0.25rem',
+            borderBottom: '1px solid var(--color-border)',
+            paddingBottom: '0'
+          }}
+        >
+          <Tabs.Trigger
+            value="results"
+            id="tab-results"
+            style={{
+              padding: '0.6rem 1rem',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              borderRadius: '0.5rem 0.5rem 0 0',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background:
+                activeTab === 'results'
+                  ? 'var(--color-background)'
+                  : 'transparent',
+              color:
+                activeTab === 'results'
+                  ? 'var(--color-foreground)'
+                  : 'var(--color-muted-foreground)',
+              borderBottom:
+                activeTab === 'results'
+                  ? '2px solid var(--color-primary)'
+                  : '2px solid transparent',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Users style={{ width: '0.85rem', height: '0.85rem' }} />
+            Danh sách kết quả
+          </Tabs.Trigger>
 
-      {/* Filter and Table */}
-      <div className={styles.tableSection}>
-        <div className={styles.tableHeader}>
-          <div className={styles.searchWrapper}>
-            <Search />
-            <input
-              type="text"
-              placeholder="Tìm kiếm học sinh..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
-                setCurrentPage(1)
-              }}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Lọc kết quả
-            </Button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className={styles.resultsTable}>
-            <thead>
-              <tr>
-                <th>Học sinh</th>
-                <th>Thời gian nộp</th>
-                <th>Lần thi</th>
-                <th>Trạng thái</th>
-                <th className="text-center">Điểm</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedResults.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="text-center py-12 text-muted-foreground"
-                  >
-                    Chưa có lượt nộp bài nào.
-                  </td>
-                </tr>
-              ) : (
-                paginatedResults.map((result) => (
-                  <tr
-                    key={result.submissionId}
-                    onClick={() => handleRowClick(result.submissionId)}
-                  >
-                    <td>
-                      <div className={styles.studentCell}>
-                        <div className={styles.avatar}>
-                          {result.studentName.charAt(0)}
-                        </div>
-                        <div className={styles.info}>
-                          <span className={styles.name}>
-                            {result.studentName}
-                          </span>
-                          <span className={styles.email}>
-                            <Mail className="h-3 w-3" />
-                            {result.studentEmail}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {new Date(result.submittedAt).toLocaleString('vi-VN')}
-                      </span>
-                    </td>
-                    <td className="text-center px-4">
-                      <span className="text-xs font-semibold px-2 py-1 bg-muted rounded border">
-                        Lần {result.attemptNumber}
-                      </span>
-                    </td>
-                    <td>
-                      {result.status === 'COMPLETED' ? (
-                        <span
-                          className={`${styles.statusBadge} ${styles.completed}`}
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          Hoàn tất
-                        </span>
-                      ) : result.status === 'FAILED' ? (
-                        <span
-                          className={`${styles.statusBadge} ${styles.failed}`}
-                        >
-                          <AlertCircle className="h-3 w-3" />
-                          Thất bại
-                        </span>
-                      ) : (
-                        <span
-                          className={`${styles.statusBadge} ${styles.pending}`}
-                        >
-                          Đang chấm
-                        </span>
-                      )}
-                    </td>
-                    <td className="text-center">
-                      <div className="flex flex-col items-center">
-                        <span
-                          className={`${styles.scoreText} ${result.totalScore >= 5 ? styles.passed : styles.failed}`}
-                        >
-                          {result.totalScore.toFixed(1)}/{result.maxScore}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-                          {result.totalScore >= 5 ? 'Đạt' : 'Chưa đạt'}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination UI */}
-        <div className={styles.pagination}>
-          <div className={styles.pageInfo}>
-            Hiển thị{' '}
-            <span>
-              {filteredResults.length > 0
-                ? (currentPage - 1) * pageSize + 1
-                : 0}
-            </span>{' '}
-            -{' '}
-            <span>
-              {Math.min(currentPage * pageSize, filteredResults.length)}
-            </span>{' '}
-            trong <span>{filteredResults.length}</span> kết quả
-          </div>
-          {totalPages > 1 && (
-            <div className={styles.nav}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setCurrentPage((p) => Math.max(1, p - 1))
+          <Tabs.Trigger
+            value="statistics"
+            id="tab-statistics"
+            style={{
+              padding: '0.6rem 1rem',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              borderRadius: '0.5rem 0.5rem 0 0',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background:
+                activeTab === 'statistics'
+                  ? 'var(--color-background)'
+                  : 'transparent',
+              color:
+                activeTab === 'statistics'
+                  ? 'var(--color-foreground)'
+                  : 'var(--color-muted-foreground)',
+              borderBottom:
+                activeTab === 'statistics'
+                  ? '2px solid var(--color-primary)'
+                  : '2px solid transparent',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <BarChart2 style={{ width: '0.85rem', height: '0.85rem' }} />
+            Thống kê
+            {initialStats && initialStats.suspiciousCount > 0 && (
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  padding: '0.1rem 0.4rem',
+                  borderRadius: '999px',
+                  background: 'rgba(239,68,68,0.15)',
+                  color: '#ef4444',
+                  fontWeight: 700
                 }}
-                disabled={currentPage === 1}
               >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setCurrentPage(page)
-                      }}
-                      className="w-8"
-                    >
-                      {page}
-                    </Button>
-                  )
-                )}
+                {initialStats.suspiciousCount}
+              </span>
+            )}
+          </Tabs.Trigger>
+        </Tabs.List>
+
+        {/* ===== Tab: Danh sách kết quả ===== */}
+        <Tabs.Content value="results">
+          {/* Stats Cards */}
+          <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
+              <div className={`${styles.iconWrapper} ${styles.blue}`}>
+                <Users />
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+              <div className={styles.statInfo}>
+                <p className={styles.label}>Số học sinh đã nộp</p>
+                <h2 className={styles.value}>{stats.totalCount}</h2>
+              </div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={`${styles.iconWrapper} ${styles.green}`}>
+                <CheckCircle2 />
+              </div>
+              <div className={styles.statInfo}>
+                <p className={styles.label}>Đã đạt (&gt;= 5đ)</p>
+                <h2 className={styles.value}>{stats.passed}</h2>
+              </div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={`${styles.iconWrapper} ${styles.orange}`}>
+                <Hash />
+              </div>
+              <div className={styles.statInfo}>
+                <p className={styles.label}>Điểm trung bình</p>
+                <h2 className={styles.value}>{stats.average}</h2>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter and Table */}
+          <div className={styles.tableSection}>
+            <div className={styles.tableHeader}>
+              <div className={styles.searchWrapper}>
+                <Search />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm học sinh..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  Lọc kết quả
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className={styles.resultsTable}>
+                <thead>
+                  <tr>
+                    <th>Học sinh</th>
+                    <th>Thời gian nộp</th>
+                    <th>Lần thi</th>
+                    <th>Trạng thái</th>
+                    <th className="text-center">Điểm</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedResults.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="text-center py-12 text-muted-foreground"
+                      >
+                        Chưa có lượt nộp bài nào.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedResults.map((result) => (
+                      <tr
+                        key={result.submissionId}
+                        onClick={() => handleRowClick(result.submissionId)}
+                      >
+                        <td>
+                          <div className={styles.studentCell}>
+                            <div className={styles.avatar}>
+                              {result.studentName.charAt(0)}
+                            </div>
+                            <div className={styles.info}>
+                              <span className={styles.name}>
+                                {result.studentName}
+                              </span>
+                              <span className={styles.email}>
+                                <Mail className="h-3 w-3" />
+                                {result.studentEmail}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {new Date(result.submittedAt).toLocaleString(
+                              'vi-VN'
+                            )}
+                          </span>
+                        </td>
+                        <td className="text-center px-4">
+                          <span className="text-xs font-semibold px-2 py-1 bg-muted rounded border">
+                            Lần {result.attemptNumber}
+                          </span>
+                        </td>
+                        <td>
+                          {result.status === 'COMPLETED' ? (
+                            <span
+                              className={`${styles.statusBadge} ${styles.completed}`}
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Hoàn tất
+                            </span>
+                          ) : result.status === 'FAILED' ? (
+                            <span
+                              className={`${styles.statusBadge} ${styles.failed}`}
+                            >
+                              <AlertCircle className="h-3 w-3" />
+                              Thất bại
+                            </span>
+                          ) : (
+                            <span
+                              className={`${styles.statusBadge} ${styles.pending}`}
+                            >
+                              Đang chấm
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-center">
+                          <div className="flex flex-col items-center">
+                            <span
+                              className={`${styles.scoreText} ${result.totalScore >= 5 ? styles.passed : styles.failed}`}
+                            >
+                              {result.totalScore.toFixed(1)}/{result.maxScore}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                              {result.totalScore >= 5 ? 'Đạt' : 'Chưa đạt'}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination UI */}
+            <div className={styles.pagination}>
+              <div className={styles.pageInfo}>
+                Hiển thị{' '}
+                <span>
+                  {filteredResults.length > 0
+                    ? (currentPage - 1) * pageSize + 1
+                    : 0}
+                </span>{' '}
+                -{' '}
+                <span>
+                  {Math.min(currentPage * pageSize, filteredResults.length)}
+                </span>{' '}
+                trong <span>{filteredResults.length}</span> kết quả
+              </div>
+              {totalPages > 1 && (
+                <div className={styles.nav}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentPage((p) => Math.max(1, p - 1))
+                    }}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setCurrentPage(page)
+                          }}
+                          className="w-8"
+                        >
+                          {page}
+                        </Button>
+                      )
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </Tabs.Content>
+
+        {/* ===== Tab: Thống kê ===== */}
+        <Tabs.Content value="statistics">
+          {initialStats ? (
+            <ExamStatisticsDashboard stats={initialStats} />
+          ) : (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '3rem 2rem',
+                color: 'var(--color-muted-foreground)',
+                fontSize: '0.85rem'
+              }}
+            >
+              <BarChart2
+                style={{
+                  width: '2.5rem',
+                  height: '2.5rem',
+                  margin: '0 auto 0.75rem',
+                  opacity: 0.4
                 }}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              />
+              <p>Chưa có dữ liệu thống kê.</p>
+              <p style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                Thống kê sẽ hiển thị khi có bài nộp đã được chấm xong.
+              </p>
             </div>
           )}
-        </div>
-      </div>
+        </Tabs.Content>
+      </Tabs.Root>
     </div>
   )
 }
