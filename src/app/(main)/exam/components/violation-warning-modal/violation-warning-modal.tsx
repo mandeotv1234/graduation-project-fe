@@ -2,7 +2,7 @@
 
 import { AlertTriangle, ShieldAlert, X } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import styles from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.module.scss'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -11,27 +11,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import { MAX_VIOLATIONS_BEFORE_SUBMIT } from '@/lib/constants/violation'
-import { hideWarning } from '@/lib/redux/slices/anti-cheat.slice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
-import styles from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.module.scss'
+import { hideWarning } from '@/lib/redux/slices/anti-cheat.slice'
 
 export function ViolationWarningModal() {
   const dispatch = useAppDispatch()
-  const { isWarningVisible, warningMessage, totalViolations } = useAppSelector(
-    (state) => state.antiCheat
-  )
+  const {
+    isWarningVisible,
+    warningMessage,
+    totalViolations,
+    isForceSubmitted
+  } = useAppSelector((state) => state.antiCheat)
   const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
 
   if (isDev) return null
 
-  const isForceSubmit = totalViolations >= MAX_VIOLATIONS_BEFORE_SUBMIT
-  const severity =
-    totalViolations >= MAX_VIOLATIONS_BEFORE_SUBMIT
-      ? 'critical'
-      : totalViolations >= MAX_VIOLATIONS_BEFORE_SUBMIT / 2
-        ? 'high'
-        : 'medium'
+  const isForceSubmit =
+    isForceSubmitted || totalViolations >= MAX_VIOLATIONS_BEFORE_SUBMIT
+  const severity = isForceSubmit
+    ? 'critical'
+    : totalViolations >= MAX_VIOLATIONS_BEFORE_SUBMIT / 2
+      ? 'high'
+      : 'medium'
 
   const handleClose = () => {
     if (!isForceSubmit) {

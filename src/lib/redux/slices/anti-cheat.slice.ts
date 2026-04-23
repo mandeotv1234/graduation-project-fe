@@ -1,8 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 import {
-  ViolationType,
-  MAX_VIOLATIONS_BEFORE_SUBMIT
+  MAX_VIOLATIONS_BEFORE_SUBMIT,
+  ViolationType
 } from '@/lib/constants/violation'
 import { ViolationEntry } from '@/lib/types'
 
@@ -14,6 +14,7 @@ interface AntiCheatState {
   isBlurred: boolean
   warningMessage: string
   socketConnected: boolean
+  isForceSubmitted: boolean
 }
 
 const initialState: AntiCheatState = {
@@ -23,7 +24,8 @@ const initialState: AntiCheatState = {
   isWarningVisible: false,
   isBlurred: false,
   warningMessage: '',
-  socketConnected: false
+  socketConnected: false,
+  isForceSubmitted: false
 }
 
 const antiCheatSlice = createSlice({
@@ -78,6 +80,9 @@ const antiCheatSlice = createSlice({
     setSocketConnected(state, action: PayloadAction<boolean>) {
       state.socketConnected = action.payload
     },
+    setForceSubmitted(state, action: PayloadAction<boolean>) {
+      state.isForceSubmitted = action.payload
+    },
     resetAntiCheat() {
       return initialState
     }
@@ -93,6 +98,7 @@ export const {
   hideWarning,
   setBlurred,
   setSocketConnected,
+  setForceSubmitted,
   resetAntiCheat
 } = antiCheatSlice.actions
 

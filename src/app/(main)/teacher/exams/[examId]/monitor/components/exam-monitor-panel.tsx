@@ -1,21 +1,11 @@
 'use client'
 
+import { BellRing, Filter, Loader2, ShieldAlert, UserX } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import {
-  BellRing,
-  Eye,
-  Filter,
-  Loader2,
-  ShieldAlert,
-  UserX
-} from 'lucide-react'
 import { toast } from 'sonner'
 
-import { getTeacherExamViolations } from '@/lib/actions'
-import { useApi } from '@/hooks/use-api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +13,13 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { useApi } from '@/hooks/use-api'
+import { getTeacherExamViolations } from '@/lib/actions'
+import {
+  forceSubmitStudentExam,
+  remindStudent
+} from '@/lib/actions/exam.action'
 import {
   connectStomp,
   subscribeToConnect,
@@ -43,6 +40,7 @@ type StudentMonitorState = {
   latestViolationAt?: string
   isFlagged: boolean
   forceSubmitted: boolean
+  examStatus: string
 }
 
 type ExamMonitorPanelProps = {
@@ -61,12 +59,13 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
   >([])
   const [detailLoading, setDetailLoading] = useState(false)
   const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState<
-    'all' | 'normal' | 'violating' | 'auto_submitted'
-  >('all')
+
   const [riskFilter, setRiskFilter] = useState<'all' | 'none' | 'low' | 'high'>(
     'all'
   )
+  const [examStatusFilter, setExamStatusFilter] = useState<
+    'ALL' | 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED' | 'NOT_STARTED'
+  >('IN_PROGRESS')
 
   const [monitorMap, setMonitorMap] = useState<
     Record<number, StudentMonitorState>
@@ -81,7 +80,8 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
           latestViolationType: student.latestViolationType ?? undefined,
           latestViolationAt: student.latestViolationAt ?? undefined,
           isFlagged: false,
-          forceSubmitted: student.autoSubmitted
+          forceSubmitted: student.autoSubmitted,
+          examStatus: student.examStatus
         }
       ])
     )
@@ -112,10 +112,15 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
       unsubscribeSub = subscribeToExamViolations(
         monitor.examId,
         (notification) => {
-          setEvents((prev) => [notification, ...prev].slice(0, 100))
+          if (notification.type !== 'SESSION_STATUS_CHANGED') {
+            setEvents((prev) => [notification, ...prev].slice(0, 100))
+          }
           setMonitorMap((prev) => {
             const existing = prev[notification.studentId]
-            const nextCount = notification.violationCount
+            const nextCount =
+              notification.type === 'SESSION_STATUS_CHANGED'
+                ? (existing?.violationCount ?? 0)
+                : notification.violationCount
 
             return {
               ...prev,
@@ -126,16 +131,31 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                   existing?.studentName ||
                   `Sinh viên #${notification.studentId}`,
                 violationCount: nextCount,
-                latestViolationType: notification.violationType,
-                latestViolationAt: notification.timestamp,
+                latestViolationType:
+                  notification.type === 'SESSION_STATUS_CHANGED'
+                    ? existing?.latestViolationType
+                    : notification.violationType,
+                latestViolationAt:
+                  notification.type === 'SESSION_STATUS_CHANGED'
+                    ? existing?.latestViolationAt
+                    : notification.timestamp,
                 isFlagged: existing?.isFlagged ?? false,
                 forceSubmitted:
                   notification.autoSubmitted ||
                   existing?.forceSubmitted ||
-                  false
+                  false,
+                examStatus: notification.autoSubmitted
+                  ? 'AUTO_SUBMITTED'
+                  : (notification.examStatus ??
+                    existing?.examStatus ??
+                    'IN_PROGRESS')
               }
             }
           })
+
+          if (notification.type === 'SESSION_STATUS_CHANGED') {
+            return // Skip toast for pure status updates
+          }
 
           if (notification.autoSubmitted) {
             toast.error(
@@ -238,16 +258,6 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
         keyword.trim().length === 0 ||
         row.studentName.toLowerCase().includes(keyword.trim().toLowerCase())
 
-      const byStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'normal' &&
-          !row.forceSubmitted &&
-          row.violationCount === 0) ||
-        (statusFilter === 'violating' &&
-          !row.forceSubmitted &&
-          row.violationCount > 0) ||
-        (statusFilter === 'auto_submitted' && row.forceSubmitted)
-
       const byRisk =
         riskFilter === 'all' ||
         (riskFilter === 'none' && row.violationCount === 0) ||
@@ -256,24 +266,17 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
           row.violationCount < 3) ||
         (riskFilter === 'high' && row.violationCount >= 3)
 
-      return byKeyword && byStatus && byRisk
+      const byExamStatus =
+        examStatusFilter === 'ALL' || row.examStatus === examStatusFilter
+
+      return byKeyword && byRisk && byExamStatus
     })
-  }, [keyword, monitorRows, riskFilter, statusFilter])
+  }, [keyword, monitorRows, riskFilter, examStatusFilter])
 
   const totalViolators = monitorRows.filter(
     (row) => row.violationCount > 0
   ).length
   const highRisk = monitorRows.filter((row) => row.violationCount >= 3).length
-
-  const handleFlag = (studentId: number) => {
-    setMonitorMap((prev) => ({
-      ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        isFlagged: !prev[studentId]?.isFlagged
-      }
-    }))
-  }
 
   const attemptGroups = useMemo(() => {
     return studentViolations.reduce<Record<string, TeacherExamViolation[]>>(
@@ -386,7 +389,7 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
       </Dialog>
 
       <div className="space-y-6">
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="py-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -441,23 +444,24 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                   />
                 </div>
                 <select
-                  value={statusFilter}
+                  value={examStatusFilter}
                   onChange={(event) =>
-                    setStatusFilter(
+                    setExamStatusFilter(
                       event.target.value as
-                        | 'all'
-                        | 'normal'
-                        | 'violating'
-                        | 'auto_submitted'
+                        | 'ALL'
+                        | 'IN_PROGRESS'
+                        | 'SUBMITTED'
+                        | 'AUTO_SUBMITTED'
+                        | 'NOT_STARTED'
                     )
                   }
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  <option value="all">Tất cả trạng thái</option>
-                  <option value="normal">Bình thường</option>
-                  <option value="violating">Đang vi phạm</option>
-                  <option value="auto_submitted">Đã nộp tự động</option>
+                  <option value="ALL">Mọi trạng thái thi</option>
+                  <option value="IN_PROGRESS">Đang thi</option>
+                  <option value="NOT_STARTED">Chưa bắt đầu</option>
                 </select>
+
                 <div className="flex gap-2">
                   <select
                     value={riskFilter}
@@ -479,8 +483,8 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                     title="Đặt lại bộ lọc"
                     onClick={() => {
                       setKeyword('')
-                      setStatusFilter('all')
                       setRiskFilter('all')
+                      setExamStatusFilter('IN_PROGRESS')
                     }}
                   >
                     <Filter className="h-4 w-4" />
@@ -509,7 +513,7 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                     Thời gian
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
-                    Trạng thái
+                    Trạng thái thi
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
                     Hành vi
@@ -549,12 +553,21 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                         : '-'}
                     </td>
                     <td className="px-4 py-3">
-                      {row.forceSubmitted ? (
-                        <Badge variant="destructive">Đã nộp tự động</Badge>
-                      ) : row.isFlagged ? (
-                        <Badge variant="secondary">Theo dõi đặc biệt</Badge>
+                      {row.examStatus === 'IN_PROGRESS' ? (
+                        <Badge
+                          variant="default"
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          Đang thi
+                        </Badge>
+                      ) : row.examStatus === 'SUBMITTED' ? (
+                        <Badge variant="secondary">Đã nộp bài</Badge>
+                      ) : row.examStatus === 'AUTO_SUBMITTED' ? (
+                        <Badge variant="destructive">
+                          Đã bị nộp bài tự động
+                        </Badge>
                       ) : (
-                        <Badge variant="outline">Bình thường</Badge>
+                        <Badge variant="outline">Chưa bắt đầu</Badge>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -563,9 +576,23 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                           variant="outline"
                           size="sm"
                           className="gap-1"
+                          disabled={row.examStatus !== 'IN_PROGRESS'}
                           onClick={(event) => {
                             event.stopPropagation()
-                            toast.info(`Đã gửi nhắc nhở tới ${row.studentName}`)
+                            callApi(
+                              remindStudent(
+                                monitor.examId,
+                                row.studentId,
+                                'Giáo viên yêu cầu bạn nghiêm túc làm bài.'
+                              ),
+                              false
+                            ).then((res) => {
+                              if (res?.code !== 'UNHANDLED_ERROR') {
+                                toast.info(
+                                  `Đã gửi nhắc nhở tới ${row.studentName}`
+                                )
+                              }
+                            })
                           }}
                         >
                           <BellRing className="h-3.5 w-3.5" />
@@ -574,24 +601,29 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="gap-1"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            handleFlag(row.studentId)
-                          }}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          {row.isFlagged ? 'Bỏ theo dõi' : 'Theo dõi'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
                           className="gap-1 border-red-200 text-red-600 hover:bg-red-50"
+                          disabled={row.examStatus !== 'IN_PROGRESS'}
                           onClick={(event) => {
                             event.stopPropagation()
-                            toast.warning(
-                              `Chức năng cưỡng chế nộp bài cho ${row.studentName} cần backend endpoint riêng.`
-                            )
+                            if (
+                              window.confirm(
+                                `Bạn có chắc chắn muốn nộp bài tự động của ${row.studentName}?`
+                              )
+                            ) {
+                              callApi(
+                                forceSubmitStudentExam(
+                                  monitor.examId,
+                                  row.studentId
+                                ),
+                                false
+                              ).then((res) => {
+                                if (res?.code !== 'UNHANDLED_ERROR') {
+                                  toast.success(
+                                    `Đã cưỡng chế nộp bài của ${row.studentName}`
+                                  )
+                                }
+                              })
+                            }
                           }}
                         >
                           <UserX className="h-3.5 w-3.5" />

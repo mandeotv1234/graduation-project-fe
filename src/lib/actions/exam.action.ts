@@ -1,18 +1,18 @@
 'use server'
 
 import { apiClient } from '@/lib/api'
+import { ENDPOINTS } from '@/lib/constants'
 import {
   ApiResponse,
-  Question,
-  TeacherExamMonitorData,
-  TeacherExamDetail,
-  UpdateExamRequest,
   CreateExamRequest,
   CreateExamResponse,
+  ExamQuestionItem,
+  Question,
+  TeacherExamDetail,
+  TeacherExamMonitorData,
   UpdateExamQuestionRequest,
-  ExamQuestionItem
+  UpdateExamRequest
 } from '@/lib/types'
-import { ENDPOINTS } from '@/lib/constants'
 
 const mockQuestions: Question[] = [
   {
@@ -156,4 +156,24 @@ export async function deleteExamQuestion(
   questionId: number
 ): Promise<ApiResponse<void>> {
   return apiClient.delete(ENDPOINTS.EXAM_QUESTION_DETAIL(examId, questionId))
+}
+
+export async function remindStudent(
+  examId: number,
+  studentId: number,
+  message: string
+): Promise<ApiResponse<void>> {
+  return apiClient.post(`/exams/${examId}/students/${studentId}/remind`, {
+    message
+  })
+}
+
+export async function forceSubmitStudentExam(
+  examId: number,
+  studentId: number
+): Promise<ApiResponse<void>> {
+  return apiClient.post(
+    `/exams/${examId}/students/${studentId}/force-submit`,
+    {}
+  )
 }

@@ -172,6 +172,12 @@ export interface TeacherExamMonitorStudent {
   latestViolationAt?: string | null
   autoSubmitted: boolean
   status: 'NORMAL' | 'VIOLATING' | 'AUTO_SUBMITTED' | string
+  examStatus:
+    | 'NOT_STARTED'
+    | 'IN_PROGRESS'
+    | 'SUBMITTED'
+    | 'AUTO_SUBMITTED'
+    | string
 }
 
 export interface TeacherExamMonitorData {

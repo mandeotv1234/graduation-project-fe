@@ -85,6 +85,7 @@ export interface ExamTimeResponse {
 
 // WebSocket violation notification payload (from teacher subscription)
 export interface ViolationNotification {
+  type?: string
   examId: number
   teacherId: number
   studentId: number
@@ -94,6 +95,7 @@ export interface ViolationNotification {
   violationCount: number
   autoSubmitted: boolean
   timestamp: string
+  examStatus?: string
 }
 
 // GET /api/exams/{examId}/violations?studentId={studentId}
