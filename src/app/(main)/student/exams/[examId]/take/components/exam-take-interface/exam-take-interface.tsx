@@ -28,7 +28,17 @@ import { ResizablePanel } from '@/components/shared/resizable-panel'
 import type { ExecuteSqlResponse } from '@/lib/types'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Clock, Loader2, Network, Send, Table2, User } from 'lucide-react'
+import {
+  Clock,
+  Columns2,
+  Keyboard,
+  Loader2,
+  Network,
+  Send,
+  Table2,
+  User,
+  X
+} from 'lucide-react'
 import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal'
 import styles from './exam-take-interface.module.scss'
 import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog/submit-result-dialog'
@@ -66,6 +76,8 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     useState<ExamSpecification | null>(null)
   const [isOverviewSelected, setIsOverviewSelected] = useState(true)
   const [specViewMode, setSpecViewMode] = useState<'table' | 'diagram'>('table')
+  const [layoutMode, setLayoutMode] = useState<'default' | 'split'>('default')
+  const [showShortcutHint, setShowShortcutHint] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
   const schemaTablesForOverview = useMemo(() => {
     if (schemaMeta && schemaMeta.length > 0) {
@@ -375,6 +387,55 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     }
   }, [remainingSeconds, examActive])
 
+  // Keyboard shortcuts: Alt+S (toggle spec/question), Alt+← (prev), Alt+→ (next)
+  useEffect(() => {
+    if (!sessionStarted) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.code === 'KeyS' || e.key.toLowerCase() === 's')) {
+        e.preventDefault()
+        if (layoutMode === 'default') setIsOverviewSelected((prev) => !prev)
+      }
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault()
+        if (layoutMode === 'split') {
+          if (examTake.currentQuestionIndex > 0)
+            examTake.goToQuestion(examTake.currentQuestionIndex - 1)
+        } else if (!isOverviewSelected) {
+          if (examTake.currentQuestionIndex > 0) {
+            examTake.goToQuestion(examTake.currentQuestionIndex - 1)
+          } else {
+            setIsOverviewSelected(true)
+          }
+        }
+      }
+      if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault()
+        if (layoutMode === 'split') {
+          if (examTake.currentQuestionIndex < questions.length - 1) {
+            examTake.goToQuestion(examTake.currentQuestionIndex + 1)
+          }
+        } else if (!isOverviewSelected) {
+          if (examTake.currentQuestionIndex < questions.length - 1) {
+            examTake.goToQuestion(examTake.currentQuestionIndex + 1)
+          } else {
+            setIsOverviewSelected(true)
+          }
+        } else {
+          setIsOverviewSelected(false)
+          if (questions.length > 0) examTake.goToQuestion(0)
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [
+    sessionStarted,
+    isOverviewSelected,
+    layoutMode,
+    examTake,
+    questions.length
+  ])
+
   const getTimerState = useCallback((seconds: number) => {
     if (seconds <= 30) return 'critical'
     if (seconds <= 60) return 'danger'
@@ -539,19 +600,147 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       )}
       <div className={styles.interfaceContainer}>
         <div className={styles.mainContent}>
-          {/* Left: Question sidebar */}
-          <QuestionSidebar
-            questions={questions}
-            currentIndex={examTake.currentQuestionIndex}
-            answers={examTake.answers}
-            onSelect={(index) => {
-              setIsOverviewSelected(false)
-              examTake.goToQuestion(index)
-            }}
-            onSelectOverview={() => setIsOverviewSelected(true)}
-            isOverviewSelected={isOverviewSelected}
-            header={null}
-          />
+          {/* LEFT: Spec panel (split mode) or Question sidebar (default mode) */}
+          {layoutMode === 'split' ? (
+            <div className={styles.splitSpecPanel}>
+              {hasPdf ? (
+                <div className="h-full p-3">
+                  {pdfBlobUrl ? (
+                    <iframe
+                      src={pdfBlobUrl}
+                      title={exam.originalPdfFileName || 'Đặc tả PDF'}
+                      className="h-full w-full rounded-lg border border-border"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/30 px-3 py-2">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                      Đặc tả CSDL
+                    </h4>
+                    <div className="flex rounded border border-border bg-background p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setSpecViewMode('table')}
+                        className={cn(
+                          'rounded px-2 py-1 text-[10px] font-medium transition-colors',
+                          specViewMode === 'table'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted'
+                        )}
+                      >
+                        Bảng
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSpecViewMode('diagram')}
+                        className={cn(
+                          'rounded px-2 py-1 text-[10px] font-medium transition-colors',
+                          specViewMode === 'diagram'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted'
+                        )}
+                      >
+                        Sơ đồ
+                      </button>
+                    </div>
+                  </div>
+                  <ScrollArea className="min-h-0 flex-1">
+                    {specViewMode === 'table' ? (
+                      <div className="space-y-2 p-2">
+                        {schemaTablesForOverview.length > 0 ? (
+                          schemaTablesForOverview.map((table) => (
+                            <div
+                              key={table.tableName}
+                              className="overflow-hidden rounded border border-border/70"
+                            >
+                              <div className="border-b border-border bg-muted/30 px-2 py-1.5 text-xs font-semibold text-primary">
+                                {table.tableName}
+                              </div>
+                              <table className="w-full text-xs">
+                                <thead className="bg-muted/20 text-muted-foreground">
+                                  <tr>
+                                    <th className="border-b border-r border-border px-2 py-1.5 text-left">
+                                      Cột
+                                    </th>
+                                    <th className="border-b border-r border-border px-2 py-1.5 text-left">
+                                      Kiểu
+                                    </th>
+                                    <th className="border-b border-border px-2 py-1.5 text-left">
+                                      Ràng buộc
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {table.columns.map((col) => (
+                                    <tr
+                                      key={`${table.tableName}-${col.name}`}
+                                      className="odd:bg-background even:bg-muted/10"
+                                    >
+                                      <td className="border-r border-border px-2 py-1 font-medium text-foreground">
+                                        {col.name}
+                                      </td>
+                                      <td className="border-r border-border px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                                        {col.type}
+                                      </td>
+                                      <td className="px-2 py-1 text-[10px] text-muted-foreground">
+                                        {[
+                                          col.primaryKey ? 'PK' : null,
+                                          col.foreignKey ? 'FK' : null,
+                                          !col.nullable ? 'NOT NULL' : null
+                                        ]
+                                          .filter(Boolean)
+                                          .join(' · ')}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex h-20 items-center justify-center text-xs text-muted-foreground">
+                            Chưa có thông tin schema
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="min-h-[300px]">
+                        {schemaDiagramData ? (
+                          <TeacherSchemaDiagram
+                            diagramData={schemaDiagramData}
+                            className="h-full border-0 rounded-none"
+                          />
+                        ) : (
+                          <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+                            Chưa có thông tin lược đồ
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
+          ) : (
+            <QuestionSidebar
+              questions={questions}
+              currentIndex={examTake.currentQuestionIndex}
+              answers={examTake.answers}
+              onSelect={(index) => {
+                setIsOverviewSelected(false)
+                examTake.goToQuestion(index)
+              }}
+              onSelectOverview={() => setIsOverviewSelected(true)}
+              isOverviewSelected={isOverviewSelected}
+              header={null}
+            />
+          )}
 
           {/* Right: Prompt + Editor + Bottom panel */}
           <div className={styles.rightPanel}>
@@ -597,6 +786,48 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                 </div>
 
                 <div className={styles.actions}>
+                  <button
+                    type="button"
+                    onClick={() => setShowShortcutHint((prev) => !prev)}
+                    title="Phím tắt bàn phím (Alt+S, Alt+←, Alt+→)"
+                    className={cn(
+                      'flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors',
+                      showShortcutHint
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <Keyboard className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Phím tắt</span>
+                  </button>
+                  <button
+                    type="button"
+                    title={
+                      layoutMode === 'split'
+                        ? 'Trở về chế độ mặc định'
+                        : 'Bật chế độ chia đôi (Đặc tả | Câu hỏi)'
+                    }
+                    onClick={() =>
+                      setLayoutMode((prev) => {
+                        const next = prev === 'default' ? 'split' : 'default'
+                        if (next === 'split' && isOverviewSelected) {
+                          setIsOverviewSelected(false)
+                        }
+                        return next
+                      })
+                    }
+                    className={cn(
+                      'flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors',
+                      layoutMode === 'split'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <Columns2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">
+                      {layoutMode === 'split' ? 'Gộp lại' : 'Chia đôi màn hình'}
+                    </span>
+                  </button>
                   <div className={`${styles.timer} ${timerClass}`}>
                     <Clock
                       className={`h-4 w-4 ${
@@ -618,9 +849,48 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
               </div>
             </div>
 
+            {/* Mini question navigation strip (split mode only) */}
+            {layoutMode === 'split' && (
+              <div className={styles.miniQuestionNav}>
+                {questions.map((q, i) => {
+                  const isActive = i === examTake.currentQuestionIndex
+                  const hasAnswer = !!examTake.answers[q.id]?.trim()
+                  return (
+                    <button
+                      key={q.id}
+                      onClick={() => examTake.goToQuestion(i)}
+                      className={cn(
+                        styles.miniNavBtn,
+                        isActive
+                          ? styles.miniNavActive
+                          : hasAnswer
+                            ? styles.miniNavAnswered
+                            : styles.miniNavIdle
+                      )}
+                    >
+                      <span>Câu {q.orderIndex}</span>
+                      {hasAnswer && (
+                        <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
             {/* Prompt (compact) */}
             <div className={styles.questionPrompt}>
-              {isOverviewSelected ? (
+              {layoutMode === 'split' ? (
+                examTake.currentQuestion ? (
+                  <div className={styles.panelWrapper}>
+                    <QuestionPanel question={examTake.currentQuestion} />
+                  </div>
+                ) : (
+                  <div className={styles.emptyState}>
+                    Chọn một câu hỏi để bắt đầu
+                  </div>
+                )
+              ) : isOverviewSelected ? (
                 <div className={styles.panelWrapper}>
                   <h3 className="text-lg font-semibold text-foreground">
                     {exam.title}
@@ -642,7 +912,36 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
 
             {/* Editor + Bottom Panel with Resizer */}
             <div className={styles.editorArea}>
-              {isOverviewSelected ? (
+              {layoutMode === 'split' ? (
+                examTake.currentQuestion ? (
+                  <ResizablePanel defaultSize={65} minSize={30} maxSize={85}>
+                    <SqlEditorPanel
+                      value={
+                        examTake.answers[examTake.currentQuestion.id] || ''
+                      }
+                      onChange={(val: string) =>
+                        examTake.updateAnswer(examTake.currentQuestion.id, val)
+                      }
+                      onExecute={handleExecuteSqlAndRefreshSchema}
+                      onClearSchema={handleClearSchema}
+                      isLoading={examTake.isLoading}
+                      isClearing={isClearing}
+                      schema={editorSchema}
+                    />
+                    <ExamTakeBottomPanel
+                      schema={editorSchema}
+                      result={examTake.sqlResult}
+                      schemaMeta={schemaMeta}
+                      examId={exam.examId}
+                      onSchemaMetaChange={applySchemaMeta}
+                    />
+                  </ResizablePanel>
+                ) : (
+                  <div className={styles.emptyStateCenter}>
+                    Chọn một câu hỏi để bắt đầu
+                  </div>
+                )
+              ) : isOverviewSelected ? (
                 hasPdf ? (
                   <div className="h-full min-h-0 p-4">
                     {pdfBlobUrl ? (
@@ -884,6 +1183,40 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
           </div>
         </div>
       </div>
+
+      {/* Keyboard shortcut hint panel */}
+      {showShortcutHint && (
+        <div className={styles.shortcutHintPanel}>
+          <div className={styles.shortcutHintTitle}>
+            <span className="flex items-center gap-1.5">
+              <Keyboard className="h-3.5 w-3.5" />
+              Phím tắt bàn phím
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowShortcutHint(false)}
+              className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className={styles.shortcutRow}>
+            <span className={styles.shortcutDesc}>Đặc tả ↔ Câu hỏi</span>
+            <kbd className={styles.kbd}>Alt + S</kbd>
+          </div>
+          <div className={styles.shortcutRow}>
+            <span className={styles.shortcutDesc}>Câu trước</span>
+            <kbd className={styles.kbd}>Alt + ←</kbd>
+          </div>
+          <div className={styles.shortcutRow}>
+            <span className={styles.shortcutDesc}>Câu tiếp theo</span>
+            <kbd className={styles.kbd}>Alt + →</kbd>
+          </div>
+          <p className={styles.shortcutNote}>
+            * Phím tắt hoạt động ở chế độ mặc định và chế độ chia đôi
+          </p>
+        </div>
+      )}
 
       {/* Custom confirmation dialogs */}
       <ConfirmSubmitDialog

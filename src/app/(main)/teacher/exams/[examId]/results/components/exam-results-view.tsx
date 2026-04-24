@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Tabs from '@radix-ui/react-tabs'
 import {
@@ -16,7 +16,10 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  BarChart2
+  BarChart2,
+  Loader2,
+  ArrowUpDown,
+  ChevronDown
 } from 'lucide-react'
 import { toast } from 'sonner'
 import styles from './exam-results-view.module.scss'
@@ -56,25 +59,52 @@ export function ExamResultsView({
   const router = useRouter()
   const [results, setResults] = useState<TeacherExamResult[]>(initialResults)
   const [searchTerm, setSearchTerm] = useState('')
+  const [scoreFilter, setScoreFilter] = useState<
+    'all' | 'gte5' | 'gte8' | 'gte9'
+  >('all')
+  const [encounterMode, setEncounterMode] = useState<
+    'all' | 'latest' | 'highest'
+  >('all')
+  const [sortOrder, setSortOrder] = useState<
+    'timeDesc' | 'timeAsc' | 'scoreDesc' | 'scoreAsc'
+  >('timeDesc')
   const [isRegradingAll, setIsRegradingAll] = useState(false)
+  const [selectedSubmissions, setSelectedSubmissions] = useState<
+    Record<number, number>
+  >({})
   const [activeTab, setActiveTab] = useState('results')
+  // Tracks remaining re-grade jobs so socket handler can suppress toasts & block new-entry adds
+  const regradingRemainingRef = useRef(0)
 
   async function handleRegradeAll() {
     setIsRegradingAll(true)
+
+    // Prevent Race Condition: Reflect BE state immediately BEFORE API call
+    setResults((prev) =>
+      prev.map((r) =>
+        r.status === 'COMPLETED' || r.status === 'FAILED'
+          ? { ...r, status: 'PENDING' as const }
+          : r
+      )
+    )
+
     try {
       const res = await regradeAllExamResults(examId)
       if (res.data) {
-        toast.success(
-          `Đã đưa vào hàng đợi chấm lại ${res.data.queuedCount} bài` +
-            (res.data.skippedCount > 0
-              ? ` (bỏ qua ${res.data.skippedCount} bài chưa hoàn tất)`
-              : '')
+        const { queuedCount, skippedCount } = res.data
+        regradingRemainingRef.current = queuedCount
+        toast.loading(
+          `Đang chấm lại ${queuedCount} bài...` +
+            (skippedCount > 0 ? ` (bỏ qua ${skippedCount} bài)` : ''),
+          { id: 'regrade-progress' }
         )
       } else {
         toast.error(res.message ?? 'Không thể chấm lại toàn bộ')
+        router.refresh()
       }
     } catch {
       toast.error('Lỗi kết nối khi chấm lại toàn bộ')
+      router.refresh()
     } finally {
       setIsRegradingAll(false)
     }
@@ -90,20 +120,53 @@ export function ExamResultsView({
       examId,
       (rawNotification: unknown) => {
         const notification = rawNotification as GradingNotificationDto
+        const isBulkRegrade = regradingRemainingRef.current > 0
+
         setResults((prev: TeacherExamResult[]) => {
-          const index = prev.findIndex(
-            (r) => r.submissionId === notification.submissionId
+          // 1. Try exact match by submissionId
+          let index = prev.findIndex(
+            (r) =>
+              notification.submissionId !== undefined &&
+              r.submissionId === notification.submissionId
           )
 
+          // 2. Try match by studentId + attemptNumber
+          if (index === -1 && notification.studentId !== undefined) {
+            if (notification.attemptNumber !== undefined) {
+              index = prev.findIndex(
+                (r) =>
+                  r.studentId === notification.studentId &&
+                  r.attemptNumber === notification.attemptNumber
+              )
+            } else {
+              // 3. Fallback: missing attemptNumber from BE
+              // Find the FIRST record that is still PENDING for this student.
+              // This ensures bulk regrades (which reset all attempts to PENDING) update attempts one by one natively.
+              index = prev.findIndex(
+                (r) =>
+                  r.studentId === notification.studentId &&
+                  r.status === 'PENDING'
+              )
+            }
+          }
+
           const newResult: TeacherExamResult = {
-            submissionId: notification.submissionId || Date.now(),
+            submissionId:
+              notification.submissionId ||
+              prev[index]?.submissionId ||
+              Date.now(),
             studentId: notification.studentId,
-            studentName: notification.studentName || 'Học sinh',
-            studentEmail: notification.studentEmail || '',
-            attemptNumber: notification.attemptNumber || 1,
-            submittedAt: new Date().toISOString(),
+            studentName:
+              notification.studentName ||
+              prev[index]?.studentName ||
+              'Học sinh',
+            studentEmail:
+              notification.studentEmail || prev[index]?.studentEmail || '',
+            attemptNumber:
+              notification.attemptNumber || prev[index]?.attemptNumber || 1,
+            submittedAt: prev[index]?.submittedAt ?? new Date().toISOString(),
             totalScore: notification.totalScore || notification.score || 0,
-            maxScore: notification.maxScore || 10,
+            maxScore: notification.maxScore || prev[index]?.maxScore || 10,
             correctCount: notification.correctCount || 0,
             totalQuestions: notification.totalQuestions || 0,
             status: notification.status
@@ -113,14 +176,24 @@ export function ExamResultsView({
             const updated = [...prev]
             updated[index] = newResult
             return updated
-          } else {
-            return [newResult, ...prev]
           }
+          // During bulk re-grade never add new entries — only existing ones are re-graded
+          if (isBulkRegrade) return prev
+          return [newResult, ...prev]
         })
 
-        toast.success(
-          `Học sinh ${notification.studentName || 'Học sinh'} vừa nộp bài. Điểm: ${notification.totalScore || notification.score || 0}`
-        )
+        if (isBulkRegrade) {
+          regradingRemainingRef.current -= 1
+          if (regradingRemainingRef.current <= 0) {
+            toast.success('Đã chấm lại xong tất cả bài', {
+              id: 'regrade-progress'
+            })
+          }
+        } else {
+          const score = notification.totalScore ?? notification.score ?? 0
+          const name = notification.studentName || 'Học sinh'
+          toast.success(`${name} vừa nộp bài — ${score} điểm`)
+        }
       }
     )
 
@@ -129,26 +202,151 @@ export function ExamResultsView({
     }
   }, [examId])
 
-  const filteredResults = results.filter(
-    (r) =>
-      r.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.studentEmail.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  let baseResults = [...results]
 
-  // Pagination logic
+  if (encounterMode !== 'all') {
+    const studentBest = new Map<number, TeacherExamResult>()
+    for (const r of baseResults) {
+      const existing = studentBest.get(r.studentId)
+      if (!existing) {
+        studentBest.set(r.studentId, r)
+      } else {
+        if (encounterMode === 'latest') {
+          if (r.attemptNumber > existing.attemptNumber) {
+            studentBest.set(r.studentId, r)
+          }
+        } else if (encounterMode === 'highest') {
+          if (r.totalScore > existing.totalScore) {
+            studentBest.set(r.studentId, r)
+          } else if (
+            r.totalScore === existing.totalScore &&
+            r.attemptNumber > existing.attemptNumber
+          ) {
+            studentBest.set(r.studentId, r)
+          }
+        }
+      }
+    }
+    baseResults = Array.from(studentBest.values())
+  }
+
+  if (scoreFilter !== 'all') {
+    baseResults = baseResults.filter((r) => {
+      if (r.status === 'PENDING') return false
+      if (scoreFilter === 'gte5') return r.totalScore >= 5
+      if (scoreFilter === 'gte8') return r.totalScore >= 8
+      if (scoreFilter === 'gte9') return r.totalScore >= 9
+      return true
+    })
+  }
+
+  if (searchTerm) {
+    const lowerTerm = searchTerm.toLowerCase()
+    baseResults = baseResults.filter(
+      (r) =>
+        r.studentName.toLowerCase().includes(lowerTerm) ||
+        r.studentEmail.toLowerCase().includes(lowerTerm)
+    )
+  }
+
+  interface StudentGroup {
+    studentId: number
+    studentName: string
+    studentEmail: string
+    attempts: TeacherExamResult[]
+    activeSubmissionId: number
+  }
+
+  const groupsMap = new Map<number, StudentGroup>()
+  for (const r of baseResults) {
+    let group = groupsMap.get(r.studentId)
+    if (!group) {
+      group = {
+        studentId: r.studentId,
+        studentName: r.studentName,
+        studentEmail: r.studentEmail,
+        attempts: [],
+        activeSubmissionId: r.submissionId
+      }
+      groupsMap.set(r.studentId, group)
+    }
+    group.attempts.push(r)
+  }
+
+  const studentGroups = Array.from(groupsMap.values()).map((group) => {
+    group.attempts.sort((a, b) => b.attemptNumber - a.attemptNumber)
+    const explicitId = selectedSubmissions[group.studentId]
+    if (
+      explicitId &&
+      group.attempts.some((a) => a.submissionId === explicitId)
+    ) {
+      group.activeSubmissionId = explicitId
+    } else {
+      group.activeSubmissionId = group.attempts[0].submissionId
+    }
+    return group
+  })
+
+  studentGroups.sort((gA, gB) => {
+    const activeA = gA.attempts.find(
+      (a) => a.submissionId === gA.activeSubmissionId
+    )!
+    const activeB = gB.attempts.find(
+      (a) => a.submissionId === gB.activeSubmissionId
+    )!
+
+    switch (sortOrder) {
+      case 'timeDesc':
+        return (
+          new Date(activeB.submittedAt).getTime() -
+          new Date(activeA.submittedAt).getTime()
+        )
+      case 'timeAsc':
+        return (
+          new Date(activeA.submittedAt).getTime() -
+          new Date(activeB.submittedAt).getTime()
+        )
+      case 'scoreDesc':
+        return activeB.totalScore === activeA.totalScore
+          ? new Date(activeB.submittedAt).getTime() -
+              new Date(activeA.submittedAt).getTime()
+          : activeB.totalScore - activeA.totalScore
+      case 'scoreAsc':
+        return activeA.totalScore === activeB.totalScore
+          ? new Date(activeB.submittedAt).getTime() -
+              new Date(activeA.submittedAt).getTime()
+          : activeA.totalScore - activeB.totalScore
+      default:
+        return 0
+    }
+  })
+
+  const filteredResults = studentGroups
   const totalPages = Math.ceil(filteredResults.length / pageSize)
+
+  const getPageNumbers = (current: number, total: number) => {
+    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
+    if (current <= 3) return [1, 2, 3, 4, '...', total]
+    if (current >= total - 2)
+      return [1, '...', total - 3, total - 2, total - 1, total]
+    return [1, '...', current - 1, current, current + 1, '...', total]
+  }
+
   const paginatedResults = filteredResults.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   )
 
+  const uniqueStudentsCount = new Set(results.map((r) => r.studentId)).size
+  const gradedResults = results.filter((r) => r.status !== 'PENDING')
   const stats = {
-    totalCount: results.length,
-    passed: results.filter((r) => r.totalScore >= 5).length,
+    totalCount: uniqueStudentsCount,
+    passed: gradedResults.filter((r) => r.totalScore >= 5).length,
     average:
-      results.length > 0
+      gradedResults.length > 0
         ? (
-            results.reduce((sum, r) => sum + r.totalScore, 0) / results.length
+            gradedResults.reduce((sum, r) => sum + r.totalScore, 0) /
+            gradedResults.length
           ).toFixed(1)
         : 0
   }
@@ -392,11 +590,66 @@ export function ExamResultsView({
                   }}
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                  Lọc kết quả
-                </Button>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border bg-background text-sm shadow-sm transition-colors hover:bg-muted/50 focus-within:ring-1 focus-within:ring-ring">
+                  <Filter className="h-4 w-4 text-muted-foreground drop-shadow-sm" />
+                  <select
+                    value={encounterMode}
+                    onChange={(e) => {
+                      setEncounterMode(
+                        e.target.value as 'all' | 'latest' | 'highest'
+                      )
+                      setCurrentPage(1)
+                    }}
+                    className="h-6 bg-transparent border-none text-xs font-semibold focus:ring-0 cursor-pointer outline-none"
+                  >
+                    <option value="all">Tất cả lượt thi</option>
+                    <option value="latest">Chỉ lần nộp cuối</option>
+                    <option value="highest">Chỉ điểm cao nhất</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border bg-background text-sm shadow-sm transition-colors hover:bg-muted/50 focus-within:ring-1 focus-within:ring-ring">
+                  <Hash className="h-4 w-4 text-muted-foreground drop-shadow-sm" />
+                  <select
+                    value={scoreFilter}
+                    onChange={(e) => {
+                      setScoreFilter(
+                        e.target.value as 'all' | 'gte5' | 'gte8' | 'gte9'
+                      )
+                      setCurrentPage(1)
+                    }}
+                    className="h-6 bg-transparent border-none text-xs font-semibold focus:ring-0 cursor-pointer outline-none"
+                  >
+                    <option value="all">Tất cả bài</option>
+                    <option value="gte5">{'>'}= 5 điểm</option>
+                    <option value="gte8">{'>'}= 8 điểm</option>
+                    <option value="gte9">{'>'}= 9 điểm</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border bg-background text-sm shadow-sm transition-colors hover:bg-muted/50 focus-within:ring-1 focus-within:ring-ring">
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground drop-shadow-sm" />
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => {
+                      setSortOrder(
+                        e.target.value as
+                          | 'timeDesc'
+                          | 'timeAsc'
+                          | 'scoreDesc'
+                          | 'scoreAsc'
+                      )
+                      setCurrentPage(1)
+                    }}
+                    className="h-6 bg-transparent border-none text-xs font-semibold focus:ring-0 cursor-pointer outline-none"
+                  >
+                    <option value="timeDesc">Mới nhất</option>
+                    <option value="timeAsc">Cũ nhất</option>
+                    <option value="scoreDesc">Điểm cao</option>
+                    <option value="scoreAsc">Điểm thấp</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -422,77 +675,138 @@ export function ExamResultsView({
                       </td>
                     </tr>
                   ) : (
-                    paginatedResults.map((result) => (
-                      <tr
-                        key={result.submissionId}
-                        onClick={() => handleRowClick(result.submissionId)}
-                      >
-                        <td>
-                          <div className={styles.studentCell}>
-                            <div className={styles.avatar}>
-                              {result.studentName.charAt(0)}
+                    paginatedResults.map((group: StudentGroup) => {
+                      const activeResult = group.attempts.find(
+                        (a: TeacherExamResult) =>
+                          a.submissionId === group.activeSubmissionId
+                      )!
+
+                      return (
+                        <tr
+                          key={group.studentId}
+                          onClick={() =>
+                            handleRowClick(activeResult.submissionId)
+                          }
+                        >
+                          <td>
+                            <div className={styles.studentCell}>
+                              <div className={styles.avatar}>
+                                {group.studentName.charAt(0).toUpperCase()}
+                              </div>
+                              <div className={styles.info}>
+                                <span className={styles.name}>
+                                  {group.studentName}
+                                </span>
+                                <span className={styles.email}>
+                                  <Mail className="h-3 w-3" />
+                                  {group.studentEmail}
+                                </span>
+                              </div>
                             </div>
-                            <div className={styles.info}>
-                              <span className={styles.name}>
-                                {result.studentName}
+                          </td>
+                          <td>
+                            <span className="text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3.5 w-3.5" />
+                              {new Date(
+                                activeResult.submittedAt
+                              ).toLocaleString('vi-VN')}
+                            </span>
+                          </td>
+                          <td
+                            className="text-center"
+                            onClick={(e) => {
+                              if (group.attempts.length > 1) {
+                                e.stopPropagation()
+                              }
+                            }}
+                          >
+                            {group.attempts.length > 1 ? (
+                              <div className="relative inline-block min-w-[70px]">
+                                <select
+                                  value={activeResult.submissionId}
+                                  onChange={(e) =>
+                                    setSelectedSubmissions((prev) => ({
+                                      ...prev,
+                                      [group.studentId]: Number(e.target.value)
+                                    }))
+                                  }
+                                  className="absolute opacity-0 w-full h-full left-0 top-0 cursor-pointer"
+                                >
+                                  {group.attempts.map(
+                                    (a: TeacherExamResult) => (
+                                      <option
+                                        key={a.submissionId}
+                                        value={a.submissionId}
+                                      >
+                                        Lần {a.attemptNumber}{' '}
+                                        {a.status === 'PENDING'
+                                          ? '(Đang chấm)'
+                                          : `(${a.totalScore}đ)`}
+                                      </option>
+                                    )
+                                  )}
+                                </select>
+                                <div className="flex items-center justify-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20 cursor-pointer shadow-sm mx-auto w-fit">
+                                  <span className="text-xs font-bold leading-none py-1">
+                                    Lần {activeResult.attemptNumber}
+                                  </span>
+                                  <ChevronDown className="h-3 w-3" />
+                                </div>
+                              </div>
+                            ) : (
+                              <span className={styles.attemptBadge}>
+                                Lần {activeResult.attemptNumber}
                               </span>
-                              <span className={styles.email}>
-                                <Mail className="h-3 w-3" />
-                                {result.studentEmail}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5" />
-                            {new Date(result.submittedAt).toLocaleString(
-                              'vi-VN'
                             )}
-                          </span>
-                        </td>
-                        <td className="text-center px-4">
-                          <span className="text-xs font-semibold px-2 py-1 bg-muted rounded border">
-                            Lần {result.attemptNumber}
-                          </span>
-                        </td>
-                        <td>
-                          {result.status === 'COMPLETED' ? (
-                            <span
-                              className={`${styles.statusBadge} ${styles.completed}`}
-                            >
-                              <CheckCircle2 className="h-3 w-3" />
-                              Hoàn tất
-                            </span>
-                          ) : result.status === 'FAILED' ? (
-                            <span
-                              className={`${styles.statusBadge} ${styles.failed}`}
-                            >
-                              <AlertCircle className="h-3 w-3" />
-                              Thất bại
-                            </span>
-                          ) : (
-                            <span
-                              className={`${styles.statusBadge} ${styles.pending}`}
-                            >
-                              Đang chấm
-                            </span>
-                          )}
-                        </td>
-                        <td className="text-center">
-                          <div className="flex flex-col items-center">
-                            <span
-                              className={`${styles.scoreText} ${result.totalScore >= 5 ? styles.passed : styles.failed}`}
-                            >
-                              {result.totalScore.toFixed(1)}/{result.maxScore}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
-                              {result.totalScore >= 5 ? 'Đạt' : 'Chưa đạt'}
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td>
+                            {activeResult.status === 'COMPLETED' ? (
+                              <span
+                                className={`${styles.statusBadge} ${styles.completed}`}
+                              >
+                                <CheckCircle2 className="h-3 w-3" />
+                                Hoàn tất
+                              </span>
+                            ) : activeResult.status === 'FAILED' ? (
+                              <span
+                                className={`${styles.statusBadge} ${styles.failed}`}
+                              >
+                                <AlertCircle className="h-3 w-3" />
+                                Thất bại
+                              </span>
+                            ) : (
+                              <span
+                                className={`${styles.statusBadge} ${styles.pending}`}
+                              >
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Đang chấm
+                              </span>
+                            )}
+                          </td>
+                          <td className="text-right pr-6">
+                            {activeResult.status === 'PENDING' ? (
+                              <span className="text-xs text-muted-foreground italic">
+                                Đang chấm...
+                              </span>
+                            ) : (
+                              <div className="flex flex-col items-end">
+                                <span
+                                  className={`${styles.scoreText} ${activeResult.totalScore >= 5 ? styles.passed : styles.failed}`}
+                                >
+                                  {activeResult.totalScore.toFixed(1)}/
+                                  {activeResult.maxScore}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                                  {activeResult.totalScore >= 5
+                                    ? 'Đạt'
+                                    : 'Chưa đạt'}
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
                 </tbody>
               </table>
@@ -527,17 +841,24 @@ export function ExamResultsView({
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
+                    {getPageNumbers(currentPage, totalPages).map((page, idx) =>
+                      page === '...' ? (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="px-2 font-black text-muted-foreground text-sm tracking-wider"
+                        >
+                          ...
+                        </span>
+                      ) : (
                         <Button
-                          key={page}
+                          key={`page-${page}`}
                           variant={currentPage === page ? 'default' : 'ghost'}
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
-                            setCurrentPage(page)
+                            setCurrentPage(page as number)
                           }}
-                          className="w-8"
+                          className="w-8 p-0"
                         >
                           {page}
                         </Button>
