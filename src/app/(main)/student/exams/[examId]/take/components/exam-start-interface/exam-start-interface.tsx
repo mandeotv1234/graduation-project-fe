@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock, Hash, BookOpen, Shield, Maximize, Loader2 } from 'lucide-react'
+import {
+  Clock,
+  Hash,
+  BookOpen,
+  Shield,
+  Maximize,
+  Loader2,
+  ChevronLeft
+} from 'lucide-react'
 import {
   StudentExamDetail,
   StartExamSessionResponse,
@@ -226,6 +234,17 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
       <div className={styles.contentWrapper}>
         {/* Main Paper-like Container */}
         <div className={styles.card}>
+          <div className="-mt-2 mb-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground -ml-3"
+              onClick={() => router.push(PATH.STUDENT_EXAMS)}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> Quay lại danh sách bài
+              thi
+            </Button>
+          </div>
           <h1 className={styles.title}>{exam.title}</h1>
 
           {/* Exam Information Grid */}
