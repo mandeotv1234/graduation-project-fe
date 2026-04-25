@@ -140,6 +140,10 @@ export async function createExam(
   return apiClient.post<CreateExamResponse>(ENDPOINTS.CREATE_EXAM, data)
 }
 
+export async function deleteExam(examId: number): Promise<ApiResponse<void>> {
+  return apiClient.delete(`/exams/${examId}`)
+}
+
 export async function updateExamQuestion(
   examId: number,
   questionId: number,

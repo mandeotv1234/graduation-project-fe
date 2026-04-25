@@ -6,7 +6,8 @@ export {
   updateExam,
   createExam,
   updateExamQuestion,
-  deleteExamQuestion
+  deleteExamQuestion,
+  deleteExam
 } from '@/lib/actions/exam.action'
 export * from '@/lib/actions/student-exam.action'
 export {

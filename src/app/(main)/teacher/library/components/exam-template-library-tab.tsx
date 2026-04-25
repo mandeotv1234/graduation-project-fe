@@ -8,6 +8,7 @@ import { getExamTemplates } from '@/lib/actions'
 import { ExamTemplateListItem } from '@/lib/types'
 import { CloneExamTemplateDialog } from './clone-exam-template-dialog'
 import { Button } from '@/components/ui/button'
+import { formatDate } from '@/lib/utils/time'
 
 export function ExamTemplateLibraryTab() {
   const [templates, setTemplates] = useState<ExamTemplateListItem[]>([])
@@ -101,9 +102,7 @@ export function ExamTemplateLibraryTab() {
               {template.latestSharedAt && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Calendar className="h-3.5 w-3.5" />
-                  {new Date(template.latestSharedAt).toLocaleDateString(
-                    'vi-VN'
-                  )}
+                  {formatDate(template.latestSharedAt)}
                 </div>
               )}
             </div>

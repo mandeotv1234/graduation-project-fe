@@ -18,6 +18,7 @@ import {
 } from '@/lib/actions/anti-cheat.action'
 import type { DeviceConflictPendingEvent } from '@/lib/types'
 import { toast } from 'sonner'
+import { formatDateTime } from '@/lib/utils/time'
 import styles from './device-conflict-dialog.module.scss'
 
 interface DeviceConflictDialogProps {
@@ -94,7 +95,7 @@ export function DeviceConflictDialog({
 
   const formatTime = (iso: string) => {
     if (!iso) return 'Không rõ'
-    return new Date(iso).toLocaleString('vi-VN')
+    return formatDateTime(iso)
   }
 
   return (

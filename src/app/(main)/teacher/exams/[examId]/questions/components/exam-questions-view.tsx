@@ -1,5 +1,6 @@
 'use client'
 
+import { formatDateTime } from '@/lib/utils/time'
 import {
   ArrowRight,
   Code2,
@@ -96,7 +97,7 @@ interface QuestionFormState extends CreateExamQuestionBatch {
 }
 
 function formatVersionTimestamp(value?: string) {
-  return value ? new Date(value).toLocaleString('vi-VN') : '-'
+  return formatDateTime(value)
 }
 
 export function ExamQuestionsView({

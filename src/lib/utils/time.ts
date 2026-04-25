@@ -4,8 +4,16 @@
  */
 export function parseBackendDate(dateStr?: string | null): Date {
   if (!dateStr) return new Date(NaN)
-  const localStr = dateStr.replace('T', ' ')
-  return new Date(localStr)
+
+  // If the date string already contains a timezone offset or Z, parse as-is.
+  if (dateStr.endsWith('Z') || dateStr.match(/[+-]\d{2}:\d{2}$/)) {
+    return new Date(dateStr)
+  }
+
+  // Backend LocalDateTime is fixed to Vietnam Time (Asia/Ho_Chi_Minh), so we explicitly append +07:00.
+  // This prevents the browser from making false assumptions about the local timezone.
+  const normalizedStr = dateStr.replace(' ', 'T')
+  return new Date(`${normalizedStr}+07:00`)
 }
 
 /**
@@ -20,12 +28,16 @@ export function toExpiryDate(dateStr?: string | null): Date {
 }
 
 /**
- * Format a backend date string to Vietnamese short date (dd/MM/yyyy).
+ * Format a backend date string or Date object to Vietnamese short date (dd/MM/yyyy).
  */
-export function formatDate(dateStr?: string | null): string {
-  const date = parseBackendDate(dateStr)
+export function formatDate(dateInput?: string | Date | null): string {
+  if (!dateInput) return '-'
+  const date =
+    typeof dateInput === 'string' ? parseBackendDate(dateInput) : dateInput
   if (isNaN(date.getTime())) return '-'
+
   return date.toLocaleDateString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
@@ -33,12 +45,16 @@ export function formatDate(dateStr?: string | null): string {
 }
 
 /**
- * Format a backend date string to Vietnamese date + time (dd/MM/yyyy HH:mm).
+ * Format a backend date string or Date object to Vietnamese date + time (dd/MM/yyyy HH:mm).
  */
-export function formatDateTime(dateStr?: string | null): string {
-  const date = parseBackendDate(dateStr)
+export function formatDateTime(dateInput?: string | Date | null): string {
+  if (!dateInput) return '-'
+  const date =
+    typeof dateInput === 'string' ? parseBackendDate(dateInput) : dateInput
   if (isNaN(date.getTime())) return '-'
+
   return date.toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
