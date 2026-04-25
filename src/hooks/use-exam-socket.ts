@@ -15,7 +15,7 @@ interface UseExamSocketOptions {
   examId: number
   studentId?: number
   enabled?: boolean
-  onForceSubmit?: () => void
+  onForceSubmit?: (reason: string) => void
   onTimeSync?: (remainingSeconds: number) => void
   onGradingResult?: (result: unknown) => void
   onKicked?: () => void
@@ -75,7 +75,7 @@ export function useExamSocket({
                   'Bài thi của bạn đã bị nộp tự động do vi phạm quy chế thi.'
                 )
               )
-              setTimeout(() => onForceSubmitRef.current?.(), 2000)
+              setTimeout(() => onForceSubmitRef.current?.('VIOLATION'), 2000)
             }
           } catch {
             console.error('[ExamSocket] Failed to parse message')
@@ -114,7 +114,7 @@ export function useExamSocket({
                   'Tài khoản của bạn đang được sử dụng trên thiết bị khác!'
               )
             )
-            setTimeout(() => onForceSubmitRef.current?.(), 5000)
+            setTimeout(() => onForceSubmitRef.current?.('CONFLICT'), 5000)
           } catch {
             console.error('[ExamSocket] Failed to parse session conflict')
           }
@@ -169,7 +169,10 @@ export function useExamSocket({
                     'Bài thi của bạn đã bị nộp tự động theo yêu cầu của giáo viên.'
                 )
                 dispatch(resetAntiCheat())
-                setTimeout(() => onForceSubmitRef.current?.(), 2000)
+                setTimeout(
+                  () => onForceSubmitRef.current?.('FORCE_SUBMIT'),
+                  2000
+                )
               }
             } catch {
               console.error('[ExamSocket] Failed to parse personal message')

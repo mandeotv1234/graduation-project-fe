@@ -216,9 +216,17 @@ export function TeacherExamDetailContent({
   const templateVersions = templateManagement?.versions ?? []
   const canManageTemplate = templateManagement?.canManage ?? false
 
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '')
+    if (hash === 'overview' || hash === 'questions' || hash === 'library') {
+      setActiveTab(hash)
+    }
+  }, [])
+
   const handleTabChange = (value: string) => {
     if (value === 'overview' || value === 'questions' || value === 'library') {
       setActiveTab(value)
+      window.history.replaceState(null, '', `#${value}`)
     }
   }
 
@@ -421,7 +429,7 @@ export function TeacherExamDetailContent({
             value="questions"
             className="relative h-12 rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
           >
-            Câu hỏi ({questionCount})
+            Câu hỏi
           </TabsTrigger>
 
           <TabsTrigger
@@ -681,6 +689,7 @@ export function TeacherExamDetailContent({
           <ExamQuestionsView
             variant="embedded"
             examId={exam.id}
+            examTitle={exam.title}
             initialQuestions={questions}
             specification={displaySpecification}
             templateManagement={templateManagement}

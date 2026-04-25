@@ -83,6 +83,7 @@ const QUESTION_TYPES = [
 
 interface ExamQuestionsViewProps {
   examId: number
+  examTitle: string
   initialQuestions: ExamQuestionItem[]
   specification?: ExamSpecification | SpecificationDetailResponse | null
   templateManagement: TeacherExamTemplateVersionsResponse | null
@@ -105,6 +106,7 @@ function formatVersionTimestamp(value?: string) {
 
 export function ExamQuestionsView({
   examId,
+  examTitle,
   initialQuestions,
   specification = null,
   templateManagement,
@@ -481,11 +483,11 @@ export function ExamQuestionsView({
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col gap-3 pt-4 pb-1 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 border-l-4 border-primary/60 pl-3">
+      <div className="flex flex-col gap-3 pt-3 pb-1 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 pl-3">
           <div>
             {variant === 'embedded' ? (
-              <h2 className="text-xl font-bold tracking-tight text-title md:text-2xl">
+              <h2 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">
                 Danh sách câu hỏi
               </h2>
             ) : (
@@ -495,7 +497,7 @@ export function ExamQuestionsView({
             )}
             <div className="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground">
               <p className="text-sm">
-                Bài thi #{examId} · {questions.length} câu · {totalPoints} điểm
+                {examTitle} · {questions.length} câu · {totalPoints} điểm
               </p>
               {latestVisibleVersion && (
                 <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600">
