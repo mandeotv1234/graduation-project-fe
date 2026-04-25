@@ -35,6 +35,7 @@ import {
   deleteNotification,
   deleteAllNotifications
 } from '@/lib/actions'
+import { formatDateTime } from '@/lib/utils/time'
 
 // ─── Unified NotificationItem (supports both API & realtime) ─────────
 interface NotificationItem {
@@ -484,12 +485,7 @@ export function TeacherNotificationBell() {
       if (diffMin < 60) return `${diffMin} phút trước`
       if (diffHour < 24) return `${diffHour} giờ trước`
 
-      return date.toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      return formatDateTime(date)
     } catch {
       return ''
     }

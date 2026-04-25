@@ -43,16 +43,19 @@ import type {
 } from '@/lib/types'
 import { subscribeToTeacherGradingResult } from '@/lib/socket'
 import { regradeAllExamResults } from '@/lib/actions'
+import { formatDateTime } from '@/lib/utils/time'
 import { ExamStatisticsDashboard } from './exam-statistics-dashboard/exam-statistics-dashboard'
 
 interface ExamResultsViewProps {
   examId: number
+  examTitle: string
   initialResults: TeacherExamResult[]
   initialStats: ExamStatistics | null
 }
 
 export function ExamResultsView({
   examId,
+  examTitle,
   initialResults,
   initialStats
 }: ExamResultsViewProps) {
@@ -369,7 +372,7 @@ export function ExamResultsView({
     const rows = results.map((r) => [
       `"${r.studentName}"`,
       `"${r.studentEmail}"`,
-      `"${new Date(r.submittedAt).toLocaleString('vi-VN')}"`,
+      `"${formatDateTime(r.submittedAt)}"`,
       r.attemptNumber,
       `"${
         r.status === 'COMPLETED'
@@ -406,7 +409,7 @@ export function ExamResultsView({
           <div>
             <h1>Kết quả bài thi</h1>
             <p>
-              Bài thi #{examId} · {results.length} lượt nộp
+              {examTitle} · {results.length} lượt nộp
             </p>
           </div>
         </div>
@@ -707,9 +710,7 @@ export function ExamResultsView({
                           <td>
                             <span className="text-muted-foreground flex items-center gap-1">
                               <Calendar className="h-3.5 w-3.5" />
-                              {new Date(
-                                activeResult.submittedAt
-                              ).toLocaleString('vi-VN')}
+                              {formatDateTime(activeResult.submittedAt)}
                             </span>
                           </td>
                           <td

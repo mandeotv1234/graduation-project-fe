@@ -7,14 +7,29 @@ import {
   FileText,
   Plus,
   Settings,
+  Trash2,
   User,
   Users
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
 
 import { ClassTeachersSection } from '@/app/(main)/teacher/classes/[classId]/components/class-teachers-section'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { PATH } from '@/lib/constants'
+import { deleteExam } from '@/lib/actions'
 import {
   ClassDetail,
   ClassExamItem,
@@ -82,6 +97,30 @@ export function ClassDetailView({
   exams,
   currentStudentPage
 }: ClassDetailViewProps) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [examToDelete, setExamToDelete] = useState<number | null>(null)
+
+  const handleDeleteExam = async () => {
+    if (!examToDelete) return
+
+    startTransition(async () => {
+      try {
+        const res = await deleteExam(examToDelete)
+        if (res.code === 'OK') {
+          toast.success('Xóa bài thi thành công')
+          router.refresh()
+        } else {
+          toast.error(res.message || 'Không thể xóa bài thi')
+        }
+      } catch {
+        toast.error('Có lỗi xảy ra khi xóa bài thi')
+      } finally {
+        setExamToDelete(null)
+      }
+    })
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -222,7 +261,6 @@ export function ClassDetailView({
                       <Database className="h-4 w-4" />
                     </Button>
                   </Link>
-
                   <Link
                     href={PATH.TEACHER_EXAM_DETAIL(exam.id)}
                     title="Cài đặt bài thi"
@@ -235,12 +273,48 @@ export function ClassDetailView({
                       <Settings className="h-4 w-4" />
                     </Button>
                   </Link>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg"
+                    onClick={() => setExamToDelete(exam.id)}
+                    title="Xóa bài thi"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </section>
+
+      <AlertDialog
+        open={examToDelete !== null}
+        onOpenChange={(open) => !open && setExamToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa bài thi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến bài
+              thi này (bao gồm kết quả làm bài của sinh viên) sẽ bị xóa vĩnh
+              viễn.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleDeleteExam}
+              disabled={isPending}
+            >
+              {isPending ? 'Đang xóa...' : 'Xác nhận xóa'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Students section */}
       <section className="space-y-4">

@@ -26,6 +26,12 @@ export interface SchemaTable {
   columns: { name: string; type: string }[]
 }
 
+export interface RoutineSuggestion {
+  routineName: string
+  routineType: string
+  dataType?: string
+}
+
 interface SqlEditorPanelProps {
   value: string
   onChange: (value: string) => void
@@ -35,6 +41,7 @@ interface SqlEditorPanelProps {
   isClearing?: boolean
   /** Optional schema extracted from ExamSpecification for IntelliSense */
   schema?: SchemaTable[]
+  routines?: RoutineSuggestion[]
 }
 
 export function SqlEditorPanel({
@@ -44,12 +51,19 @@ export function SqlEditorPanel({
   onClearSchema,
   isLoading,
   isClearing = false,
-  schema = []
+  schema = [],
+  routines = []
 }: SqlEditorPanelProps) {
   const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
   const { resolvedTheme } = useTheme()
   const [editorLoading, setEditorLoading] = useState(true)
   const completionDisposable = useRef<monacoType.IDisposable | null>(null)
+
+  // Keep latest schema and routines in refs so the Monaco provider closure always sees the freshest data
+  const schemaRef = useRef(schema)
+  const routinesRef = useRef(routines)
+  schemaRef.current = schema
+  routinesRef.current = routines
 
   // ─── Register completion provider on beforeMount ────────────────
   const handleBeforeMount = (monaco: Monaco) => {
@@ -58,8 +72,78 @@ export function SqlEditorPanel({
 
     completionDisposable.current =
       monaco.languages.registerCompletionItemProvider('sql', {
-        // Only '.' and '(' are true trigger chars; regular typing is handled by quickSuggestions
-        triggerCharacters: ['.', '('],
+        // ── KEY FIX: include every word character as a trigger character.
+        // When a character IS in triggerCharacters, Monaco ALWAYS calls
+        // provideCompletionItems fresh on that keystroke – bypassing the
+        // quickSuggestions debounce/cache path that caused suggestions to
+        // appear only on backspace (not on forward typing).
+        triggerCharacters: [
+          '.',
+          '(',
+          '_',
+          'a',
+          'b',
+          'c',
+          'd',
+          'e',
+          'f',
+          'g',
+          'h',
+          'i',
+          'j',
+          'k',
+          'l',
+          'm',
+          'n',
+          'o',
+          'p',
+          'q',
+          'r',
+          's',
+          't',
+          'u',
+          'v',
+          'w',
+          'x',
+          'y',
+          'z',
+          'A',
+          'B',
+          'C',
+          'D',
+          'E',
+          'F',
+          'G',
+          'H',
+          'I',
+          'J',
+          'K',
+          'L',
+          'M',
+          'N',
+          'O',
+          'P',
+          'Q',
+          'R',
+          'S',
+          'T',
+          'U',
+          'V',
+          'W',
+          'X',
+          'Y',
+          'Z',
+          '0',
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+          '6',
+          '7',
+          '8',
+          '9'
+        ],
 
         provideCompletionItems(
           model: monacoType.editor.ITextModel,
@@ -67,15 +151,16 @@ export function SqlEditorPanel({
         ): monacoType.languages.CompletionList {
           const word = model.getWordUntilPosition(position)
 
-          // Replace the entire typed word up to the cursor position
+          // Use word.endColumn (documented standard) as the range end.
+          // Trigger-character calls always pass the fresh cursor position
+          // so the range is always computed fresh – no stale cache.
           const range: monacoType.IRange = {
             startLineNumber: position.lineNumber,
             endLineNumber: position.lineNumber,
             startColumn: word.startColumn,
-            endColumn: position.column // always use cursor column, not word.endColumn
+            endColumn: word.endColumn
           }
 
-          // Get the character just before the word to detect dot-access
           const lineText = model.getLineContent(position.lineNumber)
           const textBeforeWord = lineText.substring(0, word.startColumn - 1)
           const dotMatch = textBeforeWord.match(/(\w+)\.$/)
@@ -84,13 +169,50 @@ export function SqlEditorPanel({
           const CIK = monaco.languages.CompletionItemKind
           const CIT = monaco.languages.CompletionItemInsertTextRule
 
-          // ── 1. After table_alias. → column suggestions for that table ──
+          // Parse full text to find table aliases (FROM tableName alias)
+          const fullText = model.getValue().toLowerCase()
+          const aliasMap = new Map<string, string>()
+          const aliasMatches = fullText.matchAll(
+            /(?:from|join)\s+([a-z0-9_]+)(?:\s+(?:as\s+)?([a-z0-9_]+))?/g
+          )
+          for (const m of aliasMatches) {
+            const tbl = m[1]
+            const alias = m[2]
+            if (
+              alias &&
+              ![
+                'where',
+                'on',
+                'join',
+                'inner',
+                'left',
+                'right',
+                'full',
+                'cross',
+                'order',
+                'group',
+                'having',
+                'limit'
+              ].includes(alias)
+            ) {
+              aliasMap.set(alias, tbl)
+            } else if (!alias) {
+              aliasMap.set(tbl, tbl)
+            }
+          }
+
+          const currentSchema = schemaRef.current || []
+          const currentRoutines = routinesRef.current || []
+
+          // ── 1. Dot-access → column suggestions for the resolved table/alias ──
           if (dotMatch) {
-            const alias = dotMatch[1].toLowerCase()
-            const matched = schema.find(
+            const prefix = dotMatch[1].toLowerCase()
+            const mappedTable = aliasMap.get(prefix)
+            const matched = currentSchema.find(
               (t) =>
-                t.tableName.toLowerCase() === alias ||
-                t.tableName.toLowerCase().startsWith(alias)
+                (mappedTable && t.tableName.toLowerCase() === mappedTable) ||
+                t.tableName.toLowerCase() === prefix ||
+                t.tableName.toLowerCase().startsWith(prefix)
             )
             if (matched) {
               matched.columns.forEach((col) => {
@@ -105,12 +227,12 @@ export function SqlEditorPanel({
                   range
                 })
               })
-              return { suggestions }
+              return { suggestions, incomplete: true }
             }
           }
 
-          // ── 2. Table name completions ──────────────────────────────────
-          schema.forEach((table) => {
+          // ── 2. Table names ──────────────────────────────────────────────
+          currentSchema.forEach((table) => {
             suggestions.push({
               label: table.tableName,
               kind: CIK.Class,
@@ -123,13 +245,35 @@ export function SqlEditorPanel({
                     .join('\n')
               },
               insertText: table.tableName,
+              sortText: `a_${table.tableName}`,
               range
             })
           })
 
-          // ── 3. Column names from all tables ────────────────────────────
+          // ── 3. Stored Procedures & Functions ───────────────────────────
+          currentRoutines.forEach((routine) => {
+            const isProc = routine.routineType?.toUpperCase() === 'PROCEDURE'
+            const kind = isProc ? CIK.Method : CIK.Function
+            const detailLabel = isProc
+              ? 'Stored Procedure'
+              : `Function → ${routine.dataType || 'N/A'}`
+            suggestions.push({
+              label: routine.routineName,
+              kind,
+              detail: detailLabel,
+              documentation: {
+                value: `**${routine.routineName}**\n\n${detailLabel}`
+              },
+              insertText: `${routine.routineName}($0)`,
+              insertTextRules: CIT.InsertAsSnippet,
+              sortText: `b_${routine.routineName}`,
+              range
+            })
+          })
+
+          // ── 4. Column names (all tables, de-duped) ─────────────────────
           const seenCols = new Set<string>()
-          schema.forEach((table) => {
+          currentSchema.forEach((table) => {
             table.columns.forEach((col) => {
               if (seenCols.has(col.name)) return
               seenCols.add(col.name)
@@ -138,12 +282,13 @@ export function SqlEditorPanel({
                 kind: CIK.Field,
                 detail: `Cột  ${col.type}  (${table.tableName})`,
                 insertText: col.name,
+                sortText: `c_${col.name}`,
                 range
               })
             })
           })
 
-          // ── 4. SQL keyword snippets ────────────────────────────────────
+          // ── 5. SQL keyword snippets ────────────────────────────────────
           const snippets: Array<{
             label: string
             filterText: string // what the user types to find this snippet
@@ -474,22 +619,20 @@ export function SqlEditorPanel({
             }
           ]
 
-          snippets.forEach(({ label, filterText, detail, doc, insert }) => {
+          snippets.forEach(({ label, detail, doc, insert }) => {
             suggestions.push({
               label,
-              filterText,
               kind: CIK.Keyword,
               detail,
               documentation: { value: doc },
               insertText: insert,
               insertTextRules: CIT.InsertAsSnippet,
-              range,
-              // Ensure Monaco sorts keywords after schema items
-              sortText: `z_${label}`
+              sortText: `z_${label}`,
+              range
             })
           })
 
-          return { suggestions }
+          return { suggestions, incomplete: true }
         }
       })
   }
@@ -591,7 +734,7 @@ export function SqlEditorPanel({
             padding: { top: 12 },
             // IntelliSense fires on every keystroke (no need to press Ctrl+Space)
             quickSuggestions: { other: true, comments: false, strings: false },
-            quickSuggestionsDelay: 0,
+            quickSuggestionsDelay: 10,
             suggestOnTriggerCharacters: true,
             acceptSuggestionOnEnter: 'on',
             tabCompletion: 'on',

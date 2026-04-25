@@ -11,6 +11,7 @@ import {
   Loader2,
   Share2,
   ShieldAlert,
+  Trash2,
   Upload,
   Users
 } from 'lucide-react'
@@ -27,8 +28,23 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { getSpecificationDetail, shareExamAsTemplate } from '@/lib/actions'
+import {
+  deleteExam,
+  getSpecificationDetail,
+  shareExamAsTemplate
+} from '@/lib/actions'
 import { fetchExamPdfBlobUrl } from '@/lib/api/pdf-client'
 import { PATH } from '@/lib/constants'
 import {
@@ -166,6 +182,7 @@ export function TeacherExamDetailContent({
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false)
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
 
   const hasPdf = Boolean(
@@ -259,6 +276,24 @@ export function TeacherExamDetailContent({
     }
   }
 
+  const handleDeleteExam = async () => {
+    setIsDeleting(true)
+    try {
+      const res = await deleteExam(exam.id)
+      if (res.code === 'OK') {
+        toast.success('Xóa bài thi thành công')
+        router.push(PATH.TEACHER_CLASS_DETAIL(exam.classId))
+        router.refresh()
+      } else {
+        toast.error(res.message || 'Không thể xóa bài thi')
+      }
+    } catch {
+      toast.error('Có lỗi xảy ra khi xóa bài thi')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const statusMeta = getStatusMeta(
     getExamStatus(displayExam.startTime, displayExam.endTime),
     Boolean(displayExam.isPublished)
@@ -320,6 +355,46 @@ export function TeacherExamDetailContent({
                   : 'Chia sẻ đề thi'}
               </Button>
             )}
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive border-border"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Xóa bài thi
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xác nhận xóa bài thi?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan
+                    đến bài thi này (bao gồm kết quả làm bài của sinh viên) sẽ
+                    bị xóa vĩnh viễn.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>
+                    Hủy
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive hover:bg-destructive/90 transition-colors"
+                    onClick={handleDeleteExam}
+                    disabled={isDeleting}
+                  >
+                    Xác nhận xóa
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           {canManageTemplate && !canShareTemplate && shareDisabledReason && (
             <p className="max-w-md text-sm text-destructive">

@@ -68,6 +68,9 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editorSchema, setEditorSchema] = useState<SchemaTable[]>([])
+  const [editorRoutines, setEditorRoutines] = useState<
+    ExecuteSqlResponse['routines']
+  >([])
   const [schemaMeta, setSchemaMeta] =
     useState<ExecuteSqlResponse['schema']>(null)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
@@ -125,8 +128,12 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   }, [schemaMeta])
 
   const applySchemaMeta = useCallback(
-    (schema: ExecuteSqlResponse['schema']) => {
+    (
+      schema: ExecuteSqlResponse['schema'],
+      routines?: ExecuteSqlResponse['routines']
+    ) => {
       setSchemaMeta(schema)
+      setEditorRoutines(routines || [])
       setEditorSchema(
         schema
           ? schema.map((table) => ({
@@ -336,9 +343,10 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     const res = await examTake.handleExecuteSql()
 
     const schema = res?.schema
+    // Provide both schema and routines if present
     if (!schema || schema.length === 0) return
 
-    applySchemaMeta(schema)
+    applySchemaMeta(schema, res?.routines)
   }, [examTake, applySchemaMeta])
 
   const handleClearSchema = useCallback(async () => {
@@ -927,6 +935,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                       isLoading={examTake.isLoading}
                       isClearing={isClearing}
                       schema={editorSchema}
+                      routines={editorRoutines || []}
                     />
                     <ExamTakeBottomPanel
                       schema={editorSchema}
@@ -1163,6 +1172,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                       isLoading={examTake.isLoading}
                       isClearing={isClearing}
                       schema={editorSchema}
+                      routines={editorRoutines || []}
                     />
                   ) : (
                     <div className={styles.emptyStateCenter}>

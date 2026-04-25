@@ -30,6 +30,7 @@ import {
   PreviousScores
 } from '@/lib/types'
 import { regradeExamResult, getTeacherSubmissionDetail } from '@/lib/actions'
+import { formatDateTime } from '@/lib/utils/time'
 import { QuestionCard } from './question-card'
 import styles from './submission-detail-view.module.scss'
 
@@ -284,7 +285,7 @@ export function SubmissionDetailView({
         <div className={styles.statItem}>
           <span className={styles.label}>Thời gian nộp</span>
           <span className={styles.value}>
-            {new Date(detail.submittedAt).toLocaleString('vi-VN')}
+            {formatDateTime(detail.submittedAt)}
           </span>
           <span className="text-xs text-muted-foreground flex items-center gap-0.5 mt-0.5">
             <Calendar className="h-3 w-3" />

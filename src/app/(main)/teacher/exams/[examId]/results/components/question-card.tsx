@@ -29,6 +29,7 @@ import {
 import { toast } from 'sonner'
 import { QuestionResultDetail, OverrideSubmissionRequest } from '@/lib/types'
 import { overrideSubmissionScore } from '@/lib/actions'
+import { formatDateTime } from '@/lib/utils/time'
 import styles from './submission-detail-view.module.scss'
 
 // Map raw questionType to display label
@@ -371,7 +372,7 @@ export function QuestionCard({
             {qr.gradedAt && (
               <>
                 <Clock className="h-3 w-3 ml-1" />
-                <span>{new Date(qr.gradedAt).toLocaleString('vi-VN')}</span>
+                <span>{formatDateTime(qr.gradedAt)}</span>
               </>
             )}
           </div>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, FileText, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatDateTime } from '@/lib/utils/time'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -151,8 +152,7 @@ export function TemplateLibraryManagement({
                 </div>
 
                 <p className="text-sm text-muted-foreground">
-                  {version.sharedByName} ·{' '}
-                  {new Date(version.createdAt).toLocaleString('vi-VN')} ·{' '}
+                  {version.sharedByName} · {formatDateTime(version.createdAt)} ·{' '}
                   {version.questionCount} câu hỏi
                 </p>
 

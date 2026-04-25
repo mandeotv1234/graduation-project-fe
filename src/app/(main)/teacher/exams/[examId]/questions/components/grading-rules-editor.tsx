@@ -1,5 +1,6 @@
 'use client'
 
+import { formatDate } from '@/lib/utils/time'
 import {
   FileText,
   Loader2,
@@ -1868,7 +1869,7 @@ export function GradingRulesEditor({
                       </div>
                       <div className="flex justify-between items-center mt-1">
                         <span className="text-xs text-muted-foreground">
-                          {new Date(p.createdAt).toLocaleDateString('vi-VN')}
+                          {formatDate(p.createdAt)}
                         </span>
                         <div className="flex items-center gap-1.5">
                           <Button

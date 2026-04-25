@@ -121,6 +121,16 @@ export interface ExecuteSqlResponse {
       nullable: boolean
     }>
   }> | null
+  routines?: Array<{
+    routineName: string
+    routineType: string
+    dataType?: string
+    parameters?: Array<{
+      parameterMode?: string
+      parameterName: string
+      dataType: string
+    }>
+  }> | null
 }
 
 // POST /api/exams/{examId}/submit → SubmitExamRequestDto / SubmitExamResponseDto

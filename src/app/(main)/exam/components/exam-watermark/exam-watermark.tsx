@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useState } from 'react'
 import styles from '@/app/(main)/exam/components/exam-watermark/exam-watermark.module.scss'
+import { formatDateTime } from '@/lib/utils/time'
 
 interface ExamWatermarkProps {
   studentId: string
@@ -15,7 +16,7 @@ export const ExamWatermark = memo(function ExamWatermark({
   const [time, setTime] = useState('')
 
   useEffect(() => {
-    const update = () => setTime(new Date().toLocaleString('vi-VN'))
+    const update = () => setTime(formatDateTime(new Date()))
     update()
     const interval = setInterval(update, 60_000) // Update mỗi phút
     return () => clearInterval(interval)
