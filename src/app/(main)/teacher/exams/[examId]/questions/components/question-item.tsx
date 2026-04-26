@@ -849,7 +849,7 @@ export function QuestionItem({
             </div>
             <div className="editor-container">
               <div
-                className="text-sm gap-2 text-foreground whitespace-pre-wrap ProseMirror"
+                className="text-sm text-foreground leading-relaxed [&_pre]:whitespace-pre-wrap [&_pre]:!bg-transparent [&_pre]:!p-0 [&_pre]:!rounded-none [&_pre]:!border-0 [&_pre]:!font-sans [&_pre]:!text-inherit"
                 dangerouslySetInnerHTML={{ __html: question.content || '' }}
               />
             </div>

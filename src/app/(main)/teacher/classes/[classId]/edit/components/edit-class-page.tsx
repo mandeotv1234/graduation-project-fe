@@ -519,7 +519,7 @@ export function EditClassPage({
                   variant="destructive"
                   size="sm"
                   onClick={handleBulkDelete}
-                  className="gap-1.5 shrink-0 bg-error hover:bg-error/90 text-on-error"
+                  className="gap-1.5 shrink-0 bg-red-500 hover:bg-red-300 dark:bg-red-600 dark:hover:bg-red-300"
                 >
                   <Trash2 className="h-4 w-4" />
                   Xóa ({selectedIndices.length})
@@ -622,7 +622,7 @@ export function EditClassPage({
                     return (
                       <TableRow
                         key={`student-row-${oIdx}`}
-                        className={`${isDuplicate ? 'bg-error-container hover:bg-error-container opacity-80 border-none' : 'odd:bg-surface-container-lowest even:bg-surface-container-sub-low odd:hover:bg-surface-container-lowest even:hover:bg-surface-container-sub-low border-none transition-colors'}`}
+                        className={`${isDuplicate ? 'bg-red-400 dark:bg-red-500 hover:bg-red-300 dark:hover:bg-red-400 opacity-90 border-none' : 'odd:bg-surface-container-lowest even:bg-surface-container-sub-low odd:hover:bg-surface-container-lowest even:hover:bg-surface-container-sub-low border-none transition-colors'}`}
                       >
                         <TableCell className="text-center align-middle font-normal text-sm text-on-surface-variant border-none px-0 group">
                           <div className="flex h-full w-full items-center justify-center">
