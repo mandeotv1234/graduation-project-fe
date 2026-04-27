@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Pagination } from '@/components/shared/pagination'
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,8 @@ type ExamMonitorPanelProps = {
   maxViolations?: number
 }
 
+const PAGE_SIZE = 10
+
 export function ExamMonitorPanel({
   monitor,
   maxViolations
@@ -89,6 +92,7 @@ export function ExamMonitorPanel({
   const [examStatusFilter, setExamStatusFilter] = useState<
     'ALL' | 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED' | 'NOT_STARTED'
   >('IN_PROGRESS')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const [monitorMap, setMonitorMap] = useState<
     Record<number, StudentMonitorState>
@@ -275,6 +279,19 @@ export function ExamMonitorPanel({
       return byKeyword && byRisk && byExamStatus
     })
   }, [keyword, monitorRows, riskFilter, examStatusFilter])
+
+  const totalPages = Math.ceil(filteredRows.length / PAGE_SIZE)
+  const paginatedRows = filteredRows.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
+
+  useEffect(() => {
+    setCurrentPage((page) => {
+      if (totalPages <= 0) return 1
+      return Math.min(page, totalPages)
+    })
+  }, [totalPages])
 
   const totalViolators = monitorRows.filter(
     (row) => row.violationCount > 0
@@ -506,12 +523,15 @@ export function ExamMonitorPanel({
                   <Input
                     placeholder="Tìm theo tên sinh viên..."
                     value={keyword}
-                    onChange={(event) => setKeyword(event.target.value)}
+                    onChange={(event) => {
+                      setKeyword(event.target.value)
+                      setCurrentPage(1)
+                    }}
                   />
                 </div>
                 <select
                   value={examStatusFilter}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setExamStatusFilter(
                       event.target.value as
                         | 'ALL'
@@ -520,7 +540,8 @@ export function ExamMonitorPanel({
                         | 'AUTO_SUBMITTED'
                         | 'NOT_STARTED'
                     )
-                  }
+                    setCurrentPage(1)
+                  }}
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 >
                   <option value="ALL">Mọi trạng thái thi</option>
@@ -531,11 +552,12 @@ export function ExamMonitorPanel({
                 <div className="flex gap-2">
                   <select
                     value={riskFilter}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setRiskFilter(
                         event.target.value as 'all' | 'none' | 'low' | 'high'
                       )
-                    }
+                      setCurrentPage(1)
+                    }}
                     className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm"
                   >
                     <option value="all">Mọi mức vi phạm</option>
@@ -553,6 +575,7 @@ export function ExamMonitorPanel({
                       setExamStatusFilter('IN_PROGRESS')
                       setSortColumn('violationCount')
                       setSortDirection('desc')
+                      setCurrentPage(1)
                     }}
                   >
                     <Filter className="h-4 w-4" />
@@ -617,7 +640,7 @@ export function ExamMonitorPanel({
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row) => (
+                {paginatedRows.map((row) => (
                   <tr
                     key={row.studentId}
                     className="border-b border-border/60 transition-colors hover:bg-muted/30"
@@ -744,6 +767,16 @@ export function ExamMonitorPanel({
               </tbody>
             </table>
           </div>
+          {filteredRows.length > 0 && (
+            <Pagination
+              className="border-t border-border px-4 py-3"
+              page={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredRows.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5">

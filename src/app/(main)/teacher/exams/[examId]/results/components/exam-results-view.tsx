@@ -13,8 +13,6 @@ import {
   Download,
   Filter,
   Users,
-  ChevronLeft,
-  ChevronRight,
   RefreshCw,
   BarChart2,
   Loader2,
@@ -25,6 +23,7 @@ import { toast } from 'sonner'
 import styles from './exam-results-view.module.scss'
 
 import { Button } from '@/components/ui/button'
+import { Pagination } from '@/components/shared/pagination'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -327,13 +326,11 @@ export function ExamResultsView({
   const filteredResults = studentGroups
   const totalPages = Math.ceil(filteredResults.length / pageSize)
 
-  const getPageNumbers = (current: number, total: number) => {
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-    if (current <= 3) return [1, 2, 3, 4, '...', total]
-    if (current >= total - 2)
-      return [1, '...', total - 3, total - 2, total - 1, total]
-    return [1, '...', current - 1, current, current + 1, '...', total]
-  }
+  useEffect(() => {
+    setCurrentPage((page) =>
+      Math.min(Math.max(1, page), Math.max(1, totalPages))
+    )
+  }, [totalPages])
 
   const paginatedResults = filteredResults.slice(
     (currentPage - 1) * pageSize,
@@ -813,73 +810,16 @@ export function ExamResultsView({
               </table>
             </div>
 
-            {/* Pagination UI */}
-            <div className={styles.pagination}>
-              <div className={styles.pageInfo}>
-                Hiển thị{' '}
-                <span>
-                  {filteredResults.length > 0
-                    ? (currentPage - 1) * pageSize + 1
-                    : 0}
-                </span>{' '}
-                -{' '}
-                <span>
-                  {Math.min(currentPage * pageSize, filteredResults.length)}
-                </span>{' '}
-                trong <span>{filteredResults.length}</span> kết quả
-              </div>
-              {totalPages > 1 && (
-                <div className={styles.nav}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCurrentPage((p) => Math.max(1, p - 1))
-                    }}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {getPageNumbers(currentPage, totalPages).map((page, idx) =>
-                      page === '...' ? (
-                        <span
-                          key={`ellipsis-${idx}`}
-                          className="px-2 font-black text-muted-foreground text-sm tracking-wider"
-                        >
-                          ...
-                        </span>
-                      ) : (
-                        <Button
-                          key={`page-${page}`}
-                          variant={currentPage === page ? 'default' : 'ghost'}
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setCurrentPage(page as number)
-                          }}
-                          className="w-8 p-0"
-                        >
-                          {page}
-                        </Button>
-                      )
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
+            {filteredResults.length > 0 && (
+              <Pagination
+                className={styles.pagination}
+                page={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredResults.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </div>
         </Tabs.Content>
 
