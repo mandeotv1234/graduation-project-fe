@@ -315,23 +315,6 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                 }))
               }))
 
-        if (parsedSchemaJson.length > 0) {
-          applySchemaMeta(
-            parsedSchemaJson.map((table) => ({
-              tableName: table.tableName,
-              columns: table.columns.map((col) => ({
-                columnName: col.columnName,
-                dataType: col.dataType,
-                primaryKey: Boolean(col.primaryKey),
-                foreignKey: Boolean(col.foreignKey),
-                referencesTable: col.referencesTable ?? null,
-                referencesColumn: col.referencesColumn ?? null,
-                nullable: col.nullable ?? false
-              }))
-            }))
-          )
-        }
-
         setEditorSchema(tables)
       })
       .catch(() => {
@@ -938,7 +921,6 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                       routines={editorRoutines || []}
                     />
                     <ExamTakeBottomPanel
-                      schema={editorSchema}
                       result={examTake.sqlResult}
                       schemaMeta={schemaMeta}
                       examId={exam.examId}
@@ -1181,7 +1163,6 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                   )}
 
                   <ExamTakeBottomPanel
-                    schema={editorSchema}
                     result={examTake.sqlResult}
                     schemaMeta={schemaMeta}
                     examId={exam.examId}

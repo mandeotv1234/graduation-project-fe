@@ -56,7 +56,8 @@ type TableColumn = {
   name: string
   type: string
   key?: boolean
-  handleType?: 'source' | 'target'
+  hasSourceHandle?: boolean
+  hasTargetHandle?: boolean
 }
 
 type TableNodeData = {
@@ -138,28 +139,36 @@ const TableNode = memo(({ data }: NodeProps<Node<TableNodeData>>) => {
       <div className="table__columns">
         {data.columns.map((column) => (
           <div key={column.name} className="column-name">
-            {column.handleType && (
+            {column.hasSourceHandle && (
               <Handle
-                type={column.handleType}
+                type="source"
                 position={Position.Right}
-                id={`${column.name}-right`}
-                className={
-                  column.handleType === 'source'
-                    ? 'right-handle source-handle'
-                    : 'right-handle target-handle'
-                }
+                id={`${column.name}-source-right`}
+                className="right-handle source-handle"
               />
             )}
-            {column.handleType && (
+            {column.hasTargetHandle && (
               <Handle
-                type={column.handleType}
+                type="target"
+                position={Position.Right}
+                id={`${column.name}-target-right`}
+                className="right-handle target-handle"
+              />
+            )}
+            {column.hasSourceHandle && (
+              <Handle
+                type="source"
                 position={Position.Left}
-                id={`${column.name}-left`}
-                className={
-                  column.handleType === 'source'
-                    ? 'left-handle source-handle'
-                    : 'left-handle target-handle'
-                }
+                id={`${column.name}-source-left`}
+                className="left-handle source-handle"
+              />
+            )}
+            {column.hasTargetHandle && (
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={`${column.name}-target-left`}
+                className="left-handle target-handle"
               />
             )}
 
@@ -200,8 +209,8 @@ function computeEdges(nodes: Node[], edgeConfigs: EdgeConfig[]): Edge[] {
       id: `${cfg.source}.${cfg.sourceKey}->${cfg.target}.${cfg.targetKey}`,
       source: cfg.source,
       target: cfg.target,
-      sourceHandle: `${cfg.sourceKey}-${sourceSide}`,
-      targetHandle: `${cfg.targetKey}-${targetSide}`,
+      sourceHandle: `${cfg.sourceKey}-source-${sourceSide}`,
+      targetHandle: `${cfg.targetKey}-target-${targetSide}`,
       type: 'smoothstep',
       markerEnd: 'url(#hasOne)',
       className: 'has-one-edge'
@@ -237,12 +246,30 @@ function buildInitial(schemaMeta: ExecuteSqlResponse['schema']) {
     }
   }
 
-  const handleByTable = new Map<string, Map<string, 'source' | 'target'>>()
+  const handleByTable = new Map<
+    string,
+    Map<string, { hasSource: boolean; hasTarget: boolean }>
+  >()
   for (const e of edgeConfigs) {
     if (!handleByTable.has(e.source)) handleByTable.set(e.source, new Map())
     if (!handleByTable.has(e.target)) handleByTable.set(e.target, new Map())
-    handleByTable.get(e.source)!.set(e.sourceKey, 'source')
-    handleByTable.get(e.target)!.set(e.targetKey, 'target')
+
+    const sourceMap = handleByTable.get(e.source)!
+    const targetMap = handleByTable.get(e.target)!
+
+    const sourceHandle = sourceMap.get(e.sourceKey) ?? {
+      hasSource: false,
+      hasTarget: false
+    }
+    sourceHandle.hasSource = true
+    sourceMap.set(e.sourceKey, sourceHandle)
+
+    const targetHandle = targetMap.get(e.targetKey) ?? {
+      hasSource: false,
+      hasTarget: false
+    }
+    targetHandle.hasTarget = true
+    targetMap.set(e.targetKey, targetHandle)
   }
 
   const nodes: Node[] = schemaMeta.map((t, idx) => {
@@ -253,7 +280,8 @@ function buildInitial(schemaMeta: ExecuteSqlResponse['schema']) {
       name: c.columnName,
       type: c.dataType,
       key: c.primaryKey,
-      handleType: handleMap.get(c.columnName)
+      hasSourceHandle: Boolean(handleMap.get(c.columnName)?.hasSource),
+      hasTargetHandle: Boolean(handleMap.get(c.columnName)?.hasTarget)
     }))
 
     return {
@@ -422,36 +450,34 @@ export function SchemaFlow({
           }
         }}
       >
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between gap-3">
-              <span className="font-mono text-base">
-                {selectedTable ?? 'Table'}
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    if (!selectedTable) return
-                    void refreshRows(selectedTable)
-                  }}
-                  disabled={rowsLoading}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Làm mới
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setDeleteDialogOpen(true)}
-                  disabled={rowsLoading}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Xóa bảng
-                </Button>
-              </div>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] p-4 sm:w-full sm:max-w-[min(72rem,calc(100vw-2rem))] sm:p-6">
+          <DialogHeader className="pr-10 sm:pr-8">
+            <DialogTitle className="font-mono text-base">
+              {selectedTable ?? 'Table'}
             </DialogTitle>
+            <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:justify-end">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  if (!selectedTable) return
+                  void refreshRows(selectedTable)
+                }}
+                disabled={rowsLoading}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Làm mới
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={rowsLoading}
+              >
+                <Trash2 className="h-4 w-4" />
+                Xóa bảng
+              </Button>
+            </div>
             <DialogDescription>
               Xem tối đa 50 dòng trong bảng.
             </DialogDescription>
@@ -479,7 +505,7 @@ export function SchemaFlow({
               </div>
             </div>
           ) : columns.length > 0 ? (
-            <ScrollArea className="h-[420px] mt-3 rounded-md border border-border/60 bg-background">
+            <ScrollArea className="mt-3 h-[min(420px,calc(100dvh-18rem))] rounded-md border border-border/60 bg-background">
               <table className="w-full text-[12px]">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
