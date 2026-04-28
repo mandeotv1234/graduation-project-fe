@@ -43,6 +43,9 @@ export default async function ExamQuestionsPage({
   params
 }: ExamQuestionsPageProps) {
   const { examId } = await params
+  const examRes = await getTeacherExamDetail(Number(examId))
+  const examTitle = examRes.data?.title
+
   const examIdNum = Number(examId)
 
   if (isNaN(examIdNum)) {
@@ -66,6 +69,7 @@ export default async function ExamQuestionsPage({
   return (
     <ExamQuestionsView
       examId={examIdNum}
+      examTitle={examTitle ?? 'Tiêu đề'}
       initialQuestions={questions}
       specification={specificationResponse.data ?? null}
       templateManagement={templateManagementResponse.data ?? null}

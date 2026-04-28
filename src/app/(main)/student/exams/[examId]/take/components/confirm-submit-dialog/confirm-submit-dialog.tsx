@@ -100,7 +100,7 @@ export function ConfirmSubmitDialog({
 
         {hasUnanswered && (
           <p className={styles.warningMessage}>
-            ⚠️ Những câu chưa trả lời sẽ được tính 0 điểm. Bạn có chắc chắn muốn
+            Những câu chưa trả lời sẽ được tính 0 điểm. Bạn có chắc chắn muốn
             nộp bài?
           </p>
         )}

@@ -8,7 +8,7 @@ interface UseExamTimerOptions {
   examId: number
   initialSeconds?: number
   syncIntervalMs?: number
-  onTimeUp?: () => void
+  onTimeUp?: (reason: string) => void
   enabled?: boolean
   allowOvertime?: boolean
 }
@@ -62,7 +62,7 @@ export function useExamTimer({
   useEffect(() => {
     if (remainingSeconds <= 0 && !isExpired && enabled && hasInitialized) {
       setIsExpired(true)
-      onTimeUpRef.current?.()
+      onTimeUpRef.current?.('TIME_UP')
     }
   }, [remainingSeconds, isExpired, enabled, hasInitialized])
 
