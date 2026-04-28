@@ -1,6 +1,15 @@
 'use client'
 
-import { BellRing, Filter, Loader2, ShieldAlert, UserX } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  BellRing,
+  Filter,
+  Loader2,
+  ShieldAlert,
+  UserX
+} from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -45,9 +54,16 @@ type StudentMonitorState = {
 
 type ExamMonitorPanelProps = {
   monitor: TeacherExamMonitorData
+  maxViolations?: number
 }
 
-export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
+export function ExamMonitorPanel({
+  monitor,
+  maxViolations
+}: ExamMonitorPanelProps) {
+  const highRiskThreshold =
+    typeof maxViolations === 'number' ? Math.max(1, maxViolations - 1) : 3
+
   const { callApi } = useApi()
   const [connected, setConnected] = useState(false)
   const [events, setEvents] = useState<ViolationNotification[]>([])
@@ -58,7 +74,14 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
     TeacherExamViolation[]
   >([])
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailTypeFilter, setDetailTypeFilter] = useState<string>('all')
+  const [detailAttemptFilter, setDetailAttemptFilter] = useState<string>('all')
   const [keyword, setKeyword] = useState('')
+
+  const [sortColumn, setSortColumn] = useState<
+    'violationCount' | 'latestViolationAt' | null
+  >('violationCount')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   const [riskFilter, setRiskFilter] = useState<'all' | 'none' | 'low' | 'high'>(
     'all'
@@ -117,9 +140,18 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
           }
           setMonitorMap((prev) => {
             const existing = prev[notification.studentId]
+
+            // Determine if it's a NEW attempt (transition from SUBMITTED/AUTO_SUBMITTED to IN_PROGRESS)
+            const isNewAttempt =
+              notification.type === 'SESSION_STATUS_CHANGED' &&
+              notification.examStatus === 'IN_PROGRESS' &&
+              existing?.examStatus !== 'IN_PROGRESS'
+
             const nextCount =
               notification.type === 'SESSION_STATUS_CHANGED'
-                ? (existing?.violationCount ?? 0)
+                ? isNewAttempt
+                  ? 0
+                  : (existing?.violationCount ?? 0)
                 : notification.violationCount
 
             return {
@@ -133,11 +165,15 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                 violationCount: nextCount,
                 latestViolationType:
                   notification.type === 'SESSION_STATUS_CHANGED'
-                    ? existing?.latestViolationType
+                    ? isNewAttempt
+                      ? undefined
+                      : existing?.latestViolationType
                     : notification.violationType,
                 latestViolationAt:
                   notification.type === 'SESSION_STATUS_CHANGED'
-                    ? existing?.latestViolationAt
+                    ? isNewAttempt
+                      ? undefined
+                      : existing?.latestViolationAt
                     : notification.timestamp,
                 isFlagged: existing?.isFlagged ?? false,
                 forceSubmitted:
@@ -176,72 +212,25 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
     }
   }, [monitor.examId])
 
-  useEffect(() => {
-    const fetchLatestAttempts = async () => {
-      const violators = monitor.students.filter((s) => s.violationCount > 0)
-      if (violators.length === 0) return
-
-      try {
-        const promises = violators.map((s) =>
-          getTeacherExamViolations(monitor.examId, s.studentId)
-            .then((res) => ({
-              studentId: s.studentId,
-              violations: res.data ?? []
-            }))
-            .catch(() => null)
-        )
-        const results = await Promise.all(promises)
-
-        setMonitorMap((prev) => {
-          const next = { ...prev }
-          let changed = false
-          results.forEach((res) => {
-            if (!res) return
-            if (res.violations.length === 0) {
-              if (
-                next[res.studentId] &&
-                next[res.studentId].violationCount !== 0
-              ) {
-                next[res.studentId] = {
-                  ...next[res.studentId],
-                  violationCount: 0
-                }
-                changed = true
-              }
-              return
-            }
-
-            const maxAttempt = Math.max(
-              ...res.violations.map((v) => v.attemptNumber ?? 1),
-              1
-            )
-            const latestCount = res.violations.filter(
-              (v) => (v.attemptNumber ?? 1) === maxAttempt
-            ).length
-
-            if (
-              next[res.studentId] &&
-              next[res.studentId].violationCount !== latestCount
-            ) {
-              next[res.studentId] = {
-                ...next[res.studentId],
-                violationCount: latestCount
-              }
-              changed = true
-            }
-          })
-          return changed ? next : prev
-        })
-      } catch {
-        // silent
-      }
-    }
-
-    void fetchLatestAttempts()
-  }, [monitor.examId, monitor.students])
-
   const monitorRows = useMemo(() => {
     return Object.values(monitorMap).sort((a, b) => {
+      if (sortColumn) {
+        if (sortColumn === 'violationCount') {
+          return sortDirection === 'asc'
+            ? a.violationCount - b.violationCount
+            : b.violationCount - a.violationCount
+        }
+        if (sortColumn === 'latestViolationAt') {
+          const timeA = a.latestViolationAt
+            ? new Date(a.latestViolationAt).getTime()
+            : 0
+          const timeB = b.latestViolationAt
+            ? new Date(b.latestViolationAt).getTime()
+            : 0
+          return sortDirection === 'asc' ? timeA - timeB : timeB - timeA
+        }
+      }
+
       if (a.forceSubmitted !== b.forceSubmitted) {
         return a.forceSubmitted ? 1 : -1
       }
@@ -250,7 +239,21 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
       }
       return a.studentName.localeCompare(b.studentName)
     })
-  }, [monitorMap])
+  }, [monitorMap, sortColumn, sortDirection])
+
+  const handleSort = (column: 'violationCount' | 'latestViolationAt') => {
+    if (sortColumn === column) {
+      if (sortDirection === 'desc') {
+        setSortDirection('asc')
+      } else {
+        setSortColumn('violationCount')
+        setSortDirection('desc') // reset
+      }
+    } else {
+      setSortColumn(column)
+      setSortDirection('desc')
+    }
+  }
 
   const filteredRows = useMemo(() => {
     return monitorRows.filter((row) => {
@@ -263,8 +266,8 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
         (riskFilter === 'none' && row.violationCount === 0) ||
         (riskFilter === 'low' &&
           row.violationCount > 0 &&
-          row.violationCount < 3) ||
-        (riskFilter === 'high' && row.violationCount >= 3)
+          row.violationCount < highRiskThreshold) ||
+        (riskFilter === 'high' && row.violationCount >= highRiskThreshold)
 
       const byExamStatus =
         examStatusFilter === 'ALL' || row.examStatus === examStatusFilter
@@ -276,22 +279,46 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
   const totalViolators = monitorRows.filter(
     (row) => row.violationCount > 0
   ).length
-  const highRisk = monitorRows.filter((row) => row.violationCount >= 3).length
+  const highRisk = monitorRows.filter(
+    (row) => row.violationCount >= highRiskThreshold
+  ).length
+
+  const filteredStudentViolations = useMemo(() => {
+    return studentViolations.filter((v) => {
+      const matchType =
+        detailTypeFilter === 'all' || v.violationType === detailTypeFilter
+      const matchAttempt =
+        detailAttemptFilter === 'all' ||
+        v.attemptNumber?.toString() === detailAttemptFilter
+      return matchType && matchAttempt
+    })
+  }, [studentViolations, detailTypeFilter, detailAttemptFilter])
 
   const attemptGroups = useMemo(() => {
-    return studentViolations.reduce<Record<string, TeacherExamViolation[]>>(
-      (acc, item) => {
-        const key = item.attemptNumber
-          ? `Lần thi ${item.attemptNumber}`
-          : 'Không rõ lần thi'
-        if (!acc[key]) {
-          acc[key] = []
-        }
-        acc[key].push(item)
-        return acc
-      },
-      {}
+    return filteredStudentViolations.reduce<
+      Record<string, TeacherExamViolation[]>
+    >((acc, item) => {
+      const key = item.attemptNumber
+        ? `Lần thi ${item.attemptNumber}`
+        : 'Không rõ lần thi'
+      if (!acc[key]) {
+        acc[key] = []
+      }
+      acc[key].push(item)
+      return acc
+    }, {})
+  }, [filteredStudentViolations])
+
+  const uniqueViolationTypes = useMemo(() => {
+    const types = new Set(studentViolations.map((v) => v.violationType))
+    return Array.from(types).filter(Boolean)
+  }, [studentViolations])
+
+  const uniqueAttempts = useMemo(() => {
+    const attempts = new Set(
+      studentViolations.map((v) => v.attemptNumber).filter(Boolean)
     )
+    return Array.from(attempts).sort((a, b) => Number(a) - Number(b))
   }, [studentViolations])
 
   const openStudentDetail = async (row: StudentMonitorState) => {
@@ -322,60 +349,99 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
           if (!open) {
             setSelectedStudent(null)
             setStudentViolations([])
+            setDetailTypeFilter('all')
+            setDetailAttemptFilter('all')
           }
         }}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl border-outline bg-surface text-on-surface">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-on-surface">
               Chi tiết vi phạm: {selectedStudent?.studentName ?? 'Sinh viên'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-on-surface-variant">
               Hiển thị lịch sử vi phạm của sinh viên trong các lần thi của bài
               thi này.
             </DialogDescription>
           </DialogHeader>
 
+          {studentViolations.length > 0 && !detailLoading && (
+            <div className="mb-2 flex flex-col gap-3 sm:flex-row">
+              <select
+                value={detailTypeFilter}
+                onChange={(e) => setDetailTypeFilter(e.target.value)}
+                className="h-9 w-full rounded-md border border-outline bg-surface-container px-3 text-sm text-on-surface focus:border-sub-primary sm:w-auto"
+              >
+                <option value="all">Tất cả loại vi phạm</option>
+                {uniqueViolationTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={detailAttemptFilter}
+                onChange={(e) => setDetailAttemptFilter(e.target.value)}
+                className="h-9 w-full rounded-md border border-outline bg-surface-container px-3 text-sm text-on-surface focus:border-sub-primary sm:w-auto"
+              >
+                <option value="all">Tất cả lần thi</option>
+                {uniqueAttempts.map((attempt) => (
+                  <option key={String(attempt)} value={String(attempt)}>
+                    Lần thi {attempt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {detailLoading ? (
-            <div className="flex items-center justify-center py-10 text-muted-foreground">
+            <div className="flex items-center justify-center py-10 text-on-surface-variant">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
           ) : studentViolations.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
+            <p className="py-8 text-center text-sm text-on-surface-variant">
               Chưa có dữ liệu vi phạm cho sinh viên này.
+            </p>
+          ) : Object.keys(attemptGroups).length === 0 ? (
+            <p className="py-8 text-center text-sm text-on-surface-variant">
+              Không tìm thấy vi phạm nào khớp với bộ lọc.
             </p>
           ) : (
             <div className="max-h-[60vh] space-y-4 overflow-auto pr-1">
               {Object.entries(attemptGroups).map(([attemptLabel, items]) => (
                 <div
                   key={attemptLabel}
-                  className="rounded-xl border border-border"
+                  className="rounded-xl border border-outline-variant bg-surface-container-lowest overflow-hidden"
                 >
-                  <div className="border-b border-border bg-muted/40 px-4 py-2 text-sm font-semibold text-foreground">
+                  <div className="border-b border-outline-variant bg-surface-container-high px-4 py-2 text-sm font-semibold text-on-surface">
                     {attemptLabel}
                   </div>
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-outline-variant">
                     {items.map((item) => (
-                      <div key={item.id} className="px-4 py-3">
+                      <div
+                        key={item.id}
+                        className="bg-surface px-4 py-3 transition-colors"
+                      >
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge
-                            variant={
+                            className={
                               item.violationType === 'DEVTOOLS_OPEN' ||
                               item.violationType === 'PASTE'
-                                ? 'destructive'
-                                : 'secondary'
+                                ? 'border-transparent bg-error-container text-on-error-container hover:bg-error hover:text-on-error'
+                                : 'border-transparent bg-secondary-container text-on-secondary-container hover:bg-sub-secondary hover:text-on-secondary'
                             }
                           >
                             {item.violationType}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-on-surface-variant">
                             {formatDateTime(item.createdAt)}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm text-foreground">
+                        <p className="mt-1 text-sm text-on-surface">
                           {item.description || 'Không có mô tả'}
                         </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
+                        <p className="mt-1 text-xs text-on-surface-variant">
                           IP: {item.ipAddress || '-'}
                         </p>
                       </div>
@@ -423,7 +489,7 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm text-muted-foreground">
-              Nguy cơ cao (&gt;=3 lần)
+              Nguy cơ cao (&gt;={highRiskThreshold} lần)
             </p>
             <p className="mt-2 text-3xl font-bold text-red-600">{highRisk}</p>
           </div>
@@ -474,8 +540,8 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                   >
                     <option value="all">Mọi mức vi phạm</option>
                     <option value="none">0 lần</option>
-                    <option value="low">1-2 lần</option>
-                    <option value="high">&gt;=3 lần</option>
+                    <option value="low">1-{highRiskThreshold - 1} lần</option>
+                    <option value="high">&gt;={highRiskThreshold} lần</option>
                   </select>
                   <Button
                     variant="outline"
@@ -485,6 +551,8 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                       setKeyword('')
                       setRiskFilter('all')
                       setExamStatusFilter('IN_PROGRESS')
+                      setSortColumn('violationCount')
+                      setSortDirection('desc')
                     }}
                   >
                     <Filter className="h-4 w-4" />
@@ -503,14 +571,42 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
                     Sinh viên
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
-                    Số lần vi phạm
+                  <th
+                    className="px-4 py-3 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-muted/80"
+                    onClick={() => handleSort('violationCount')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Số lần vi phạm
+                      {sortColumn === 'violationCount' ? (
+                        sortDirection === 'desc' ? (
+                          <ArrowDown className="h-4 w-4" />
+                        ) : (
+                          <ArrowUp className="h-4 w-4" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-4 w-4 opacity-50" />
+                      )}
+                    </div>
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
                     Vi phạm gần nhất
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
-                    Thời gian
+                  <th
+                    className="px-4 py-3 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-muted/80"
+                    onClick={() => handleSort('latestViolationAt')}
+                  >
+                    <div className="flex items-center gap-2">
+                      Thời gian
+                      {sortColumn === 'latestViolationAt' ? (
+                        sortDirection === 'desc' ? (
+                          <ArrowDown className="h-4 w-4" />
+                        ) : (
+                          <ArrowUp className="h-4 w-4" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-4 w-4 opacity-50" />
+                      )}
+                    </div>
                   </th>
                   <th className="px-4 py-3 text-left font-semibold text-muted-foreground">
                     Trạng thái thi
@@ -532,7 +628,9 @@ export function ExamMonitorPanel({ monitor }: ExamMonitorPanelProps) {
                     <td className="px-4 py-3">
                       <Badge
                         variant={
-                          row.violationCount >= 3 ? 'destructive' : 'secondary'
+                          row.violationCount >= highRiskThreshold
+                            ? 'destructive'
+                            : 'secondary'
                         }
                         className="cursor-pointer hover:opacity-80"
                         onClick={(e) => {

@@ -1,33 +1,47 @@
 'use client'
 
+import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal'
+import { ConfirmLeaveDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-leave-dialog/confirm-leave-dialog'
+import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog/confirm-submit-dialog'
+import { DraftRestoredBanner } from '@/app/(main)/student/exams/[examId]/take/components/draft-restored-banner'
+import { ExamTakeBottomPanel } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-bottom-panel/exam-take-bottom-panel'
+import { NetworkStatusBanner } from '@/app/(main)/student/exams/[examId]/take/components/network-status-banner'
+import { QuestionPanel } from '@/app/(main)/student/exams/[examId]/take/components/question-panel/question-panel'
+import { QuestionSidebar } from '@/app/(main)/student/exams/[examId]/take/components/question-sidebar/question-sidebar'
+import { SaveStatusIndicator } from '@/app/(main)/student/exams/[examId]/take/components/save-status-indicator'
+import type { SchemaTable } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel/sql-editor-panel'
+import { SqlEditorPanel } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel/sql-editor-panel'
+import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog/submit-result-dialog'
+import { useExamDraft } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-draft'
+import { useExamTake } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-take'
+import { PageSpinner } from '@/components/shared'
+import { DatasetTableView } from '@/components/shared/dataset-table-view'
+import { ResizablePanel } from '@/components/shared/resizable-panel'
+import {
+  TeacherSchemaDiagram,
+  buildInitialSchemaDiagram
+} from '@/components/shared/teacher-schema-diagram'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { useAntiCheat } from '@/hooks/use-anti-cheat'
+import { useExamSocket } from '@/hooks/use-exam-socket'
+import { useExamTimer } from '@/hooks/use-exam-timer'
+import { clearExamSchema, getExamSpecification, getMe } from '@/lib/actions'
+import { getExamTime } from '@/lib/actions/anti-cheat.action'
+import { fetchExamPdfBlobUrl } from '@/lib/api/pdf-client'
+import type {
+  ExecuteSqlResponse,
+  SpecificationSchemaJsonTable
+} from '@/lib/types'
 import {
   ExamQuestionItem,
-  StudentExamDetail,
   ExamSpecification,
-  SubmitExamResponse
+  StudentExamDetail,
+  SubmitExamResponse,
+  User as UserType
 } from '@/lib/types'
-import { useExamTake } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-take'
-import { useExamDraft } from '@/app/(main)/student/exams/[examId]/take/hooks/use-exam-draft'
-import { useEffect, useState, useCallback, useMemo } from 'react'
-import { getExamTime } from '@/lib/actions/anti-cheat.action'
-import { getExamSpecification, getMe, clearExamSchema } from '@/lib/actions'
-import { User as UserType } from '@/lib/types'
-import { useAntiCheat } from '@/hooks/use-anti-cheat'
-import { useExamTimer } from '@/hooks/use-exam-timer'
-import { useExamSocket } from '@/hooks/use-exam-socket'
-import { QuestionSidebar } from '@/app/(main)/student/exams/[examId]/take/components/question-sidebar/question-sidebar'
-import { QuestionPanel } from '@/app/(main)/student/exams/[examId]/take/components/question-panel/question-panel'
-import { SqlEditorPanel } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel/sql-editor-panel'
-import type { SchemaTable } from '@/app/(main)/student/exams/[examId]/take/components/sql-editor-panel/sql-editor-panel'
-import { ExamTakeBottomPanel } from '@/app/(main)/student/exams/[examId]/take/components/exam-take-bottom-panel/exam-take-bottom-panel'
-import { SaveStatusIndicator } from '@/app/(main)/student/exams/[examId]/take/components/save-status-indicator'
-import { DraftRestoredBanner } from '@/app/(main)/student/exams/[examId]/take/components/draft-restored-banner'
-import { NetworkStatusBanner } from '@/app/(main)/student/exams/[examId]/take/components/network-status-banner'
+import { cn } from '@/lib/utils'
 import { downloadAnswersBackup } from '@/lib/utils/export-exam-answers'
-import { ResizablePanel } from '@/components/shared/resizable-panel'
-import type { ExecuteSqlResponse } from '@/lib/types'
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import {
   Clock,
   Columns2,
@@ -39,21 +53,9 @@ import {
   User,
   X
 } from 'lucide-react'
-import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import styles from './exam-take-interface.module.scss'
-import { SubmitResultDialog } from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog/submit-result-dialog'
-import { ConfirmLeaveDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-leave-dialog/confirm-leave-dialog'
-import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog/confirm-submit-dialog'
-import { PageSpinner } from '@/components/shared'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { DatasetTableView } from '@/components/shared/dataset-table-view'
-import {
-  TeacherSchemaDiagram,
-  buildInitialSchemaDiagram
-} from '@/components/shared/teacher-schema-diagram'
-import { fetchExamPdfBlobUrl } from '@/lib/api/pdf-client'
-import { cn } from '@/lib/utils'
-import type { SpecificationSchemaJsonTable } from '@/lib/types'
 
 interface ExamTakeInterfaceProps {
   exam: StudentExamDetail
@@ -179,13 +181,23 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     )
   }, [exam.title, user, examTake.answers, questions])
 
-  const handleForceSubmit = useCallback(() => {
-    toast.info('Đã hết thời gian làm bài, hệ thống đang nộp bài tự động...')
-    bypassAntiCheat()
-    window.onbeforeunload = null
-    clearLocalDraft()
-    examTake.handleConfirmSubmit()
-  }, [examTake, bypassAntiCheat, clearLocalDraft])
+  const isForceSubmittingRef = useRef(false)
+  const handleForceSubmit = useCallback(
+    (reason: string) => {
+      if (isForceSubmittingRef.current) return
+      isForceSubmittingRef.current = true
+
+      if (reason === 'TIME_UP') {
+        toast.info('Đã hết thời gian làm bài, hệ thống đang xử lý nộp bài...')
+      }
+      // useExamSocket already shows toast for FORCE_SUBMIT, VIOLATION, CONFLICT
+      bypassAntiCheat()
+      window.onbeforeunload = null
+      clearLocalDraft()
+      examTake.handleConfirmSubmit()
+    },
+    [examTake, bypassAntiCheat, clearLocalDraft]
+  )
 
   const { setServerTime, remainingSeconds } = useExamTimer({
     examId: exam.examId,

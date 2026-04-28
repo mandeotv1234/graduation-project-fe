@@ -228,9 +228,12 @@ export function SubmitResultDialog({
                             <div className={styles.promptTitle}>
                               <FileText className="h-3 w-3" /> Đề bài
                             </div>
-                            <div className={styles.promptBody}>
-                              {detail.content || '(Câu hỏi tự luận SQL)'}
-                            </div>
+                            <div
+                              className={styles.promptBody}
+                              dangerouslySetInnerHTML={{
+                                __html: detail.content
+                              }}
+                            />
 
                             <div className={styles.sqlTitle}>
                               <CheckCircle2 className="h-3 w-3" /> Câu truy vấn

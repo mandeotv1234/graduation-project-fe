@@ -83,7 +83,18 @@ export function EditClassPage({
   >([])
 
   const addStudent = () => {
-    setStudents((prev) => [...prev, { studentId: '', fullName: '' }])
+    setStudents((prev) => {
+      const newIndex = prev.length
+      setTimeout(() => {
+        const row = document.getElementById(`student-row-${newIndex}`)
+        if (row) {
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          const input = row.querySelector('input')
+          if (input) input.focus()
+        }
+      }, 100)
+      return [...prev, { studentId: '', fullName: '' }]
+    })
   }
 
   const removeStudent = (index: number) => {
@@ -622,6 +633,7 @@ export function EditClassPage({
                     return (
                       <TableRow
                         key={`student-row-${oIdx}`}
+                        id={`student-row-${oIdx}`}
                         className={`${isDuplicate ? 'bg-red-400 dark:bg-red-500 hover:bg-red-300 dark:hover:bg-red-400 opacity-90 border-none' : 'odd:bg-surface-container-lowest even:bg-surface-container-sub-low odd:hover:bg-surface-container-lowest even:hover:bg-surface-container-sub-low border-none transition-colors'}`}
                       >
                         <TableCell className="text-center align-middle font-normal text-sm text-on-surface-variant border-none px-0 group">

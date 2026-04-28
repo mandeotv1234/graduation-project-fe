@@ -68,7 +68,7 @@ export function ViolationWarningModal() {
         {/* Progress bar */}
         <div className={styles.progressSection}>
           <div className={styles.progressHeader}>
-            <span className={styles.progressLabel}>Số lần vi phạm:</span>
+            <span className={styles.progressLabel}>Số lần vi phạm: </span>
             <span className={`${styles.progressCount} ${styles[severity]}`}>
               {totalViolations} / {MAX_VIOLATIONS_BEFORE_SUBMIT}
             </span>
