@@ -27,6 +27,7 @@ import {
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
+import DOMPurify from 'dompurify'
 import { QuestionResultDetail, OverrideSubmissionRequest } from '@/lib/types'
 import { overrideSubmissionScore } from '@/lib/actions'
 import { formatDateTime } from '@/lib/utils/time'
@@ -351,7 +352,7 @@ export function QuestionCard({
       <div className={styles.qContent}>
         <div
           className={styles.prompt}
-          dangerouslySetInnerHTML={{ __html: qr.content }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(qr.content) }}
         />
 
         <div className={styles.codeSections}>

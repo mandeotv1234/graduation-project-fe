@@ -99,14 +99,26 @@ export function SubmissionDetailView({
   }, [])
 
   useEffect(() => {
+    const el = pillsRef.current
+    if (!el) return
+
     checkScroll()
+
+    let resizeObserver: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(checkScroll)
+      resizeObserver.observe(el)
+    }
+
+    return () => {
+      resizeObserver?.disconnect()
+    }
   }, [attempts, checkScroll])
 
   function scrollPills(dir: 'left' | 'right') {
     const el = pillsRef.current
     if (!el) return
     el.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' })
-    setTimeout(checkScroll, 300)
   }
 
   // Fetch all attempts for this student
@@ -372,7 +384,11 @@ export function SubmissionDetailView({
                   Lần {a.attemptNumber}
                 </span>
                 <span className={styles.attemptPillScore}>
-                  {a.totalScore.toFixed(1)}đ
+                  {(a.submissionId === submissionId
+                    ? detail.totalScore
+                    : a.totalScore
+                  ).toFixed(1)}
+                  đ
                 </span>
               </button>
             ))}
