@@ -7,13 +7,20 @@ import {
   CalendarDays,
   Award,
   ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle
+  AlertCircle,
+  ArrowUpDown
 } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Pagination } from '@/components/shared/pagination'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,12 +41,19 @@ export function ResultList() {
   const [data, setData] =
     useState<PaginatedResult<StudentExamResultResponse> | null>(null)
   const [page, setPage] = useState(0)
+  const [sortOrder, setSortOrder] = useState<'DESC' | 'ASC'>('DESC')
   const [showDeniedDialog, setShowDeniedDialog] = useState(false)
+  const pageSize = 10
 
   const fetchResults = async (pageNumber: number) => {
     setLoading(true)
     try {
-      const response = await getMyResults({ page: pageNumber, size: 10 })
+      const response = await getMyResults({
+        page: pageNumber,
+        size: pageSize,
+        sortBy: 'SUBMITTED_AT',
+        sortOrder
+      })
       if (response.code === 'OK' && response.data) {
         setData(response.data)
       }
@@ -53,7 +67,7 @@ export function ResultList() {
 
   useEffect(() => {
     fetchResults(page)
-  }, [page])
+  }, [page, sortOrder])
 
   const handleViewDetail = (result: StudentExamResultResponse) => {
     if (!result.allowReview) {
@@ -90,8 +104,29 @@ export function ResultList() {
     )
   }
 
+  const pagination = data.pagination
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <Select
+          value={sortOrder}
+          onValueChange={(value) => {
+            setSortOrder(value as 'DESC' | 'ASC')
+            setPage(0)
+          }}
+        >
+          <SelectTrigger size="sm" className="w-[132px]">
+            <ArrowUpDown className="h-4 w-4" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end">
+            <SelectItem value="DESC">Mới nhất</SelectItem>
+            <SelectItem value="ASC">Cũ nhất</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className={styles.list}>
         {data.data.map((result) => (
           <div
@@ -164,30 +199,14 @@ export function ResultList() {
         ))}
       </div>
 
-      {data.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 0}
-            onClick={() => setPage(page - 1)}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Trước
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Trang {page + 1} / {data.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === data.totalPages - 1}
-            onClick={() => setPage(page + 1)}
-          >
-            Sau
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
+      {(pagination?.totalPages ?? 1) > 1 && (
+        <Pagination
+          page={(pagination?.page ?? page) + 1}
+          totalPages={pagination?.totalPages ?? 1}
+          totalItems={pagination?.total ?? data.data.length}
+          pageSize={pagination?.size ?? pageSize}
+          onPageChange={(nextPage) => setPage(nextPage - 1)}
+        />
       )}
 
       <AlertDialog open={showDeniedDialog} onOpenChange={setShowDeniedDialog}>

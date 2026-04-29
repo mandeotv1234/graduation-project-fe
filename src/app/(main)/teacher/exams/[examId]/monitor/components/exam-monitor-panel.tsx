@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Pagination } from '@/components/shared/pagination'
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useApi } from '@/hooks/use-api'
-import { getTeacherExamViolations } from '@/lib/actions'
+import { getTeacherExamMonitor, getTeacherExamViolations } from '@/lib/actions'
 import {
   forceSubmitStudentExam,
   remindStudent
@@ -56,6 +57,8 @@ type ExamMonitorPanelProps = {
   monitor: TeacherExamMonitorData
   maxViolations?: number
 }
+
+const PAGE_SIZE = 10
 
 export function ExamMonitorPanel({
   monitor,
@@ -89,6 +92,19 @@ export function ExamMonitorPanel({
   const [examStatusFilter, setExamStatusFilter] = useState<
     'ALL' | 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED' | 'NOT_STARTED'
   >('IN_PROGRESS')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalStudents, setTotalStudents] = useState(monitor.totalStudents)
+  const [totalViolators, setTotalViolators] = useState(monitor.totalViolators)
+  const [totalHighRisk, setTotalHighRisk] = useState(
+    monitor.totalHighRisk ??
+      monitor.students.filter(
+        (student) => student.violationCount >= highRiskThreshold
+      ).length
+  )
+  const [totalFilteredStudents, setTotalFilteredStudents] = useState(
+    monitor.totalFilteredStudents ?? monitor.students.length
+  )
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const [monitorMap, setMonitorMap] = useState<
     Record<number, StudentMonitorState>
@@ -109,6 +125,76 @@ export function ExamMonitorPanel({
       ])
     )
   )
+  const [monitorOrder, setMonitorOrder] = useState<number[]>(() =>
+    monitor.students.map((student) => student.studentId)
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchMonitorPage = async () => {
+      const response = await getTeacherExamMonitor(monitor.examId, {
+        page: currentPage,
+        size: PAGE_SIZE,
+        keyword,
+        riskFilter,
+        examStatusFilter,
+        highRiskThreshold,
+        sortColumn: sortColumn ?? 'violationCount',
+        sortDirection
+      })
+
+      if (cancelled || !response.data) return
+
+      setTotalStudents(response.data.totalStudents)
+      setTotalViolators(response.data.totalViolators)
+      setTotalHighRisk(
+        response.data.totalHighRisk ??
+          response.data.students.filter(
+            (student) => student.violationCount >= highRiskThreshold
+          ).length
+      )
+      setTotalFilteredStudents(
+        response.data.totalFilteredStudents ?? response.data.students.length
+      )
+      setMonitorMap(
+        Object.fromEntries(
+          response.data.students.map((student) => [
+            student.studentId,
+            {
+              studentId: student.studentId,
+              studentName: student.studentName,
+              violationCount: student.violationCount,
+              latestViolationType: student.latestViolationType ?? undefined,
+              latestViolationAt: student.latestViolationAt ?? undefined,
+              isFlagged: false,
+              forceSubmitted: student.autoSubmitted,
+              examStatus: student.examStatus
+            }
+          ])
+        )
+      )
+      setMonitorOrder(
+        response.data.students.map((student) => student.studentId)
+      )
+    }
+
+    void fetchMonitorPage()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    currentPage,
+    examStatusFilter,
+    highRiskThreshold,
+    keyword,
+    monitor.examId,
+    refreshKey,
+    riskFilter,
+    sortColumn,
+    sortDirection
+  ])
 
   useEffect(() => {
     connectStomp({
@@ -188,6 +274,12 @@ export function ExamMonitorPanel({
               }
             }
           })
+          setMonitorOrder((prev) =>
+            prev.includes(notification.studentId)
+              ? prev
+              : [notification.studentId, ...prev]
+          )
+          setRefreshKey((key) => key + 1)
 
           if (notification.type === 'SESSION_STATUS_CHANGED') {
             return // Skip toast for pure status updates
@@ -213,33 +305,10 @@ export function ExamMonitorPanel({
   }, [monitor.examId])
 
   const monitorRows = useMemo(() => {
-    return Object.values(monitorMap).sort((a, b) => {
-      if (sortColumn) {
-        if (sortColumn === 'violationCount') {
-          return sortDirection === 'asc'
-            ? a.violationCount - b.violationCount
-            : b.violationCount - a.violationCount
-        }
-        if (sortColumn === 'latestViolationAt') {
-          const timeA = a.latestViolationAt
-            ? new Date(a.latestViolationAt).getTime()
-            : 0
-          const timeB = b.latestViolationAt
-            ? new Date(b.latestViolationAt).getTime()
-            : 0
-          return sortDirection === 'asc' ? timeA - timeB : timeB - timeA
-        }
-      }
-
-      if (a.forceSubmitted !== b.forceSubmitted) {
-        return a.forceSubmitted ? 1 : -1
-      }
-      if (a.violationCount !== b.violationCount) {
-        return b.violationCount - a.violationCount
-      }
-      return a.studentName.localeCompare(b.studentName)
-    })
-  }, [monitorMap, sortColumn, sortDirection])
+    return monitorOrder
+      .map((studentId) => monitorMap[studentId])
+      .filter((row): row is StudentMonitorState => Boolean(row))
+  }, [monitorMap, monitorOrder])
 
   const handleSort = (column: 'violationCount' | 'latestViolationAt') => {
     if (sortColumn === column) {
@@ -253,35 +322,22 @@ export function ExamMonitorPanel({
       setSortColumn(column)
       setSortDirection('desc')
     }
+    setCurrentPage(1)
   }
 
   const filteredRows = useMemo(() => {
-    return monitorRows.filter((row) => {
-      const byKeyword =
-        keyword.trim().length === 0 ||
-        row.studentName.toLowerCase().includes(keyword.trim().toLowerCase())
+    return monitorRows
+  }, [monitorRows])
 
-      const byRisk =
-        riskFilter === 'all' ||
-        (riskFilter === 'none' && row.violationCount === 0) ||
-        (riskFilter === 'low' &&
-          row.violationCount > 0 &&
-          row.violationCount < highRiskThreshold) ||
-        (riskFilter === 'high' && row.violationCount >= highRiskThreshold)
+  const totalPages = Math.ceil(totalFilteredStudents / PAGE_SIZE)
+  const paginatedRows = filteredRows
 
-      const byExamStatus =
-        examStatusFilter === 'ALL' || row.examStatus === examStatusFilter
-
-      return byKeyword && byRisk && byExamStatus
+  useEffect(() => {
+    setCurrentPage((page) => {
+      if (totalPages <= 0) return 1
+      return Math.min(page, totalPages)
     })
-  }, [keyword, monitorRows, riskFilter, examStatusFilter])
-
-  const totalViolators = monitorRows.filter(
-    (row) => row.violationCount > 0
-  ).length
-  const highRisk = monitorRows.filter(
-    (row) => row.violationCount >= highRiskThreshold
-  ).length
+  }, [totalPages])
 
   const filteredStudentViolations = useMemo(() => {
     return studentViolations.filter((v) => {
@@ -478,7 +534,7 @@ export function ExamMonitorPanel({
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm text-muted-foreground">Tổng thí sinh</p>
             <p className="mt-2 text-3xl font-bold text-foreground">
-              {monitorRows.length}
+              {totalStudents}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
@@ -491,7 +547,9 @@ export function ExamMonitorPanel({
             <p className="text-sm text-muted-foreground">
               Nguy cơ cao (&gt;={highRiskThreshold} lần)
             </p>
-            <p className="mt-2 text-3xl font-bold text-red-600">{highRisk}</p>
+            <p className="mt-2 text-3xl font-bold text-red-600">
+              {totalHighRisk}
+            </p>
           </div>
         </div>
 
@@ -506,12 +564,15 @@ export function ExamMonitorPanel({
                   <Input
                     placeholder="Tìm theo tên sinh viên..."
                     value={keyword}
-                    onChange={(event) => setKeyword(event.target.value)}
+                    onChange={(event) => {
+                      setKeyword(event.target.value)
+                      setCurrentPage(1)
+                    }}
                   />
                 </div>
                 <select
                   value={examStatusFilter}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setExamStatusFilter(
                       event.target.value as
                         | 'ALL'
@@ -520,7 +581,8 @@ export function ExamMonitorPanel({
                         | 'AUTO_SUBMITTED'
                         | 'NOT_STARTED'
                     )
-                  }
+                    setCurrentPage(1)
+                  }}
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 >
                   <option value="ALL">Mọi trạng thái thi</option>
@@ -531,11 +593,12 @@ export function ExamMonitorPanel({
                 <div className="flex gap-2">
                   <select
                     value={riskFilter}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setRiskFilter(
                         event.target.value as 'all' | 'none' | 'low' | 'high'
                       )
-                    }
+                      setCurrentPage(1)
+                    }}
                     className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm"
                   >
                     <option value="all">Mọi mức vi phạm</option>
@@ -553,6 +616,7 @@ export function ExamMonitorPanel({
                       setExamStatusFilter('IN_PROGRESS')
                       setSortColumn('violationCount')
                       setSortDirection('desc')
+                      setCurrentPage(1)
                     }}
                   >
                     <Filter className="h-4 w-4" />
@@ -560,7 +624,7 @@ export function ExamMonitorPanel({
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Hiển thị {filteredRows.length}/{monitorRows.length} sinh viên
+                Hiển thị {filteredRows.length}/{totalFilteredStudents} sinh viên
               </p>
             </div>
           </div>
@@ -617,7 +681,7 @@ export function ExamMonitorPanel({
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row) => (
+                {paginatedRows.map((row) => (
                   <tr
                     key={row.studentId}
                     className="border-b border-border/60 transition-colors hover:bg-muted/30"
@@ -744,6 +808,16 @@ export function ExamMonitorPanel({
               </tbody>
             </table>
           </div>
+          {totalFilteredStudents > 0 && (
+            <Pagination
+              className="border-t border-border px-4 py-3"
+              page={currentPage}
+              totalPages={totalPages}
+              totalItems={totalFilteredStudents}
+              pageSize={PAGE_SIZE}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5">

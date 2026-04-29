@@ -149,11 +149,27 @@ export async function getTeacherExamTemplateVersions(
 }
 
 export async function getExamResults(
-  examId: number
-): Promise<ApiResponse<TeacherExamResult[]>> {
-  return apiClient.get<TeacherExamResult[]>(ENDPOINTS.EXAM_RESULTS(examId), {
+  examId: number,
+  params: {
+    page?: number
+    size?: number
+    keyword?: string
+    scoreFilter?: string
+    encounterMode?: string
+    sortOrder?: string
+  } = {}
+): Promise<PaginatedApiResponse<TeacherExamResult>> {
+  return apiClient.get(ENDPOINTS.EXAM_RESULTS(examId), {
+    queries: {
+      page: params.page ?? 1,
+      size: params.size ?? 5,
+      keyword: params.keyword ?? '',
+      scoreFilter: params.scoreFilter ?? 'all',
+      encounterMode: params.encounterMode ?? 'all',
+      sortOrder: params.sortOrder ?? 'timeDesc'
+    },
     cache: 'no-store'
-  })
+  }) as Promise<PaginatedApiResponse<TeacherExamResult>>
 }
 
 export async function getTeacherSubmissionDetail(

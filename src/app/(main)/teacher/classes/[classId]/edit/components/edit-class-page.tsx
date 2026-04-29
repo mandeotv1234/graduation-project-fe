@@ -58,6 +58,8 @@ interface ConflictRow extends CreateClassStudentInfo {
   errorType: ConflictErrorType[]
 }
 
+const CLASS_CODE_MAX_LENGTH = 20
+
 export function EditClassPage({
   classId,
   initialClassCode = '',
@@ -366,6 +368,11 @@ export function EditClassPage({
       return
     }
 
+    if (classCode.trim().length > CLASS_CODE_MAX_LENGTH) {
+      toast.error(`Mã lớp không được vượt quá ${CLASS_CODE_MAX_LENGTH} ký tự`)
+      return
+    }
+
     const validStudents = students.filter(
       (s) => s.studentId.trim() && s.fullName.trim()
     )
@@ -480,9 +487,14 @@ export function EditClassPage({
                 value={classCode}
                 onChange={(e) => setClassCode(e.target.value)}
                 placeholder="VD: 22120-CSDL-01"
+                maxLength={CLASS_CODE_MAX_LENGTH}
                 className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Tối đa {CLASS_CODE_MAX_LENGTH} ký tự ({classCode.length}/
+                {CLASS_CODE_MAX_LENGTH})
+              </p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">

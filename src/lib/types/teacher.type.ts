@@ -190,6 +190,8 @@ export interface TeacherExamMonitorData {
   isPublished: boolean
   totalStudents: number
   totalViolators: number
+  totalHighRisk?: number
+  totalFilteredStudents?: number
   students: TeacherExamMonitorStudent[]
 }
 

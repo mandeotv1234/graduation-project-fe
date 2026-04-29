@@ -22,6 +22,7 @@ export default async function ExamResultsPage({
   ])
 
   const initialResults = resultsResponse.data || []
+  const initialPagination = resultsResponse.meta?.pagination
   const initialStats: ExamStatistics | null = statsResponse.data ?? null
   const examTitle = examResponse.data?.title || `Bài thi #${id}`
 
@@ -30,6 +31,7 @@ export default async function ExamResultsPage({
       examId={id}
       examTitle={examTitle}
       initialResults={initialResults}
+      initialPagination={initialPagination}
       initialStats={initialStats}
     />
   )

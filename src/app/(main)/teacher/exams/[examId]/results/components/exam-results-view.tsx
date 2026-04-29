@@ -13,8 +13,6 @@ import {
   Download,
   Filter,
   Users,
-  ChevronLeft,
-  ChevronRight,
   RefreshCw,
   BarChart2,
   Loader2,
@@ -25,6 +23,7 @@ import { toast } from 'sonner'
 import styles from './exam-results-view.module.scss'
 
 import { Button } from '@/components/ui/button'
+import { Pagination } from '@/components/shared/pagination'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,10 +38,12 @@ import {
 import type {
   TeacherExamResult,
   GradingNotificationDto,
-  ExamStatistics
+  ExamStatistics,
+  PaginationMeta
 } from '@/lib/types'
 import { subscribeToTeacherGradingResult } from '@/lib/socket'
 import { regradeAllExamResults } from '@/lib/actions'
+import { getExamResults } from '@/lib/actions/teacher.action'
 import { formatDateTime } from '@/lib/utils/time'
 import { ExamStatisticsDashboard } from './exam-statistics-dashboard/exam-statistics-dashboard'
 
@@ -50,6 +51,7 @@ interface ExamResultsViewProps {
   examId: number
   examTitle: string
   initialResults: TeacherExamResult[]
+  initialPagination?: PaginationMeta
   initialStats: ExamStatistics | null
 }
 
@@ -57,10 +59,14 @@ export function ExamResultsView({
   examId,
   examTitle,
   initialResults,
+  initialPagination,
   initialStats
 }: ExamResultsViewProps) {
   const router = useRouter()
   const [results, setResults] = useState<TeacherExamResult[]>(initialResults)
+  const [pagination, setPagination] = useState<PaginationMeta | undefined>(
+    initialPagination
+  )
   const [searchTerm, setSearchTerm] = useState('')
   const [scoreFilter, setScoreFilter] = useState<
     'all' | 'gte5' | 'gte8' | 'gte9'
@@ -78,6 +84,7 @@ export function ExamResultsView({
   const [activeTab, setActiveTab] = useState('results')
   // Tracks remaining re-grade jobs so socket handler can suppress toasts & block new-entry adds
   const regradingRemainingRef = useRef(0)
+  const didMountRef = useRef(false)
 
   async function handleRegradeAll() {
     setIsRegradingAll(true)
@@ -116,6 +123,46 @@ export function ExamResultsView({
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 5
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true
+      return
+    }
+
+    let cancelled = false
+
+    const fetchResults = async () => {
+      const response = await getExamResults(examId, {
+        page: currentPage,
+        size: pageSize,
+        keyword: searchTerm,
+        scoreFilter,
+        encounterMode,
+        sortOrder
+      })
+
+      if (cancelled) return
+
+      setResults(response.data ?? [])
+      setPagination(response.meta?.pagination)
+    }
+
+    void fetchResults()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    currentPage,
+    encounterMode,
+    examId,
+    refreshKey,
+    scoreFilter,
+    searchTerm,
+    sortOrder
+  ])
 
   useEffect(() => {
     // Socket connection for real-time updates
@@ -125,65 +172,7 @@ export function ExamResultsView({
         const notification = rawNotification as GradingNotificationDto
         const isBulkRegrade = regradingRemainingRef.current > 0
 
-        setResults((prev: TeacherExamResult[]) => {
-          // 1. Try exact match by submissionId
-          let index = prev.findIndex(
-            (r) =>
-              notification.submissionId !== undefined &&
-              r.submissionId === notification.submissionId
-          )
-
-          // 2. Try match by studentId + attemptNumber
-          if (index === -1 && notification.studentId !== undefined) {
-            if (notification.attemptNumber !== undefined) {
-              index = prev.findIndex(
-                (r) =>
-                  r.studentId === notification.studentId &&
-                  r.attemptNumber === notification.attemptNumber
-              )
-            } else {
-              // 3. Fallback: missing attemptNumber from BE
-              // Find the FIRST record that is still PENDING for this student.
-              // This ensures bulk regrades (which reset all attempts to PENDING) update attempts one by one natively.
-              index = prev.findIndex(
-                (r) =>
-                  r.studentId === notification.studentId &&
-                  r.status === 'PENDING'
-              )
-            }
-          }
-
-          const newResult: TeacherExamResult = {
-            submissionId:
-              notification.submissionId ||
-              prev[index]?.submissionId ||
-              Date.now(),
-            studentId: notification.studentId,
-            studentName:
-              notification.studentName ||
-              prev[index]?.studentName ||
-              'Học sinh',
-            studentEmail:
-              notification.studentEmail || prev[index]?.studentEmail || '',
-            attemptNumber:
-              notification.attemptNumber || prev[index]?.attemptNumber || 1,
-            submittedAt: prev[index]?.submittedAt ?? new Date().toISOString(),
-            totalScore: notification.totalScore || notification.score || 0,
-            maxScore: notification.maxScore || prev[index]?.maxScore || 10,
-            correctCount: notification.correctCount || 0,
-            totalQuestions: notification.totalQuestions || 0,
-            status: notification.status
-          }
-
-          if (index !== -1) {
-            const updated = [...prev]
-            updated[index] = newResult
-            return updated
-          }
-          // During bulk re-grade never add new entries — only existing ones are re-graded
-          if (isBulkRegrade) return prev
-          return [newResult, ...prev]
-        })
+        setRefreshKey((key) => key + 1)
 
         if (isBulkRegrade) {
           regradingRemainingRef.current -= 1
@@ -325,28 +314,30 @@ export function ExamResultsView({
   })
 
   const filteredResults = studentGroups
-  const totalPages = Math.ceil(filteredResults.length / pageSize)
+  const totalItems = pagination?.total ?? filteredResults.length
+  const effectivePageSize = pagination?.size ?? pageSize
+  const totalPages = Math.ceil(totalItems / effectivePageSize)
 
-  const getPageNumbers = (current: number, total: number) => {
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-    if (current <= 3) return [1, 2, 3, 4, '...', total]
-    if (current >= total - 2)
-      return [1, '...', total - 3, total - 2, total - 1, total]
-    return [1, '...', current - 1, current, current + 1, '...', total]
-  }
+  useEffect(() => {
+    setCurrentPage((page) =>
+      Math.min(Math.max(1, page), Math.max(1, totalPages))
+    )
+  }, [totalPages])
 
-  const paginatedResults = filteredResults.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  )
+  const paginatedResults = filteredResults
 
   const uniqueStudentsCount = new Set(results.map((r) => r.studentId)).size
   const gradedResults = results.filter((r) => r.status !== 'PENDING')
   const stats = {
-    totalCount: uniqueStudentsCount,
-    passed: gradedResults.filter((r) => r.totalScore >= 5).length,
-    average:
-      gradedResults.length > 0
+    totalCount: initialStats?.totalSubmissions ?? uniqueStudentsCount,
+    passed: initialStats
+      ? Math.round(
+          (initialStats.totalSubmissions * initialStats.passRate) / 100
+        )
+      : gradedResults.filter((r) => r.totalScore >= 5).length,
+    average: initialStats
+      ? initialStats.averageScore.toFixed(1)
+      : gradedResults.length > 0
         ? (
             gradedResults.reduce((sum, r) => sum + r.totalScore, 0) /
             gradedResults.length
@@ -358,7 +349,7 @@ export function ExamResultsView({
     router.push(`/teacher/exams/${examId}/results/${submissionId}`)
   }
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     const headers = [
       'Học sinh',
       'Email',
@@ -369,7 +360,17 @@ export function ExamResultsView({
       'Điểm tối đa'
     ]
 
-    const rows = results.map((r) => [
+    const exportResponse = await getExamResults(examId, {
+      page: 1,
+      size: 100000,
+      keyword: '',
+      scoreFilter: 'all',
+      encounterMode: 'all',
+      sortOrder: 'timeDesc'
+    })
+    const exportResults = exportResponse.data ?? []
+
+    const rows = exportResults.map((r) => [
       `"${r.studentName}"`,
       `"${r.studentEmail}"`,
       `"${formatDateTime(r.submittedAt)}"`,
@@ -813,73 +814,16 @@ export function ExamResultsView({
               </table>
             </div>
 
-            {/* Pagination UI */}
-            <div className={styles.pagination}>
-              <div className={styles.pageInfo}>
-                Hiển thị{' '}
-                <span>
-                  {filteredResults.length > 0
-                    ? (currentPage - 1) * pageSize + 1
-                    : 0}
-                </span>{' '}
-                -{' '}
-                <span>
-                  {Math.min(currentPage * pageSize, filteredResults.length)}
-                </span>{' '}
-                trong <span>{filteredResults.length}</span> kết quả
-              </div>
-              {totalPages > 1 && (
-                <div className={styles.nav}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCurrentPage((p) => Math.max(1, p - 1))
-                    }}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {getPageNumbers(currentPage, totalPages).map((page, idx) =>
-                      page === '...' ? (
-                        <span
-                          key={`ellipsis-${idx}`}
-                          className="px-2 font-black text-muted-foreground text-sm tracking-wider"
-                        >
-                          ...
-                        </span>
-                      ) : (
-                        <Button
-                          key={`page-${page}`}
-                          variant={currentPage === page ? 'default' : 'ghost'}
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setCurrentPage(page as number)
-                          }}
-                          className="w-8 p-0"
-                        >
-                          {page}
-                        </Button>
-                      )
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
+            {totalItems > 0 && (
+              <Pagination
+                className={styles.pagination}
+                page={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={effectivePageSize}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </div>
         </Tabs.Content>
 

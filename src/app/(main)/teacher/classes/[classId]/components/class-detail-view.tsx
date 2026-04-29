@@ -17,6 +17,7 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
 import { ClassTeachersSection } from '@/app/(main)/teacher/classes/[classId]/components/class-teachers-section'
+import { Pagination } from '@/components/shared/pagination'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,6 +101,10 @@ export function ClassDetailView({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [examToDelete, setExamToDelete] = useState<number | null>(null)
+
+  const goToStudentPage = (page: number) => {
+    router.push(`?studentPage=${page}`, { scroll: false })
+  }
 
   const handleDeleteExam = async () => {
     if (!examToDelete) return
@@ -369,49 +374,16 @@ export function ClassDetailView({
 
         {studentPagination &&
           studentPagination.total > studentPagination.size && (
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <p className="text-xs text-muted-foreground mr-4">
-                Trang {currentStudentPage}/
-                {Math.ceil(studentPagination.total / studentPagination.size)} ·
-                Tổng: {studentPagination.total} sinh viên
-              </p>
-              <Link
-                href={`?studentPage=${currentStudentPage - 1}`}
-                className={
-                  currentStudentPage <= 1
-                    ? 'pointer-events-none opacity-50'
-                    : ''
-                }
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentStudentPage <= 1}
-                >
-                  Trước
-                </Button>
-              </Link>
-              <Link
-                href={`?studentPage=${currentStudentPage + 1}`}
-                className={
-                  currentStudentPage >=
-                  Math.ceil(studentPagination.total / studentPagination.size)
-                    ? 'pointer-events-none opacity-50'
-                    : ''
-                }
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={
-                    currentStudentPage >=
-                    Math.ceil(studentPagination.total / studentPagination.size)
-                  }
-                >
-                  Tiếp
-                </Button>
-              </Link>
-            </div>
+            <Pagination
+              className="pt-2"
+              page={currentStudentPage}
+              totalPages={Math.ceil(
+                studentPagination.total / studentPagination.size
+              )}
+              totalItems={studentPagination.total}
+              pageSize={studentPagination.size}
+              onPageChange={goToStudentPage}
+            />
           )}
       </section>
     </div>

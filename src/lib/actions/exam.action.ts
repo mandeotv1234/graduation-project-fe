@@ -120,9 +120,29 @@ export async function getTeacherExamDetail(
 }
 
 export async function getTeacherExamMonitor(
-  examId: number
+  examId: number,
+  params: {
+    page?: number
+    size?: number
+    keyword?: string
+    riskFilter?: string
+    examStatusFilter?: string
+    highRiskThreshold?: number
+    sortColumn?: string
+    sortDirection?: string
+  } = {}
 ): Promise<ApiResponse<TeacherExamMonitorData>> {
   return apiClient.get<TeacherExamMonitorData>(ENDPOINTS.EXAM_MONITOR(examId), {
+    queries: {
+      page: params.page ?? 1,
+      size: params.size ?? 10,
+      keyword: params.keyword ?? '',
+      riskFilter: params.riskFilter ?? 'all',
+      examStatusFilter: params.examStatusFilter ?? 'IN_PROGRESS',
+      highRiskThreshold: params.highRiskThreshold ?? 3,
+      sortColumn: params.sortColumn ?? 'violationCount',
+      sortDirection: params.sortDirection ?? 'desc'
+    },
     cache: 'no-store'
   })
 }
