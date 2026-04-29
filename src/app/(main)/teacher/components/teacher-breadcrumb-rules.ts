@@ -231,7 +231,7 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
         {
           label: 'Kết quả bài làm',
           href: '/teacher/exams/:examId/results',
-          clickable: !params.submissionId
+          clickable: true
         }
       ]
 

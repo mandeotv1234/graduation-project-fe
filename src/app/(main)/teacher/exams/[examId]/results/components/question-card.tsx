@@ -349,7 +349,10 @@ export function QuestionCard({
 
       {/* Card body */}
       <div className={styles.qContent}>
-        <div className={styles.prompt}>{qr.content}</div>
+        <div
+          className={styles.prompt}
+          dangerouslySetInnerHTML={{ __html: qr.content }}
+        />
 
         <div className={styles.codeSections}>
           <div className={`${styles.codeBlock} ${styles.student}`}>

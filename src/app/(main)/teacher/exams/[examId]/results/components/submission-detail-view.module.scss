@@ -266,7 +266,10 @@
     color: #1e293b;
     line-height: 1.6;
     margin-bottom: 1.5rem;
-    white-space: pre-wrap;
+
+    p {
+      margin: 0 0 0.5rem;
+    }
   }
 
   .codeSections {
@@ -306,6 +309,23 @@
       max-height: 400px;
       overflow-y: auto;
       flex: 1;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background-color: #475569;
+        border-radius: 3px;
+      }
+
+      scrollbar-width: thin;
+      scrollbar-color: #475569 transparent;
     }
 
     &.student pre {
@@ -506,6 +526,85 @@
       overflow-y: auto;
     }
   }
+}
+
+// ===== Attempt navigation =====
+
+.attemptNav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.attemptNavLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.attemptPills {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: nowrap;
+}
+
+.attemptPill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  min-width: 64px;
+
+  &:hover:not(.attemptPillActive) {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+}
+
+.attemptPillActive {
+  background: #1e40af;
+  border-color: #1e40af;
+  color: white;
+
+  .attemptPillNumber {
+    color: white;
+  }
+
+  .attemptPillScore {
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.attemptPillNumber {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.attemptPillScore {
+  font-size: 0.675rem;
+  color: #64748b;
 }
 
 // ===== Loading state =====
