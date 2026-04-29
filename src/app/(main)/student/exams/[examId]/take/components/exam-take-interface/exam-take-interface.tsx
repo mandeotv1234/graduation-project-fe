@@ -731,18 +731,20 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
               )}
             </div>
           ) : (
-            <QuestionSidebar
-              questions={questions}
-              currentIndex={examTake.currentQuestionIndex}
-              answers={examTake.answers}
-              onSelect={(index) => {
-                setIsOverviewSelected(false)
-                examTake.goToQuestion(index)
-              }}
-              onSelectOverview={() => setIsOverviewSelected(true)}
-              isOverviewSelected={isOverviewSelected}
-              header={null}
-            />
+            <div className={styles.desktopQuestionSidebar}>
+              <QuestionSidebar
+                questions={questions}
+                currentIndex={examTake.currentQuestionIndex}
+                answers={examTake.answers}
+                onSelect={(index) => {
+                  setIsOverviewSelected(false)
+                  examTake.goToQuestion(index)
+                }}
+                onSelectOverview={() => setIsOverviewSelected(true)}
+                isOverviewSelected={isOverviewSelected}
+                header={null}
+              />
+            </div>
           )}
 
           {/* Right: Prompt + Editor + Bottom panel */}
@@ -851,6 +853,23 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                 </div>
               </div>
             </div>
+
+            {layoutMode === 'default' && (
+              <div className={styles.mobileQuestionNav}>
+                <QuestionSidebar
+                  questions={questions}
+                  currentIndex={examTake.currentQuestionIndex}
+                  answers={examTake.answers}
+                  onSelect={(index) => {
+                    setIsOverviewSelected(false)
+                    examTake.goToQuestion(index)
+                  }}
+                  onSelectOverview={() => setIsOverviewSelected(true)}
+                  isOverviewSelected={isOverviewSelected}
+                  header={null}
+                />
+              </div>
+            )}
 
             {/* Mini question navigation strip (split mode only) */}
             {layoutMode === 'split' && (

@@ -7,7 +7,7 @@ import {
   resetAntiCheat,
   showWarning
 } from '@/lib/redux/slices/anti-cheat.slice'
-import { connectStomp, disconnectStomp, getStompClient } from '@/lib/socket'
+import { connectStomp, getStompClient } from '@/lib/socket'
 import { ViolationNotification } from '@/lib/types'
 import { toast } from 'sonner'
 
@@ -196,7 +196,10 @@ export function useExamSocket({
 
     return () => {
       cleanupSubs()
-      disconnectStomp()
+      // NOTE: Do NOT call disconnectStomp() here!
+      // stompClient is a global singleton shared by multiple components
+      // (e.g. TeacherNotificationBell). Disconnecting here would kill
+      // the connection for all other subscribers.
       isConnected.current = false
     }
   }, [dispatch, enabled, examId, studentId])

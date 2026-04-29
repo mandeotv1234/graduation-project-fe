@@ -26,6 +26,7 @@ export interface GradingNotificationDto {
   attemptNumber?: number
   examId: number
   examName?: string
+  teacherIds?: number[]
   studentId: number
   studentName?: string
   studentEmail?: string
@@ -34,7 +35,7 @@ export interface GradingNotificationDto {
   maxScore?: number
   correctCount?: number
   totalQuestions?: number
-  status: 'COMPLETED' | 'FAILED'
+  status: 'SUBMITTED' | 'COMPLETED' | 'FAILED'
   gradedAt?: string
   reason?: string
   message?: string // Teacher friendly message
