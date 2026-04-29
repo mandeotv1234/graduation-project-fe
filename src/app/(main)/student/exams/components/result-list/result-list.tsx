@@ -199,13 +199,15 @@ export function ResultList() {
         ))}
       </div>
 
-      <Pagination
-        page={(pagination?.page ?? page) + 1}
-        totalPages={pagination?.totalPages ?? 1}
-        totalItems={pagination?.total ?? data.data.length}
-        pageSize={pagination?.size ?? pageSize}
-        onPageChange={(nextPage) => setPage(nextPage - 1)}
-      />
+      {(pagination?.totalPages ?? 1) > 1 && (
+        <Pagination
+          page={(pagination?.page ?? page) + 1}
+          totalPages={pagination?.totalPages ?? 1}
+          totalItems={pagination?.total ?? data.data.length}
+          pageSize={pagination?.size ?? pageSize}
+          onPageChange={(nextPage) => setPage(nextPage - 1)}
+        />
+      )}
 
       <AlertDialog open={showDeniedDialog} onOpenChange={setShowDeniedDialog}>
         <AlertDialogContent>

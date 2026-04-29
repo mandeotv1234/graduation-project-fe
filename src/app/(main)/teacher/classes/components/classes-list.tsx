@@ -29,14 +29,17 @@ function ClassCard({ item }: { item: ClassListItem }) {
       <div className="group relative overflow-hidden rounded-xl border  bg-card p-6 bg-surface-container-low border-b-2 border-primary/10 transition-all duration-300 hover:border-primary/30 hover:shadow-md">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-        <div className="flex items-start justify-between">
-          <div className="space-y-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1 space-y-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <FolderOpen className="h-5 w-5" />
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+              <div className="min-w-0 flex-1">
+                <h3
+                  className="truncate text-lg font-semibold text-foreground transition-colors group-hover:text-primary"
+                  title={item.classCode}
+                >
                   {item.classCode}
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -51,7 +54,7 @@ function ClassCard({ item }: { item: ClassListItem }) {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex shrink-0 gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
               <Users className="h-4 w-4" />
             </div>

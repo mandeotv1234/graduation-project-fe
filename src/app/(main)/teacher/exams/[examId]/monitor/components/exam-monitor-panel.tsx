@@ -125,6 +125,9 @@ export function ExamMonitorPanel({
       ])
     )
   )
+  const [monitorOrder, setMonitorOrder] = useState<number[]>(() =>
+    monitor.students.map((student) => student.studentId)
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -135,7 +138,10 @@ export function ExamMonitorPanel({
         size: PAGE_SIZE,
         keyword,
         riskFilter,
-        examStatusFilter
+        examStatusFilter,
+        highRiskThreshold,
+        sortColumn: sortColumn ?? 'violationCount',
+        sortDirection
       })
 
       if (cancelled || !response.data) return
@@ -168,6 +174,9 @@ export function ExamMonitorPanel({
           ])
         )
       )
+      setMonitorOrder(
+        response.data.students.map((student) => student.studentId)
+      )
     }
 
     void fetchMonitorPage()
@@ -182,7 +191,9 @@ export function ExamMonitorPanel({
     keyword,
     monitor.examId,
     refreshKey,
-    riskFilter
+    riskFilter,
+    sortColumn,
+    sortDirection
   ])
 
   useEffect(() => {
@@ -263,6 +274,11 @@ export function ExamMonitorPanel({
               }
             }
           })
+          setMonitorOrder((prev) =>
+            prev.includes(notification.studentId)
+              ? prev
+              : [notification.studentId, ...prev]
+          )
           setRefreshKey((key) => key + 1)
 
           if (notification.type === 'SESSION_STATUS_CHANGED') {
@@ -289,33 +305,10 @@ export function ExamMonitorPanel({
   }, [monitor.examId])
 
   const monitorRows = useMemo(() => {
-    return Object.values(monitorMap).sort((a, b) => {
-      if (sortColumn) {
-        if (sortColumn === 'violationCount') {
-          return sortDirection === 'asc'
-            ? a.violationCount - b.violationCount
-            : b.violationCount - a.violationCount
-        }
-        if (sortColumn === 'latestViolationAt') {
-          const timeA = a.latestViolationAt
-            ? new Date(a.latestViolationAt).getTime()
-            : 0
-          const timeB = b.latestViolationAt
-            ? new Date(b.latestViolationAt).getTime()
-            : 0
-          return sortDirection === 'asc' ? timeA - timeB : timeB - timeA
-        }
-      }
-
-      if (a.forceSubmitted !== b.forceSubmitted) {
-        return a.forceSubmitted ? 1 : -1
-      }
-      if (a.violationCount !== b.violationCount) {
-        return b.violationCount - a.violationCount
-      }
-      return a.studentName.localeCompare(b.studentName)
-    })
-  }, [monitorMap, sortColumn, sortDirection])
+    return monitorOrder
+      .map((studentId) => monitorMap[studentId])
+      .filter((row): row is StudentMonitorState => Boolean(row))
+  }, [monitorMap, monitorOrder])
 
   const handleSort = (column: 'violationCount' | 'latestViolationAt') => {
     if (sortColumn === column) {
@@ -329,6 +322,7 @@ export function ExamMonitorPanel({
       setSortColumn(column)
       setSortDirection('desc')
     }
+    setCurrentPage(1)
   }
 
   const filteredRows = useMemo(() => {
