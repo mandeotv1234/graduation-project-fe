@@ -8,7 +8,9 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -83,6 +85,29 @@ export function SubmissionDetailView({
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollStartRef = useRef<number>(0)
   const POLL_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes max polling
+
+  // Attempt pills scroll
+  const pillsRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const checkScroll = useCallback(() => {
+    const el = pillsRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 0)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }, [])
+
+  useEffect(() => {
+    checkScroll()
+  }, [attempts, checkScroll])
+
+  function scrollPills(dir: 'left' | 'right') {
+    const el = pillsRef.current
+    if (!el) return
+    el.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' })
+    setTimeout(checkScroll, 300)
+  }
 
   // Fetch all attempts for this student
   useEffect(() => {
@@ -308,8 +333,25 @@ export function SubmissionDetailView({
       {/* Attempt navigation */}
       {attempts.length > 1 && (
         <div className={styles.attemptNav}>
-          <span className={styles.attemptNavLabel}>Lần thi:</span>
-          <div className={styles.attemptPills}>
+          <span className={styles.attemptNavLabel}>
+            Lần thi ({attempts.length}):
+          </span>
+
+          {canScrollLeft && (
+            <button
+              className={styles.attemptScrollBtn}
+              onClick={() => scrollPills('left')}
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+
+          <div
+            ref={pillsRef}
+            className={styles.attemptPills}
+            onScroll={checkScroll}
+          >
             {attempts.map((a) => (
               <button
                 key={a.submissionId}
@@ -335,6 +377,16 @@ export function SubmissionDetailView({
               </button>
             ))}
           </div>
+
+          {canScrollRight && (
+            <button
+              className={styles.attemptScrollBtn}
+              onClick={() => scrollPills('right')}
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
         </div>
       )}
 
