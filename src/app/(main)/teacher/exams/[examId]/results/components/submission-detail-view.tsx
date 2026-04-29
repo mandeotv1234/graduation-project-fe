@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft,
   Mail,
   Calendar,
   CheckCircle2,
   AlertCircle,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,7 +30,11 @@ import {
   QuestionResultDetail,
   PreviousScores
 } from '@/lib/types'
-import { regradeExamResult, getTeacherSubmissionDetail } from '@/lib/actions'
+import {
+  regradeExamResult,
+  getTeacherSubmissionDetail,
+  getExamResults
+} from '@/lib/actions'
 import { formatDateTime } from '@/lib/utils/time'
 import { QuestionCard } from './question-card'
 import styles from './submission-detail-view.module.scss'
@@ -54,6 +59,16 @@ export function SubmissionDetailView({
 }: SubmissionDetailViewProps) {
   const router = useRouter()
 
+  // Attempt switcher: all attempts of this student for this exam
+  const [attempts, setAttempts] = useState<
+    Array<{
+      submissionId: number
+      attemptNumber: number
+      totalScore: number
+      submittedAt: string
+    }>
+  >([])
+
   // Phase 8: mutable local copy of detail (for score override updates)
   const [detail, setDetail] = useState<TeacherExamResultDetail>(initialDetail)
 
@@ -71,7 +86,65 @@ export function SubmissionDetailView({
   const pollStartRef = useRef<number>(0)
   const POLL_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes max polling
 
-  // Cleanup polling on unmount
+  // Attempt pills scroll
+  const pillsRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const checkScroll = useCallback(() => {
+    const el = pillsRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 0)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }, [])
+
+  useEffect(() => {
+    const el = pillsRef.current
+    if (!el) return
+
+    checkScroll()
+
+    let resizeObserver: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(checkScroll)
+      resizeObserver.observe(el)
+    }
+
+    return () => {
+      resizeObserver?.disconnect()
+    }
+  }, [attempts, checkScroll])
+
+  function scrollPills(dir: 'left' | 'right') {
+    const el = pillsRef.current
+    if (!el) return
+    el.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' })
+  }
+
+  // Fetch all attempts for this student
+  useEffect(() => {
+    async function fetchAttempts() {
+      try {
+        const res = await getExamResults(examId)
+        if (res.data) {
+          const studentAttempts = res.data
+            .filter((r) => r.studentId === initialDetail.studentId)
+            .sort((a, b) => a.attemptNumber - b.attemptNumber)
+            .map((r) => ({
+              submissionId: r.submissionId,
+              attemptNumber: r.attemptNumber,
+              totalScore: r.totalScore,
+              submittedAt: r.submittedAt
+            }))
+          setAttempts(studentAttempts)
+        }
+      } catch {
+        // Silently fail — switcher just won't show
+      }
+    }
+    fetchAttempts()
+  }, [examId, initialDetail.studentId])
+
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
@@ -185,9 +258,6 @@ export function SubmissionDetailView({
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.titleSection}>
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <div>
             <h1>Chi tiết bài làm</h1>
             <p>
@@ -272,6 +342,70 @@ export function SubmissionDetailView({
         </div>
       )}
 
+      {/* Attempt navigation */}
+      {attempts.length > 1 && (
+        <div className={styles.attemptNav}>
+          <span className={styles.attemptNavLabel}>
+            Lần thi ({attempts.length}):
+          </span>
+
+          {canScrollLeft && (
+            <button
+              className={styles.attemptScrollBtn}
+              onClick={() => scrollPills('left')}
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+
+          <div
+            ref={pillsRef}
+            className={styles.attemptPills}
+            onScroll={checkScroll}
+          >
+            {attempts.map((a) => (
+              <button
+                key={a.submissionId}
+                className={`${styles.attemptPill} ${
+                  a.submissionId === submissionId
+                    ? styles.attemptPillActive
+                    : ''
+                }`}
+                onClick={() => {
+                  if (a.submissionId !== submissionId) {
+                    router.push(
+                      `/teacher/exams/${examId}/results/${a.submissionId}`
+                    )
+                  }
+                }}
+              >
+                <span className={styles.attemptPillNumber}>
+                  Lần {a.attemptNumber}
+                </span>
+                <span className={styles.attemptPillScore}>
+                  {(a.submissionId === submissionId
+                    ? detail.totalScore
+                    : a.totalScore
+                  ).toFixed(1)}
+                  đ
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {canScrollRight && (
+            <button
+              className={styles.attemptScrollBtn}
+              onClick={() => scrollPills('right')}
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Overview Cards */}
       <div className={styles.overviewCard}>
         <div className={styles.statItem}>
@@ -290,6 +424,7 @@ export function SubmissionDetailView({
           <span className="text-xs text-muted-foreground flex items-center gap-0.5 mt-0.5">
             <Calendar className="h-3 w-3" />
             Lần thi {detail.attemptNumber}
+            {attempts.length > 1 && ` / ${attempts.length}`}
           </span>
         </div>
         <div className={styles.statItem}>
