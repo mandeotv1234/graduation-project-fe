@@ -588,7 +588,7 @@ export interface RoutineGradingSettings {
   positive_only_scoring?: boolean
 }
 
-export type RoutineType = 'FUNCTION' | 'PROCEDURE'
+export type RoutineType = 'FUNCTION' | 'PROCEDURE' | 'STORED_PROCEDURE'
 export type ParameterMode = 'IN' | 'OUT' | 'INOUT'
 
 export interface RoutineRubricParameter {
@@ -620,12 +620,16 @@ export type VerificationType =
 export interface RoutineTestCase {
   case_id: string
   case_name: string
-  penalty_value: number
-  input_parameters: string
-  expected_result: string
+  score_weight?: number
+  penalty_value?: number
+  match_type?: 'EXACT' | 'CONTAINS'
+  input_parameters?: string | Record<string, unknown>
   setup_script?: string
+  invocation_query?: string
+  validation_query?: string
   verification_type: VerificationType
   description?: string
+  expected_result?: string
 }
 
 export interface RoutineGradingPayload {

@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import {
+  ChevronLeft,
+  ChevronRight,
   Plus,
   Trash2,
   Settings2,
@@ -23,6 +25,7 @@ import {
   RoutineTestCase,
   VerificationType
 } from '@/lib/types'
+import { TeacherSqlEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/teacher-sql-editor'
 
 function createDefaultRoutine(
   defaultType: RoutineType = 'FUNCTION'
@@ -39,15 +42,20 @@ function createDefaultRoutine(
   }
 }
 
-function createDefaultTestCase(): RoutineTestCase {
+function createDefaultTestCase(
+  questionType: 'FUNCTION' | 'STORED_PROCEDURE' = 'STORED_PROCEDURE'
+): RoutineTestCase {
   return {
     case_id: crypto.randomUUID(),
     case_name: '',
-    penalty_value: 0.5,
-    input_parameters: '',
-    expected_result: '',
+    score_weight: 0.5,
+    match_type: 'EXACT',
+    input_parameters: '{}',
     setup_script: '',
-    verification_type: 'RETURN_VALUE',
+    invocation_query: '',
+    validation_query: '',
+    verification_type:
+      questionType === 'FUNCTION' ? 'RETURN_VALUE' : 'SIDE_EFFECT',
     description: ''
   }
 }
@@ -65,6 +73,16 @@ function toBoolean(value: unknown, defaultValue: boolean): boolean {
 
 function toSyntaxErrorAction(value: unknown): SyntaxErrorAction {
   return value === 'PARTIAL' ? 'PARTIAL' : 'FAIL_ALL'
+}
+
+function toTextValue(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
 }
 
 function normalizeRoutinePayload(
@@ -114,7 +132,8 @@ function normalizeRoutinePayload(
 
 const ROUTINE_TYPES: { value: RoutineType; label: string }[] = [
   { value: 'FUNCTION', label: 'FUNCTION' },
-  { value: 'PROCEDURE', label: 'PROCEDURE' }
+  { value: 'PROCEDURE', label: 'PROCEDURE' },
+  { value: 'STORED_PROCEDURE', label: 'STORED_PROCEDURE' }
 ]
 
 interface RoutineRubricEditorProps {
@@ -125,6 +144,7 @@ interface RoutineRubricEditorProps {
   onChange: (rubric: GradingRubric) => void
   correctQuery?: string
   questionContent?: string
+  schemaContext?: string
   wizardStep?: number
 }
 
@@ -135,9 +155,11 @@ export function RoutineRubricEditor({
   onChange,
   correctQuery,
   questionContent,
+  schemaContext,
   wizardStep
 }: RoutineRubricEditorProps) {
   const [isGenerating, setIsGenerating] = useState(false)
+  const [activeTestCaseIndex, setActiveTestCaseIndex] = useState(0)
   const hasAutoTriggeredRef = useRef(false)
 
   const rubricCategory =
@@ -199,6 +221,15 @@ export function RoutineRubricEditor({
     },
     [grading_settings, routines, test_cases, syncRubric]
   )
+  useEffect(() => {
+    if (test_cases.length === 0) {
+      setActiveTestCaseIndex(0)
+      return
+    }
+    if (activeTestCaseIndex > test_cases.length - 1) {
+      setActiveTestCaseIndex(test_cases.length - 1)
+    }
+  }, [activeTestCaseIndex, test_cases.length])
 
   const handleGenerateRubric = useCallback(async () => {
     if (!correctQuery || correctQuery.trim().length === 0) {
@@ -214,7 +245,8 @@ export function RoutineRubricEditor({
         correctQuery,
         questionContent: questionContent || '',
         totalPoints,
-        questionType: rubricCategory
+        questionType: rubricCategory,
+        schemaContext
       })
 
       if (result.data) {
@@ -235,7 +267,14 @@ export function RoutineRubricEditor({
     } finally {
       setIsGenerating(false)
     }
-  }, [correctQuery, questionContent, totalPoints, onChange, rubricCategory])
+  }, [
+    correctQuery,
+    questionContent,
+    schemaContext,
+    totalPoints,
+    onChange,
+    rubricCategory
+  ])
 
   const isWizardMode = typeof wizardStep === 'number'
   const isTestCasesStep = !isWizardMode || wizardStep === 2
@@ -286,7 +325,10 @@ export function RoutineRubricEditor({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  setTestCases((prev) => [...prev, createDefaultTestCase()])
+                  setTestCases((prev) => [
+                    ...prev,
+                    createDefaultTestCase(questionType)
+                  ])
                 }
                 disabled={isGenerating}
               >
@@ -318,158 +360,261 @@ export function RoutineRubricEditor({
             </div>
           ) : (
             <div className={styles.testCaseList}>
-              {test_cases.map((tc, idx) => (
-                <div key={tc.case_id} className={styles.testCaseCard}>
-                  <div className={styles.testCaseHeader}>
-                    <span className={styles.testCaseNumber}>
-                      Test case {idx + 1}
-                    </span>
+              <div className={styles.testCaseNav}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setActiveTestCaseIndex((prev) => Math.max(0, prev - 1))
+                  }
+                  disabled={activeTestCaseIndex === 0}
+                >
+                  <ChevronLeft className={styles.iconSm} />
+                </Button>
+                <div className={styles.testCaseTabs}>
+                  {test_cases.map((tc, idx) => (
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setTestCases((prev) => prev.filter((_, i) => i !== idx))
+                      key={tc.case_id || idx}
+                      type="button"
+                      variant={
+                        idx === activeTestCaseIndex ? 'default' : 'outline'
                       }
+                      size="sm"
+                      onClick={() => setActiveTestCaseIndex(idx)}
+                      className={styles.testCaseTab}
                     >
-                      <Trash2 className={styles.iconSm} />
+                      TC {idx + 1}
                     </Button>
-                  </div>
-                  <div className={styles.testCaseFields}>
-                    <label className="space-y-1">
-                      <span className="text-xs text-muted-foreground">
-                        Tên test case
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setActiveTestCaseIndex((prev) =>
+                      Math.min(test_cases.length - 1, prev + 1)
+                    )
+                  }
+                  disabled={activeTestCaseIndex === test_cases.length - 1}
+                >
+                  <ChevronRight className={styles.iconSm} />
+                </Button>
+              </div>
+              {test_cases.map((tc, idx) =>
+                idx === activeTestCaseIndex ? (
+                  <div key={tc.case_id} className={styles.testCaseCard}>
+                    <div className={styles.testCaseHeader}>
+                      <span className={styles.testCaseNumber}>
+                        Test case {idx + 1}
                       </span>
-                      <input
-                        type="text"
-                        value={tc.case_name}
-                        onChange={(e) =>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
                           setTestCases((prev) =>
-                            prev.map((t, i) =>
-                              i === idx
-                                ? { ...t, case_name: e.target.value }
-                                : t
-                            )
+                            prev.filter((_, i) => i !== idx)
                           )
                         }
-                        className={styles.fieldInput}
-                      />
-                    </label>
-                    <label className="space-y-1">
-                      <span className="text-xs text-muted-foreground">
-                        Kiểu kiểm tra
-                      </span>
-                      <select
-                        value={tc.verification_type}
-                        onChange={(e) =>
-                          setTestCases((prev) =>
-                            prev.map((t, i) =>
-                              i === idx
-                                ? {
-                                    ...t,
-                                    verification_type: e.target
-                                      .value as VerificationType
-                                  }
-                                : t
-                            )
-                          )
-                        }
-                        className={styles.fieldSelect}
                       >
-                        <option value="RETURN_VALUE">RETURN_VALUE</option>
-                        <option value="OUT_PARAMETER">OUT_PARAMETER</option>
-                        <option value="RESULT_SET">RESULT_SET</option>
-                        <option value="SIDE_EFFECT">SIDE_EFFECT</option>
-                        <option value="PRINT_OUTPUT">PRINT_OUTPUT</option>
-                      </select>
-                    </label>
-                    <label className="space-y-1">
-                      <span className="text-xs text-muted-foreground">
-                        Input parameters
-                      </span>
-                      <textarea
-                        placeholder="e.g., @MaXe='X001', @MaTuyen='T001'"
-                        value={tc.input_parameters}
-                        onChange={(e) =>
-                          setTestCases((prev) =>
-                            prev.map((t, i) =>
-                              i === idx
-                                ? { ...t, input_parameters: e.target.value }
-                                : t
+                        <Trash2 className={styles.iconSm} />
+                      </Button>
+                    </div>
+                    <div className={styles.testCaseFields}>
+                      <label className="space-y-1">
+                        <span className="text-xs text-muted-foreground">
+                          Tên test case
+                        </span>
+                        <input
+                          type="text"
+                          value={tc.case_name}
+                          onChange={(e) =>
+                            setTestCases((prev) =>
+                              prev.map((t, i) =>
+                                i === idx
+                                  ? { ...t, case_name: e.target.value }
+                                  : t
+                              )
                             )
-                          )
-                        }
-                        className={styles.fieldTextarea}
-                        rows={2}
-                      />
-                    </label>
-                    <label className="space-y-1">
-                      <span className="text-xs text-muted-foreground">
-                        Expected result
-                      </span>
-                      <textarea
-                        placeholder="e.g., RETURN_VALUE = 1"
-                        value={tc.expected_result}
-                        onChange={(e) =>
-                          setTestCases((prev) =>
-                            prev.map((t, i) =>
-                              i === idx
-                                ? { ...t, expected_result: e.target.value }
-                                : t
-                            )
-                          )
-                        }
-                        className={styles.fieldTextarea}
-                        rows={2}
-                      />
-                    </label>
-                    <label className="space-y-1">
-                      <span className="text-xs text-muted-foreground">
-                        Setup script
-                      </span>
-                      <textarea
-                        placeholder="SQL để chuẩn bị data (DROP TABLE IF EXISTS, CREATE TABLE, INSERT)"
-                        value={tc.setup_script}
-                        onChange={(e) =>
-                          setTestCases((prev) =>
-                            prev.map((t, i) =>
-                              i === idx
-                                ? { ...t, setup_script: e.target.value }
-                                : t
-                            )
-                          )
-                        }
-                        className={styles.fieldTextarea}
-                        rows={2}
-                      />
-                    </label>
-                    <div className={styles.penaltyField}>
-                      <label className={styles.penaltyLabel}>
-                        Điểm trừ nếu fail:
+                          }
+                          className={styles.fieldInput}
+                        />
                       </label>
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.05}
-                        value={tc.penalty_value}
-                        onChange={(e) =>
-                          setTestCases((prev) =>
-                            prev.map((t, i) =>
-                              i === idx
-                                ? {
-                                    ...t,
-                                    penalty_value:
-                                      parseFloat(e.target.value) || 0
-                                  }
-                                : t
+                      <label className="space-y-1">
+                        <span className="text-xs text-muted-foreground">
+                          Kiểu kiểm tra
+                        </span>
+                        <select
+                          value={tc.verification_type}
+                          onChange={(e) =>
+                            setTestCases((prev) =>
+                              prev.map((t, i) =>
+                                i === idx
+                                  ? {
+                                      ...t,
+                                      verification_type: e.target
+                                        .value as VerificationType
+                                    }
+                                  : t
+                              )
                             )
-                          )
-                        }
-                        className={styles.penaltyInput}
-                      />
+                          }
+                          className={styles.fieldSelect}
+                        >
+                          <option value="RETURN_VALUE">RETURN_VALUE</option>
+                          <option value="OUT_PARAMETER">OUT_PARAMETER</option>
+                          <option value="RESULT_SET">RESULT_SET</option>
+                          <option value="SIDE_EFFECT">SIDE_EFFECT</option>
+                          <option value="PRINT_OUTPUT">PRINT_OUTPUT</option>
+                        </select>
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-xs text-muted-foreground">
+                          Input parameters
+                        </span>
+                        <textarea
+                          placeholder='VD: {"MaXe":"X001","MaTuyen":"T001"}'
+                          value={toTextValue(tc.input_parameters)}
+                          onChange={(e) =>
+                            setTestCases((prev) =>
+                              prev.map((t, i) =>
+                                i === idx
+                                  ? { ...t, input_parameters: e.target.value }
+                                  : t
+                              )
+                            )
+                          }
+                          className={styles.fieldTextarea}
+                          rows={2}
+                        />
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-xs text-muted-foreground">
+                          Invocation query
+                        </span>
+                        <div className={styles.sqlEditorBox}>
+                          <TeacherSqlEditor
+                            value={tc.invocation_query || ''}
+                            onChange={(value) =>
+                              setTestCases((prev) =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? { ...t, invocation_query: value || '' }
+                                    : t
+                                )
+                              )
+                            }
+                            height="180px"
+                          />
+                        </div>
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-xs text-muted-foreground">
+                          Validation query
+                        </span>
+                        <div className={styles.sqlEditorBox}>
+                          <TeacherSqlEditor
+                            value={tc.validation_query || ''}
+                            onChange={(value) =>
+                              setTestCases((prev) =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? { ...t, validation_query: value || '' }
+                                    : t
+                                )
+                              )
+                            }
+                            height="180px"
+                          />
+                        </div>
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-xs text-muted-foreground">
+                          Setup script
+                        </span>
+                        <textarea
+                          placeholder="SQL để chuẩn bị data (DROP TABLE IF EXISTS, CREATE TABLE, INSERT)"
+                          value={tc.setup_script}
+                          onChange={(e) =>
+                            setTestCases((prev) =>
+                              prev.map((t, i) =>
+                                i === idx
+                                  ? { ...t, setup_script: e.target.value }
+                                  : t
+                              )
+                            )
+                          }
+                          className={`${styles.fieldTextarea} hidden`}
+                          rows={12}
+                        />
+                        <div className={styles.sqlEditorBoxLarge}>
+                          <TeacherSqlEditor
+                            value={tc.setup_script || ''}
+                            onChange={(value) =>
+                              setTestCases((prev) =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? { ...t, setup_script: value || '' }
+                                    : t
+                                )
+                              )
+                            }
+                            height="260px"
+                          />
+                        </div>
+                      </label>
+                      <div className={styles.penaltyField}>
+                        <label className={styles.penaltyLabel}>
+                          Điểm trừ nếu fail:
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.05}
+                          value={tc.score_weight ?? tc.penalty_value ?? 0}
+                          onChange={(e) =>
+                            setTestCases((prev) =>
+                              prev.map((t, i) =>
+                                i === idx
+                                  ? {
+                                      ...t,
+                                      score_weight:
+                                        parseFloat(e.target.value) || 0
+                                    }
+                                  : t
+                              )
+                            )
+                          }
+                          className={styles.penaltyInput}
+                        />
+                        <label className={styles.penaltyLabel}>Match:</label>
+                        <select
+                          value={tc.match_type || 'EXACT'}
+                          onChange={(e) =>
+                            setTestCases((prev) =>
+                              prev.map((t, i) =>
+                                i === idx
+                                  ? {
+                                      ...t,
+                                      match_type: e.target.value as
+                                        | 'EXACT'
+                                        | 'CONTAINS'
+                                    }
+                                  : t
+                              )
+                            )
+                          }
+                          className={styles.fieldSelect}
+                        >
+                          <option value="EXACT">EXACT</option>
+                          <option value="CONTAINS">CONTAINS</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ) : null
+              )}
             </div>
           )}
         </div>

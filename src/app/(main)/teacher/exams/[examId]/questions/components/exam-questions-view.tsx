@@ -55,6 +55,7 @@ import { InsertDataRubricEditor } from './insert-data-rubric-editor'
 import { InsertDataTestGrader } from './insert-data-test-grader'
 import { SelectQueryRubricEditor } from './select-query-rubric-editor'
 import { RoutineTestGrader } from './routine-test-grader'
+import { TriggerTestGrader } from './trigger-test-grader'
 import { QuestionItem } from './question-item'
 import {
   generateCreateTableQuestionFromSchema,
@@ -101,6 +102,35 @@ interface QuestionFormState extends CreateExamQuestionBatch {
 
 function formatVersionTimestamp(value?: string) {
   return formatDateTime(value)
+}
+
+function buildRoutineSchemaContext(
+  tables: SpecificationSchemaJsonTable[],
+  specification?: ExamSpecification | SpecificationDetailResponse | null
+) {
+  if (tables.length > 0) {
+    return tables
+      .map((table) => {
+        const columns = table.columns
+          .map((column) => {
+            const flags = [
+              column.primaryKey ? 'PK' : '',
+              column.foreignKey
+                ? `FK->${column.referencesTable}.${column.referencesColumn}`
+                : '',
+              column.nullable ? 'NULL' : 'NOT NULL'
+            ]
+              .filter(Boolean)
+              .join(' ')
+            return `${column.columnName} ${column.dataType}${flags ? ` ${flags}` : ''}`
+          })
+          .join(', ')
+        return `TABLE ${table.tableName}(${columns})`
+      })
+      .join('\n')
+  }
+
+  return specification?.ddlScript?.slice(0, 6000) ?? ''
 }
 
 export function ExamQuestionsView({
@@ -169,6 +199,10 @@ export function ExamQuestionsView({
         (dataset) => !!dataset.dataScript?.trim()
       ),
     [specificationDatasets]
+  )
+  const routineSchemaContext = useMemo(
+    () => buildRoutineSchemaContext(availableSchemaTables, specification),
+    [availableSchemaTables, specification]
   )
 
   const handleShareAsTemplate = async () => {
@@ -1299,7 +1333,10 @@ export function ExamQuestionsView({
                             {![
                               'CREATE_TABLE',
                               'INSERT_DATA',
-                              'SELECT_QUERY'
+                              'SELECT_QUERY',
+                              'FUNCTION',
+                              'STORED_PROCEDURE',
+                              'TRIGGER'
                             ].includes(q.questionType) && (
                               <div className="space-y-2">
                                 <label className="flex items-center justify-between text-sm font-semibold text-foreground">
@@ -1432,6 +1469,7 @@ export function ExamQuestionsView({
                               }
                               correctQuery={q.correctQuery}
                               questionContent={q.content}
+                              schemaContext={routineSchemaContext}
                               wizardStep={step}
                             />
                           )}
@@ -1457,7 +1495,8 @@ export function ExamQuestionsView({
                           q.questionType === 'INSERT_DATA' ||
                           q.questionType === 'SELECT_QUERY' ||
                           q.questionType === 'FUNCTION' ||
-                          q.questionType === 'STORED_PROCEDURE') && (
+                          q.questionType === 'STORED_PROCEDURE' ||
+                          q.questionType === 'TRIGGER') && (
                           <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
                             <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
                               <Play className="h-4 w-4" />
@@ -1489,6 +1528,14 @@ export function ExamQuestionsView({
                             {(q.questionType === 'FUNCTION' ||
                               q.questionType === 'STORED_PROCEDURE') && (
                               <RoutineTestGrader
+                                examId={examId}
+                                rubric={q.rubricData ?? null}
+                                correctQuery={q.correctQuery}
+                                totalPoints={q.points}
+                              />
+                            )}
+                            {q.questionType === 'TRIGGER' && (
+                              <TriggerTestGrader
                                 examId={examId}
                                 rubric={q.rubricData ?? null}
                                 correctQuery={q.correctQuery}

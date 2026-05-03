@@ -57,6 +57,7 @@ import {
 } from './insert-data-question-generator'
 import { InsertDataRubricEditor } from './insert-data-rubric-editor'
 import { RoutineTestGrader } from './routine-test-grader'
+import { TriggerTestGrader } from './trigger-test-grader'
 import { InsertDataTestGrader } from './insert-data-test-grader'
 import { InsertQueryFromSpec } from './insert-query-from-spec'
 import { TeacherSqlEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/teacher-sql-editor'
@@ -82,6 +83,35 @@ const QUESTION_TYPE_COLORS: Record<string, string> = {
   TRIGGER: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   FUNCTION: 'bg-pink-500/10 text-pink-600 dark:text-pink-400',
   STORED_PROCEDURE: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+}
+
+function buildRoutineSchemaContext(
+  tables: SpecificationSchemaJsonTable[],
+  specification?: ExamSpecification | SpecificationDetailResponse | null
+) {
+  if (tables.length > 0) {
+    return tables
+      .map((table) => {
+        const columns = table.columns
+          .map((column) => {
+            const flags = [
+              column.primaryKey ? 'PK' : '',
+              column.foreignKey
+                ? `FK->${column.referencesTable}.${column.referencesColumn}`
+                : '',
+              column.nullable ? 'NULL' : 'NOT NULL'
+            ]
+              .filter(Boolean)
+              .join(' ')
+            return `${column.columnName} ${column.dataType}${flags ? ` ${flags}` : ''}`
+          })
+          .join(', ')
+        return `TABLE ${table.tableName}(${columns})`
+      })
+      .join('\n')
+  }
+
+  return specification?.ddlScript?.slice(0, 6000) ?? ''
 }
 
 export function QuestionItem({
@@ -137,6 +167,10 @@ export function QuestionItem({
         (dataset) => !!dataset.dataScript?.trim()
       ),
     [specificationDatasets]
+  )
+  const routineSchemaContext = useMemo(
+    () => buildRoutineSchemaContext(availableSchemaTables, specification),
+    [availableSchemaTables, specification]
   )
 
   const selectedInsertDataset = useMemo(
@@ -699,9 +733,14 @@ export function QuestionItem({
                 />
               </div>
             </div>
-            {!['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
-              editForm.questionType
-            ) && (
+            {![
+              'CREATE_TABLE',
+              'INSERT_DATA',
+              'SELECT_QUERY',
+              'FUNCTION',
+              'STORED_PROCEDURE',
+              'TRIGGER'
+            ].includes(editForm.questionType) && (
               <div className="space-y-2">
                 <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                   <span className="flex items-center gap-1.5">
@@ -872,6 +911,7 @@ export function QuestionItem({
                 }
                 correctQuery={editForm.correctQuery}
                 questionContent={editForm.content}
+                schemaContext={routineSchemaContext}
                 wizardStep={editWizardStep}
               />
 
@@ -901,7 +941,8 @@ export function QuestionItem({
                 {[
                   { step: 1, label: '1. Nội dung' },
                   { step: 2, label: '2. Test cases' },
-                  { step: 3, label: '3. Rubric' }
+                  { step: 3, label: '3. Rubric' },
+                  { step: 4, label: '4. Kiểm thử' }
                 ].map((item) => (
                   <button
                     key={item.step}
@@ -927,6 +968,19 @@ export function QuestionItem({
                 questionContent={editForm.content}
                 wizardStep={editWizardStep}
               />
+              {editWizardStep === 4 && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
+                    <Play className="h-4 w-4" /> Kiểm thử rubric
+                  </h4>
+                  <TriggerTestGrader
+                    examId={examId}
+                    rubric={editForm.rubricData}
+                    correctQuery={editForm.correctQuery}
+                    totalPoints={editForm.points}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1044,9 +1098,14 @@ export function QuestionItem({
                 />
               </div>
             </div>
-            {!['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
-              question.questionType
-            ) && (
+            {![
+              'CREATE_TABLE',
+              'INSERT_DATA',
+              'SELECT_QUERY',
+              'FUNCTION',
+              'STORED_PROCEDURE',
+              'TRIGGER'
+            ].includes(question.questionType) && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   <Terminal className="h-3.5 w-3.5" /> Script kiểm thử (Verify

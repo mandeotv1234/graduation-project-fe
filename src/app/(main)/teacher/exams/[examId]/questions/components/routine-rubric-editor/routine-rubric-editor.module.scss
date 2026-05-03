@@ -245,6 +245,18 @@
     .testCaseList {
       @apply space-y-3;
 
+      .testCaseNav {
+        @apply flex items-center gap-2 rounded-lg border border-border bg-card p-2;
+
+        .testCaseTabs {
+          @apply flex min-w-0 flex-1 items-center gap-2 overflow-x-auto;
+        }
+
+        .testCaseTab {
+          @apply shrink-0;
+        }
+      }
+
       .testCaseCard {
         @apply overflow-hidden rounded-lg border border-border bg-card;
 
@@ -269,6 +281,14 @@
 
           .fieldTextarea {
             @apply w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm resize-y;
+          }
+
+          .sqlEditorBox {
+            @apply h-[180px] overflow-hidden rounded-md border border-border bg-background;
+          }
+
+          .sqlEditorBoxLarge {
+            @apply h-[260px] overflow-hidden rounded-md border border-border bg-background;
           }
 
           .penaltyField {
