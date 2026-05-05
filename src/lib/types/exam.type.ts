@@ -584,8 +584,7 @@ export interface SelectQueryGradingPayload {
 
 export interface RoutineGradingSettings {
   syntax_error_action?: SyntaxErrorAction
-  case_sensitive_names?: boolean
-  positive_only_scoring?: boolean
+  print_output_compare_mode?: 'LENIENT' | 'STRICT'
 }
 
 export type RoutineType = 'FUNCTION' | 'PROCEDURE' | 'STORED_PROCEDURE'

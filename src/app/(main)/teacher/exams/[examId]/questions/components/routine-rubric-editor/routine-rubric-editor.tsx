@@ -60,19 +60,12 @@ function createDefaultTestCase(
   }
 }
 
-function toBoolean(value: unknown, defaultValue: boolean): boolean {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'number') return value !== 0
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase()
-    if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true
-    if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false
-  }
-  return defaultValue
-}
-
 function toSyntaxErrorAction(value: unknown): SyntaxErrorAction {
   return value === 'PARTIAL' ? 'PARTIAL' : 'FAIL_ALL'
+}
+
+function toPrintOutputCompareMode(value: unknown): 'LENIENT' | 'STRICT' {
+  return value === 'STRICT' ? 'STRICT' : 'LENIENT'
 }
 
 function toTextValue(value: unknown): string {
@@ -94,8 +87,7 @@ function normalizeRoutinePayload(
 } {
   const defaultSettings: RoutineGradingSettings = {
     syntax_error_action: 'FAIL_ALL',
-    case_sensitive_names: false,
-    positive_only_scoring: false
+    print_output_compare_mode: 'LENIENT'
   }
 
   if (!payload || typeof payload !== 'object') {
@@ -115,8 +107,9 @@ function normalizeRoutinePayload(
 
   const settings: RoutineGradingSettings = {
     syntax_error_action: toSyntaxErrorAction(rawSettings.syntax_error_action),
-    case_sensitive_names: toBoolean(rawSettings.case_sensitive_names, false),
-    positive_only_scoring: toBoolean(rawSettings.positive_only_scoring, false)
+    print_output_compare_mode: toPrintOutputCompareMode(
+      rawSettings.print_output_compare_mode
+    )
   }
 
   return {
@@ -629,37 +622,26 @@ export function RoutineRubricEditor({
               <span className={styles.settingsTitle}>Cài đặt chấm điểm</span>
             </div>
             <div className={styles.settingsControls}>
-              <label className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={grading_settings.positive_only_scoring ?? false}
+              <div className={styles.syntaxGroup}>
+                <span className={styles.mutedText}>So khớp thông báo:</span>
+                <select
+                  value={
+                    grading_settings.print_output_compare_mode ?? 'LENIENT'
+                  }
                   onChange={(e) =>
                     setSettings((prev) => ({
                       ...prev,
-                      positive_only_scoring: e.target.checked
+                      print_output_compare_mode: e.target.value as
+                        | 'LENIENT'
+                        | 'STRICT'
                     }))
                   }
-                  className={styles.checkboxInput}
-                />
-                <span className={styles.labelText}>
-                  Chỉ cộng điểm, không trừ
-                </span>
-              </label>
-
-              <label className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={grading_settings.case_sensitive_names ?? false}
-                  onChange={(e) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      case_sensitive_names: e.target.checked
-                    }))
-                  }
-                  className={styles.checkboxInput}
-                />
-                <span className={styles.labelText}>Phân biệt hoa/thường</span>
-              </label>
+                  className={styles.syntaxSelect}
+                >
+                  <option value="LENIENT">Linh hoạt</option>
+                  <option value="STRICT">Theo mẫu</option>
+                </select>
+              </div>
 
               <div className={styles.syntaxGroup}>
                 <span className={styles.mutedText}>Khi lỗi cú pháp:</span>
