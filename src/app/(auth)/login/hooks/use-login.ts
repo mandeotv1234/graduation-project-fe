@@ -45,7 +45,7 @@ export function useLogin() {
           router.push(PATH.TEACHER_CLASSES)
           break
         case ROLES.ADMIN:
-          router.push(PATH.HOME)
+          router.push(PATH.ADMIN_FEEDBACKS)
           break
         default:
           router.push(PATH.HOME)

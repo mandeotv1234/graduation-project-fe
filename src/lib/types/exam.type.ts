@@ -622,3 +622,26 @@ export interface CreateRulePresetRequest {
   questionType: string
   rulesJson: string
 }
+
+// ===== Feedback Types =====
+
+export interface SubmitFeedbackRequest {
+  examId: number
+  uiUxRating: number
+  systemReliabilityRating: number
+  npsScore: number
+  featureRequests?: string
+  generalFeedback?: string
+}
+
+export interface SubmitFeedbackResponse {
+  id: number
+  studentId: number
+  examId: number
+  uiUxRating: number
+  systemReliabilityRating: number
+  npsScore: number
+  featureRequests?: string
+  generalFeedback?: string
+  createdAt: string
+}

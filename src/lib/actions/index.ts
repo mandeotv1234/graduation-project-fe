@@ -53,3 +53,4 @@ export {
   buildCreateTablesFromAnswer
 } from '@/lib/actions/exam-specification.action'
 export * from '@/lib/actions/library.action'
+export * from '@/lib/actions/admin.action'

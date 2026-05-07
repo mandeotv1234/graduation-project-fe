@@ -12,6 +12,8 @@ import {
   ExecuteSqlResponse,
   SubmitExamRequest,
   SubmitExamResponse,
+  SubmitFeedbackRequest,
+  SubmitFeedbackResponse,
   StudentExamResultResponse,
   PaginatedResult,
   TeacherExamResultDetail
@@ -152,4 +154,10 @@ export async function getMyResultDetail(
       cache: 'no-store'
     }
   )
+}
+
+export async function submitFeedback(
+  data: SubmitFeedbackRequest
+): Promise<ApiResponse<SubmitFeedbackResponse>> {
+  return apiClient.post<SubmitFeedbackResponse>('/feedbacks', data)
 }
