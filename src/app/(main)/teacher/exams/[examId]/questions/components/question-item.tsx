@@ -89,6 +89,11 @@ function buildRoutineSchemaContext(
   tables: SpecificationSchemaJsonTable[],
   specification?: ExamSpecification | SpecificationDetailResponse | null
 ) {
+  const ddlScript = specification?.ddlScript?.trim()
+  if (ddlScript) {
+    return ddlScript.slice(0, 12000)
+  }
+
   if (tables.length > 0) {
     return tables
       .map((table) => {
@@ -111,7 +116,7 @@ function buildRoutineSchemaContext(
       .join('\n')
   }
 
-  return specification?.ddlScript?.slice(0, 6000) ?? ''
+  return ''
 }
 
 export function QuestionItem({

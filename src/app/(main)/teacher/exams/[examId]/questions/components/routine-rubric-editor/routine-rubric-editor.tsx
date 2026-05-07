@@ -123,6 +123,34 @@ function normalizeRoutinePayload(
   }
 }
 
+function unwrapGeneratedRubricResponse(value: unknown): {
+  rubric: GradingRubric | null
+  needsReview: boolean
+  issueCount: number
+} {
+  if (!value || typeof value !== 'object') {
+    return { rubric: null, needsReview: false, issueCount: 0 }
+  }
+
+  const record = value as Record<string, unknown>
+  if (record.status === 'NEEDS_REVIEW') {
+    return {
+      rubric:
+        record.rubric && typeof record.rubric === 'object'
+          ? (record.rubric as GradingRubric)
+          : null,
+      needsReview: true,
+      issueCount: Array.isArray(record.issues) ? record.issues.length : 0
+    }
+  }
+
+  return {
+    rubric: value as GradingRubric,
+    needsReview: false,
+    issueCount: 0
+  }
+}
+
 const ROUTINE_TYPES: { value: RoutineType; label: string }[] = [
   { value: 'FUNCTION', label: 'FUNCTION' },
   { value: 'PROCEDURE', label: 'PROCEDURE' },
@@ -243,15 +271,32 @@ export function RoutineRubricEditor({
       })
 
       if (result.data) {
-        const parsedRubric: GradingRubric =
+        const parsedResponse =
           typeof result.data === 'string'
             ? JSON.parse(result.data)
             : result.data
+        const {
+          rubric: parsedRubric,
+          needsReview,
+          issueCount
+        } = unwrapGeneratedRubricResponse(parsedResponse)
+
+        if (!parsedRubric) {
+          toast.error('AI trả về phản hồi thiếu rubric')
+          return
+        }
+
         onChange({
           ...parsedRubric,
           question_category: rubricCategory
         })
-        toast.success('Đã tạo rubric bằng AI thành công!')
+        if (needsReview) {
+          toast.warning(
+            `AI đã tạo rubric nhưng cần giáo viên kiểm tra lại (${issueCount} vấn đề)`
+          )
+        } else {
+          toast.success('Đã tạo rubric bằng AI thành công!')
+        }
       } else {
         toast.error(result.message || 'Tạo rubric thất bại')
       }
