@@ -292,7 +292,7 @@
           }
 
           .penaltyField {
-            @apply flex items-center gap-3;
+            @apply flex items-center gap-3 mt-3;
 
             .penaltyLabel {
               @apply text-xs text-muted-foreground;

@@ -479,7 +479,7 @@ export function RoutineRubricEditor({
                             )
                           }
                           className={styles.fieldTextarea}
-                          rows={2}
+                          rows={5}
                         />
                       </label>
                       <label className="space-y-1">

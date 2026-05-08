@@ -691,15 +691,7 @@ export function QuestionItem({
             </div>
           </div>
 
-          <div
-            className={`grid gap-4 ${
-              ['CREATE_TABLE', 'INSERT_DATA', 'SELECT_QUERY'].includes(
-                editForm.questionType
-              )
-                ? 'grid-cols-1'
-                : 'grid-cols-1 md:grid-cols-2'
-            }`}
-          >
+          <div className="grid gap-4 grid-cols-1">
             <div className="space-y-2">
               <label className="flex items-center justify-between text-sm font-semibold text-foreground">
                 <span className="flex items-center gap-1.5">
@@ -932,8 +924,8 @@ export function QuestionItem({
           )}
 
           {editForm.questionType === 'TRIGGER' && (
-            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-4">
-              <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-4">
+              <h4 className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
                 <Sparkles className="h-4 w-4" /> Cấu hình rubric TRIGGER
               </h4>
               {/* Step indicator */}
@@ -950,8 +942,8 @@ export function QuestionItem({
                     onClick={() => setEditWizardStep(item.step)}
                     className={`px-2 py-1 rounded transition-colors ${
                       editWizardStep === item.step
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                     }`}
                   >
                     {item.label}
