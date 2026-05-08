@@ -30,9 +30,14 @@ export const PATH = {
   TEACHER_SPECIFICATION_CREATE: '/teacher/specifications/create',
   TEACHER_SPECIFICATION_EDIT: (specificationId: number) =>
     `/teacher/specifications/${specificationId}/edit`,
-  TEACHER_LIBRARY: '/teacher/library'
+  TEACHER_LIBRARY: '/teacher/library',
+
+  // Admin paths
+  ADMIN: '/admin',
+  ADMIN_FEEDBACKS: '/admin/feedbacks',
+  ADMIN_USERS: '/admin/users'
 }
 
-export const PRIVATE_PATH = ['/student', '/teacher']
+export const PRIVATE_PATH = ['/student', '/teacher', '/admin']
 
 export const PUBLIC_PATH = [PATH.LOGIN, PATH.REGISTER]

@@ -19,6 +19,10 @@ export default async function Home() {
     redirect(PATH.STUDENT_EXAMS)
   }
 
+  if (userRole === ROLES.ADMIN) {
+    redirect(PATH.ADMIN_FEEDBACKS)
+  }
+
   // Fallback to login if role is unknown
   redirect(PATH.LOGIN)
 }

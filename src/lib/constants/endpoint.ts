@@ -106,5 +106,10 @@ export const ENDPOINTS = Object.freeze({
   LIBRARY_EXAM_TEMPLATE_VISIBILITY: (id: number) =>
     `/library/exam-templates/${id}/visibility`,
   LIBRARY_EXAM_TEMPLATE_LINEAGE_VISIBILITY: (sourceExamId: number) =>
-    `/library/exam-templates/source/${sourceExamId}/visibility`
+    `/library/exam-templates/source/${sourceExamId}/visibility`,
+
+  // Admin
+  ADMIN_FEEDBACKS: '/admin/feedbacks',
+  ADMIN_USERS: '/admin/users',
+  ADMIN_USER_ROLE: (userId: number) => `/admin/users/${userId}/role`
 })
