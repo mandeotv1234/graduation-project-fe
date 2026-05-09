@@ -48,6 +48,8 @@ export {
   testGradeCreateTable,
   testGradeInsertData,
   testGradeSelectData,
+  testGradeRoutineData,
+  testGradeTriggerData,
   executeSelectTestCaseConfig,
   buildInsertTablesFromAnswer,
   buildCreateTablesFromAnswer

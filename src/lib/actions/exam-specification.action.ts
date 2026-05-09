@@ -141,6 +141,7 @@ export async function generateGradingRubric(data: {
   totalPoints: number
   enforceExactTotalPoints?: boolean
   questionType?: string
+  schemaContext?: string
   contextQueries?: Array<{
     questionType?: string
     content?: string
@@ -202,6 +203,44 @@ export async function testGradeSelectData(
   }>
 > {
   return apiClient.post(ENDPOINTS.EXAM_TEST_GRADE_SELECT(examId), data)
+}
+
+export async function testGradeRoutineData(
+  examId: number,
+  data: {
+    studentQuery: string
+    correctQuery?: string
+    gradingRubric: string
+    totalPoints: number
+  }
+): Promise<
+  ApiResponse<{
+    earnedPoints: number
+    totalPoints: number
+    allPassed: boolean
+    details: { type: string; message: string; points: number }[]
+  }>
+> {
+  return apiClient.post(ENDPOINTS.EXAM_TEST_GRADE_ROUTINE(examId), data)
+}
+
+export async function testGradeTriggerData(
+  examId: number,
+  data: {
+    studentQuery: string
+    correctQuery?: string
+    gradingRubric: string
+    totalPoints: number
+  }
+): Promise<
+  ApiResponse<{
+    earnedPoints: number
+    totalPoints: number
+    allPassed: boolean
+    details: { type: string; message: string; points: number }[]
+  }>
+> {
+  return apiClient.post(ENDPOINTS.EXAM_TEST_GRADE_TRIGGER(examId), data)
 }
 
 export async function executeSelectTestCaseConfig(

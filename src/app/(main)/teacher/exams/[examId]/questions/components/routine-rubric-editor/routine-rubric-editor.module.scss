@@ -1,0 +1,309 @@
+@reference 'tailwindcss';
+@reference '../../../../../../../globals.css';
+
+.editor {
+  @apply space-y-4;
+
+  .settingsCard {
+    @apply rounded-lg border border-border/70 bg-muted/30 p-3;
+
+    .settingsHeader {
+      @apply mb-2 flex items-center gap-2;
+
+      .settingsIcon {
+        @apply h-4 w-4 text-muted-foreground;
+      }
+
+      .settingsTitle {
+        @apply text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+      }
+    }
+
+    .settingsControls {
+      @apply flex flex-wrap items-center gap-4 text-sm;
+
+      .checkboxLabel {
+        @apply flex items-center gap-2;
+
+        .checkboxInput {
+          @apply h-4 w-4 rounded border-border;
+        }
+
+        .labelText {
+          @apply text-foreground;
+        }
+      }
+
+      .syntaxGroup {
+        @apply flex items-center gap-2;
+
+        .mutedText {
+          @apply text-muted-foreground;
+        }
+
+        .syntaxSelect {
+          @apply rounded-md border border-border bg-background px-2 py-1 text-sm;
+        }
+      }
+    }
+  }
+
+  .emptyState {
+    @apply rounded-lg border border-dashed border-border bg-muted/20 p-6 text-center;
+
+    .emptyIcon {
+      @apply mx-auto mb-3 h-10 w-10 text-muted-foreground;
+    }
+
+    .emptyTitle {
+      @apply mb-1 text-sm font-medium text-foreground;
+    }
+
+    .emptyDescription {
+      @apply mb-3 text-xs text-muted-foreground;
+    }
+
+    .emptyActions {
+      @apply flex items-center justify-center gap-2;
+    }
+  }
+
+  .routineList {
+    @apply space-y-3;
+
+    .routineCard {
+      @apply overflow-hidden rounded-lg border border-border bg-card;
+
+      .routineHeader {
+        @apply flex cursor-pointer items-center justify-between bg-muted/30 px-3 py-2;
+
+        .routineHeaderLeft {
+          @apply flex items-center gap-2;
+
+          .chevronIcon {
+            @apply h-4 w-4 text-muted-foreground;
+          }
+
+          .routineIcon {
+            @apply h-4 w-4 text-primary;
+          }
+
+          .routineName {
+            @apply text-sm font-medium text-foreground;
+          }
+
+          .routineType {
+            @apply text-xs text-muted-foreground;
+          }
+        }
+
+        .removeButton {
+          @apply inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors;
+          @apply hover:bg-destructive/10 hover:text-destructive;
+
+          .removeIcon {
+            @apply h-4 w-4;
+          }
+        }
+      }
+
+      .routineDetails {
+        @apply space-y-4 p-4;
+
+        .twoColumns {
+          @apply grid grid-cols-2 gap-3;
+
+          .field {
+            @apply space-y-1.5;
+
+            .fieldLabel {
+              @apply text-xs font-medium text-muted-foreground;
+            }
+
+            .fieldInput {
+              @apply w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm;
+            }
+
+            .fieldSelect {
+              @apply w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm;
+            }
+          }
+        }
+
+        .parametersSection {
+          @apply space-y-2;
+
+          .parametersHeader {
+            @apply flex items-center justify-between;
+
+            .parametersTitle {
+              @apply flex items-center gap-1.5 text-xs font-semibold text-foreground;
+
+              .parametersIcon {
+                @apply h-3.5 w-3.5;
+              }
+            }
+
+            .addParameterButton {
+              @apply h-7 text-xs;
+            }
+          }
+
+          .parametersEmpty {
+            @apply text-xs italic text-muted-foreground;
+          }
+
+          .parameterCard {
+            @apply grid grid-cols-12 items-start gap-2 rounded-md border border-border/70 bg-background p-2;
+
+            .paramCol3 {
+              @apply col-span-3 space-y-1;
+            }
+
+            .paramCol2 {
+              @apply col-span-2 space-y-1;
+            }
+
+            .paramLabel {
+              @apply text-[10px] font-medium text-muted-foreground;
+            }
+
+            .paramInput {
+              @apply w-full rounded border border-border bg-background px-2 py-1 text-xs;
+            }
+
+            .paramSelect {
+              @apply w-full rounded border border-border bg-background px-2 py-1 text-xs;
+            }
+
+            .paramRemoveWrap {
+              @apply col-span-2 flex justify-end pt-5;
+
+              .paramRemoveButton {
+                @apply inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors;
+                @apply hover:bg-destructive/10 hover:text-destructive;
+
+                .paramRemoveIcon {
+                  @apply h-3.5 w-3.5;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .actions {
+      @apply flex items-center justify-center gap-2 pt-2;
+    }
+  }
+
+  .summary {
+    @apply flex items-center justify-between rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-sm;
+
+    .summaryLeft {
+      @apply flex items-center gap-2;
+
+      .summaryIcon {
+        @apply h-4 w-4 text-muted-foreground;
+      }
+
+      .summaryText {
+        @apply text-muted-foreground;
+      }
+
+      .summaryValue {
+        @apply text-sm font-semibold text-primary;
+      }
+    }
+  }
+
+  .iconSm {
+    @apply h-4 w-4;
+  }
+
+  .spin {
+    @apply animate-spin;
+  }
+
+  // Test Cases Section
+  .testCasesSection {
+    @apply space-y-4;
+
+    .sectionHeader {
+      @apply flex items-center justify-between;
+
+      .sectionTitle {
+        @apply text-sm font-semibold text-foreground;
+      }
+
+      .headerActions {
+        @apply flex items-center gap-2;
+      }
+    }
+
+    .testCaseList {
+      @apply space-y-3;
+
+      .testCaseNav {
+        @apply flex items-center gap-2 rounded-lg border border-border bg-card p-2;
+
+        .testCaseTabs {
+          @apply flex min-w-0 flex-1 items-center gap-2 overflow-x-auto;
+        }
+
+        .testCaseTab {
+          @apply shrink-0;
+        }
+      }
+
+      .testCaseCard {
+        @apply overflow-hidden rounded-lg border border-border bg-card;
+
+        .testCaseHeader {
+          @apply flex items-center justify-between bg-muted/30 px-3 py-2;
+
+          .testCaseNumber {
+            @apply text-sm font-medium text-foreground;
+          }
+        }
+
+        .testCaseFields {
+          @apply space-y-3 p-4;
+
+          .fieldInput {
+            @apply w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm;
+          }
+
+          .fieldSelect {
+            @apply w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm;
+          }
+
+          .fieldTextarea {
+            @apply w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm resize-y;
+          }
+
+          .sqlEditorBox {
+            @apply h-[180px] overflow-hidden rounded-md border border-border bg-background;
+          }
+
+          .sqlEditorBoxLarge {
+            @apply h-[260px] overflow-hidden rounded-md border border-border bg-background;
+          }
+
+          .penaltyField {
+            @apply flex items-center gap-3 mt-3;
+
+            .penaltyLabel {
+              @apply text-xs text-muted-foreground;
+            }
+
+            .penaltyInput {
+              @apply w-24 rounded-md border border-border bg-background px-3 py-1.5 text-sm;
+            }
+          }
+        }
+      }
+    }
+  }
+}
