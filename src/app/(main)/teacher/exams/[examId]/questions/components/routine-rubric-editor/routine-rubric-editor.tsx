@@ -36,7 +36,7 @@ function createDefaultRoutine(
     existence_points: 0.2,
     type_points: 0.2,
     return_type_points: 0.2,
-    expected_return_type: 'INT',
+    expected_return_type: defaultType === 'FUNCTION' ? 'INT' : '',
     missing_penalty_action: 'SKIP_ROUTINE',
     parameters: []
   }
@@ -339,18 +339,16 @@ export function RoutineRubricEditor({
     handleGenerateRubric
   ])
 
-  const rubricTotalPoints = useMemo(
+  const testCaseWeightTotal = useMemo(
     () =>
-      (routines || []).reduce(
-        (sum, r) =>
-          sum +
-          (r.existence_points || 0) +
-          (r.type_points || 0) +
-          (r.return_type_points || 0),
+      (test_cases || []).reduce(
+        (sum, tc) => sum + (Number(tc.score_weight) || 0),
         0
       ),
-    [routines]
+    [test_cases]
   )
+  const routineParameters = routines[0]?.parameters || []
+
   return (
     <div className={styles.editor}>
       {/* Step 2: Test Cases */}
@@ -772,111 +770,70 @@ export function RoutineRubricEditor({
                   </select>
                 </label>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <label className="space-y-1">
-                  <span className="text-xs text-muted-foreground">
-                    Kiểu trả về
+              {questionType === 'FUNCTION' && (
+                <div className="grid grid-cols-3 gap-3">
+                  <label className="space-y-1">
+                    <span className="text-xs text-muted-foreground">
+                      Kiểu trả về
+                    </span>
+                    <input
+                      type="text"
+                      value={routines[0]?.expected_return_type || ''}
+                      onChange={(e) =>
+                        setRoutines((prev) => {
+                          if (prev.length === 0) return prev
+                          return prev.map((r, i) =>
+                            i === 0
+                              ? { ...r, expected_return_type: e.target.value }
+                              : r
+                          )
+                        })
+                      }
+                      placeholder="vd: INT, VARCHAR(50)"
+                      className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                    />
+                  </label>
+                </div>
+              )}
+              <div className="rounded-md border border-border bg-muted/30 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium text-foreground">
+                    Tham số kỳ vọng
                   </span>
-                  <input
-                    type="text"
-                    value={routines[0]?.expected_return_type || ''}
-                    onChange={(e) =>
-                      setRoutines((prev) => {
-                        if (prev.length === 0) return prev
-                        return prev.map((r, i) =>
-                          i === 0
-                            ? { ...r, expected_return_type: e.target.value }
-                            : r
-                        )
-                      })
-                    }
-                    placeholder="vd: INT, VARCHAR(50)"
-                    className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-                  />
-                </label>
+                  <span className="text-xs text-muted-foreground">
+                    {routineParameters.length} tham số
+                  </span>
+                </div>
+                {routineParameters.length > 0 ? (
+                  <div className="space-y-1">
+                    {routineParameters.map((param, index) => (
+                      <div
+                        key={`${param.name || 'param'}-${index}`}
+                        className="grid grid-cols-[1fr_1fr_auto] gap-2 rounded bg-background px-2 py-1 text-xs"
+                      >
+                        <span className="font-mono">
+                          {param.name || `@param${index + 1}`}
+                        </span>
+                        <span className="font-mono text-muted-foreground">
+                          {param.expected_type || 'UNKNOWN'}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {param.expected_mode || 'IN'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Chưa có tham số nào trong rubric.
+                  </p>
+                )}
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <label className="space-y-1">
-                  <span className="text-xs text-muted-foreground">
-                    Điểm tên tồn tại
-                  </span>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="1"
-                    value={routines[0]?.existence_points ?? 0.2}
-                    onChange={(e) =>
-                      setRoutines((prev) => {
-                        if (prev.length === 0) return prev
-                        return prev.map((r, i) =>
-                          i === 0
-                            ? {
-                                ...r,
-                                existence_points:
-                                  parseFloat(e.target.value) || 0
-                              }
-                            : r
-                        )
-                      })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-                  />
-                </label>
-                <label className="space-y-1">
-                  <span className="text-xs text-muted-foreground">
-                    Điểm loại đúng
-                  </span>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="1"
-                    value={routines[0]?.type_points || 0.2}
-                    onChange={(e) =>
-                      setRoutines((prev) => {
-                        if (prev.length === 0) return prev
-                        return prev.map((r, i) =>
-                          i === 0
-                            ? {
-                                ...r,
-                                type_points: parseFloat(e.target.value) || 0
-                              }
-                            : r
-                        )
-                      })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-                  />
-                </label>
-                <label className="space-y-1">
-                  <span className="text-xs text-muted-foreground">
-                    Điểm kiểu trả về
-                  </span>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="1"
-                    value={routines[0]?.return_type_points || 0.2}
-                    onChange={(e) =>
-                      setRoutines((prev) => {
-                        if (prev.length === 0) return prev
-                        return prev.map((r, i) =>
-                          i === 0
-                            ? {
-                                ...r,
-                                return_type_points:
-                                  parseFloat(e.target.value) || 0
-                              }
-                            : r
-                        )
-                      })
-                    }
-                    className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-                  />
-                </label>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                {questionType === 'STORED_PROCEDURE'
+                  ? 'Backend dùng metadata routine từ rubric để kiểm tra tên, loại và số lượng tham số. Với stored procedure có test case, metadata chỉ là kiểm tra cấu trúc; điểm chấm lấy từ trọng số các test case.'
+                  : 'Backend dùng metadata routine từ rubric để kiểm tra tên, loại và số lượng tham số. Với function, metadata vẫn tham gia điểm theo logic chấm routine hiện tại.'}
+              </p>
             </div>
           </div>
         </div>
@@ -886,10 +843,10 @@ export function RoutineRubricEditor({
         <div className={styles.summary}>
           <div className={styles.summaryLeft}>
             <Equal className={styles.summaryIcon} />
-            <span className={styles.summaryText}>Tổng điểm rubric:</span>
+            <span className={styles.summaryText}>Tổng trọng số test case:</span>
           </div>
           <span className={styles.summaryValue}>
-            {rubricTotalPoints.toFixed(2)} / {totalPoints}
+            {testCaseWeightTotal.toFixed(2)} / 1.00
           </span>
         </div>
       )}
