@@ -88,10 +88,12 @@ export interface ViolationNotification {
   type?: string
   examId: number
   teacherId: number
+  teacherIds?: number[]
   studentId: number
   studentName: string
   violationType: string
   description: string
+  attemptNumber?: number
   violationCount: number
   autoSubmitted: boolean
   timestamp: string

@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Bell, Trash2, CheckCheck, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -33,7 +34,9 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   deleteNotification,
-  deleteAllNotifications
+  deleteAllNotifications,
+  getUnreadNotificationCount,
+  getMe
 } from '@/lib/actions'
 import { formatDateTime } from '@/lib/utils/time'
 
@@ -41,6 +44,8 @@ import { formatDateTime } from '@/lib/utils/time'
 interface NotificationItem {
   id: string | number
   examId: number
+  studentId?: number
+  attemptNumber?: number
   studentName: string
   violationType: string
   description: string
@@ -52,10 +57,17 @@ interface NotificationItem {
   persisted: boolean
 }
 
+function extractAttemptNumber(description?: string | null) {
+  const match = description?.match(/lần\s+(\d+)/i)
+  return match ? Number(match[1]) : undefined
+}
+
 function mapDtoToItem(dto: TeacherNotificationDto): NotificationItem {
   return {
     id: dto.id,
     examId: dto.examId,
+    studentId: dto.studentId,
+    attemptNumber: extractAttemptNumber(dto.description),
     studentName: dto.studentName,
     violationType: dto.violationType,
     description: dto.description,
@@ -71,6 +83,8 @@ function mapWsToItem(payload: ViolationNotification): NotificationItem {
   return {
     id: `ws-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     examId: payload.examId,
+    studentId: payload.studentId,
+    attemptNumber: payload.attemptNumber,
     studentName: payload.studentName || `SV #${payload.studentId}`,
     violationType: payload.violationType,
     description: payload.description,
@@ -80,6 +94,28 @@ function mapWsToItem(payload: ViolationNotification): NotificationItem {
     read: false,
     persisted: false
   }
+}
+
+function getGradingRealtimeKey(payload: GradingNotificationDto) {
+  return `grade-${payload.examId}-${payload.studentId}-${payload.attemptNumber ?? 'unknown'}-${payload.status}-${payload.gradedAt ?? payload.message ?? ''}`
+}
+
+function getNotificationTime(item: NotificationItem) {
+  const time = new Date(item.timestamp).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+function getNotificationIdRank(item: NotificationItem) {
+  return typeof item.id === 'number' ? item.id : 0
+}
+
+function sortNotifications(items: NotificationItem[]) {
+  return [...items].sort((a, b) => {
+    const timeDiff = getNotificationTime(b) - getNotificationTime(a)
+    if (timeDiff !== 0) return timeDiff
+
+    return getNotificationIdRank(b) - getNotificationIdRank(a)
+  })
 }
 
 // ─── Toast-style popup (Facebook-like) ────────────────────────────────
@@ -155,26 +191,113 @@ function showViolationToast(item: NotificationItem) {
 
 // ─── Main Component ──────────────────────────────────────────────────
 export function TeacherNotificationBell() {
+  const router = useRouter()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [open, setOpen] = useState(false)
 
-  // Single source of truth — derived from notifications array
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
-    [notifications]
-  )
+  const [unreadCount, setUnreadCount] = useState(0)
   const [deleteId, setDeleteId] = useState<string | number | null>(null)
   const [showDeleteAll, setShowDeleteAll] = useState(false)
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
+  const [currentTeacherId, setCurrentTeacherId] = useState<number | null>(null)
   const pageRef = useRef(1)
   const initialFetched = useRef(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const notificationsRef = useRef<NotificationItem[]>([])
+  const realtimeNotificationKeysRef = useRef<Set<string>>(new Set())
+  const reconcileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const PAGE_SIZE = 15
 
-  // ─── Fetch unread count from API ──────────────────────────────────
-  // (No longer needed — unreadCount is derived from notifications array)
+  const refreshUnreadCount = useCallback(async () => {
+    try {
+      const res = await getUnreadNotificationCount()
+      setUnreadCount(res.data?.unreadCount ?? 0)
+    } catch {
+      // silent
+    }
+  }, [])
+
+  const reconcileUnreadCount = useCallback(() => {
+    // Debounce: cancel previous timer so only the LAST one fires.
+    // This prevents multiple rapid notifications from triggering
+    // multiple API calls that overwrite the badge unpredictably.
+    if (reconcileTimerRef.current) {
+      clearTimeout(reconcileTimerRef.current)
+    }
+    reconcileTimerRef.current = setTimeout(() => {
+      reconcileTimerRef.current = null
+      void refreshUnreadCount()
+    }, 2000)
+  }, [refreshUnreadCount])
+
+  const markRealtimeNotificationSeen = useCallback((key: string) => {
+    if (realtimeNotificationKeysRef.current.has(key)) {
+      return false
+    }
+
+    realtimeNotificationKeysRef.current.add(key)
+    return true
+  }, [])
+
+  const hasVisibleNotification = useCallback((item: NotificationItem) => {
+    return notificationsRef.current.some((n) => {
+      if (n.violationType !== item.violationType || n.examId !== item.examId) {
+        return false
+      }
+
+      if (item.studentId != null && n.studentId != null) {
+        if (item.attemptNumber != null && n.attemptNumber == null) {
+          return false
+        }
+
+        if (
+          item.attemptNumber != null &&
+          n.attemptNumber != null &&
+          n.attemptNumber !== item.attemptNumber
+        ) {
+          return false
+        }
+
+        if (item.violationType === 'NỘP BÀI') {
+          return (
+            n.studentId === item.studentId &&
+            n.attemptNumber === item.attemptNumber
+          )
+        }
+
+        return (
+          n.studentId === item.studentId &&
+          n.violationCount === item.violationCount
+        )
+      }
+
+      if (item.attemptNumber != null && n.attemptNumber == null) {
+        return false
+      }
+
+      if (
+        item.attemptNumber != null &&
+        n.attemptNumber != null &&
+        n.attemptNumber !== item.attemptNumber
+      ) {
+        return false
+      }
+
+      if (item.violationType === 'NỘP BÀI') {
+        return (
+          n.studentName === item.studentName &&
+          n.attemptNumber === item.attemptNumber
+        )
+      }
+
+      return (
+        n.studentName === item.studentName &&
+        n.violationCount === item.violationCount
+      )
+    })
+  }, [])
 
   // ─── Fetch notifications page from API ────────────────────────────
   const fetchNotificationsPage = useCallback(
@@ -192,23 +315,24 @@ export function TeacherNotificationBell() {
             // Loại bỏ realtime items đã có trong API response (đã được persist)
             const apiStudentKeys = new Set(
               items.map(
-                (n) => `${n.examId}-${n.studentName}-${n.violationType}`
+                (n) =>
+                  `${n.examId}-${n.studentName}-${n.violationType}-${n.attemptNumber ?? n.violationCount}`
               )
             )
             const uniqueRealtimeItems = realtimeItems.filter(
               (n) =>
                 !apiStudentKeys.has(
-                  `${n.examId}-${n.studentName}-${n.violationType}`
+                  `${n.examId}-${n.studentName}-${n.violationType}-${n.attemptNumber ?? n.violationCount}`
                 )
             )
-            return [...uniqueRealtimeItems, ...items]
+            return sortNotifications([...uniqueRealtimeItems, ...items])
           }
           // Merge: avoid duplicates by DB id
           const existingIds = new Set(
             prev.filter((n) => n.persisted).map((n) => n.id)
           )
           const newItems = items.filter((n) => !existingIds.has(n.id))
-          return [...prev, ...newItems]
+          return sortNotifications([...prev, ...newItems])
         })
 
         const pagination = res.meta?.pagination
@@ -229,10 +353,43 @@ export function TeacherNotificationBell() {
 
   // ─── Initial load ──────────────────────────────────────────────────
   useEffect(() => {
+    notificationsRef.current = notifications
+  }, [notifications])
+
+  // ─── Stable refs for WebSocket handlers (avoid re-creating subscriptions) ──
+  const reconcileUnreadCountRef = useRef(reconcileUnreadCount)
+  reconcileUnreadCountRef.current = reconcileUnreadCount
+
+  const hasVisibleNotificationRef = useRef(hasVisibleNotification)
+  hasVisibleNotificationRef.current = hasVisibleNotification
+
+  const markRealtimeNotificationSeenRef = useRef(markRealtimeNotificationSeen)
+  markRealtimeNotificationSeenRef.current = markRealtimeNotificationSeen
+
+  useEffect(() => {
+    getMe()
+      .then((res) => {
+        setCurrentTeacherId(res.data?.id ?? null)
+      })
+      .catch(() => {
+        setCurrentTeacherId(null)
+      })
+  }, [])
+
+  useEffect(() => {
     if (initialFetched.current) return
     initialFetched.current = true
     void fetchNotificationsPage(1, true)
-  }, [fetchNotificationsPage])
+    void refreshUnreadCount()
+  }, [fetchNotificationsPage, refreshUnreadCount])
+
+  useEffect(() => {
+    if (!open) return
+
+    pageRef.current = 1
+    void fetchNotificationsPage(1, true)
+    void refreshUnreadCount()
+  }, [fetchNotificationsPage, open, refreshUnreadCount])
 
   // ─── Load more on scroll ──────────────────────────────────────────
   const handleScroll = useCallback(() => {
@@ -249,22 +406,28 @@ export function TeacherNotificationBell() {
   // ─── WebSocket subscription ────────────────────────────────────────
   const setupTeacherSubscription = useCallback(
     (client: ReturnType<typeof getStompClient>) => {
-      if (!client) return undefined
+      if (!client || currentTeacherId == null) return undefined
 
       const handleViolation = (message: { body: string }) => {
         try {
           const payload = JSON.parse(message.body) as ViolationNotification
+          if (payload.teacherIds?.length) {
+            if (!payload.teacherIds.includes(currentTeacherId)) return
+          } else if (payload.teacherId !== currentTeacherId) {
+            return
+          }
+
+          const realtimeKey = `violation-${payload.examId}-${payload.studentId}-${payload.attemptNumber ?? 'unknown'}-${payload.violationType}-${payload.violationCount}`
+          if (!markRealtimeNotificationSeenRef.current(realtimeKey)) return
+
           const newItem = mapWsToItem(payload)
+          if (hasVisibleNotificationRef.current(newItem)) return
+
+          setUnreadCount((count) => count + 1)
+          reconcileUnreadCountRef.current()
+
           setNotifications((prev) => {
-            // Dedup: skip if a notification with same examId+studentId+violationCount already exists
-            const isDuplicate = prev.some(
-              (n) =>
-                n.examId === newItem.examId &&
-                n.violationCount === newItem.violationCount &&
-                n.studentName === newItem.studentName
-            )
-            if (isDuplicate) return prev
-            return [newItem, ...prev].slice(0, 200)
+            return sortNotifications([newItem, ...prev]).slice(0, 200)
           })
 
           // Tắt hoàn toàn pop-up theo yêu cầu, chỉ chừa lại chấm đỏ.
@@ -277,13 +440,30 @@ export function TeacherNotificationBell() {
       const handleGlobalGradingResult = (message: { body: string }) => {
         try {
           const payload = JSON.parse(message.body) as GradingNotificationDto
-          const score = payload.totalScore || payload.score || 0
+          if (
+            payload.teacherIds?.length &&
+            !payload.teacherIds.includes(currentTeacherId)
+          ) {
+            return
+          }
+
+          if (payload.status !== 'SUBMITTED') return
+
+          const realtimeKey = getGradingRealtimeKey(payload)
+          if (!markRealtimeNotificationSeenRef.current(realtimeKey)) return
+
           const newItem: NotificationItem = {
             id: `grade-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             examId: payload.examId || 0,
+            studentId: payload.studentId,
+            attemptNumber: payload.attemptNumber,
             studentName: payload.studentName || 'Học sinh',
             violationType: 'NỘP BÀI',
-            description: `Đã nộp bài. Điểm: ${score}`,
+            description:
+              payload.message ||
+              (payload.attemptNumber
+                ? `Đã nộp bài lần ${payload.attemptNumber}. Đang chấm điểm.`
+                : 'Đã nộp bài. Đang chấm điểm.'),
             violationCount: 0,
             autoSubmitted: false,
             timestamp: new Date().toISOString(),
@@ -291,35 +471,29 @@ export function TeacherNotificationBell() {
             persisted: false
           }
 
+          if (hasVisibleNotificationRef.current(newItem)) return
+
+          setUnreadCount((count) => count + 1)
+          reconcileUnreadCountRef.current()
+
           setNotifications((prev) => {
-            // Bỏ qua nếu đã có thông báo nộp bài của sinh viên này cho kỳ thi này
-            const isDuplicate = prev.some(
-              (n) =>
-                n.violationType === 'NỘP BÀI' &&
-                n.examId === newItem.examId &&
-                n.studentName === newItem.studentName
-            )
-            if (isDuplicate) return prev
-            return [newItem, ...prev].slice(0, 200)
+            return sortNotifications([newItem, ...prev]).slice(0, 200)
           })
 
           // Vẫn bật popup nhỏ nếu đang ở trang giám sát
           const isMonitorPage = window.location.pathname.endsWith('/monitor')
           if (isMonitorPage) {
-            toast.info(
-              `Học sinh ${newItem.studentName} vừa hoàn thành bài thi`,
-              {
-                id: `toast-grade-${payload.examId}-${payload.studentId || payload.studentName}`,
-                description: `Điểm số: ${score}. Xem chi tiết trong mục Kết quả.`,
-                action: payload.examId
-                  ? {
-                      label: 'Xem',
-                      onClick: () =>
-                        (window.location.href = `/teacher/exams/${payload.examId}/results`)
-                    }
-                  : undefined
-              }
-            )
+            toast.info(`Học sinh ${newItem.studentName} vừa nộp bài`, {
+              id: `toast-grade-${payload.examId}-${payload.studentId || payload.studentName}`,
+              description: 'Đang chấm điểm.',
+              action: payload.examId
+                ? {
+                    label: 'Xem',
+                    onClick: () =>
+                      (window.location.href = `/teacher/exams/${payload.examId}/results`)
+                  }
+                : undefined
+            })
           }
         } catch {
           // silent
@@ -347,10 +521,12 @@ export function TeacherNotificationBell() {
         sub4.unsubscribe()
       }
     },
-    []
+    [currentTeacherId] // ← Chỉ 1 dependency stable — không còn re-create subscription
   )
 
   useEffect(() => {
+    if (currentTeacherId == null) return
+
     connectStomp() // Ensure the background connection starts
 
     let unsubscribeSub: (() => void) | undefined
@@ -369,44 +545,7 @@ export function TeacherNotificationBell() {
       unSubConnect()
       unsubscribeSub?.()
     }
-  }, [setupTeacherSubscription])
-
-  // ─── Lắng nghe sự kiện thông báo Nộp bài từ Handler ───────────────────
-  useEffect(() => {
-    const handleGrading = (e: Event) => {
-      const customEvent = e as CustomEvent
-      const { examId, notification } = customEvent.detail
-
-      const score = notification.totalScore || notification.score || 0
-      const newItem: NotificationItem = {
-        id: `grade-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        examId,
-        studentName: notification.studentName || 'Học sinh',
-        violationType: 'NỘP BÀI',
-        description: `Đã nộp bài. Điểm: ${score}`,
-        violationCount: 0,
-        autoSubmitted: false, // Default is false unless graded differently
-        timestamp: new Date().toISOString(),
-        read: false,
-        persisted: false
-      }
-      setNotifications((prev) => {
-        // Bỏ qua nếu đã có thông báo nộp bài của sinh viên này cho kỳ thi này (để chống dội 2 lần)
-        const isDuplicate = prev.some(
-          (n) =>
-            n.violationType === 'NỘP BÀI' &&
-            n.examId === newItem.examId &&
-            n.studentName === newItem.studentName
-        )
-        if (isDuplicate) return prev
-        return [newItem, ...prev].slice(0, 200)
-      })
-    }
-
-    window.addEventListener('teacher-grading-result', handleGrading)
-    return () =>
-      window.removeEventListener('teacher-grading-result', handleGrading)
-  }, [])
+  }, [currentTeacherId, setupTeacherSubscription])
 
   // ─── Mark all read when popover CLOSES after being open ─────────────
   const wasOpenRef = useRef(false)
@@ -418,6 +557,7 @@ export function TeacherNotificationBell() {
       wasOpenRef.current = false
       if (unreadCount > 0) {
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+        setUnreadCount(0)
         markAllNotificationsRead().catch(() => {})
       }
     }
@@ -433,6 +573,9 @@ export function TeacherNotificationBell() {
     if (!item) return
 
     setNotifications((prev) => prev.filter((n) => n.id !== id))
+    if (!item.read) {
+      setUnreadCount((count) => Math.max(0, count - 1))
+    }
 
     if (item.persisted && typeof id === 'number') {
       try {
@@ -447,6 +590,7 @@ export function TeacherNotificationBell() {
   const handleDeleteAll = async () => {
     setShowDeleteAll(false)
     setNotifications([])
+    setUnreadCount(0)
     try {
       await deleteAllNotifications()
       toast.success('Đã xóa tất cả thông báo')
@@ -533,6 +677,7 @@ export function TeacherNotificationBell() {
                     setNotifications((prev) =>
                       prev.map((n) => ({ ...n, read: true }))
                     )
+                    setUnreadCount(0)
                     markAllNotificationsRead()
                   }}
                   className="h-7 px-2 text-xs text-muted-foreground hover:text-primary"
@@ -581,12 +726,14 @@ export function TeacherNotificationBell() {
                         : 'bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                     }`}
                     onClick={() => {
+                      // 1. Mark as read
                       if (!notification.read) {
                         setNotifications((prev) =>
                           prev.map((n) =>
                             n.id === notification.id ? { ...n, read: true } : n
                           )
                         )
+                        setUnreadCount((count) => Math.max(0, count - 1))
                         if (
                           notification.persisted &&
                           typeof notification.id === 'number'
@@ -594,6 +741,15 @@ export function TeacherNotificationBell() {
                           markNotificationRead(notification.id)
                         }
                       }
+
+                      // 2. Navigate to the relevant page
+                      const href =
+                        notification.violationType === 'NỘP BÀI'
+                          ? `/teacher/exams/${notification.examId}/results`
+                          : `/teacher/exams/${notification.examId}/monitor`
+
+                      setOpen(false)
+                      router.push(href)
                     }}
                   >
                     <div className="flex items-start justify-between gap-2">

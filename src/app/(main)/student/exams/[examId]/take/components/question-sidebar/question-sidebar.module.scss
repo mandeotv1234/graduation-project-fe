@@ -2,19 +2,23 @@
 @reference '../../../../../../../globals.css';
 
 .container {
-  @apply hidden lg:block w-[180px] xl:w-[200px] shrink-0 overflow-auto;
-  @apply border-r border-border bg-card/40;
+  @apply block w-full shrink-0 overflow-x-auto overflow-y-hidden lg:w-[180px] lg:overflow-auto xl:w-[200px];
+  @apply border-b border-border bg-card/40 lg:border-b-0 lg:border-r;
 
   .inner {
-    @apply p-2;
+    @apply flex items-center gap-2 p-2 lg:block;
 
     .headerSlot {
-      @apply mb-3;
+      @apply mb-3 hidden lg:block;
     }
 
     .heading {
-      @apply mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground;
-      @apply flex items-center justify-between;
+      @apply mb-0 shrink-0 text-[10px] font-bold uppercase tracking-widest text-muted-foreground lg:mb-3;
+      @apply flex items-center justify-center lg:justify-between;
+
+      > span:first-child {
+        @apply hidden lg:inline;
+      }
 
       .countBadge {
         @apply bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px];
@@ -22,11 +26,12 @@
     }
 
     .list {
-      @apply space-y-2;
+      @apply flex min-w-0 flex-1 items-center gap-1.5 lg:block lg:space-y-2;
 
       .item {
-        @apply relative overflow-hidden w-full text-left text-sm;
-        @apply flex items-center gap-2 rounded-xl px-2 py-2 transition-all duration-200;
+        @apply relative h-10 w-auto min-w-24 shrink-0 overflow-hidden text-left text-sm;
+        @apply flex items-center justify-start gap-2 rounded-lg px-2.5 py-1.5 transition-all duration-200;
+        @apply lg:h-auto lg:w-full lg:justify-start lg:gap-2 lg:rounded-xl lg:px-2 lg:py-2;
       }
 
       .itemActive {
@@ -38,7 +43,7 @@
       }
 
       .activeStrip {
-        @apply absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl;
+        @apply absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-b-lg lg:top-0 lg:bottom-0 lg:right-auto lg:h-auto lg:w-1 lg:rounded-l-xl lg:rounded-br-none;
       }
 
       .indexCircle {
@@ -59,10 +64,10 @@
       }
 
       .content {
-        @apply min-w-0 flex-1;
+        @apply block min-w-0 flex-1;
 
         .questionTitle {
-          @apply truncate font-medium transition-colors;
+          @apply whitespace-nowrap font-medium leading-none transition-colors lg:truncate lg:leading-normal;
         }
 
         .questionTitleActive {
@@ -74,10 +79,10 @@
         }
 
         .meta {
-          @apply mt-0.5 text-xs text-muted-foreground flex items-center gap-1.5;
+          @apply mt-0.5 flex items-center gap-1.5 whitespace-nowrap text-[10px] text-muted-foreground lg:text-xs;
 
           .metaType {
-            @apply inline-block max-w-16 truncate;
+            @apply inline-block max-w-14 truncate lg:max-w-16;
           }
 
           .metaDot {
@@ -88,6 +93,7 @@
 
       .answeredBadge {
         @apply h-5 w-5 shrink-0 rounded-full bg-emerald-500/10;
+        @apply lg:static lg:h-5 lg:w-5 lg:bg-emerald-500/10;
         @apply flex items-center justify-center;
 
         .answeredDot {
