@@ -130,7 +130,7 @@ export function RoutineTestGrader({
         ) : (
           <>
             <Play className="h-4 w-4" />
-            Chấm thử câu Routine
+            Chấm thử
           </>
         )}
       </Button>

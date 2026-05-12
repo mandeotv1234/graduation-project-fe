@@ -50,7 +50,6 @@ function createDefaultTestCase(
     case_name: '',
     score_weight: 0.5,
     match_type: 'EXACT',
-    input_parameters: '{}',
     setup_script: '',
     invocation_query: '',
     validation_query: '',
@@ -66,16 +65,6 @@ function toSyntaxErrorAction(value: unknown): SyntaxErrorAction {
 
 function toPrintOutputCompareMode(value: unknown): 'LENIENT' | 'STRICT' {
   return value === 'STRICT' ? 'STRICT' : 'LENIENT'
-}
-
-function toTextValue(value: unknown): string {
-  if (value == null) return ''
-  if (typeof value === 'string') return value
-  try {
-    return JSON.stringify(value, null, 2)
-  } catch {
-    return String(value)
-  }
 }
 
 function normalizeRoutinePayload(
@@ -123,31 +112,72 @@ function normalizeRoutinePayload(
   }
 }
 
+function normalizeIssueKey(value: unknown): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
+function collectIssueKeys(issues: unknown): Set<string> {
+  const keys = new Set<string>()
+  if (!Array.isArray(issues)) return keys
+
+  for (const issue of issues) {
+    const rawCaseId =
+      issue && typeof issue === 'object'
+        ? (issue as Record<string, unknown>).caseId
+        : issue
+    const normalized = normalizeIssueKey(rawCaseId)
+    if (!normalized || normalized === 'rubric') continue
+
+    keys.add(normalized)
+    const match = normalized.match(/^tc0*(\d+)$/)
+    if (match) {
+      const index = Number(match[1]) - 1
+      if (Number.isInteger(index) && index >= 0) {
+        keys.add(`index:${index}`)
+      }
+    }
+  }
+
+  return keys
+}
+
 function unwrapGeneratedRubricResponse(value: unknown): {
   rubric: GradingRubric | null
   needsReview: boolean
   issueCount: number
+  issueKeys: Set<string>
 } {
   if (!value || typeof value !== 'object') {
-    return { rubric: null, needsReview: false, issueCount: 0 }
+    return {
+      rubric: null,
+      needsReview: false,
+      issueCount: 0,
+      issueKeys: new Set()
+    }
   }
 
   const record = value as Record<string, unknown>
   if (record.status === 'NEEDS_REVIEW') {
+    const issues = Array.isArray(record.issues) ? record.issues : []
     return {
       rubric:
         record.rubric && typeof record.rubric === 'object'
           ? (record.rubric as GradingRubric)
           : null,
       needsReview: true,
-      issueCount: Array.isArray(record.issues) ? record.issues.length : 0
+      issueCount: issues.length,
+      issueKeys: collectIssueKeys(issues)
     }
   }
 
   return {
     rubric: value as GradingRubric,
     needsReview: false,
-    issueCount: 0
+    issueCount: 0,
+    issueKeys: new Set()
   }
 }
 
@@ -181,7 +211,9 @@ export function RoutineRubricEditor({
 }: RoutineRubricEditorProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeTestCaseIndex, setActiveTestCaseIndex] = useState(0)
+  const [issueCaseKeys, setIssueCaseKeys] = useState<Set<string>>(new Set())
   const hasAutoTriggeredRef = useRef(false)
+  const editorRootRef = useRef<HTMLDivElement | null>(null)
 
   const rubricCategory =
     questionType === 'STORED_PROCEDURE' ? 'STORED_PROCEDURE' : 'FUNCTION'
@@ -278,7 +310,8 @@ export function RoutineRubricEditor({
         const {
           rubric: parsedRubric,
           needsReview,
-          issueCount
+          issueCount,
+          issueKeys
         } = unwrapGeneratedRubricResponse(parsedResponse)
 
         if (!parsedRubric) {
@@ -290,11 +323,34 @@ export function RoutineRubricEditor({
           ...parsedRubric,
           question_category: rubricCategory
         })
+        setIssueCaseKeys(issueKeys)
+        if (issueKeys.size > 0) {
+          const generatedTestCases =
+            parsedRubric.grading_payload &&
+            typeof parsedRubric.grading_payload === 'object' &&
+            Array.isArray(
+              (parsedRubric.grading_payload as Record<string, unknown>)
+                .test_cases
+            )
+              ? ((parsedRubric.grading_payload as Record<string, unknown>)
+                  .test_cases as RoutineTestCase[])
+              : []
+          const firstIssueIndex = generatedTestCases.findIndex((tc, idx) => {
+            return (
+              issueKeys.has(normalizeIssueKey(tc.case_id)) ||
+              issueKeys.has(`index:${idx}`)
+            )
+          })
+          if (firstIssueIndex >= 0) {
+            setActiveTestCaseIndex(firstIssueIndex)
+          }
+        }
         if (needsReview) {
           toast.warning(
             `AI đã tạo rubric nhưng cần giáo viên kiểm tra lại (${issueCount} vấn đề)`
           )
         } else {
+          setIssueCaseKeys(new Set())
           toast.success('Đã tạo rubric bằng AI thành công!')
         }
       } else {
@@ -317,6 +373,14 @@ export function RoutineRubricEditor({
   const isWizardMode = typeof wizardStep === 'number'
   const isTestCasesStep = !isWizardMode || wizardStep === 2
   const isRulesStep = !isWizardMode || wizardStep === 3
+
+  useEffect(() => {
+    if (!isWizardMode) return
+    editorRootRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    })
+  }, [isWizardMode, wizardStep])
 
   useEffect(() => {
     if (
@@ -350,7 +414,7 @@ export function RoutineRubricEditor({
   const routineParameters = routines[0]?.parameters || []
 
   return (
-    <div className={styles.editor}>
+    <div ref={editorRootRef} className={styles.editor}>
       {/* Step 2: Test Cases */}
       {isTestCasesStep && (
         <div className={styles.testCasesSection}>
@@ -409,20 +473,34 @@ export function RoutineRubricEditor({
                   <ChevronLeft className={styles.iconSm} />
                 </Button>
                 <div className={styles.testCaseTabs}>
-                  {test_cases.map((tc, idx) => (
-                    <Button
-                      key={tc.case_id || idx}
-                      type="button"
-                      variant={
-                        idx === activeTestCaseIndex ? 'default' : 'outline'
-                      }
-                      size="sm"
-                      onClick={() => setActiveTestCaseIndex(idx)}
-                      className={styles.testCaseTab}
-                    >
-                      TC {idx + 1}
-                    </Button>
-                  ))}
+                  {test_cases.map((tc, idx) =>
+                    (() => {
+                      const hasIssue =
+                        issueCaseKeys.has(normalizeIssueKey(tc.case_id)) ||
+                        issueCaseKeys.has(`index:${idx}`)
+                      return (
+                        <Button
+                          key={tc.case_id || idx}
+                          type="button"
+                          variant={
+                            idx === activeTestCaseIndex ? 'default' : 'outline'
+                          }
+                          size="sm"
+                          onClick={() => setActiveTestCaseIndex(idx)}
+                          title={hasIssue ? 'Test case này cần kiểm tra' : ''}
+                          className={`${styles.testCaseTab} ${
+                            hasIssue
+                              ? idx === activeTestCaseIndex
+                                ? 'border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                                : 'border-destructive text-destructive hover:bg-destructive/10'
+                              : ''
+                          }`}
+                        >
+                          TC {idx + 1}
+                        </Button>
+                      )
+                    })()
+                  )}
                 </div>
                 <Button
                   type="button"
@@ -505,27 +583,7 @@ export function RoutineRubricEditor({
                           <option value="PRINT_OUTPUT">PRINT_OUTPUT</option>
                         </select>
                       </label>
-                      <label className="space-y-1">
-                        <span className="text-xs text-muted-foreground">
-                          Input parameters
-                        </span>
-                        <textarea
-                          placeholder='VD: {"MaXe":"X001","MaTuyen":"T001"}'
-                          value={toTextValue(tc.input_parameters)}
-                          onChange={(e) =>
-                            setTestCases((prev) =>
-                              prev.map((t, i) =>
-                                i === idx
-                                  ? { ...t, input_parameters: e.target.value }
-                                  : t
-                              )
-                            )
-                          }
-                          className={styles.fieldTextarea}
-                          rows={5}
-                        />
-                      </label>
-                      <label className="space-y-1">
+                      <div className="space-y-1">
                         <span className="text-xs text-muted-foreground">
                           Invocation query
                         </span>
@@ -544,8 +602,8 @@ export function RoutineRubricEditor({
                             height="180px"
                           />
                         </div>
-                      </label>
-                      <label className="space-y-1">
+                      </div>
+                      <div className="space-y-1">
                         <span className="text-xs text-muted-foreground">
                           Validation query
                         </span>
@@ -564,7 +622,7 @@ export function RoutineRubricEditor({
                             height="180px"
                           />
                         </div>
-                      </label>
+                      </div>
                       <label className="space-y-1">
                         <span className="text-xs text-muted-foreground">
                           Setup script
@@ -602,7 +660,7 @@ export function RoutineRubricEditor({
                       </label>
                       <div className={styles.penaltyField}>
                         <label className={styles.penaltyLabel}>
-                          Điểm trừ nếu fail:
+                          Trọng số điểm:
                         </label>
                         <input
                           type="number"
@@ -624,28 +682,34 @@ export function RoutineRubricEditor({
                           }
                           className={styles.penaltyInput}
                         />
-                        <label className={styles.penaltyLabel}>Match:</label>
-                        <select
-                          value={tc.match_type || 'EXACT'}
-                          onChange={(e) =>
-                            setTestCases((prev) =>
-                              prev.map((t, i) =>
-                                i === idx
-                                  ? {
-                                      ...t,
-                                      match_type: e.target.value as
-                                        | 'EXACT'
-                                        | 'CONTAINS'
-                                    }
-                                  : t
-                              )
-                            )
-                          }
-                          className={styles.fieldSelect}
-                        >
-                          <option value="EXACT">EXACT</option>
-                          <option value="CONTAINS">CONTAINS</option>
-                        </select>
+                        {tc.verification_type === 'PRINT_OUTPUT' && (
+                          <>
+                            <label className={styles.penaltyLabel}>
+                              Match:
+                            </label>
+                            <select
+                              value={tc.match_type || 'EXACT'}
+                              onChange={(e) =>
+                                setTestCases((prev) =>
+                                  prev.map((t, i) =>
+                                    i === idx
+                                      ? {
+                                          ...t,
+                                          match_type: e.target.value as
+                                            | 'EXACT'
+                                            | 'CONTAINS'
+                                        }
+                                      : t
+                                  )
+                                )
+                              }
+                              className={styles.fieldSelect}
+                            >
+                              <option value="EXACT">EXACT</option>
+                              <option value="CONTAINS">CONTAINS</option>
+                            </select>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -665,27 +729,6 @@ export function RoutineRubricEditor({
               <span className={styles.settingsTitle}>Cài đặt chấm điểm</span>
             </div>
             <div className={styles.settingsControls}>
-              <div className={styles.syntaxGroup}>
-                <span className={styles.mutedText}>So khớp thông báo:</span>
-                <select
-                  value={
-                    grading_settings.print_output_compare_mode ?? 'LENIENT'
-                  }
-                  onChange={(e) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      print_output_compare_mode: e.target.value as
-                        | 'LENIENT'
-                        | 'STRICT'
-                    }))
-                  }
-                  className={styles.syntaxSelect}
-                >
-                  <option value="LENIENT">Linh hoạt</option>
-                  <option value="STRICT">Theo mẫu</option>
-                </select>
-              </div>
-
               <div className={styles.syntaxGroup}>
                 <span className={styles.mutedText}>Khi lỗi cú pháp:</span>
                 <select
@@ -840,14 +883,58 @@ export function RoutineRubricEditor({
       )}
 
       {isRulesStep && (
-        <div className={styles.summary}>
-          <div className={styles.summaryLeft}>
-            <Equal className={styles.summaryIcon} />
-            <span className={styles.summaryText}>Tổng trọng số test case:</span>
+        <div className="space-y-2">
+          <div className={styles.summary}>
+            <div className={styles.summaryLeft}>
+              <Equal className={styles.summaryIcon} />
+              <span className={styles.summaryText}>
+                Tổng trọng số test case:
+              </span>
+            </div>
+            <span className={styles.summaryValue}>
+              {testCaseWeightTotal.toFixed(2)} / 1.00
+            </span>
           </div>
-          <span className={styles.summaryValue}>
-            {testCaseWeightTotal.toFixed(2)} / 1.00
-          </span>
+
+          {test_cases.length > 0 && (
+            <div className="space-y-1 rounded-md border border-border/70 bg-muted/20 p-2">
+              {test_cases.map((tc, index) => (
+                <div
+                  key={tc.case_id || index}
+                  className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-md bg-background px-3 py-2 text-xs"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                      TC {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className="min-w-0 truncate text-foreground">
+                      {tc.case_name || `Test case ${index + 1}`}
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={tc.score_weight ?? 0}
+                    onChange={(e) =>
+                      setTestCases((prev) =>
+                        prev.map((t, i) =>
+                          i === index
+                            ? {
+                                ...t,
+                                score_weight: parseFloat(e.target.value) || 0
+                              }
+                            : t
+                        )
+                      )
+                    }
+                    className="w-24 rounded-md border border-border bg-background px-2 py-1 text-right font-mono text-xs"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
