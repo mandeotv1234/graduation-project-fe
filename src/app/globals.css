@@ -538,13 +538,42 @@
 .editor-container .ProseMirror {
   min-width: 0;
 }
+.editor-container ul,
 .tiptap ul,
-.ProseMirror ul {
+.ProseMirror ul,
+.prose ul {
   list-style-type: disc;
   padding-left: 1.5rem;
+  margin: 0.25rem 0;
 }
+.editor-container ol,
 .tiptap ol,
-.ProseMirror ol {
+.ProseMirror ol,
+.prose ol {
   list-style-type: decimal;
   padding-left: 1.5rem;
+  margin: 0.25rem 0;
+}
+.editor-container li,
+.tiptap li,
+.ProseMirror li,
+.prose li {
+  margin: 0.125rem 0;
+}
+.editor-container strong,
+.editor-container b,
+.tiptap strong,
+.tiptap b,
+.ProseMirror strong,
+.ProseMirror b,
+.prose strong,
+.prose b {
+  font-weight: 700;
+}
+.editor-container u,
+.tiptap u,
+.ProseMirror u,
+.prose u {
+  text-decoration-line: underline;
+  text-underline-offset: 2px;
 }
