@@ -962,6 +962,7 @@ export function QuestionItem({
                 }
                 correctQuery={editForm.correctQuery}
                 questionContent={editForm.content}
+                schemaContext={routineSchemaContext}
                 wizardStep={editWizardStep}
               />
               {editWizardStep === 4 && (

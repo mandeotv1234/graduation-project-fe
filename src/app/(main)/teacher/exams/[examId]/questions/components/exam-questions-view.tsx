@@ -1491,6 +1491,7 @@ export function ExamQuestionsView({
                               }
                               correctQuery={q.correctQuery}
                               questionContent={q.content}
+                              schemaContext={routineSchemaContext}
                               wizardStep={step}
                             />
                           )}
