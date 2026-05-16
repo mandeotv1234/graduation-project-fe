@@ -178,6 +178,7 @@ interface TriggerRubricEditorProps {
   onChange: (rubric: GradingRubric) => void
   correctQuery?: string
   questionContent?: string
+  schemaContext?: string
   wizardStep?: number
 }
 
@@ -187,6 +188,7 @@ export function TriggerRubricEditor({
   onChange,
   correctQuery,
   questionContent,
+  schemaContext,
   wizardStep
 }: TriggerRubricEditorProps) {
   const [expandedTriggers, setExpandedTriggers] = useState<Set<number>>(
@@ -297,7 +299,8 @@ export function TriggerRubricEditor({
         correctQuery,
         questionContent: questionContent || '',
         totalPoints,
-        questionType: 'TRIGGER'
+        questionType: 'TRIGGER',
+        schemaContext: schemaContext || ''
       })
 
       if (result.data) {
