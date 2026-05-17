@@ -6,6 +6,7 @@ import {
   Clock,
   Database,
   Eye,
+  FileDown,
   FileText,
   Info,
   Loader2,
@@ -56,6 +57,7 @@ import {
 import { formatDateTime, getExamStatus } from '@/lib/utils'
 import { ExamQuestionsView } from '../questions/components/exam-questions-view'
 import { EditExamSectionModal } from './edit-exam-section-modal'
+import { ExportExamPdfModal } from './export-exam-pdf-modal'
 import { TemplateLibraryManagement } from './template-library-management'
 
 type TeacherExamDetailContentProps = {
@@ -166,6 +168,7 @@ function SettingRow({
 export function TeacherExamDetailContent({
   exam,
   questionCount,
+  hasSpecification,
   specification,
   questions,
   templateManagement,
@@ -183,7 +186,17 @@ export function TeacherExamDetailContent({
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isExportOpen, setIsExportOpen] = useState(false)
   const router = useRouter()
+
+  const hasEntities = (displaySpecification?.entities?.length ?? 0) > 0
+  const canExport = hasSpecification && hasEntities && questionCount > 0
+  const exportDisabledReason =
+    !hasSpecification || !hasEntities
+      ? 'Đề thi cần có đặc tả CSDL trước khi xuất PDF'
+      : questionCount === 0
+        ? 'Cần có ít nhất 1 câu hỏi để xuất PDF'
+        : undefined
 
   const hasPdf = Boolean(
     displayExam.pdfFilePath && displayExam.pdfFilePath.trim().length > 0
@@ -344,6 +357,20 @@ export function TeacherExamDetailContent({
                 Xem kết quả
               </Button>
             </Link>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={!canExport}
+              onClick={() => setIsExportOpen(true)}
+              title={exportDisabledReason}
+              aria-label="Xuất đề thi ra file PDF"
+            >
+              <FileDown className="h-4 w-4" />
+              Xuất đề PDF
+            </Button>
+
             {canManageTemplate && (
               <Button
                 variant="outline"
@@ -707,6 +734,14 @@ export function TeacherExamDetailContent({
           />
         </TabsContent>
       </Tabs>
+
+      {isExportOpen && displaySpecification && (
+        <ExportExamPdfModal
+          exam={displayExam}
+          specification={displaySpecification}
+          onClose={() => setIsExportOpen(false)}
+        />
+      )}
 
       <Dialog open={pdfViewerOpen} onOpenChange={setPdfViewerOpen}>
         <DialogContent className="flex h-[95vh] w-[95vw] max-w-[95vw] sm:max-w-[95vw] flex-col gap-0 overflow-hidden p-0">

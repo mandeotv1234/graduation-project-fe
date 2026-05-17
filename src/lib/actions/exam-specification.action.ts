@@ -288,3 +288,30 @@ export async function buildCreateTablesFromAnswer(
 > {
   return apiClient.post(ENDPOINTS.EXAM_BUILD_CREATE_TABLES(examId), data)
 }
+
+// IMPORTANT: uses `queries` key (NOT `params`) — see ApiClient RequestOptions in src/lib/api/index.ts
+
+export async function generateEntityDescription(
+  specId: number,
+  entityId: number,
+  examId: number
+): Promise<ApiResponse<{ description: string | null }>> {
+  return apiClient.post<{ description: string | null }>(
+    `/specifications/${specId}/entities/${entityId}/generate-description`,
+    undefined,
+    { queries: { examId } }
+  )
+}
+
+export async function updateEntityDescription(
+  specId: number,
+  entityId: number,
+  examId: number,
+  description: string
+): Promise<ApiResponse<void>> {
+  return apiClient.put<void>(
+    `/specifications/${specId}/entities/${entityId}/description`,
+    { description },
+    { queries: { examId } }
+  )
+}

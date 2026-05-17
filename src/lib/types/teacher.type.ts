@@ -244,6 +244,7 @@ export interface SpecificationEntityAttribute {
 }
 
 export interface SpecificationEntity {
+  id?: number
   entityName: string
   displayName?: string
   description?: string
