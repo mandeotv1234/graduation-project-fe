@@ -297,7 +297,7 @@ export async function generateEntityDescription(
   examId: number
 ): Promise<ApiResponse<{ description: string | null }>> {
   return apiClient.post<{ description: string | null }>(
-    `/specifications/${specId}/entities/${entityId}/generate-description`,
+    ENDPOINTS.SPECIFICATION_ENTITY_GENERATE_DESCRIPTION(specId, entityId),
     undefined,
     { queries: { examId } }
   )
@@ -310,7 +310,7 @@ export async function updateEntityDescription(
   description: string
 ): Promise<ApiResponse<void>> {
   return apiClient.put<void>(
-    `/specifications/${specId}/entities/${entityId}/description`,
+    ENDPOINTS.SPECIFICATION_ENTITY_DESCRIPTION(specId, entityId),
     { description },
     { queries: { examId } }
   )
