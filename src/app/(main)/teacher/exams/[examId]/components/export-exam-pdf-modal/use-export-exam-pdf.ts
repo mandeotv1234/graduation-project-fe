@@ -25,9 +25,9 @@ export function useExportExamPdf({
 
   const buildInitialEntities = (): EntityDescriptionState[] =>
     (specification.entities ?? [])
-      .filter((e) => e.id !== undefined)
+      .filter((e): e is typeof e & { id: number } => e.id !== undefined)
       .map((e) => ({
-        entityId: e.id as number,
+        entityId: e.id,
         entityName: e.entityName,
         displayName: e.displayName ?? e.entityName,
         value: e.description ?? '',
@@ -86,7 +86,8 @@ export function useExportExamPdf({
           setEntityStatus(entityId, 'error')
           toast.error('Không thể tạo mô tả cho entity. Vui lòng nhập thủ công.')
         }
-      } catch {
+      } catch (err) {
+        console.error(err)
         setEntityStatus(entityId, 'error')
         toast.error('Lỗi khi gọi AI. Vui lòng thử lại.')
       }
@@ -135,10 +136,10 @@ export function useExportExamPdf({
               : e
           )
         )
-      } catch {
+      } catch (err) {
+        console.error(err)
         setEntityStatus(entityId, 'error')
         toast.error('Lưu mô tả thất bại')
-        throw new Error('save_failed')
       }
     },
     [entities, specId, examId, setEntityStatus]

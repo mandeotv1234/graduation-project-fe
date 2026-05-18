@@ -1,6 +1,5 @@
 import type {
   SpecificationDetailResponse,
-  SpecificationEntity,
   TeacherExamDetail
 } from '@/lib/types'
 
@@ -79,5 +78,3 @@ export interface Step3Props {
   onBack: () => void
   onDownload: () => void
 }
-
-export type { SpecificationEntity }
