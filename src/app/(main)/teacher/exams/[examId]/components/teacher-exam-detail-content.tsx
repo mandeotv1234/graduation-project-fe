@@ -358,18 +358,19 @@ export function TeacherExamDetailContent({
               </Button>
             </Link>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              disabled={!canExport}
-              onClick={() => setIsExportOpen(true)}
-              title={exportDisabledReason}
-              aria-label="Xuất đề thi ra file PDF"
-            >
-              <FileDown className="h-4 w-4" />
-              Xuất đề PDF
-            </Button>
+            <span className="inline-block" title={exportDisabledReason}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                disabled={!canExport}
+                onClick={() => setIsExportOpen(true)}
+                aria-label="Xuất đề thi ra file PDF"
+              >
+                <FileDown className="h-4 w-4" />
+                Xuất đề PDF
+              </Button>
+            </span>
 
             {canManageTemplate && (
               <Button

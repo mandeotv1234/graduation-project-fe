@@ -169,7 +169,7 @@ export function useExportExamPdf({
       )
     )
 
-    let anyFailed = false
+    const anyFailed = results.some((r) => r.status === 'rejected')
     setEntities((prev) =>
       prev.map((e) => {
         const idx = dirty.findIndex((d) => d.entityId === e.entityId)
@@ -177,7 +177,6 @@ export function useExportExamPdf({
         if (results[idx].status === 'fulfilled') {
           return { ...e, savedValue: e.value, status: 'saved' }
         }
-        anyFailed = true
         return { ...e, status: 'error' }
       })
     )
@@ -255,7 +254,9 @@ export function useExportExamPdf({
     const a = document.createElement('a')
     a.href = pdfBlobUrl
     a.download = pdfFilename
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
   }, [pdfBlobUrl, pdfFilename])
 
   return {
