@@ -112,6 +112,16 @@ export async function removeTeacherFromClass(
   return apiClient.delete<null>(ENDPOINTS.CLASS_TEACHER(classId, teacherId))
 }
 
+export async function deleteClass(classId: number): Promise<ApiResponse<null>> {
+  return apiClient.delete<null>(ENDPOINTS.CLASS_DETAIL(classId))
+}
+
+export async function restoreClass(
+  classId: number
+): Promise<ApiResponse<null>> {
+  return apiClient.post<null>(ENDPOINTS.CLASS_RESTORE(classId), {})
+}
+
 // ===== Exams =====
 
 export async function createExam(

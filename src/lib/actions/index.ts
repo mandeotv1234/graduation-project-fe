@@ -7,7 +7,8 @@ export {
   createExam,
   updateExamQuestion,
   deleteExamQuestion,
-  deleteExam
+  deleteExam,
+  extractQuestionsFromPdf
 } from '@/lib/actions/exam.action'
 export * from '@/lib/actions/student-exam.action'
 export {
@@ -15,6 +16,8 @@ export {
   getClassDetail,
   createClass,
   updateClass,
+  deleteClass,
+  restoreClass,
   getStudentsInClass,
   getClassExams,
   getClassTeachers,

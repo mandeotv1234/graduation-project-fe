@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTransition } from 'react'
 import {
   Plus,
   Users,
@@ -9,13 +10,18 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  FolderOpen
+  FolderOpen,
+  Trash2,
+  RotateCcw
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { PATH } from '@/lib/constants'
 import { ClassListItem, PaginationMeta } from '@/lib/types'
 import { formatDate } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { deleteClass, restoreClass } from '@/lib/actions'
 
 interface ClassesListProps {
   classes: ClassListItem[]
@@ -24,48 +30,141 @@ interface ClassesListProps {
 }
 
 function ClassCard({ item }: { item: ClassListItem }) {
-  return (
-    <Link href={PATH.TEACHER_CLASS_DETAIL(item.id)}>
-      <div className="group relative overflow-hidden rounded-xl border  bg-card p-6 bg-surface-container-low border-b-2 border-primary/10 transition-all duration-300 hover:border-primary/30 hover:shadow-md">
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const isDeleted = item.deletedAt !== null
+
+  function handleDelete(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    startTransition(async () => {
+      try {
+        await deleteClass(item.id)
+        toast.success('Đã xoá lớp học')
+        router.refresh()
+      } catch {
+        toast.error('Không thể xoá lớp học')
+      }
+    })
+  }
+
+  function handleRestore(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    startTransition(async () => {
+      try {
+        await restoreClass(item.id)
+        toast.success('Đã khôi phục lớp học')
+        router.refresh()
+      } catch {
+        toast.error('Không thể khôi phục lớp học')
+      }
+    })
+  }
+
+  const cardContent = (
+    <div
+      className={cn(
+        'group relative overflow-hidden rounded-xl border bg-card p-6 bg-surface-container-low border-b-2 transition-all duration-300',
+        isDeleted
+          ? 'opacity-60 border-destructive/20 cursor-default'
+          : 'border-primary/10 hover:border-primary/30 hover:shadow-md cursor-pointer'
+      )}
+    >
+      {!isDeleted && (
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      )}
+      {isDeleted && (
+        <div className="absolute inset-x-0 top-0 h-1 bg-destructive/40" />
+      )}
 
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <FolderOpen className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3
-                  className="truncate text-lg font-semibold text-foreground transition-colors group-hover:text-primary"
-                  title={item.classCode}
-                >
-                  {item.classCode}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Học kỳ: {item.semester}
-                </p>
-              </div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                isDeleted
+                  ? 'bg-muted text-muted-foreground'
+                  : 'bg-primary/10 text-primary'
+              )}
+            >
+              <FolderOpen className="h-5 w-5" />
             </div>
-
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>Tạo ngày: {formatDate(item.createdAt)}</span>
+            <div className="min-w-0 flex-1">
+              <h3
+                className={cn(
+                  'truncate text-lg font-semibold transition-colors',
+                  isDeleted
+                    ? 'text-muted-foreground line-through'
+                    : 'text-foreground group-hover:text-primary'
+                )}
+                title={item.classCode}
+              >
+                {item.classCode}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Học kỳ: {item.semester}
+              </p>
             </div>
           </div>
 
-          <div className="flex shrink-0 gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-              <Users className="h-4 w-4" />
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
-              <FileText className="h-4 w-4" />
-            </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>Tạo ngày: {formatDate(item.createdAt)}</span>
           </div>
+
+          {isDeleted && (
+            <p className="text-xs text-destructive font-medium">Đã xoá</p>
+          )}
+        </div>
+
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex gap-2">
+            {!isDeleted && (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                <Users className="h-4 w-4" />
+              </div>
+            )}
+            {!isDeleted && (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                <FileText className="h-4 w-4" />
+              </div>
+            )}
+          </div>
+
+          {isDeleted ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/10"
+              disabled={isPending}
+              onClick={handleRestore}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Khôi phục
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+              disabled={isPending}
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
-    </Link>
+    </div>
   )
+
+  if (isDeleted) {
+    return <div>{cardContent}</div>
+  }
+
+  return <Link href={PATH.TEACHER_CLASS_DETAIL(item.id)}>{cardContent}</Link>
 }
 
 function Pagination({

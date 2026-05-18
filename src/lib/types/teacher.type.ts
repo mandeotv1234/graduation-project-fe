@@ -27,6 +27,7 @@ export interface ClassListItem {
   creatorId: number
   semester: string
   createdAt: string
+  deletedAt: string | null
 }
 
 // GET /api/classes/{classId} → GetClassDetailResponseDto
@@ -36,6 +37,7 @@ export interface ClassDetail {
   creatorId: number
   semester: string
   createdAt: string
+  deletedAt: string | null
 }
 
 // POST /api/classes → CreateClassRequestDto / CreateClassResponseDto
