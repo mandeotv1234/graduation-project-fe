@@ -223,8 +223,18 @@ export function useExportExamPdf({
       setPdfBlobUrl(url)
       setPdfFilename(filename)
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : 'Không thể tạo PDF. Thử lại.'
+      console.error(err)
+      let msg = 'Không thể tạo PDF. Thử lại.'
+      if (typeof err === 'string') {
+        try {
+          const parsed = JSON.parse(err) as { message?: string }
+          if (parsed.message) msg = parsed.message
+        } catch {
+          // not JSON — use default message
+        }
+      } else if (err instanceof Error) {
+        msg = err.message
+      }
       setPreviewError(msg)
       toast.error(msg)
     } finally {

@@ -50,8 +50,17 @@ export async function exportExamPdfBlob(
   })
 
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Export PDF failed: ${res.status} ${text}`)
+    let errorBody: string
+    try {
+      const errorJson = await res.json()
+      errorBody = JSON.stringify(errorJson)
+    } catch {
+      errorBody = JSON.stringify({
+        code: String(res.status),
+        message: res.statusText || 'Request failed'
+      })
+    }
+    throw errorBody
   }
 
   const blob = await res.blob()
