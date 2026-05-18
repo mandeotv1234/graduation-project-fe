@@ -45,6 +45,7 @@ export default async function ExamQuestionsPage({
   const { examId } = await params
   const examRes = await getTeacherExamDetail(Number(examId))
   const examTitle = examRes.data?.title
+  const hasPdf = Boolean(examRes.data?.pdfFilePath)
 
   const examIdNum = Number(examId)
 
@@ -77,6 +78,7 @@ export default async function ExamQuestionsPage({
       shareDisabledReason={shareDisabledReason}
       specificationSchemaJson={specificationResponse.data?.schemaJson ?? null}
       specificationDatasets={specificationResponse.data?.datasets ?? []}
+      hasPdf={hasPdf}
     />
   )
 }

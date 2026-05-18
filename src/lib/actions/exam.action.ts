@@ -7,6 +7,7 @@ import {
   CreateExamRequest,
   CreateExamResponse,
   ExamQuestionItem,
+  ExtractQuestionsFromPdfResult,
   Question,
   TeacherExamDetail,
   TeacherExamMonitorData,
@@ -200,4 +201,10 @@ export async function forceSubmitStudentExam(
     `/exams/${examId}/students/${studentId}/force-submit`,
     {}
   )
+}
+
+export async function extractQuestionsFromPdf(
+  examId: number
+): Promise<ApiResponse<ExtractQuestionsFromPdfResult>> {
+  return apiClient.post(ENDPOINTS.EXAM_EXTRACT_QUESTIONS_FROM_PDF(examId), {})
 }

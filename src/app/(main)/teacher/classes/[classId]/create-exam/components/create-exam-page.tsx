@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PATH } from '@/lib/constants'
 import { createExam } from '@/lib/actions'
@@ -7,6 +8,7 @@ import { createExamWithPdf } from '@/lib/api/exam-client'
 import { useApi } from '@/hooks/use-api'
 import { ExamForm } from '@/app/(main)/teacher/exams/components/exam-form'
 import { ExamFormValues } from '@/app/(main)/teacher/exams/components/exam-form-schema'
+import { PdfUploadDialog } from '@/app/(main)/teacher/exams/[examId]/questions/components/pdf-upload-dialog/pdf-upload-dialog'
 
 interface CreateExamPageClientProps {
   classId: string
@@ -18,6 +20,7 @@ export default function CreateExamPageClient({
   const classIdNum = Number(classId)
   const router = useRouter()
   const { callApi, isLoading } = useApi()
+  const [pendingExamId, setPendingExamId] = useState<number | null>(null)
 
   const onSubmit = async (data: ExamFormValues, pdfFile?: File | null) => {
     const payload = {
@@ -31,17 +34,37 @@ export default function CreateExamPageClient({
       ? await callApi(createExamWithPdf(payload, pdfFile))
       : await callApi(createExam(payload))
 
-    if (result.data) {
+    if (!result.data) return
+
+    if (pdfFile) {
+      // PDF uploaded → open AI extraction dialog before navigating
+      setPendingExamId(result.data.id)
+    } else {
       router.push(PATH.TEACHER_EXAM_DETAIL(result.data.id))
     }
   }
 
   return (
-    <ExamForm
-      onSubmit={onSubmit}
-      isLoading={isLoading}
-      title="Tạo bài thi mới"
-      submitLabel="Tạo bài thi"
-    />
+    <>
+      <ExamForm
+        onSubmit={onSubmit}
+        isLoading={isLoading}
+        title="Tạo bài thi mới"
+        submitLabel="Tạo bài thi"
+      />
+
+      {pendingExamId !== null && (
+        <PdfUploadDialog
+          open
+          examId={pendingExamId}
+          onQuestionsCreated={() => {
+            router.push(PATH.TEACHER_EXAM_QUESTIONS(pendingExamId))
+          }}
+          onClose={() => {
+            router.push(PATH.TEACHER_EXAM_DETAIL(pendingExamId))
+          }}
+        />
+      )}
+    </>
   )
 }

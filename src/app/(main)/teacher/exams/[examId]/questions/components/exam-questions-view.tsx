@@ -4,6 +4,7 @@ import { formatDateTime } from '@/lib/utils/time'
 import {
   ArrowRight,
   Code2,
+  FileText,
   Hash,
   Loader2,
   Play,
@@ -72,6 +73,7 @@ import { InsertQueryFromSpec } from './insert-query-from-spec'
 import { RubricTestGrader } from './rubric-test-grader'
 import { SelectQueryTestGrader } from './select-query-test-grader'
 import { TeacherSqlEditor } from './teacher-sql-editor'
+import { PdfUploadDialog } from './pdf-upload-dialog/pdf-upload-dialog'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -93,6 +95,7 @@ interface ExamQuestionsViewProps {
   variant?: 'standalone' | 'embedded'
   specificationSchemaJson?: string | SpecificationSchemaJsonTable[] | null
   specificationDatasets?: SpecificationDataset[] | null
+  hasPdf?: boolean
 }
 
 interface QuestionFormState extends CreateExamQuestionBatch {
@@ -149,7 +152,8 @@ export function ExamQuestionsView({
   shareDisabledReason,
   variant = 'standalone',
   specificationSchemaJson,
-  specificationDatasets
+  specificationDatasets,
+  hasPdf = false
 }: ExamQuestionsViewProps) {
   const { callApi, isLoading } = useApi()
   const router = useRouter()
@@ -157,6 +161,7 @@ export function ExamQuestionsView({
   const [questions, setQuestions] = useState(initialQuestions)
   const [showAddForm, setShowAddForm] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
+  const [showPdfDialog, setShowPdfDialog] = useState(false)
 
   const versions = templateManagement?.versions ?? []
   const canManage = templateManagement?.canManage ?? false
@@ -549,18 +554,30 @@ export function ExamQuestionsView({
 
         {variant === 'embedded' && !showAddForm && (
           <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-            <Button
-              className="gap-2"
-              onClick={() => {
-                setShowAddForm(true)
-                if (pendingQuestions.length === 0) {
-                  addEmptyQuestion()
-                }
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              Thêm câu hỏi
-            </Button>
+            <div className="flex gap-2">
+              {hasPdf && (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setShowPdfDialog(true)}
+                >
+                  <FileText className="h-4 w-4" />
+                  Import từ PDF
+                </Button>
+              )}
+              <Button
+                className="gap-2"
+                onClick={() => {
+                  setShowAddForm(true)
+                  if (pendingQuestions.length === 0) {
+                    addEmptyQuestion()
+                  }
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Thêm câu hỏi
+              </Button>
+            </div>
           </div>
         )}
 
@@ -595,6 +612,16 @@ export function ExamQuestionsView({
                   {versions.length > 0
                     ? 'Chia sẻ phiên bản mới'
                     : 'Chia sẻ đề thi'}
+                </Button>
+              )}
+              {hasPdf && (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setShowPdfDialog(true)}
+                >
+                  <FileText className="h-4 w-4" />
+                  Import từ PDF
                 </Button>
               )}
               <Button
@@ -1660,6 +1687,15 @@ export function ExamQuestionsView({
           ))}
         </div>
       )}
+
+      <PdfUploadDialog
+        open={showPdfDialog}
+        examId={examId}
+        onClose={() => setShowPdfDialog(false)}
+        onQuestionsCreated={(created) => {
+          setQuestions((prev) => [...prev, ...created])
+        }}
+      />
     </div>
   )
 }

@@ -98,6 +98,26 @@ export interface ExamQuestionItem {
   gradingRubric?: string
 }
 
+export type QuestionType =
+  | 'CREATE_TABLE'
+  | 'INSERT_DATA'
+  | 'SELECT_QUERY'
+  | 'TRIGGER'
+  | 'FUNCTION'
+  | 'STORED_PROCEDURE'
+
+export interface ExtractedQuestionDraft {
+  content: string
+  questionType: QuestionType
+  points: number
+  difficultyLevel: number
+  orderIndex: number
+}
+
+export interface ExtractQuestionsFromPdfResult {
+  questions: ExtractedQuestionDraft[]
+}
+
 // POST /api/exams/{examId}/execute-sql → ExecuteSqlRequestDto / ExecuteSqlResponseDto
 export interface ExecuteSqlRequest {
   sql: string

@@ -36,6 +36,7 @@ export const ENDPOINTS = Object.freeze({
   CLASS_TEACHERS: (classId: number) => `/classes/${classId}/teachers`,
   CLASS_TEACHER: (classId: number, teacherId: number) =>
     `/classes/${classId}/teachers/${teacherId}`,
+  CLASS_RESTORE: (classId: number) => `/classes/${classId}/restore`,
 
   // Teacher - Exams
   CREATE_EXAM: '/exams',
@@ -123,5 +124,9 @@ export const ENDPOINTS = Object.freeze({
   // Admin
   ADMIN_FEEDBACKS: '/admin/feedbacks',
   ADMIN_USERS: '/admin/users',
-  ADMIN_USER_ROLE: (userId: number) => `/admin/users/${userId}/role`
+  ADMIN_USER_ROLE: (userId: number) => `/admin/users/${userId}/role`,
+
+  // PDF Question Extraction
+  EXAM_EXTRACT_QUESTIONS_FROM_PDF: (examId: number) =>
+    `/exams/${examId}/extract-questions-from-pdf`
 })
