@@ -58,6 +58,14 @@ export const ENDPOINTS = Object.freeze({
   // Exam PDF
   EXAM_PDF: (examId: number) => `/exams/${examId}/pdf`,
 
+  // Specification entities
+  SPECIFICATION_ENTITY_GENERATE_DESCRIPTION: (
+    specId: number,
+    entityId: number
+  ) => `/specifications/${specId}/entities/${entityId}/generate-description`,
+  SPECIFICATION_ENTITY_DESCRIPTION: (specId: number, entityId: number) =>
+    `/specifications/${specId}/entities/${entityId}/description`,
+
   // Exam Specification (teacher: POST, student: GET)
   EXAM_SPECIFICATION: (examId: number) => `/exams/${examId}/specification`,
   EXAM_CREATE_BATCH_QUESTIONS: (examId: number) => `/exams/${examId}/questions`,
