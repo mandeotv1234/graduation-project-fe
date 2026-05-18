@@ -174,6 +174,9 @@ export function QuestionCard({
   }
 
   const typeLabel = QUESTION_TYPE_LABELS[qr.questionType] ?? qr.questionType
+  const testCaseResults = qr.testCaseResults ?? []
+  const hasTestCaseResults = testCaseResults.length > 0
+  const passedTestCases = testCaseResults.filter((tc) => tc.passed).length
 
   // Comparison delta (phase 9)
   const hasPrev = previousScore != null
@@ -385,20 +388,69 @@ export function QuestionCard({
       )}
 
       {/* Footer: result/error message */}
-      {qr.errorMessage ? (
+      {qr.errorMessage || hasTestCaseResults ? (
         <div className={styles.errorDetail}>
           <details>
             <summary className={styles.errorSummary}>
               <AlertCircle className="h-4 w-4 shrink-0" />
-              Lỗi chấm bài — bấm để xem chi tiết
+              {hasTestCaseResults
+                ? 'Chi tiết kỹ thuật - bấm để xem'
+                : 'Lỗi chấm bài - bấm để xem chi tiết'}
             </summary>
             <div className={styles.errorContent}>
-              {parseErrorSections(qr.errorMessage).map((section, i) => (
-                <div key={i} className={styles.errorSection}>
-                  <div className={styles.errorLabel}>{section.label}</div>
-                  <pre>{section.content}</pre>
+              {hasTestCaseResults && (
+                <div className={styles.testCaseResults}>
+                  <div className={styles.testCaseHeader}>
+                    <span>Kết quả test case</span>
+                    <span>
+                      {passedTestCases}/{testCaseResults.length} đạt
+                    </span>
+                  </div>
+
+                  <div className={styles.testCaseList}>
+                    {testCaseResults.map((tc, tcIndex) => (
+                      <div
+                        key={tc.testCaseId ?? `${tc.caseName}-${tcIndex}`}
+                        className={`${styles.testCaseRow} ${
+                          tc.passed
+                            ? styles.testCasePassed
+                            : styles.testCaseFailed
+                        }`}
+                      >
+                        <div className={styles.testCaseMain}>
+                          {tc.passed ? (
+                            <CheckCircle2 className="h-4 w-4 shrink-0" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 shrink-0" />
+                          )}
+                          <div className={styles.testCaseText}>
+                            <div className={styles.testCaseName}>
+                              Test case {tcIndex + 1}: {tc.caseName}
+                            </div>
+                            {!tc.passed && tc.message && (
+                              <pre className={styles.testCaseMessage}>
+                                {tc.message}
+                              </pre>
+                            )}
+                          </div>
+                        </div>
+                        <div className={styles.testCaseScore}>
+                          Trừ {Number(tc.scoreEarned ?? 0).toFixed(2)} /{' '}
+                          {Number(tc.maxPoints ?? 0).toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
+
+              {qr.errorMessage &&
+                parseErrorSections(qr.errorMessage).map((section, i) => (
+                  <div key={i} className={styles.errorSection}>
+                    <div className={styles.errorLabel}>{section.label}</div>
+                    <pre>{section.content}</pre>
+                  </div>
+                ))}
             </div>
           </details>
         </div>

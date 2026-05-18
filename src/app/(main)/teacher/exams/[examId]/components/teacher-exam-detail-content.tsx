@@ -121,6 +121,13 @@ function yesNo(value?: boolean) {
   return value ? 'Có' : 'Không'
 }
 
+function mapDatabaseInitialization(isLoadDdl?: boolean) {
+  if (isLoadDdl) {
+    return 'Tạo bảng và nạp dữ liệu mẫu'
+  }
+  return 'Không khởi tạo'
+}
+
 function OverviewItem({
   label,
   value,
@@ -456,6 +463,7 @@ export function TeacherExamDetailContent({
               <EditExamSectionModal
                 exam={displayExam}
                 section="overview"
+                specification={displaySpecification}
                 onSaved={handleExamSaved}
               />
             </div>
@@ -532,6 +540,7 @@ export function TeacherExamDetailContent({
                       <EditExamSectionModal
                         exam={displayExam}
                         section="submission"
+                        specification={displaySpecification}
                         onSaved={handleExamSaved}
                       />
                     </div>
@@ -575,8 +584,10 @@ export function TeacherExamDetailContent({
                         )}
                       />
                       <SettingRow
-                        label="Nạp schema giáo viên"
-                        value={yesNo(displayExam.settings?.isLoadDdl)}
+                        label="Khởi tạo CSDL"
+                        value={mapDatabaseInitialization(
+                          displayExam.settings?.isLoadDdl
+                        )}
                       />
                     </dl>
                   </div>
@@ -599,6 +610,7 @@ export function TeacherExamDetailContent({
                       <EditExamSectionModal
                         exam={displayExam}
                         section="antiCheat"
+                        specification={displaySpecification}
                         onSaved={handleExamSaved}
                       />
                     </div>
@@ -651,6 +663,7 @@ export function TeacherExamDetailContent({
                     <EditExamSectionModal
                       exam={displayExam}
                       section="description"
+                      specification={displaySpecification}
                       onSaved={handleExamSaved}
                     />
                   </div>

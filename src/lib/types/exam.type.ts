@@ -44,6 +44,7 @@ export interface ExamSettings {
   showResultAfterSubmit?: boolean
   /** DDL giáo viên nạp vào schema sinh viên khi bắt đầu thi */
   isLoadDdl?: boolean
+  seedDatasetId?: number | null
 }
 
 export interface StudentExamDetail {
@@ -260,6 +261,17 @@ export interface QuestionResultDetail {
   gradedAt?: string
   teacherComment?: string
   questionType: string
+  testCaseResults?: TestCaseResultDetail[]
+}
+
+export interface TestCaseResultDetail {
+  testCaseId?: number
+  orderIndex?: number
+  caseName: string
+  passed: boolean
+  scoreEarned: number
+  maxPoints: number
+  message?: string
 }
 
 // ===== Override & Re-grade Types =====
@@ -649,9 +661,9 @@ export interface TriggerTestCase {
   case_id: string
   case_name: string
   penalty_value: number
-  trigger_sql: string
-  expected_result: string
   setup_script?: string
+  invocation_query: string
+  validation_query: string
   description?: string
 }
 

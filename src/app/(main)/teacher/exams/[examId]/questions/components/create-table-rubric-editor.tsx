@@ -316,9 +316,21 @@ export function CreateTableRubricEditor({
   const [expandedTables, setExpandedTables] = useState<Record<number, boolean>>(
     {}
   )
+  const [activeTableIndex, setActiveTableIndex] = useState(0)
   const toggleTable = (idx: number) => {
     setExpandedTables((prev) => ({ ...prev, [idx]: !prev[idx] }))
   }
+
+  useEffect(() => {
+    if (tables.length === 0) {
+      if (activeTableIndex !== 0) setActiveTableIndex(0)
+      return
+    }
+
+    if (activeTableIndex >= tables.length) {
+      setActiveTableIndex(tables.length - 1)
+    }
+  }, [activeTableIndex, tables.length])
 
   // ===== AI Generate =====
   const [isBuildingTables, setIsBuildingTables] = useState(false)
@@ -384,9 +396,9 @@ export function CreateTableRubricEditor({
 
       setShowSpecialPenalties(false)
       setTables(generatedTables, { specialPenaltyEnabled: false })
+      setActiveTableIndex(0)
       toast.success(`Đã tạo ${generatedTables.length} bảng từ SQL đáp án`)
-    } catch (error) {
-      console.error('Build CREATE tables from answer failed:', error)
+    } catch {
       toast.error('Lỗi khi dựng cấu trúc bảng từ đáp án. Vui lòng thử lại.')
     } finally {
       setIsBuildingTables(false)
@@ -585,6 +597,7 @@ export function CreateTableRubricEditor({
               size="sm"
               onClick={() => {
                 setTables([...tables, createDefaultTable()])
+                setActiveTableIndex(tables.length)
                 setExpandedTables((prev) => ({
                   ...prev,
                   [tables.length]: true
@@ -604,23 +617,51 @@ export function CreateTableRubricEditor({
             </div>
           )}
 
-          {tables.map((table, tableIdx) => (
-            <TableEditor
-              key={tableIdx}
-              table={table}
-              showSpecialPenaltyFields={showSpecialPenalties}
-              isExpanded={expandedTables[tableIdx] ?? false}
-              onToggle={() => toggleTable(tableIdx)}
-              onChange={(updated) => {
-                const newTables = [...tables]
-                newTables[tableIdx] = updated
-                setTables(newTables)
-              }}
-              onRemove={() => {
-                setTables(tables.filter((_, i) => i !== tableIdx))
-              }}
-            />
-          ))}
+          {tables.length > 0 && (
+            <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-2">
+              {tables.map((table, tableIdx) => (
+                <Button
+                  key={`${table.expected_name || 'table'}-${tableIdx}`}
+                  type="button"
+                  variant={
+                    tableIdx === activeTableIndex ? 'default' : 'outline'
+                  }
+                  size="sm"
+                  onClick={() => {
+                    setActiveTableIndex(tableIdx)
+                    setExpandedTables((prev) => ({
+                      ...prev,
+                      [tableIdx]: true
+                    }))
+                  }}
+                  className="h-8 min-w-0 max-w-[13rem] justify-start truncate text-xs"
+                  title={table.expected_name || `Bảng ${tableIdx + 1}`}
+                >
+                  <span className="truncate">TC{tableIdx + 1}</span>
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {tables.map((table, tableIdx) =>
+            tableIdx === activeTableIndex ? (
+              <TableEditor
+                key={tableIdx}
+                table={table}
+                showSpecialPenaltyFields={showSpecialPenalties}
+                isExpanded={expandedTables[tableIdx] ?? true}
+                onToggle={() => toggleTable(tableIdx)}
+                onChange={(updated) => {
+                  const newTables = [...tables]
+                  newTables[tableIdx] = updated
+                  setTables(newTables)
+                }}
+                onRemove={() => {
+                  setTables(tables.filter((_, i) => i !== tableIdx))
+                }}
+              />
+            ) : null
+          )}
         </div>
       )}
     </div>

@@ -138,6 +138,7 @@ export function InsertDataRubricEditor({
   const [expandedTables, setExpandedTables] = useState<Record<number, boolean>>(
     {}
   )
+  const [activeTableIndex, setActiveTableIndex] = useState(0)
   const toggleTable = (idx: number) => {
     setExpandedTables((prev) => ({ ...prev, [idx]: !prev[idx] }))
   }
@@ -157,6 +158,17 @@ export function InsertDataRubricEditor({
     })
     setExpandedTables(newState)
   }
+
+  useEffect(() => {
+    if (tables.length === 0) {
+      if (activeTableIndex !== 0) setActiveTableIndex(0)
+      return
+    }
+
+    if (activeTableIndex >= tables.length) {
+      setActiveTableIndex(tables.length - 1)
+    }
+  }, [activeTableIndex, tables.length])
 
   // ===== AI Generate =====
   const [isBuildingTables, setIsBuildingTables] = useState(false)
@@ -238,11 +250,11 @@ export function InsertDataRubricEditor({
       }
 
       setTables(generatedTables)
+      setActiveTableIndex(0)
       toast.success(
         `Đã dựng dữ liệu cho ${generatedTables.length} bảng để chấm thử`
       )
-    } catch (error) {
-      console.error('Build INSERT tables from answer failed:', error)
+    } catch {
       toast.error('Lỗi khi dựng dữ liệu bảng từ đáp án. Vui lòng thử lại.')
     } finally {
       setIsBuildingTables(false)
@@ -384,6 +396,12 @@ export function InsertDataRubricEditor({
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Settings2 className="h-4 w-4" />
               Chi tiết kỳ vọng
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2 py-0 text-[10px]"
+              >
+                {tables.length}
+              </Badge>
             </h3>
             <div className="flex items-center gap-2">
               <Button
@@ -434,8 +452,33 @@ export function InsertDataRubricEditor({
               </Button>
             </div>
           </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-2">
+            {tables.map((table, tIdx) => {
+              const tableName = table.table_name || `Bảng ${tIdx + 1}`
+
+              return (
+                <Button
+                  key={`${tableName}-${tIdx}`}
+                  type="button"
+                  variant={tIdx === activeTableIndex ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setActiveTableIndex(tIdx)
+                    setExpandedTables((prev) => ({ ...prev, [tIdx]: true }))
+                  }}
+                  className="h-8 min-w-0 max-w-[13rem] justify-start truncate text-xs"
+                  title={tableName}
+                >
+                  <span className="truncate">TC{tIdx + 1}</span>
+                </Button>
+              )
+            })}
+          </div>
+
           <div className="grid gap-4">
             {tables.map((table, tIdx) => {
+              if (tIdx !== activeTableIndex) return null
+
               const tableName = table.table_name || `Bảng ${tIdx + 1}`
               const cols = Array.isArray(table.columns_config)
                 ? table.columns_config

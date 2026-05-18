@@ -867,13 +867,13 @@ export function QuestionItem({
 
           {(editForm.questionType === 'FUNCTION' ||
             editForm.questionType === 'STORED_PROCEDURE') && (
-            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-4">
+            <div className="rounded-lg border border-blue-500/20 bg-white p-4 space-y-4">
               <h4 className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
                 <Sparkles className="h-4 w-4" /> Cấu hình rubric
                 FUNCTION/PROCEDURE
               </h4>
               {/* Step indicator */}
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
                 {[
                   { step: 1, label: '1. Nội dung' },
                   { step: 2, label: '2. Test cases' },
@@ -884,7 +884,7 @@ export function QuestionItem({
                     key={item.step}
                     type="button"
                     onClick={() => setEditWizardStep(item.step)}
-                    className={`px-2 py-1 rounded transition-colors ${
+                    className={`min-h-10 px-4 py-2 rounded-md font-semibold transition-colors ${
                       editWizardStep === item.step
                         ? 'bg-blue-500 text-white'
                         : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -933,7 +933,7 @@ export function QuestionItem({
                 <Sparkles className="h-4 w-4" /> Cấu hình rubric TRIGGER
               </h4>
               {/* Step indicator */}
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
                 {[
                   { step: 1, label: '1. Nội dung' },
                   { step: 2, label: '2. Test cases' },
@@ -944,7 +944,7 @@ export function QuestionItem({
                     key={item.step}
                     type="button"
                     onClick={() => setEditWizardStep(item.step)}
-                    className={`px-2 py-1 rounded transition-colors ${
+                    className={`min-h-10 px-4 py-2 rounded-md font-semibold transition-colors ${
                       editWizardStep === item.step
                         ? 'bg-blue-500 text-white'
                         : 'bg-blue-100 text-blue-700 hover:bg-blue-200'

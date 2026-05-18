@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Loader2,
   Play,
@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { testGradeRoutineData } from '@/lib/actions'
-import { GradingRubric } from '@/lib/types'
+import { GradingRubric, RoutineTestCase } from '@/lib/types'
 
 interface GradeDetail {
   type: string
@@ -33,6 +33,25 @@ interface RoutineTestGraderProps {
   rubric: GradingRubric | null
   correctQuery?: string
   totalPoints?: number
+}
+
+function isTestCaseDetailMessage(message: string): boolean {
+  return message.startsWith("Test case '")
+}
+
+function parseTestCaseLabel(message: string): string | null {
+  const match = message.match(/^Test case '([^']+)':/)
+  return match?.[1] ?? null
+}
+
+function findTestCaseByLabel(
+  testCases: RoutineTestCase[],
+  label: string
+): RoutineTestCase | undefined {
+  return testCases.find(
+    (tc) =>
+      tc.case_name === label || tc.case_id === label || tc.description === label
+  )
 }
 
 export function RoutineTestGrader({
@@ -62,6 +81,51 @@ export function RoutineTestGrader({
     typeof totalPoints === 'number' && Number.isFinite(totalPoints)
       ? totalPoints
       : rubricTotalPoints
+
+  const { testCases, metadataDiagnosticOnly, getTestCaseMaxPoints } =
+    useMemo(() => {
+      const payload =
+        rubric?.grading_payload && typeof rubric.grading_payload === 'object'
+          ? (rubric.grading_payload as Record<string, unknown>)
+          : null
+
+      const cases = Array.isArray(payload?.test_cases)
+        ? (payload.test_cases as RoutineTestCase[])
+        : []
+
+      const routines = Array.isArray(payload?.routines) ? payload.routines : []
+
+      const diagnosticOnly =
+        rubric?.question_category === 'STORED_PROCEDURE' &&
+        cases.length > 0 &&
+        routines.length > 0
+
+      const testCasePointPool = diagnosticOnly
+        ? effectiveTotalPoints
+        : cases.length > 0
+          ? effectiveTotalPoints * 0.8
+          : effectiveTotalPoints
+
+      const totalWeight =
+        cases.reduce((sum, tc) => {
+          const weight = Math.abs(Number(tc.score_weight) || 0)
+          return sum + (weight > 0 ? weight : 0)
+        }, 0) || cases.length
+
+      const maxPointsForCase = (tc: RoutineTestCase) => {
+        const weight =
+          Math.abs(Number(tc.score_weight) || 0) > 0
+            ? Math.abs(Number(tc.score_weight) || 0)
+            : 1
+        return testCasePointPool * (weight / totalWeight)
+      }
+
+      return {
+        testCases: cases,
+        metadataDiagnosticOnly: diagnosticOnly,
+        getTestCaseMaxPoints: maxPointsForCase
+      }
+    }, [rubric, effectiveTotalPoints])
 
   const handleTest = async () => {
     if (!rubric || !studentSql.trim()) {
@@ -95,6 +159,51 @@ export function RoutineTestGrader({
   const scorePercent = result
     ? (result.earnedPoints / result.totalPoints) * 100
     : 0
+
+  const renderDetailPoints = (detail: GradeDetail) => {
+    if (isTestCaseDetailMessage(detail.message)) {
+      const label = parseTestCaseLabel(detail.message)
+      const matchedCase = label
+        ? findTestCaseByLabel(testCases, label)
+        : undefined
+      const maxPts = matchedCase ? getTestCaseMaxPoints(matchedCase) : null
+
+      if (maxPts != null) {
+        return (
+          <span className="shrink-0 text-right font-mono">
+            {detail.points.toFixed(2)} / {maxPts.toFixed(2)}
+          </span>
+        )
+      }
+
+      return (
+        <span className="shrink-0 text-right font-mono">
+          {detail.points.toFixed(2)}
+        </span>
+      )
+    }
+
+    if (metadataDiagnosticOnly) {
+      return (
+        <span className="shrink-0 text-right text-muted-foreground">—</span>
+      )
+    }
+
+    return (
+      <span
+        className={`shrink-0 text-right font-mono font-bold ${
+          detail.points > 0
+            ? 'text-emerald-600 dark:text-emerald-400'
+            : detail.points < 0
+              ? 'text-red-600 dark:text-red-400'
+              : 'text-muted-foreground'
+        }`}
+      >
+        {detail.points > 0 ? '+' : ''}
+        {detail.points}
+      </span>
+    )
+  }
 
   return (
     <div className="space-y-3">
@@ -143,25 +252,25 @@ export function RoutineTestGrader({
           </div>
 
           <div className="rounded border border-border divide-y divide-border">
-            {result.details.map((d, idx) => (
+            {result.details.map((detail, idx) => (
               <div
                 key={idx}
                 className="px-3 py-2 text-xs flex items-start gap-2"
               >
-                {d.type === 'success' && (
+                {detail.type === 'success' && (
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
                 )}
-                {d.type === 'warning' && (
+                {detail.type === 'warning' && (
                   <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
                 )}
-                {d.type === 'error' && (
+                {detail.type === 'error' && (
                   <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
                 )}
-                {d.type === 'info' && (
+                {detail.type === 'info' && (
                   <AlertTriangle className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
                 )}
-                <span className="flex-1">{d.message}</span>
-                <span className="font-mono">{d.points}</span>
+                <span className="flex-1 wrap-break-word">{detail.message}</span>
+                {renderDetailPoints(detail)}
               </div>
             ))}
           </div>
