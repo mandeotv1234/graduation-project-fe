@@ -86,14 +86,16 @@ export const generateDatasetScript = (
     const rows = dataset.rowsByTable[table.id] || []
     if (rows.length === 0) return
 
-    const hasIdentity = table.columns.some((c) => c.isAutoIncrement)
-    if (hasIdentity) {
-      sql += `SET IDENTITY_INSERT [${table.name}] ON;\n`
-    }
+    const insertColumns = table.columns.filter((c) => !c.isAutoIncrement)
 
-    const colNames = table.columns.map((c) => `[${c.name}]`).join(', ')
     rows.forEach((row) => {
-      const values = table.columns
+      if (insertColumns.length === 0) {
+        sql += `INSERT INTO [${table.name}] DEFAULT VALUES;\n`
+        return
+      }
+
+      const colNames = insertColumns.map((c) => `[${c.name}]`).join(', ')
+      const values = insertColumns
         .map((c) => {
           const val = row.values[c.id]
           if (val === undefined || val === '') return 'NULL'
@@ -106,9 +108,6 @@ export const generateDatasetScript = (
       sql += `INSERT INTO [${table.name}] (${colNames}) VALUES (${values});\n`
     })
 
-    if (hasIdentity) {
-      sql += `SET IDENTITY_INSERT [${table.name}] OFF;\n`
-    }
     sql += '\n'
   })
 

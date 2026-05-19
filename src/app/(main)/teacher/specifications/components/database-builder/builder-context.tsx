@@ -1,6 +1,12 @@
 'use client'
 
-import { createContext, useContext, ReactNode, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useEffect,
+  useState
+} from 'react'
 import { useRouter } from 'next/navigation'
 import { useApi } from '@/hooks/use-api'
 import {
@@ -15,12 +21,15 @@ import {
   buildSchemaJson,
   buildTableData,
   generateDatasetScript,
-  generateSQL,
   generateSchemaOnlySQL
 } from './sql-generator'
 import { AppState, ColumnDef, ForeignKeyDef } from './types'
 import { useDatabaseBuilder } from './use-database-builder'
-import { schemaJsonToAppState } from './state-parser'
+import {
+  applyIdentityColumnsFromDdl,
+  parseDataScriptToRowsByTable,
+  schemaJsonToAppState
+} from './state-parser'
 
 const EMPTY_BUILDER_STATE: AppState = { tables: [], datasets: [] }
 
@@ -41,10 +50,12 @@ export type DatabaseBuilderContextType = ReturnType<
   ) => void
   selectedDatasetForSQL: string
   setSelectedDatasetForSQL: (id: string) => void
-  handleGenerateSQL: () => string
+  handleGenerateSchemaSQL: () => string
+  handleGenerateDatasetSQL: () => string
   handleVerifyAndCreate: () => Promise<void>
   handleGenerateByAiAssist: (description: string) => Promise<void>
   handleSyncSchemaFromDdlScript: (ddlScript: string) => Promise<boolean>
+  handleSyncDatasetFromDmlScript: (dmlScript: string) => boolean
   isAiGenerating: boolean
   isSyncingFromScript: boolean
   isEditMode: boolean
@@ -96,8 +107,24 @@ export function DatabaseBuilderProvider({
 
   const isEditMode = !!specificationId
 
-  const handleGenerateSQL = () => {
-    return generateSQL(tables, datasets, selectedDatasetForSQL)
+  useEffect(() => {
+    if (datasets.length === 0) return
+
+    const selectedDatasetExists = datasets.some(
+      (dataset) => dataset.id === selectedDatasetForSQL
+    )
+    if (!selectedDatasetExists) {
+      setSelectedDatasetForSQL(datasets[0].id)
+    }
+  }, [datasets, selectedDatasetForSQL])
+
+  const handleGenerateSchemaSQL = () => {
+    return generateSchemaOnlySQL(tables)
+  }
+
+  const handleGenerateDatasetSQL = () => {
+    const dataset = datasets.find((d) => d.id === selectedDatasetForSQL)
+    return generateDatasetScript(tables, dataset)
   }
 
   const handleVerifyAndCreate = async () => {
@@ -207,6 +234,7 @@ export function DatabaseBuilderProvider({
         toast.error('Không thể chuyển script thành schema UI')
         return false
       }
+      applyIdentityColumnsFromDdl(nextState.tables, normalizedDdl)
 
       builderState.replaceState({ ...nextState, datasets })
       toast.success('Đã đồng bộ schema từ script')
@@ -216,16 +244,45 @@ export function DatabaseBuilderProvider({
     }
   }
 
+  const handleSyncDatasetFromDmlScript = (dmlScript: string) => {
+    const normalizedDml = dmlScript.trim()
+    if (!normalizedDml) {
+      toast.error('Vui lòng nhập DML script')
+      return false
+    }
+
+    const dataset = datasets.find((item) => item.id === selectedDatasetForSQL)
+    if (!dataset) {
+      toast.error('Vui lòng chọn dataset hợp lệ')
+      return false
+    }
+
+    const rowsByTable = parseDataScriptToRowsByTable(normalizedDml, tables)
+    if (!rowsByTable) {
+      toast.error('Không thể chuyển script thành dữ liệu dataset')
+      return false
+    }
+
+    builderState.updateDataset({
+      ...dataset,
+      rowsByTable
+    })
+    toast.success('Đã áp dụng script vào dataset')
+    return true
+  }
+
   const value = {
     ...builderState,
     editingColumn,
     setEditingColumn,
     selectedDatasetForSQL,
     setSelectedDatasetForSQL,
-    handleGenerateSQL,
+    handleGenerateSchemaSQL,
+    handleGenerateDatasetSQL,
     handleVerifyAndCreate,
     handleGenerateByAiAssist,
     handleSyncSchemaFromDdlScript,
+    handleSyncDatasetFromDmlScript,
     isAiGenerating,
     isSyncingFromScript,
     isEditMode

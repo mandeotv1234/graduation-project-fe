@@ -21,7 +21,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { PATH } from '@/lib/constants'
-import { ExamSpecification, SpecificationResponse } from '@/lib/types'
+import {
+  ExamSpecification,
+  SpecificationDetailResponse,
+  SpecificationResponse
+} from '@/lib/types'
+import { getSpecificationDetail } from '@/lib/actions'
 import { ToggleField } from '@/app/(main)/teacher/classes/[classId]/create-exam/components/toggle-field'
 
 import {
@@ -29,6 +34,11 @@ import {
   ExamSettingsFormInput,
   ExamSettingsFormValues
 } from './exam-settings-form-schema'
+import {
+  buildExamSettingsPayload,
+  ExamSettingsPayload,
+  normalizeExamSettings
+} from './normalize-exam-settings'
 
 interface ExamSettingsFormProps {
   mode: 'create' | 'edit'
@@ -38,7 +48,11 @@ interface ExamSettingsFormProps {
   submitLabel: string
   backHref: string
   initialValues: ExamSettingsFormInput
-  onSubmit: (values: ExamSettingsFormValues) => Promise<void>
+  onSubmit: (
+    values: Omit<ExamSettingsFormValues, 'settings'> & {
+      settings: ExamSettingsPayload
+    }
+  ) => Promise<void>
   isSubmitting: boolean
   specifications?: SpecificationResponse[]
   specificationPreview?: ExamSpecification | null
@@ -89,20 +103,90 @@ export function ExamSettingsForm({
 }: ExamSettingsFormProps) {
   const [selectedSpec, setSelectedSpec] =
     useState<SpecificationResponse | null>(null)
+  const [selectedSpecDetail, setSelectedSpecDetail] =
+    useState<SpecificationDetailResponse | null>(null)
+  const [isLoadingSpecDetail, setIsLoadingSpecDetail] = useState(false)
 
   const {
     register,
     handleSubmit,
     control,
     watch,
+    reset,
+    setValue,
     formState: { errors }
   } = useForm<ExamSettingsFormInput, unknown, ExamSettingsFormValues>({
     resolver: zodResolver(examSettingsFormSchema),
-    defaultValues: initialValues
+    defaultValues: {
+      ...initialValues,
+      settings: normalizeExamSettings(initialValues.settings)
+    }
   })
+
+  useEffect(() => {
+    reset({
+      ...initialValues,
+      settings: normalizeExamSettings(initialValues.settings)
+    })
+  }, [initialValues, reset])
 
   const specificationId = watch('specificationId')
   const autoSubmitOnViolation = watch('settings.autoSubmitOnViolation')
+  const isLoadDdl = watch('settings.isLoadDdl')
+  const seedDatasetId = watch('settings.seedDatasetId')
+  const specificationForDatasets =
+    selectedSpecDetail?.id === Number(specificationId)
+      ? selectedSpecDetail
+      : selectedSpec
+  const seedableDatasets =
+    specificationForDatasets?.datasets?.filter(
+      (dataset) => dataset.isActive !== false && !!dataset.dataScript?.trim()
+    ) ?? []
+  const hasLoadedDatasetOptions =
+    Number(specificationForDatasets?.id ?? 0) === Number(specificationId) &&
+    Array.isArray(specificationForDatasets?.datasets)
+  const hasSeedDatasetValue = seedDatasetId != null && seedDatasetId !== ''
+  const selectedSeedDatasetInOptions =
+    hasSeedDatasetValue &&
+    seedableDatasets.some(
+      (dataset) => Number(dataset.id) === Number(seedDatasetId)
+    )
+  const shouldRenderPendingSelectedDatasetOption =
+    isLoadDdl &&
+    hasSeedDatasetValue &&
+    !selectedSeedDatasetInOptions &&
+    !hasLoadedDatasetOptions
+
+  useEffect(() => {
+    const selectedSpecificationId = Number(specificationId)
+
+    if (!isLoadDdl || !hasSeedDatasetValue) return
+
+    if (!selectedSpecificationId) {
+      setValue('settings.seedDatasetId', undefined, {
+        shouldDirty: true,
+        shouldValidate: true
+      })
+      return
+    }
+
+    if (!hasLoadedDatasetOptions) return
+
+    if (!selectedSeedDatasetInOptions) {
+      setValue('settings.seedDatasetId', undefined, {
+        shouldDirty: true,
+        shouldValidate: true
+      })
+    }
+  }, [
+    hasSeedDatasetValue,
+    hasLoadedDatasetOptions,
+    isLoadDdl,
+    seedDatasetId,
+    selectedSeedDatasetInOptions,
+    specificationId,
+    setValue
+  ])
 
   useEffect(() => {
     if (mode !== 'create') {
@@ -114,10 +198,50 @@ export function ExamSettingsForm({
     setSelectedSpec(nextSpecification)
   }, [mode, specificationId, specifications])
 
+  useEffect(() => {
+    const selectedId = Number(specificationId)
+    if (!selectedId) {
+      setSelectedSpecDetail(null)
+      return
+    }
+
+    let isCancelled = false
+
+    async function fetchSpecificationDetail() {
+      setIsLoadingSpecDetail(true)
+      try {
+        const result = await getSpecificationDetail(selectedId)
+        if (!isCancelled) {
+          setSelectedSpecDetail(result.data ?? null)
+        }
+      } catch {
+        if (!isCancelled) {
+          setSelectedSpecDetail(null)
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingSpecDetail(false)
+        }
+      }
+    }
+
+    fetchSpecificationDetail()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [specificationId])
+
   const preview =
     mode === 'create'
       ? mapSpecificationPreview(selectedSpec)
       : specificationPreview
+
+  const handleValidSubmit = (values: ExamSettingsFormValues) =>
+    onSubmit({
+      ...values,
+      settings: buildExamSettingsPayload(values.settings)
+    })
 
   return (
     <div className="space-y-8">
@@ -156,7 +280,7 @@ export function ExamSettingsForm({
 
       <form
         id={formId}
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(handleValidSubmit)}
         className="grid grid-cols-1 gap-8 lg:grid-cols-3"
       >
         <div className="space-y-8 lg:col-span-2">
@@ -427,13 +551,63 @@ export function ExamSettingsForm({
                 />
               </div>
 
-              <div className="border-t border-border pt-2">
+              <div className="space-y-3 border-t border-border pt-4">
                 <ToggleField
                   control={control}
                   name="settings.isLoadDdl"
-                  label="Nạp schema giáo viên"
-                  description="Nếu bật, hệ thống sẽ chạy script DDL (CREATE TABLE, ...) của giáo viên vào schema sinh viên khi bắt đầu thi."
+                  label="Nạp đặc tả và dữ liệu mẫu"
+                  description="Khi bật, hệ thống sẽ tạo schema từ đặc tả và nạp dataset đã chọn vào schema sinh viên khi bắt đầu thi."
                 />
+
+                {isLoadDdl && (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">
+                      Dataset dùng để nạp dữ liệu mẫu
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={
+                          seedDatasetId != null && seedDatasetId !== ''
+                            ? String(seedDatasetId)
+                            : ''
+                        }
+                        onChange={(event) => {
+                          const nextValue = event.target.value
+                          setValue(
+                            'settings.seedDatasetId',
+                            nextValue === '' ? undefined : Number(nextValue),
+                            { shouldDirty: true, shouldValidate: true }
+                          )
+                        }}
+                        className="flex h-10 w-full appearance-none rounded-lg border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        <option value="">-- Chọn dataset --</option>
+                        {shouldRenderPendingSelectedDatasetOption && (
+                          <option value={String(seedDatasetId)}>
+                            Dataset đã chọn đang tải...
+                          </option>
+                        )}
+                        {isLoadingSpecDetail && (
+                          <option value="" disabled>
+                            Đang tải dataset...
+                          </option>
+                        )}
+                        {seedableDatasets.map((dataset) => (
+                          <option key={dataset.id} value={String(dataset.id)}>
+                            {dataset.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    </div>
+                    {hasLoadedDatasetOptions &&
+                      seedableDatasets.length === 0 && (
+                        <p className="mt-1 text-xs text-amber-600">
+                          Đặc tả đang chọn chưa có dataset có script dữ liệu.
+                        </p>
+                      )}
+                  </div>
+                )}
               </div>
             </div>
           </section>

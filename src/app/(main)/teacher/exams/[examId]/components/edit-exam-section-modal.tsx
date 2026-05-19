@@ -24,7 +24,7 @@ import {
 import { useApi } from '@/hooks/use-api'
 import { updateExam } from '@/lib/actions'
 import { updateExamWithPdf } from '@/lib/api/exam-client'
-import { TeacherExamDetail } from '@/lib/types'
+import { SpecificationDetailResponse, TeacherExamDetail } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const SECTION_DIALOG: Record<
@@ -53,6 +53,7 @@ const SECTION_DIALOG: Record<
 type EditExamSectionModalProps = {
   exam: TeacherExamDetail
   section: ExamFormFocusSection
+  specification?: SpecificationDetailResponse | null
   onSaved?: (updatedExam: TeacherExamDetail) => void
   className?: string
 }
@@ -60,6 +61,7 @@ type EditExamSectionModalProps = {
 export function EditExamSectionModal({
   exam,
   section,
+  specification,
   onSaved,
   className
 }: EditExamSectionModalProps) {
@@ -142,6 +144,7 @@ export function EditExamSectionModal({
               title={meta.title}
               submitLabel="Lưu thay đổi"
               focusSection={section}
+              initialSpecificationDetail={specification ?? null}
               initialPdfFileName={
                 exam.pdfFilePath ? exam.originalPdfFileName : null
               }

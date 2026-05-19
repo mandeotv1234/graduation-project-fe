@@ -23,6 +23,7 @@ import { updateExam } from '@/lib/actions'
 import { updateExamWithPdf } from '@/lib/api/exam-client'
 import { TeacherExamDetail } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { normalizeExamSettings } from '@/app/(main)/teacher/exams/components/normalize-exam-settings'
 
 type InitialData = Partial<ExamFormInput> & {
   id: number
@@ -54,7 +55,7 @@ export function buildExamFormInitialData(exam: TeacherExamDetail): InitialData {
     isPublished: Boolean(exam.isPublished),
     maxAttempts: exam.maxAttempts,
     lateThreshold: exam.lateThreshold,
-    settings: exam.settings || {}
+    settings: normalizeExamSettings(exam.settings)
   }
 }
 

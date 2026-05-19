@@ -8,6 +8,7 @@ import { PATH } from '@/lib/constants'
 import { SpecificationResponse } from '@/lib/types'
 import { ExamSettingsForm } from '@/app/(main)/teacher/exams/components/exam-settings-form'
 import { ExamSettingsFormValues } from '@/app/(main)/teacher/exams/components/exam-settings-form-schema'
+import { buildExamSettingsPayload } from '@/app/(main)/teacher/exams/components/normalize-exam-settings'
 
 interface CreateExamViewProps {
   classId: number
@@ -24,6 +25,7 @@ export function CreateExamView({
   async function handleSubmit(data: ExamSettingsFormValues) {
     const payload = {
       ...data,
+      settings: buildExamSettingsPayload(data.settings),
       classId,
       startTime: data.startTime || undefined,
       endTime: data.endTime || undefined
@@ -69,7 +71,8 @@ export function CreateExamView({
           allowOvertime: false,
           gradingMethod: 'highest_score',
           maxViolations: 3,
-          showResultAfterSubmit: false
+          showResultAfterSubmit: false,
+          isLoadDdl: false
         }
       }}
       isSubmitting={isLoading}

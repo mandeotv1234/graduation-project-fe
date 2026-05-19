@@ -24,7 +24,8 @@ import { useEffect, useState } from 'react'
 
 export function Header() {
   const [aiDescription, setAiDescription] = useState('')
-  const [scriptDraft, setScriptDraft] = useState('')
+  const [schemaScriptDraft, setSchemaScriptDraft] = useState('')
+  const [datasetScriptDraft, setDatasetScriptDraft] = useState('')
   const {
     undo,
     redo,
@@ -33,8 +34,10 @@ export function Header() {
     datasets,
     selectedDatasetForSQL,
     setSelectedDatasetForSQL,
-    handleGenerateSQL: generateSQL,
+    handleGenerateSchemaSQL: generateSchemaSQL,
+    handleGenerateDatasetSQL: generateDatasetSQL,
     handleSyncSchemaFromDdlScript,
+    handleSyncDatasetFromDmlScript,
     handleVerifyAndCreate,
     handleGenerateByAiAssist,
     isAiGenerating,
@@ -42,29 +45,39 @@ export function Header() {
     isEditMode
   } = useBuilderContext()
 
-  const generatedScript = generateSQL()
+  const generatedSchemaScript = generateSchemaSQL()
+  const generatedDatasetScript = generateDatasetSQL()
+  const selectedDataset = datasets.find(
+    (dataset) => dataset.id === selectedDatasetForSQL
+  )
+
   useEffect(() => {
-    setScriptDraft(generatedScript)
-  }, [generatedScript])
+    setSchemaScriptDraft(generatedSchemaScript)
+  }, [generatedSchemaScript])
+
+  useEffect(() => {
+    setDatasetScriptDraft(generatedDatasetScript)
+  }, [generatedDatasetScript])
 
   return (
-    <div className="bg-white border-b shrink-0">
-      <header className="px-6 py-4 flex items-center justify-between">
+    <div className="shrink-0 border-b bg-white">
+      <header className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-4">
-          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-            <Database className="w-5 h-5" />
+          <div className="rounded-lg bg-blue-100 p-2 text-blue-600">
+            <Database className="h-5 w-5" />
           </div>
           <div>
             <h1 className="text-xl font-semibold text-neutral-900">
               Database Schema Builder
             </h1>
             <p className="text-sm text-neutral-500">
-              Thiết kế Schema và tạo các Dataset độc lập.
+              Thiết kế schema và tạo các dataset độc lập.
             </p>
           </div>
         </div>
+
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 mr-4 border-r pr-4">
+          <div className="mr-4 flex items-center gap-1 border-r pr-4">
             <Button
               variant="ghost"
               size="icon"
@@ -72,7 +85,7 @@ export function Header() {
               disabled={!canUndo}
               title="Undo"
             >
-              <Undo2 className="w-4 h-4" />
+              <Undo2 className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -81,45 +94,27 @@ export function Header() {
               disabled={!canRedo}
               title="Redo"
             >
-              <Redo2 className="w-4 h-4" />
+              <Redo2 className="h-4 w-4" />
             </Button>
           </div>
+
           <Dialog>
-            <DialogTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
-              View SQL Script
+            <DialogTrigger className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
+              View Schema SQL
             </DialogTrigger>
-            <DialogContent className="max-w-[90vw] sm:max-w-[90vw] w-[90vw] max-h-[92vh] flex flex-col">
+            <DialogContent className="flex max-h-[92vh] w-[90vw] max-w-[90vw] flex-col sm:max-w-[90vw]">
               <DialogHeader>
-                <DialogTitle>Generated SQL Script</DialogTitle>
+                <DialogTitle>Schema SQL Script</DialogTitle>
                 <DialogDescription>
-                  Có thể chỉnh sửa script và đồng bộ ngược lại UI builder.
+                  Script DDL dùng để tạo bảng. Có thể chỉnh sửa và đồng bộ ngược
+                  lại UI builder.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="flex items-center gap-3 py-2">
-                <Label>Include Data from Dataset:</Label>
-                <Select
-                  value={selectedDatasetForSQL}
-                  onValueChange={(val) => val && setSelectedDatasetForSQL(val)}
-                >
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue placeholder="Select a dataset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None (Schema Only)</SelectItem>
-                    {datasets.map((ds) => (
-                      <SelectItem key={ds.id} value={ds.id}>
-                        {ds.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <ScrollArea className="min-h-0 h-[60vh] max-h-[60vh] bg-neutral-950 text-neutral-50 p-4 rounded-md font-mono text-sm">
+              <ScrollArea className="min-h-0 h-[60vh] max-h-[60vh] rounded-md bg-neutral-950 p-4 font-mono text-sm text-neutral-50">
                 <Textarea
-                  value={scriptDraft}
-                  onChange={(e) => setScriptDraft(e.target.value)}
+                  value={schemaScriptDraft}
+                  onChange={(event) => setSchemaScriptDraft(event.target.value)}
                   className="min-h-[58vh] resize-none border-0 bg-transparent font-mono text-xs text-neutral-100 focus-visible:ring-0"
                 />
                 <ScrollBar orientation="horizontal" />
@@ -127,8 +122,10 @@ export function Header() {
               <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"
-                  onClick={() => handleSyncSchemaFromDdlScript(scriptDraft)}
-                  disabled={isSyncingFromScript || !scriptDraft.trim()}
+                  onClick={() =>
+                    handleSyncSchemaFromDdlScript(schemaScriptDraft)
+                  }
+                  disabled={isSyncingFromScript || !schemaScriptDraft.trim()}
                 >
                   {isSyncingFromScript
                     ? 'Đang đồng bộ...'
@@ -137,8 +134,68 @@ export function Header() {
               </div>
             </DialogContent>
           </Dialog>
+
+          <Dialog>
+            <DialogTrigger className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
+              View Dataset SQL
+            </DialogTrigger>
+            <DialogContent className="flex max-h-[92vh] w-[90vw] max-w-[90vw] flex-col sm:max-w-[90vw]">
+              <DialogHeader>
+                <DialogTitle>Dataset SQL Script</DialogTitle>
+                <DialogDescription>
+                  Script DML dùng để nạp dữ liệu cho dataset đang chọn. Có thể
+                  chỉnh sửa và lưu làm script riêng của dataset.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="flex items-center gap-3 py-2">
+                <Label>Dataset:</Label>
+                <Select
+                  value={selectedDatasetForSQL}
+                  onValueChange={(value) =>
+                    value && setSelectedDatasetForSQL(value)
+                  }
+                >
+                  <SelectTrigger className="w-[250px]">
+                    <SelectValue placeholder="Select a dataset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {datasets.map((dataset) => (
+                      <SelectItem key={dataset.id} value={dataset.id}>
+                        {dataset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <ScrollArea className="min-h-0 h-[60vh] max-h-[60vh] rounded-md bg-neutral-950 p-4 font-mono text-sm text-neutral-50">
+                <Textarea
+                  value={datasetScriptDraft}
+                  onChange={(event) =>
+                    setDatasetScriptDraft(event.target.value)
+                  }
+                  placeholder="Chưa có dataset hoặc dataset chưa có dữ liệu."
+                  className="min-h-[58vh] resize-none border-0 bg-transparent font-mono text-xs text-neutral-100 focus-visible:ring-0"
+                />
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  onClick={() =>
+                    handleSyncDatasetFromDmlScript(datasetScriptDraft)
+                  }
+                  disabled={!selectedDataset || !datasetScriptDraft.trim()}
+                >
+                  Áp dụng script cho dataset
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Button onClick={handleVerifyAndCreate} className="gap-2">
-            <Play className="w-4 h-4" />
+            <Play className="h-4 w-4" />
             {isEditMode ? 'Verify & Update' : 'Verify & Create'}
           </Button>
         </div>
@@ -149,7 +206,7 @@ export function Header() {
           <Input
             placeholder="Mô tả yêu cầu để AI cập nhật schema..."
             value={aiDescription}
-            onChange={(e) => setAiDescription(e.target.value)}
+            onChange={(event) => setAiDescription(event.target.value)}
             className="h-10 border-0 bg-white focus-visible:ring-blue-300"
           />
           <Button
@@ -160,7 +217,7 @@ export function Header() {
             disabled={isAiGenerating || !aiDescription.trim()}
             className="h-10 gap-2 bg-blue-600 px-4 text-white hover:bg-blue-700"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="h-4 w-4" />
             {isAiGenerating ? 'Đang xử lý...' : 'Sinh schema'}
           </Button>
         </div>

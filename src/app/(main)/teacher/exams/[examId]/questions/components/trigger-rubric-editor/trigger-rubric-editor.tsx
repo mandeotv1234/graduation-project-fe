@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import {
   Plus,
   Trash2,
@@ -15,6 +15,7 @@ import {
   MousePointerClick
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { generateGradingRubric } from '@/lib/actions'
 import styles from '@/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.module.scss'
@@ -49,9 +50,9 @@ function createDefaultTestCase(): TriggerTestCase {
     case_id: crypto.randomUUID(),
     case_name: '',
     penalty_value: 0.5,
-    trigger_sql: '',
-    expected_result: '',
-    setup_script: ''
+    setup_script: '',
+    invocation_query: '',
+    validation_query: ''
   }
 }
 
@@ -140,13 +141,8 @@ function normalizeTriggerPayload(
       if (tc && typeof tc === 'object') {
         const testCase = tc as Record<string, unknown>
 
-        // Handle both trigger format and routine format (AI sometimes returns routine format)
-        const triggerSql = String(
-          testCase.trigger_sql || testCase.invocation_query || ''
-        )
-        const expectedResult = String(
-          testCase.expected_result || testCase.validation_query || ''
-        )
+        const invocationQuery = String(testCase.invocation_query || '')
+        const validationQuery = String(testCase.validation_query || '')
 
         normalizedTestCases.push({
           case_id: String(testCase.case_id || crypto.randomUUID()),
@@ -154,9 +150,9 @@ function normalizeTriggerPayload(
           penalty_value: Number(
             testCase.penalty_value || testCase.score_weight || 0.5
           ),
-          trigger_sql: triggerSql,
-          expected_result: expectedResult,
           setup_script: String(testCase.setup_script || ''),
+          invocation_query: invocationQuery,
+          validation_query: validationQuery,
           description: testCase.description
             ? String(testCase.description)
             : undefined
@@ -196,7 +192,6 @@ export function TriggerRubricEditor({
   )
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeTestCaseIndex, setActiveTestCaseIndex] = useState(0)
-  const hasAutoTriggeredRef = useRef(false)
 
   const { grading_settings, triggers, test_cases } = useMemo(
     () => normalizeTriggerPayload(rubric?.grading_payload),
@@ -276,13 +271,17 @@ export function TriggerRubricEditor({
 
   const handleAddTestCase = useCallback(() => {
     setTestCases((prev) => [...prev, createDefaultTestCase()])
-  }, [setTestCases])
+    setActiveTestCaseIndex(test_cases.length)
+  }, [setTestCases, test_cases.length])
 
   const handleRemoveTestCase = useCallback(
     (idx: number) => {
       setTestCases((prev) => prev.filter((_, i) => i !== idx))
+      setActiveTestCaseIndex((prev) =>
+        Math.max(0, Math.min(prev, test_cases.length - 2))
+      )
     },
-    [setTestCases]
+    [setTestCases, test_cases.length]
   )
 
   const handleGenerateRubric = useCallback(async () => {
@@ -321,12 +320,12 @@ export function TriggerRubricEditor({
         }
 
         onChange(normalizedRubric)
+        setActiveTestCaseIndex(0)
         toast.success('Đã tạo rubric bằng AI thành công!')
       } else {
         toast.error(result.message || 'Tạo rubric thất bại')
       }
-    } catch (error) {
-      console.log('Error generating rubric:', error)
+    } catch {
       toast.error('Có lỗi xảy ra khi tạo rubric')
     } finally {
       setIsGenerating(false)
@@ -348,25 +347,12 @@ export function TriggerRubricEditor({
   }, [activeTestCaseIndex, test_cases.length])
 
   useEffect(() => {
-    if (
-      isWizardMode &&
-      wizardStep === 2 &&
-      triggers.length === 0 &&
-      correctQuery?.trim() &&
-      !isGenerating &&
-      !hasAutoTriggeredRef.current
-    ) {
-      hasAutoTriggeredRef.current = true
-      handleGenerateRubric()
-    }
-  }, [
-    wizardStep,
-    isWizardMode,
-    triggers.length,
-    correctQuery,
-    isGenerating,
-    handleGenerateRubric
-  ])
+    if (!isWizardMode || wizardStep !== 2) return
+    if (test_cases.length > 0) return
+
+    setTestCases(() => [createDefaultTestCase()])
+    setActiveTestCaseIndex(0)
+  }, [isWizardMode, wizardStep, test_cases.length, setTestCases])
 
   const isEmpty = triggers.length === 0
 
@@ -396,7 +382,7 @@ export function TriggerRubricEditor({
                 className="text-xs text-muted-foreground"
                 title="Khi BẬT: Chỉ cộng điểm cho các tiêu chí đúng, không trừ điểm cho tiêu chí sai. Khi TẮT: Trừ điểm cho mỗi tiêu chí sai (bảng sai, event sai, timing sai, test case fail)."
               >
-                ℹ️
+                i
               </span>
             </label>
 
@@ -415,9 +401,9 @@ export function TriggerRubricEditor({
               <span className={styles.labelText}>Phân biệt hoa/thường</span>
               <span
                 className=" text-xs text-muted-foreground"
-                title="Khi BẬT: Tên trigger phải khớp chính xác (VD: 'TRG_Test' ≠ 'trg_test'). Khi TẮT: Không phân biệt hoa thường (VD: 'TRG_Test' = 'trg_test')."
+                title="Khi BẬT: Tên trigger phải khớp chính xác (VD: 'TRG_Test' != 'trg_test'). Khi TẮT: Không phân biệt hoa thường (VD: 'TRG_Test' = 'trg_test')."
               >
-                ℹ️
+                i
               </span>
             </label>
             {/* 
@@ -432,16 +418,16 @@ export function TriggerRubricEditor({
                   }))
                 }
                 className={styles.syntaxSelect}
-                title="FAIL_ALL: Nếu SQL có lỗi cú pháp → 0 điểm toàn bộ. PARTIAL: Nếu SQL có lỗi cú pháp → vẫn chấm các phần đúng được (hiện tại chưa implement)."
+                title="FAIL_ALL: Nếu SQL có lỗi cú pháp -> 0 điểm toàn bộ. PARTIAL: Nếu SQL có lỗi cú pháp -> vẫn chấm các phần đúng được (hiện tại chưa implement)."
               >
                 <option value="FAIL_ALL">0 điểm toàn bộ</option>
                 <option value="PARTIAL">Chấm từng phần (chưa hỗ trợ)</option>
               </select>
               <span
                 className="ml-2 text-xs text-muted-foreground"
-                title="FAIL_ALL: Nếu SQL có lỗi cú pháp → 0 điểm toàn bộ. PARTIAL: Nếu SQL có lỗi cú pháp → vẫn chấm các phần đúng được (hiện tại chưa implement)."
+                title="FAIL_ALL: Nếu SQL có lỗi cú pháp -> 0 điểm toàn bộ. PARTIAL: Nếu SQL có lỗi cú pháp -> vẫn chấm các phần đúng được (hiện tại chưa implement)."
               >
-                ℹ️
+                i
               </span>
             </div> */}
           </div>
@@ -450,9 +436,38 @@ export function TriggerRubricEditor({
 
       {/* Step 2: Test Cases */}
       {isTestCasesStep && (
-        <div className="space-y-4">
+        <div className={styles.testCasesSection}>
+          <div className="flex flex-wrap items-center gap-3 pb-2">
+            <Button
+              type="button"
+              onClick={handleGenerateRubric}
+              disabled={isGenerating || !correctQuery?.trim()}
+              className="gap-2 h-9 px-4"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang tạo test case...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  AI tạo test case
+                </>
+              )}
+            </Button>
+          </div>
+
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Test Cases</h3>
+            <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+              Danh sách test case
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2.5 py-0.5 text-xs"
+              >
+                {test_cases.length}
+              </Badge>
+            </h3>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleAddTestCase}>
                 <Plus className={styles.iconSm} />
@@ -463,6 +478,7 @@ export function TriggerRubricEditor({
                 size="sm"
                 onClick={handleGenerateRubric}
                 disabled={isGenerating}
+                className="hidden"
               >
                 {isGenerating ? (
                   <Loader2 className={`${styles.iconSm} ${styles.spin}`} />
@@ -510,7 +526,7 @@ export function TriggerRubricEditor({
                       onClick={() => setActiveTestCaseIndex(idx)}
                       className={styles.testCaseTab}
                     >
-                      TC {idx + 1}
+                      TC{idx + 1}
                     </Button>
                   ))}
                 </div>
@@ -533,84 +549,95 @@ export function TriggerRubricEditor({
                 idx === activeTestCaseIndex ? (
                   <div key={tc.case_id} className={styles.testCaseCard}>
                     <div className={styles.testCaseHeader}>
-                      <span className={styles.testCaseNumber}>
-                        Test case {idx + 1}
-                      </span>
+                      <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-container text-sm font-bold text-on-primary-container shadow-sm">
+                          {idx + 1}
+                        </span>
+                        <span className="truncate text-sm font-semibold text-on-surface">
+                          {tc.case_name || `Test case ${idx + 1}`}
+                        </span>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveTestCase(idx)}
+                        title="Xóa test case"
                       >
                         <Trash2 className={styles.iconSm} />
                       </Button>
                     </div>
                     <div className={styles.testCaseFields}>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>
-                          Tên test case
-                        </label>
-                        <input
-                          type="text"
-                          value={tc.case_name || ''}
-                          onChange={(e) =>
-                            setTestCases((prev) =>
-                              prev.map((t, i) =>
-                                i === idx
-                                  ? { ...t, case_name: e.target.value }
-                                  : t
-                              )
-                            )
-                          }
-                          className={styles.fieldInput}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>
-                          SQL kích hoạt trigger
-                        </label>
-                        <div className="h-[100px] overflow-hidden rounded border border-border bg-sub-background">
-                          <TeacherSqlEditor
-                            value={tc.trigger_sql || ''}
-                            onChange={(value) =>
+                      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                        <label className="space-y-1.5">
+                          <span className="block text-xs font-semibold text-on-surface-variant">
+                            Mã test case
+                          </span>
+                          <input
+                            type="text"
+                            value={tc.case_id || ''}
+                            onChange={(e) =>
                               setTestCases((prev) =>
                                 prev.map((t, i) =>
                                   i === idx
-                                    ? { ...t, trigger_sql: value || '' }
+                                    ? { ...t, case_id: e.target.value }
                                     : t
                                 )
                               )
                             }
-                            height="100%"
-                            showExpandButton={true}
+                            className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
                           />
-                        </div>
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>
-                          Expected result
                         </label>
-                        <div className="h-[100px] overflow-hidden rounded border border-border bg-sub-background">
-                          <TeacherSqlEditor
-                            value={tc.expected_result || ''}
-                            onChange={(value) =>
+                        <label className="space-y-1.5">
+                          <span className="block text-xs font-semibold text-on-surface-variant">
+                            Tên kịch bản
+                          </span>
+                          <input
+                            type="text"
+                            value={tc.case_name || ''}
+                            onChange={(e) =>
                               setTestCases((prev) =>
                                 prev.map((t, i) =>
                                   i === idx
-                                    ? { ...t, expected_result: value || '' }
+                                    ? { ...t, case_name: e.target.value }
                                     : t
                                 )
                               )
                             }
-                            height="100%"
-                            showExpandButton={true}
+                            className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
                           />
-                        </div>
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="block text-xs font-semibold text-on-surface-variant">
+                            Điểm
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.05}
+                            value={tc.penalty_value ?? 0.5}
+                            onChange={(e) =>
+                              setTestCases((prev) =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? {
+                                        ...t,
+                                        penalty_value:
+                                          parseFloat(e.target.value) || 0
+                                      }
+                                    : t
+                                )
+                              )
+                            }
+                            className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
+                          />
+                        </label>
                       </div>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>
+                      <div className="space-y-1.5 flex flex-col">
+                        <label className="text-xs font-semibold text-primary flex items-center gap-2 mb-2">
+                          <Sparkles className="h-3.5 w-3.5" />
                           Setup script
                         </label>
-                        <div className="h-[120px] overflow-hidden rounded border border-border bg-sub-background">
+                        <div className="h-[180px] overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container shadow-inner">
                           <TeacherSqlEditor
                             value={tc.setup_script || ''}
                             onChange={(value) =>
@@ -627,30 +654,49 @@ export function TriggerRubricEditor({
                           />
                         </div>
                       </div>
-                      <div className={styles.penaltyField}>
-                        <label className={styles.penaltyLabel}>
-                          Điểm trừ nếu fail:
+                      <div className="space-y-1.5 flex flex-col">
+                        <label className="text-xs font-semibold text-primary flex items-center gap-2 mb-2">
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Triggering query
                         </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.05}
-                          value={tc.penalty_value ?? 0.5}
-                          onChange={(e) =>
-                            setTestCases((prev) =>
-                              prev.map((t, i) =>
-                                i === idx
-                                  ? {
-                                      ...t,
-                                      penalty_value:
-                                        parseFloat(e.target.value) || 0
-                                    }
-                                  : t
+                        <div className="h-[220px] overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container shadow-inner">
+                          <TeacherSqlEditor
+                            value={tc.invocation_query || ''}
+                            onChange={(value) =>
+                              setTestCases((prev) =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? { ...t, invocation_query: value || '' }
+                                    : t
+                                )
                               )
-                            )
-                          }
-                          className={styles.penaltyInput}
-                        />
+                            }
+                            height="100%"
+                            showExpandButton={true}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 flex flex-col">
+                        <label className="text-xs font-semibold text-primary flex items-center gap-2 mb-2">
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Validation query
+                        </label>
+                        <div className="h-[220px] overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container shadow-inner">
+                          <TeacherSqlEditor
+                            value={tc.validation_query || ''}
+                            onChange={(value) =>
+                              setTestCases((prev) =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? { ...t, validation_query: value || '' }
+                                    : t
+                                )
+                              )
+                            }
+                            height="100%"
+                            showExpandButton={true}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

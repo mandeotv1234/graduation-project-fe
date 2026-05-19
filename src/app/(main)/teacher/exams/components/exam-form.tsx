@@ -20,8 +20,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { SpecificationResponse } from '@/lib/types'
-import { getSpecifications } from '@/lib/actions'
+import { SpecificationDetailResponse, SpecificationResponse } from '@/lib/types'
+import { getSpecificationDetail, getSpecifications } from '@/lib/actions'
 
 import {
   examSchema,
@@ -29,6 +29,11 @@ import {
   ExamFormInput,
   SpecificationMode
 } from './exam-form-schema'
+import {
+  buildExamSettingsPayload,
+  ExamSettingsPayload,
+  normalizeExamSettings
+} from './normalize-exam-settings'
 import { ToggleField } from './toggle-field'
 import { cn } from '@/lib/utils'
 
@@ -40,7 +45,10 @@ export type ExamFormFocusSection =
 
 interface ExamFormProps {
   initialData?: Partial<ExamFormInput>
-  onSubmit: (data: ExamFormValues, pdfFile?: File | null) => Promise<void>
+  onSubmit: (
+    data: Omit<ExamFormValues, 'settings'> & { settings: ExamSettingsPayload },
+    pdfFile?: File | null
+  ) => Promise<void>
   isLoading: boolean
   title: string
   submitLabel: string
@@ -48,6 +56,7 @@ interface ExamFormProps {
   focusSection?: ExamFormFocusSection
   /** Tên file PDF hiện tại (dùng khi edit exam đã có PDF) */
   initialPdfFileName?: string | null
+  initialSpecificationDetail?: SpecificationDetailResponse | null
 }
 
 export function ExamForm({
@@ -57,11 +66,18 @@ export function ExamForm({
   title,
   submitLabel,
   focusSection,
-  initialPdfFileName
+  initialPdfFileName,
+  initialSpecificationDetail
 }: ExamFormProps) {
   const [specifications, setSpecifications] = useState<SpecificationResponse[]>(
     []
   )
+  const [selectedSpecificationDetail, setSelectedSpecificationDetail] =
+    useState<SpecificationDetailResponse | null>(
+      initialSpecificationDetail ?? null
+    )
+  const [isLoadingSpecificationDetail, setIsLoadingSpecificationDetail] =
+    useState(false)
   const [specMode, setSpecMode] = useState<SpecificationMode>(
     initialPdfFileName ? 'pdf' : 'specification'
   )
@@ -74,11 +90,12 @@ export function ExamForm({
     control,
     watch,
     reset,
+    setValue,
     formState: { errors }
   } = useForm<ExamFormInput, unknown, ExamFormValues>({
     resolver: zodResolver(examSchema),
     defaultValues: {
-      title: '',
+      title: initialData?.title ?? '',
       specificationId: initialData?.specificationId ?? 0,
       durationMinutes: initialData?.durationMinutes ?? 60,
       startTime: initialData?.startTime ?? '',
@@ -87,21 +104,7 @@ export function ExamForm({
       isPublished: initialData?.isPublished ?? true,
       maxAttempts: initialData?.maxAttempts ?? 1,
       lateThreshold: initialData?.lateThreshold ?? 0,
-      ...initialData,
-      settings: {
-        preventCopyPaste: true,
-        forceFullscreen: true,
-        trackTabSwitch: true,
-        autoSubmitOnViolation: false,
-        allowReview: true,
-        scoreDisplayMode: 'after_closed',
-        allowOvertime: false,
-        gradingMethod: 'highest_score',
-        showResultAfterSubmit: false,
-        maxViolations: 3,
-        isLoadDdl: false,
-        ...initialData?.settings
-      }
+      settings: normalizeExamSettings(initialData?.settings)
     }
   })
 
@@ -118,25 +121,10 @@ export function ExamForm({
         isPublished: initialData.isPublished ?? true,
         maxAttempts: initialData.maxAttempts ?? 1,
         lateThreshold: initialData.lateThreshold ?? 0,
-        settings: {
-          preventCopyPaste: initialData.settings?.preventCopyPaste ?? true,
-          forceFullscreen: initialData.settings?.forceFullscreen ?? true,
-          trackTabSwitch: initialData.settings?.trackTabSwitch ?? true,
-          autoSubmitOnViolation:
-            initialData.settings?.autoSubmitOnViolation ?? false,
-          allowReview: initialData.settings?.allowReview ?? true,
-          scoreDisplayMode:
-            initialData.settings?.scoreDisplayMode ?? 'after_closed',
-          allowOvertime: initialData.settings?.allowOvertime ?? false,
-          gradingMethod: initialData.settings?.gradingMethod ?? 'highest_score',
-          showResultAfterSubmit:
-            initialData.settings?.showResultAfterSubmit ?? false,
-          maxViolations: initialData.settings?.maxViolations ?? 3,
-          isLoadDdl: initialData.settings?.isLoadDdl ?? false
-        }
+        settings: normalizeExamSettings(initialData.settings)
       })
     }
-  }, [initialData, reset]) // Remove specifications.length to avoid wiping in-progress edits
+  }, [initialData, reset])
 
   useEffect(() => {
     async function fetchSpecifications() {
@@ -150,6 +138,121 @@ export function ExamForm({
 
   const selectedSpecificationId = watch('specificationId')
   const autoSubmitOnViolation = watch('settings.autoSubmitOnViolation')
+  const isLoadDdl = watch('settings.isLoadDdl')
+  const seedDatasetId = watch('settings.seedDatasetId')
+  const selectedSpecification = specifications.find(
+    (specification) => specification.id === Number(selectedSpecificationId)
+  )
+  useEffect(() => {
+    const specificationId = Number(selectedSpecificationId)
+    if (!specificationId) {
+      setSelectedSpecificationDetail(null)
+      return
+    }
+
+    let isCancelled = false
+
+    async function fetchSpecificationDetail() {
+      setIsLoadingSpecificationDetail(true)
+      try {
+        const result = await getSpecificationDetail(specificationId)
+        if (!isCancelled) {
+          setSelectedSpecificationDetail(result.data ?? null)
+        }
+      } catch {
+        if (!isCancelled) {
+          setSelectedSpecificationDetail(null)
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingSpecificationDetail(false)
+        }
+      }
+    }
+
+    fetchSpecificationDetail()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [selectedSpecificationId])
+
+  const specificationForDatasets =
+    selectedSpecificationDetail?.id === Number(selectedSpecificationId)
+      ? selectedSpecificationDetail
+      : selectedSpecification
+  const seedableDatasets =
+    specificationForDatasets?.datasets?.filter(
+      (dataset) => dataset.isActive !== false && !!dataset.dataScript?.trim()
+    ) ?? []
+  const hasLoadedDatasetOptions =
+    Number(specificationForDatasets?.id ?? 0) ===
+      Number(selectedSpecificationId) &&
+    Array.isArray(specificationForDatasets?.datasets)
+  const hasSeedDatasetValue = seedDatasetId != null && seedDatasetId !== ''
+  const selectedSeedDatasetInOptions =
+    hasSeedDatasetValue &&
+    seedableDatasets.some(
+      (dataset) => Number(dataset.id) === Number(seedDatasetId)
+    )
+  const shouldRenderPendingSelectedDatasetOption =
+    isLoadDdl &&
+    hasSeedDatasetValue &&
+    !selectedSeedDatasetInOptions &&
+    !hasLoadedDatasetOptions
+
+  useEffect(() => {
+    if (
+      initialSpecificationDetail &&
+      Number(initialSpecificationDetail.id) === Number(selectedSpecificationId)
+    ) {
+      setSelectedSpecificationDetail(initialSpecificationDetail)
+    }
+  }, [initialSpecificationDetail, selectedSpecificationId])
+
+  useEffect(() => {
+    const specificationId = Number(selectedSpecificationId)
+
+    if (!isLoadDdl || !hasSeedDatasetValue) return
+
+    if (!specificationId) {
+      setValue('settings.seedDatasetId', undefined, {
+        shouldDirty: true,
+        shouldValidate: true
+      })
+      return
+    }
+
+    if (!hasLoadedDatasetOptions) return
+
+    if (!selectedSeedDatasetInOptions) {
+      setValue('settings.seedDatasetId', undefined, {
+        shouldDirty: true,
+        shouldValidate: true
+      })
+    }
+  }, [
+    hasSeedDatasetValue,
+    hasLoadedDatasetOptions,
+    isLoadDdl,
+    seedDatasetId,
+    selectedSeedDatasetInOptions,
+    selectedSpecificationId,
+    setValue
+  ])
+
+  const handleValidSubmit = (
+    data: ExamFormValues,
+    selectedPdfFile?: File | null
+  ) => {
+    return onSubmit(
+      {
+        ...data,
+        settings: buildExamSettingsPayload(normalizeExamSettings(data.settings))
+      },
+      selectedPdfFile
+    )
+  }
 
   const show = (s: ExamFormFocusSection) => !focusSection || focusSection === s
   const isFocused = Boolean(focusSection)
@@ -215,7 +318,8 @@ export function ExamForm({
       <form
         id="exam-form"
         onSubmit={handleSubmit(
-          (data) => onSubmit(data, specMode === 'pdf' ? pdfFile : null),
+          (data) =>
+            handleValidSubmit(data, specMode === 'pdf' ? pdfFile : null),
           onFormError
         )}
         className={cn(
@@ -621,13 +725,69 @@ export function ExamForm({
                     />
                   </div>
 
-                  <div className="pt-2 border-t border-border">
+                  <div className="space-y-3 border-t border-border pt-4">
                     <ToggleField
                       control={control}
                       name="settings.isLoadDdl"
-                      label="Nạp schema giáo viên"
-                      description="Nếu bật, hệ thống sẽ chạy script DDL (CREATE TABLE, ...) của giáo viên vào schema sinh viên khi bắt đầu thi."
+                      label="Nạp đặc tả và dữ liệu mẫu"
+                      description="Khi bật, hệ thống sẽ tạo schema từ đặc tả và nạp dataset đã chọn vào schema sinh viên khi bắt đầu thi."
                     />
+
+                    {isLoadDdl && (
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-foreground">
+                          Dataset dùng để nạp dữ liệu mẫu
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={
+                              seedDatasetId != null && seedDatasetId !== ''
+                                ? String(seedDatasetId)
+                                : ''
+                            }
+                            onChange={(event) => {
+                              const nextValue = event.target.value
+                              setValue(
+                                'settings.seedDatasetId',
+                                nextValue === ''
+                                  ? undefined
+                                  : Number(nextValue),
+                                { shouldDirty: true, shouldValidate: true }
+                              )
+                            }}
+                            className="flex h-10 w-full appearance-none rounded-lg border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            <option value="">-- Chọn dataset --</option>
+                            {shouldRenderPendingSelectedDatasetOption && (
+                              <option value={String(seedDatasetId)}>
+                                Dataset đã chọn đang tải...
+                              </option>
+                            )}
+                            {isLoadingSpecificationDetail && (
+                              <option value="" disabled>
+                                Đang tải dataset...
+                              </option>
+                            )}
+                            {seedableDatasets.map((dataset) => (
+                              <option
+                                key={dataset.id}
+                                value={String(dataset.id)}
+                              >
+                                {dataset.name}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        </div>
+                        {hasLoadedDatasetOptions &&
+                          seedableDatasets.length === 0 && (
+                            <p className="mt-1 text-xs text-amber-600">
+                              Đặc tả đang chọn chưa có dataset có script dữ
+                              liệu.
+                            </p>
+                          )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>

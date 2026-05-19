@@ -2,17 +2,18 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import {
-  ChevronLeft,
+  AlertTriangle,
+  ChevronDown,
   ChevronRight,
   Plus,
   Trash2,
-  Settings2,
   Sparkles,
   Equal,
   Loader2,
   Code2
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { generateGradingRubric } from '@/lib/actions'
 import styles from '@/app/(main)/teacher/exams/[examId]/questions/components/routine-rubric-editor/routine-rubric-editor.module.scss'
@@ -26,6 +27,7 @@ import {
   VerificationType
 } from '@/lib/types'
 import { TeacherSqlEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/teacher-sql-editor'
+import { TestCaseTabs } from '@/app/(main)/teacher/exams/[examId]/questions/components/test-case-tabs'
 
 function createDefaultRoutine(
   defaultType: RoutineType = 'FUNCTION'
@@ -43,19 +45,20 @@ function createDefaultRoutine(
 }
 
 function createDefaultTestCase(
-  questionType: 'FUNCTION' | 'STORED_PROCEDURE' = 'STORED_PROCEDURE'
+  questionType: 'FUNCTION' | 'STORED_PROCEDURE' = 'STORED_PROCEDURE',
+  index = 0
 ): RoutineTestCase {
   return {
-    case_id: crypto.randomUUID(),
-    case_name: '',
-    score_weight: 0.5,
+    case_id: `TC_${String(index + 1).padStart(2, '0')}`,
+    case_name: `Kịch bản ${index + 1}`,
+    score_weight: 0.2,
     match_type: 'EXACT',
     setup_script: '',
     invocation_query: '',
     validation_query: '',
     verification_type:
       questionType === 'FUNCTION' ? 'RETURN_VALUE' : 'SIDE_EFFECT',
-    description: ''
+    description: `Kịch bản ${index + 1}`
   }
 }
 
@@ -67,8 +70,35 @@ function toPrintOutputCompareMode(value: unknown): 'LENIENT' | 'STRICT' {
   return value === 'STRICT' ? 'STRICT' : 'LENIENT'
 }
 
+function normalizeRoutineTestCase(
+  tc: RoutineTestCase,
+  index: number,
+  questionType: 'FUNCTION' | 'STORED_PROCEDURE'
+): RoutineTestCase {
+  const defaults = createDefaultTestCase(questionType, index)
+  return {
+    ...defaults,
+    ...tc,
+    case_id: tc.case_id || defaults.case_id,
+    case_name: tc.case_name || defaults.case_name,
+    description: tc.description ?? tc.case_name ?? defaults.description,
+    setup_script: tc.setup_script ?? '',
+    invocation_query: tc.invocation_query ?? '',
+    validation_query: tc.validation_query ?? '',
+    score_weight:
+      typeof tc.score_weight === 'number'
+        ? tc.score_weight
+        : typeof tc.penalty_value === 'number'
+          ? tc.penalty_value
+          : defaults.score_weight,
+    match_type: tc.match_type || defaults.match_type,
+    verification_type: tc.verification_type || defaults.verification_type
+  }
+}
+
 function normalizeRoutinePayload(
-  payload: GradingRubric['grading_payload'] | undefined
+  payload: GradingRubric['grading_payload'] | undefined,
+  questionType: 'FUNCTION' | 'STORED_PROCEDURE' = 'STORED_PROCEDURE'
 ): {
   grading_settings: RoutineGradingSettings
   routines: RoutineRubricRoutine[]
@@ -107,7 +137,9 @@ function normalizeRoutinePayload(
       ? (payloadRecord.routines as RoutineRubricRoutine[])
       : [],
     test_cases: Array.isArray(payloadRecord.test_cases)
-      ? (payloadRecord.test_cases as RoutineTestCase[])
+      ? (payloadRecord.test_cases as RoutineTestCase[]).map((tc, index) =>
+          normalizeRoutineTestCase(tc, index, questionType)
+        )
       : []
   }
 }
@@ -123,13 +155,9 @@ function collectIssueKeys(issues: unknown): Set<string> {
   const keys = new Set<string>()
   if (!Array.isArray(issues)) return keys
 
-  for (const issue of issues) {
-    const rawCaseId =
-      issue && typeof issue === 'object'
-        ? (issue as Record<string, unknown>).caseId
-        : issue
-    const normalized = normalizeIssueKey(rawCaseId)
-    if (!normalized || normalized === 'rubric') continue
+  const addKey = (value: unknown) => {
+    const normalized = normalizeIssueKey(value)
+    if (!normalized || normalized === 'rubric') return
 
     keys.add(normalized)
     const match = normalized.match(/^tc0*(\d+)$/)
@@ -141,7 +169,76 @@ function collectIssueKeys(issues: unknown): Set<string> {
     }
   }
 
+  for (const issue of issues) {
+    if (issue && typeof issue === 'object') {
+      const record = issue as Record<string, unknown>
+      addKey(record.caseId)
+
+      const message = String(record.message || '')
+      const messageMatch = message.match(/\bTC\s*0*(\d+)\b/i)
+      if (messageMatch) {
+        addKey(`TC_${messageMatch[1]}`)
+      }
+    } else {
+      addKey(issue)
+    }
+  }
+
   return keys
+}
+
+type GeneratedRubricIssue = {
+  caseId: string
+  phase: string
+  errorCode: string
+  message: string
+}
+
+function collectIssueDetails(issues: unknown): GeneratedRubricIssue[] {
+  if (!Array.isArray(issues)) return []
+
+  return issues
+    .map((issue) => {
+      if (!issue || typeof issue !== 'object') {
+        return {
+          caseId: '',
+          phase: '',
+          errorCode: '',
+          message: String(issue || '')
+        }
+      }
+
+      const record = issue as Record<string, unknown>
+      return {
+        caseId: String(record.caseId || ''),
+        phase: String(record.phase || ''),
+        errorCode: String(record.errorCode || ''),
+        message: String(record.message || '')
+      }
+    })
+    .filter((issue) => issue.message.trim().length > 0)
+}
+
+function issueMatchesTestCase(
+  issue: GeneratedRubricIssue,
+  testCase: RoutineTestCase,
+  index: number
+): boolean {
+  const issueCaseKey = normalizeIssueKey(issue.caseId)
+  if (
+    issueCaseKey &&
+    issueCaseKey !== 'rubric' &&
+    issueCaseKey === normalizeIssueKey(testCase.case_id)
+  ) {
+    return true
+  }
+
+  const messageMatch = issue.message.match(/\bTC\s*0*(\d+)\b/i)
+  if (messageMatch) {
+    return Number(messageMatch[1]) === index + 1
+  }
+
+  return false
 }
 
 function unwrapGeneratedRubricResponse(value: unknown): {
@@ -149,13 +246,15 @@ function unwrapGeneratedRubricResponse(value: unknown): {
   needsReview: boolean
   issueCount: number
   issueKeys: Set<string>
+  issues: GeneratedRubricIssue[]
 } {
   if (!value || typeof value !== 'object') {
     return {
       rubric: null,
       needsReview: false,
       issueCount: 0,
-      issueKeys: new Set()
+      issueKeys: new Set(),
+      issues: []
     }
   }
 
@@ -169,7 +268,8 @@ function unwrapGeneratedRubricResponse(value: unknown): {
           : null,
       needsReview: true,
       issueCount: issues.length,
-      issueKeys: collectIssueKeys(issues)
+      issueKeys: collectIssueKeys(issues),
+      issues: collectIssueDetails(issues)
     }
   }
 
@@ -177,7 +277,8 @@ function unwrapGeneratedRubricResponse(value: unknown): {
     rubric: value as GradingRubric,
     needsReview: false,
     issueCount: 0,
-    issueKeys: new Set()
+    issueKeys: new Set(),
+    issues: []
   }
 }
 
@@ -212,14 +313,15 @@ export function RoutineRubricEditor({
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeTestCaseIndex, setActiveTestCaseIndex] = useState(0)
   const [issueCaseKeys, setIssueCaseKeys] = useState<Set<string>>(new Set())
-  const hasAutoTriggeredRef = useRef(false)
+  const [issueDetails, setIssueDetails] = useState<GeneratedRubricIssue[]>([])
+  const hasInitializedDefaultCaseRef = useRef(false)
   const editorRootRef = useRef<HTMLDivElement | null>(null)
 
   const rubricCategory =
     questionType === 'STORED_PROCEDURE' ? 'STORED_PROCEDURE' : 'FUNCTION'
   const { grading_settings, routines, test_cases } = useMemo(
-    () => normalizeRoutinePayload(rubric?.grading_payload),
-    [rubric]
+    () => normalizeRoutinePayload(rubric?.grading_payload, questionType),
+    [rubric, questionType]
   )
 
   const syncRubric = useCallback(
@@ -247,14 +349,6 @@ export function RoutineRubricEditor({
     ]
   )
 
-  const setSettings = useCallback(
-    (updater: (prev: RoutineGradingSettings) => RoutineGradingSettings) => {
-      const next = updater(grading_settings)
-      syncRubric(next, routines)
-    },
-    [grading_settings, routines, syncRubric]
-  )
-
   const setRoutines = useCallback(
     (updater: (prev: RoutineRubricRoutine[]) => RoutineRubricRoutine[]) => {
       const next = updater(routines)
@@ -274,16 +368,6 @@ export function RoutineRubricEditor({
     },
     [grading_settings, routines, test_cases, syncRubric]
   )
-  useEffect(() => {
-    if (test_cases.length === 0) {
-      setActiveTestCaseIndex(0)
-      return
-    }
-    if (activeTestCaseIndex > test_cases.length - 1) {
-      setActiveTestCaseIndex(test_cases.length - 1)
-    }
-  }, [activeTestCaseIndex, test_cases.length])
-
   const handleGenerateRubric = useCallback(async () => {
     if (!correctQuery || correctQuery.trim().length === 0) {
       toast.error(
@@ -311,7 +395,8 @@ export function RoutineRubricEditor({
           rubric: parsedRubric,
           needsReview,
           issueCount,
-          issueKeys
+          issueKeys,
+          issues
         } = unwrapGeneratedRubricResponse(parsedResponse)
 
         if (!parsedRubric) {
@@ -324,6 +409,7 @@ export function RoutineRubricEditor({
           question_category: rubricCategory
         })
         setIssueCaseKeys(issueKeys)
+        setIssueDetails(issues)
         if (issueKeys.size > 0) {
           const generatedTestCases =
             parsedRubric.grading_payload &&
@@ -351,6 +437,7 @@ export function RoutineRubricEditor({
           )
         } else {
           setIssueCaseKeys(new Set())
+          setIssueDetails([])
           toast.success('Đã tạo rubric bằng AI thành công!')
         }
       } else {
@@ -383,25 +470,25 @@ export function RoutineRubricEditor({
   }, [isWizardMode, wizardStep])
 
   useEffect(() => {
-    if (
-      isWizardMode &&
-      wizardStep === 2 &&
-      routines.length === 0 &&
-      correctQuery?.trim() &&
-      !isGenerating &&
-      !hasAutoTriggeredRef.current
-    ) {
-      hasAutoTriggeredRef.current = true
-      handleGenerateRubric()
+    if (!isWizardMode || wizardStep !== 2) return
+    if (test_cases.length > 0) return
+    if (hasInitializedDefaultCaseRef.current) return
+
+    hasInitializedDefaultCaseRef.current = true
+    setTestCases([createDefaultTestCase(questionType, 0)])
+    setActiveTestCaseIndex(0)
+  }, [isWizardMode, wizardStep, questionType, test_cases.length, setTestCases])
+
+  useEffect(() => {
+    if (test_cases.length === 0) {
+      if (activeTestCaseIndex !== 0) setActiveTestCaseIndex(0)
+      return
     }
-  }, [
-    wizardStep,
-    isWizardMode,
-    routines.length,
-    correctQuery,
-    isGenerating,
-    handleGenerateRubric
-  ])
+
+    if (activeTestCaseIndex >= test_cases.length) {
+      setActiveTestCaseIndex(test_cases.length - 1)
+    }
+  }, [activeTestCaseIndex, test_cases.length])
 
   const testCaseWeightTotal = useMemo(
     () =>
@@ -411,6 +498,10 @@ export function RoutineRubricEditor({
       ),
     [test_cases]
   )
+  const selectedTestCaseIndex =
+    test_cases.length > 0
+      ? Math.min(activeTestCaseIndex, test_cases.length - 1)
+      : 0
   const routineParameters = routines[0]?.parameters || []
 
   return (
@@ -418,35 +509,57 @@ export function RoutineRubricEditor({
       {/* Step 2: Test Cases */}
       {isTestCasesStep && (
         <div className={styles.testCasesSection}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>Test Cases</h3>
-            <div className={styles.headerActions}>
+          <div className="flex flex-wrap items-center gap-3 pb-2">
+            <Button
+              type="button"
+              onClick={handleGenerateRubric}
+              disabled={isGenerating || !correctQuery?.trim()}
+              className="gap-2 h-9 px-4"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang tạo test case...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  AI tạo test case
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between pb-2">
+            <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+              Danh sách test case
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2.5 py-0.5 text-xs"
+              >
+                {test_cases.length}
+              </Badge>
+            </h4>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                Tổng trọng số: {testCaseWeightTotal.toFixed(2)} / 1.00
+              </span>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
-                onClick={() =>
+                className="gap-1.5"
+                onClick={() => {
                   setTestCases((prev) => [
                     ...prev,
-                    createDefaultTestCase(questionType)
+                    createDefaultTestCase(questionType, prev.length)
                   ])
-                }
+                  setActiveTestCaseIndex(test_cases.length)
+                }}
                 disabled={isGenerating}
               >
-                <Plus className={styles.iconSm} />
+                <Plus className="h-4 w-4" />
                 Thêm test case
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleGenerateRubric}
-                disabled={isGenerating || !correctQuery?.trim()}
-              >
-                {isGenerating ? (
-                  <Loader2 className={`${styles.iconSm} ${styles.spin}`} />
-                ) : (
-                  <Sparkles className={styles.iconSm} />
-                )}
-                AI Generate
               </Button>
             </div>
           </div>
@@ -455,266 +568,346 @@ export function RoutineRubricEditor({
             <div className={styles.emptyState}>
               <h4 className={styles.emptyTitle}>Chưa có test case</h4>
               <p className={styles.emptyDescription}>
-                Nhấn "AI Generate" để tự động tạo từ đề bài, hoặc thêm thủ công
+                Thêm test case thủ công hoặc bấm &quot;AI tạo test case&quot;
+                khi cần.
               </p>
             </div>
           ) : (
             <div className={styles.testCaseList}>
-              <div className={styles.testCaseNav}>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setActiveTestCaseIndex((prev) => Math.max(0, prev - 1))
-                  }
-                  disabled={activeTestCaseIndex === 0}
-                >
-                  <ChevronLeft className={styles.iconSm} />
-                </Button>
-                <div className={styles.testCaseTabs}>
-                  {test_cases.map((tc, idx) =>
-                    (() => {
-                      const hasIssue =
-                        issueCaseKeys.has(normalizeIssueKey(tc.case_id)) ||
-                        issueCaseKeys.has(`index:${idx}`)
-                      return (
-                        <Button
-                          key={tc.case_id || idx}
+              <TestCaseTabs
+                count={test_cases.length}
+                activeIndex={selectedTestCaseIndex}
+                onChange={setActiveTestCaseIndex}
+                getKey={(index) => test_cases[index]?.case_id || index}
+                getTitle={(index) =>
+                  issueCaseKeys.has(
+                    normalizeIssueKey(test_cases[index]?.case_id)
+                  ) || issueCaseKeys.has(`index:${index}`)
+                    ? 'Test case này cần kiểm tra'
+                    : ''
+                }
+                hasIssue={(index) =>
+                  issueCaseKeys.has(
+                    normalizeIssueKey(test_cases[index]?.case_id)
+                  ) || issueCaseKeys.has(`index:${index}`)
+                }
+              />
+              {test_cases.map((tc, idx) => {
+                if (idx !== selectedTestCaseIndex) return null
+
+                const isExpanded = true
+                const hasIssue =
+                  issueCaseKeys.has(normalizeIssueKey(tc.case_id)) ||
+                  issueCaseKeys.has(`index:${idx}`)
+                const currentIssues = issueDetails.filter((issue) =>
+                  issueMatchesTestCase(issue, tc, idx)
+                )
+
+                return (
+                  <div
+                    key={`${tc.case_id}-${idx}`}
+                    className={`overflow-hidden rounded-xl border transition-all duration-200 ${
+                      isExpanded
+                        ? 'bg-surface shadow-md border-outline-variant/50 relative z-10 scale-[1.01]'
+                        : 'bg-surface-container-lowest shadow-sm border-outline-variant/30 hover:border-outline-variant/60 hover:shadow-md'
+                    } ${hasIssue ? 'border-destructive/60' : ''}`}
+                  >
+                    <div
+                      className={`flex items-center justify-between px-5 py-4 cursor-pointer transition-colors ${
+                        isExpanded
+                          ? 'bg-surface-container-sub-low border-b border-outline-variant/30'
+                          : 'bg-transparent hover:bg-surface-container-sub-low/50'
+                      }`}
+                    >
+                      <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-container text-sm font-bold text-on-primary-container shadow-sm">
+                          {idx + 1}
+                        </span>
+                        <span className="truncate text-sm font-semibold text-on-surface">
+                          {tc.description ||
+                            tc.case_name ||
+                            `Test case ${idx + 1}`}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
                           type="button"
-                          variant={
-                            idx === activeTestCaseIndex ? 'default' : 'outline'
-                          }
-                          size="sm"
-                          onClick={() => setActiveTestCaseIndex(idx)}
-                          title={hasIssue ? 'Test case này cần kiểm tra' : ''}
-                          className={`${styles.testCaseTab} ${
-                            hasIssue
-                              ? idx === activeTestCaseIndex
-                                ? 'border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                                : 'border-destructive text-destructive hover:bg-destructive/10'
-                              : ''
-                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setTestCases((prev) =>
+                              prev.filter((_, i) => i !== idx)
+                            )
+                            setActiveTestCaseIndex((prev) =>
+                              Math.max(0, Math.min(prev, test_cases.length - 2))
+                            )
+                          }}
+                          className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          title="Xóa test case"
                         >
-                          TC {idx + 1}
-                        </Button>
-                      )
-                    })()
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setActiveTestCaseIndex((prev) =>
-                      Math.min(test_cases.length - 1, prev + 1)
-                    )
-                  }
-                  disabled={activeTestCaseIndex === test_cases.length - 1}
-                >
-                  <ChevronRight className={styles.iconSm} />
-                </Button>
-              </div>
-              {test_cases.map((tc, idx) =>
-                idx === activeTestCaseIndex ? (
-                  <div key={tc.case_id} className={styles.testCaseCard}>
-                    <div className={styles.testCaseHeader}>
-                      <span className={styles.testCaseNumber}>
-                        Test case {idx + 1}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          setTestCases((prev) =>
-                            prev.filter((_, i) => i !== idx)
-                          )
-                        }
-                      >
-                        <Trash2 className={styles.iconSm} />
-                      </Button>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                        {isExpanded ? (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </div>
                     </div>
-                    <div className={styles.testCaseFields}>
-                      <label className="space-y-1">
-                        <span className="text-xs text-muted-foreground">
-                          Tên test case
-                        </span>
-                        <input
-                          type="text"
-                          value={tc.case_name}
-                          onChange={(e) =>
-                            setTestCases((prev) =>
-                              prev.map((t, i) =>
-                                i === idx
-                                  ? { ...t, case_name: e.target.value }
-                                  : t
-                              )
-                            )
-                          }
-                          className={styles.fieldInput}
-                        />
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-xs text-muted-foreground">
-                          Kiểu kiểm tra
-                        </span>
-                        <select
-                          value={tc.verification_type}
-                          onChange={(e) =>
-                            setTestCases((prev) =>
-                              prev.map((t, i) =>
-                                i === idx
-                                  ? {
-                                      ...t,
-                                      verification_type: e.target
-                                        .value as VerificationType
-                                    }
-                                  : t
-                              )
-                            )
-                          }
-                          className={styles.fieldSelect}
-                        >
-                          <option value="RETURN_VALUE">RETURN_VALUE</option>
-                          <option value="OUT_PARAMETER">OUT_PARAMETER</option>
-                          <option value="RESULT_SET">RESULT_SET</option>
-                          <option value="SIDE_EFFECT">SIDE_EFFECT</option>
-                          <option value="PRINT_OUTPUT">PRINT_OUTPUT</option>
-                        </select>
-                      </label>
-                      <div className="space-y-1">
-                        <span className="text-xs text-muted-foreground">
-                          Invocation query
-                        </span>
-                        <div className={styles.sqlEditorBox}>
-                          <TeacherSqlEditor
-                            value={tc.invocation_query || ''}
-                            onChange={(value) =>
-                              setTestCases((prev) =>
-                                prev.map((t, i) =>
-                                  i === idx
-                                    ? { ...t, invocation_query: value || '' }
-                                    : t
+
+                    {isExpanded && (
+                      <div className="p-6 space-y-6 bg-surface-container-lowest">
+                        {currentIssues.length > 0 && (
+                          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                            <div className="mb-2 flex items-center gap-2 font-semibold">
+                              <AlertTriangle className="h-4 w-4" />
+                              Test case này cần kiểm tra ({
+                                currentIssues.length
+                              }{' '}
+                              vấn đề)
+                            </div>
+                            <div className="space-y-1">
+                              {currentIssues.map((issue, issueIndex) => (
+                                <div
+                                  key={`${issue.errorCode || 'issue'}-${issueIndex}`}
+                                >
+                                  <span className="font-mono text-xs">
+                                    {issue.errorCode || issue.phase || 'ISSUE'}
+                                  </span>
+                                  : {issue.message}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-semibold text-on-surface-variant block">
+                              Mã test case
+                            </span>
+                            <input
+                              type="text"
+                              value={tc.case_id}
+                              onChange={(e) =>
+                                setTestCases((prev) =>
+                                  prev.map((t, i) =>
+                                    i === idx
+                                      ? { ...t, case_id: e.target.value }
+                                      : t
+                                  )
                                 )
-                              )
-                            }
-                            height="180px"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-xs text-muted-foreground">
-                          Validation query
-                        </span>
-                        <div className={styles.sqlEditorBox}>
-                          <TeacherSqlEditor
-                            value={tc.validation_query || ''}
-                            onChange={(value) =>
-                              setTestCases((prev) =>
-                                prev.map((t, i) =>
-                                  i === idx
-                                    ? { ...t, validation_query: value || '' }
-                                    : t
+                              }
+                              className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
+                            />
+                          </label>
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-semibold text-on-surface-variant block">
+                              Tên kịch bản
+                            </span>
+                            <input
+                              type="text"
+                              value={tc.description || ''}
+                              onChange={(e) =>
+                                setTestCases((prev) =>
+                                  prev.map((t, i) =>
+                                    i === idx
+                                      ? { ...t, description: e.target.value }
+                                      : t
+                                  )
                                 )
-                              )
-                            }
-                            height="180px"
-                          />
-                        </div>
-                      </div>
-                      <label className="space-y-1">
-                        <span className="text-xs text-muted-foreground">
-                          Setup script
-                        </span>
-                        <textarea
-                          placeholder="SQL để chuẩn bị data (DROP TABLE IF EXISTS, CREATE TABLE, INSERT)"
-                          value={tc.setup_script}
-                          onChange={(e) =>
-                            setTestCases((prev) =>
-                              prev.map((t, i) =>
-                                i === idx
-                                  ? { ...t, setup_script: e.target.value }
-                                  : t
-                              )
-                            )
-                          }
-                          className={`${styles.fieldTextarea} hidden`}
-                          rows={12}
-                        />
-                        <div className={styles.sqlEditorBoxLarge}>
-                          <TeacherSqlEditor
-                            value={tc.setup_script || ''}
-                            onChange={(value) =>
-                              setTestCases((prev) =>
-                                prev.map((t, i) =>
-                                  i === idx
-                                    ? { ...t, setup_script: value || '' }
-                                    : t
-                                )
-                              )
-                            }
-                            height="260px"
-                          />
-                        </div>
-                      </label>
-                      <div className={styles.penaltyField}>
-                        <label className={styles.penaltyLabel}>
-                          Trọng số điểm:
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.05}
-                          value={tc.score_weight ?? tc.penalty_value ?? 0}
-                          onChange={(e) =>
-                            setTestCases((prev) =>
-                              prev.map((t, i) =>
-                                i === idx
-                                  ? {
-                                      ...t,
-                                      score_weight:
-                                        parseFloat(e.target.value) || 0
-                                    }
-                                  : t
-                              )
-                            )
-                          }
-                          className={styles.penaltyInput}
-                        />
-                        {tc.verification_type === 'PRINT_OUTPUT' && (
-                          <>
-                            <label className={styles.penaltyLabel}>
-                              Match:
-                            </label>
-                            <select
-                              value={tc.match_type || 'EXACT'}
+                              }
+                              className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
+                            />
+                          </label>
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-semibold text-on-surface-variant block">
+                              Điểm (trọng số)
+                            </span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={1}
+                              step={0.05}
+                              value={tc.score_weight ?? tc.penalty_value ?? 0}
                               onChange={(e) =>
                                 setTestCases((prev) =>
                                   prev.map((t, i) =>
                                     i === idx
                                       ? {
                                           ...t,
-                                          match_type: e.target.value as
-                                            | 'EXACT'
-                                            | 'CONTAINS'
+                                          score_weight:
+                                            parseFloat(e.target.value) || 0
                                         }
                                       : t
                                   )
                                 )
                               }
-                              className={styles.fieldSelect}
+                              className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
+                            />
+                          </label>
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-semibold text-on-surface-variant block">
+                              Kiểu kiểm tra
+                            </span>
+                            <select
+                              value={tc.verification_type}
+                              onChange={(e) => {
+                                const nextType = e.target
+                                  .value as VerificationType
+                                setTestCases((prev) =>
+                                  prev.map((t, i) =>
+                                    i === idx
+                                      ? {
+                                          ...t,
+                                          verification_type: nextType,
+                                          ...(nextType === 'PRINT_OUTPUT'
+                                            ? {
+                                                match_type:
+                                                  t.match_type || 'EXACT'
+                                              }
+                                            : {})
+                                        }
+                                      : t
+                                  )
+                                )
+                              }}
+                              className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
                             >
-                              <option value="EXACT">EXACT</option>
-                              <option value="CONTAINS">CONTAINS</option>
+                              <option value="RETURN_VALUE">RETURN_VALUE</option>
+                              <option value="OUT_PARAMETER">
+                                OUT_PARAMETER
+                              </option>
+                              <option value="RESULT_SET">RESULT_SET</option>
+                              <option value="SIDE_EFFECT">SIDE_EFFECT</option>
+                              <option value="PRINT_OUTPUT">PRINT_OUTPUT</option>
                             </select>
-                          </>
+                          </label>
+                        </div>
+
+                        {tc.verification_type === 'PRINT_OUTPUT' && (
+                          <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+                            <label className="space-y-1.5">
+                              <span className="text-xs font-semibold text-on-surface-variant block">
+                                Kiểu so khớp PRINT
+                              </span>
+                              <select
+                                value={tc.match_type || 'EXACT'}
+                                onChange={(e) =>
+                                  setTestCases((prev) =>
+                                    prev.map((t, i) =>
+                                      i === idx
+                                        ? {
+                                            ...t,
+                                            match_type: e.target.value as
+                                              | 'EXACT'
+                                              | 'CONTAINS'
+                                          }
+                                        : t
+                                    )
+                                  )
+                                }
+                                className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
+                              >
+                                <option value="EXACT">EXACT</option>
+                                <option value="CONTAINS">CONTAINS</option>
+                              </select>
+                            </label>
+                          </div>
                         )}
+
+                        <label className="space-y-1.5 flex flex-col">
+                          <span className="text-xs font-semibold text-primary flex items-center gap-2 mb-2">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Setup script
+                          </span>
+                          <textarea
+                            placeholder="SQL để chuẩn bị data (DROP TABLE IF EXISTS, CREATE TABLE, INSERT)"
+                            value={tc.setup_script}
+                            onChange={(e) =>
+                              setTestCases((prev) =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? { ...t, setup_script: e.target.value }
+                                    : t
+                                )
+                              )
+                            }
+                            className={`${styles.fieldTextarea} hidden`}
+                            rows={12}
+                          />
+                          <div className="h-[260px] overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container shadow-inner">
+                            <TeacherSqlEditor
+                              value={tc.setup_script || ''}
+                              onChange={(value) =>
+                                setTestCases((prev) =>
+                                  prev.map((t, i) =>
+                                    i === idx
+                                      ? { ...t, setup_script: value || '' }
+                                      : t
+                                  )
+                                )
+                              }
+                              height="100%"
+                            />
+                          </div>
+                        </label>
+
+                        <div className="space-y-1.5 flex flex-col">
+                          <label className="text-xs font-semibold text-primary flex items-center gap-2 mb-2">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Invocation query
+                          </label>
+                          <div className="h-[180px] overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container shadow-inner">
+                            <TeacherSqlEditor
+                              value={tc.invocation_query || ''}
+                              onChange={(value) =>
+                                setTestCases((prev) =>
+                                  prev.map((t, i) =>
+                                    i === idx
+                                      ? { ...t, invocation_query: value || '' }
+                                      : t
+                                  )
+                                )
+                              }
+                              height="100%"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5 flex flex-col">
+                          <label className="text-xs font-semibold text-primary flex items-center gap-2 mb-2">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Validation query
+                            {tc.verification_type === 'PRINT_OUTPUT' && (
+                              <span className="font-normal text-muted-foreground">
+                                (có thể để trống)
+                              </span>
+                            )}
+                          </label>
+                          <div className="h-[180px] overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container shadow-inner">
+                            <TeacherSqlEditor
+                              value={tc.validation_query ?? ''}
+                              onChange={(value) =>
+                                setTestCases((prev) =>
+                                  prev.map((t, i) =>
+                                    i === idx
+                                      ? {
+                                          ...t,
+                                          validation_query: value || ''
+                                        }
+                                      : t
+                                  )
+                                )
+                              }
+                              height="100%"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
-                ) : null
-              )}
+                )
+              })}
             </div>
           )}
         </div>
@@ -723,31 +916,6 @@ export function RoutineRubricEditor({
       {/* Step 3: Grading Rules */}
       {isRulesStep && (
         <div className="space-y-4">
-          <div className={styles.settingsCard}>
-            <div className={styles.settingsHeader}>
-              <Settings2 className={styles.settingsIcon} />
-              <span className={styles.settingsTitle}>Cài đặt chấm điểm</span>
-            </div>
-            <div className={styles.settingsControls}>
-              <div className={styles.syntaxGroup}>
-                <span className={styles.mutedText}>Khi lỗi cú pháp:</span>
-                <select
-                  value={grading_settings.syntax_error_action ?? 'FAIL_ALL'}
-                  onChange={(e) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      syntax_error_action: e.target.value as SyntaxErrorAction
-                    }))
-                  }
-                  className={styles.syntaxSelect}
-                >
-                  <option value="FAIL_ALL">0 điểm toàn bộ</option>
-                  <option value="PARTIAL">Chấm từng phần</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
           {/* Cấu hình Routine đơn giản */}
           <div className={styles.settingsCard}>
             <div className={styles.settingsHeader}>
@@ -908,7 +1076,9 @@ export function RoutineRubricEditor({
                       TC {String(index + 1).padStart(2, '0')}
                     </span>
                     <span className="min-w-0 truncate text-foreground">
-                      {tc.case_name || `Test case ${index + 1}`}
+                      {tc.description ||
+                        tc.case_name ||
+                        `Test case ${index + 1}`}
                     </span>
                   </div>
                   <input
