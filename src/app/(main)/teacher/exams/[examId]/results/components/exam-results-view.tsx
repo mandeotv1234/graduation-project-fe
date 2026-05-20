@@ -409,9 +409,7 @@ export function ExamResultsView({
         <div className={styles.titleSection}>
           <div>
             <h1>Kết quả bài thi</h1>
-            <p>
-              {examTitle} · {results.length} lượt nộp
-            </p>
+            <p>{examTitle}</p>
           </div>
         </div>
 

@@ -253,8 +253,19 @@ export interface ExamStatistics {
   suspiciousCount: number
   scoreDistribution: ScoreDistributionBucket[]
   questionTypeAccuracy: QuestionTypeAccuracy[]
+  perQuestionAccuracy: PerQuestionAccuracy[]
   avgCompletionTimeMinutes: number
   suspiciousStudents: SuspiciousStudent[]
+}
+
+export interface PerQuestionAccuracy {
+  questionId: number
+  orderIndex: number
+  content: string
+  questionType: string
+  totalAttempts: number
+  correctCount: number
+  accuracy: number
 }
 
 export interface TeacherExamResultDetail extends TeacherExamResult {
