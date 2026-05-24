@@ -1,8 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Highlight, themes } from 'prism-react-renderer'
-import { useTheme } from 'next-themes'
 
 interface SqlSyntaxHighlightProps {
   code: string
@@ -13,20 +11,10 @@ export function SqlSyntaxHighlight({
   code,
   className
 }: SqlSyntaxHighlightProps) {
-  const { theme, systemTheme } = useTheme()
-  // Guard against SSR/hydration mismatch — theme is undefined on server.
-  // Render light theme on first paint, switch after mount.
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  const currentTheme = theme === 'system' ? systemTheme : theme
-  const isDark = mounted && currentTheme !== 'light'
-
+  // Code-block card background is always white in this UI — use light token
+  // palette to keep contrast readable in both light and dark theme modes.
   return (
-    <Highlight
-      theme={isDark ? themes.nightOwl : themes.nightOwlLight}
-      code={code}
-      language="sql"
-    >
+    <Highlight theme={themes.nightOwlLight} code={code} language="sql">
       {({ style, tokens, getLineProps, getTokenProps }) => {
         const { fontFamily, fontSize, ...themeStyle } = style
         void fontFamily

@@ -95,7 +95,7 @@ function TraceItemRow({ item }: { item: GradingTraceItem }) {
               )}
               {item.action && <span>{formatAction(item.action)}</span>}
               {item.configuredPenalty != null && (
-                <span>Penalty {Number(item.configuredPenalty).toFixed(2)}</span>
+                <span>Penalty {formatPenalty(item)}</span>
               )}
             </div>
           )}
@@ -157,11 +157,21 @@ function TraceItemRow({ item }: { item: GradingTraceItem }) {
 
 function hasRuleConfig(item: GradingTraceItem): boolean {
   return Boolean(
+    item.caseName ||
+    item.caseId ||
     item.ruleTarget ||
     item.ruleCondition ||
     item.action ||
     item.configuredPenalty != null
   )
+}
+
+function formatPenalty(item: GradingTraceItem): string {
+  const value = Number(item.configuredPenalty ?? 0)
+  if (item.action === 'DEDUCT_PERCENTAGE') {
+    return `${value.toFixed(0)}%`
+  }
+  return value.toFixed(2)
 }
 
 function formatAction(action: string): string {
