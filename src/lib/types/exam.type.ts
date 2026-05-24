@@ -176,7 +176,12 @@ export interface QuestionResultItem {
   executionTimeMs: number
 }
 
-export type GradingStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
+export type GradingStatus =
+  | 'PENDING'
+  | 'GRADING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'SYSTEM_ERROR'
 
 export interface SubmitExamResponse {
   examId: number
@@ -219,7 +224,7 @@ export interface TeacherExamResult {
   maxScore: number
   correctCount: number
   totalQuestions: number
-  status: 'PENDING' | 'COMPLETED' | 'FAILED'
+  status: GradingStatus
   submittedAt: string
 }
 
@@ -293,6 +298,7 @@ export interface QuestionResultDetail {
   teacherComment?: string
   questionType: string
   testCaseResults?: TestCaseResultDetail[]
+  gradingTrace?: GradingTrace
 }
 
 export interface TestCaseResultDetail {
@@ -303,6 +309,40 @@ export interface TestCaseResultDetail {
   scoreEarned: number
   maxPoints: number
   message?: string
+}
+
+export interface GradingTraceItem {
+  kind:
+    | 'TEST_CASE'
+    | 'RUBRIC_RULE'
+    | 'METADATA_CHECK'
+    | 'EXECUTION_ERROR'
+    | 'TEACHER_CONFIG'
+    | 'SUMMARY'
+  status: 'PASS' | 'FAIL' | 'WARN' | 'INFO'
+  label: string
+  message?: string
+  caseId?: string
+  caseName?: string
+  ruleTarget?: string
+  ruleCondition?: string
+  action?: string
+  configuredPenalty?: number
+  earnedPoints?: number
+  maxPoints?: number
+  deductedPoints?: number
+  expected?: string
+  actual?: string
+  configSummary?: string
+}
+
+export interface GradingTrace {
+  traceSchemaVersion: number
+  gradingRunVersion: string
+  generatedAt: string
+  attemptNumber: number
+  rubricHash?: string
+  items: GradingTraceItem[]
 }
 
 // ===== Override & Re-grade Types =====
