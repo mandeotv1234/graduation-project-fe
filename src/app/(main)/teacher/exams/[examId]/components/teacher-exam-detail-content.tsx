@@ -44,7 +44,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   deleteExam,
   getSpecificationDetail,
-  shareExamAsTemplate
+  shareExamAsTemplate,
+  dropAllExamSchemas
 } from '@/lib/actions'
 import { fetchExamPdfBlobUrl } from '@/lib/api/pdf-client'
 import { PATH } from '@/lib/constants'
@@ -193,6 +194,7 @@ export function TeacherExamDetailContent({
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDroppingSchemas, setIsDroppingSchemas] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const router = useRouter()
 
@@ -322,6 +324,22 @@ export function TeacherExamDetailContent({
     }
   }
 
+  const handleDropAllSchemas = async () => {
+    setIsDroppingSchemas(true)
+    try {
+      const res = await dropAllExamSchemas(exam.id)
+      if (res.code === 'OK' || res.data === null) {
+        toast.success('Đã xóa toàn bộ schema của bài thi')
+      } else {
+        toast.error(res.message || 'Không thể xóa schema')
+      }
+    } catch {
+      toast.error('Có lỗi xảy ra khi xóa schema')
+    } finally {
+      setIsDroppingSchemas(false)
+    }
+  }
+
   const statusMeta = getStatusMeta(
     getExamStatus(displayExam.startTime, displayExam.endTime),
     Boolean(displayExam.isPublished)
@@ -398,6 +416,47 @@ export function TeacherExamDetailContent({
                   : 'Chia sẻ đề thi'}
               </Button>
             )}
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive border-border"
+                  disabled={isDroppingSchemas}
+                >
+                  {isDroppingSchemas ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Database className="h-4 w-4" />
+                  )}
+                  Xóa tất cả schema
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Xác nhận xóa toàn bộ schema?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Thao tác này không thể hoàn tác và sẽ xóa toàn bộ schema của
+                    tất cả sinh viên cho bài thi này.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDroppingSchemas}>
+                    Hủy
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive hover:bg-destructive/90 transition-colors"
+                    onClick={handleDropAllSchemas}
+                    disabled={isDroppingSchemas}
+                  >
+                    Xác nhận xóa
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>

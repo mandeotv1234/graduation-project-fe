@@ -3,6 +3,7 @@
 // New components should NOT be added here — import directly from the module file instead.
 
 export { SqlEditor } from '@/components/shared/sql-editor'
+export { SqlViewer } from '@/components/shared/sql-viewer/sql-viewer'
 export { ResizablePanel } from '@/components/shared/resizable-panel'
 export { ExamSpecificationView } from '@/components/shared/exam-specification-view'
 export { TeacherSqlEditor } from '@/components/shared/teacher-sql-editor'

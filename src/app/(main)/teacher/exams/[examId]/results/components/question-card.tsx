@@ -35,6 +35,7 @@ import { overrideSubmissionScore } from '@/lib/actions'
 import { formatDateTime } from '@/lib/utils/time'
 import { GradingTraceSection } from './grading-trace-section'
 import { SqlSyntaxHighlight } from '@/components/shared/sql-syntax-highlight'
+import { SqlPlayground } from './sql-playground/sql-playground'
 import styles from './submission-detail-view.module.scss'
 
 // Map raw questionType to display label
@@ -467,6 +468,16 @@ export function QuestionCard({
                 </div>
                 <SqlSyntaxHighlight code={correctCode} />
               </div>
+            </div>
+
+            {/* SQL Playground */}
+            <div className="mt-4">
+              <SqlPlayground
+                examId={examId}
+                resultId={resultId}
+                studentQuery={qr.studentQuery || ''}
+                correctQuery={qr.correctQuery || ''}
+              />
             </div>
           </div>
 

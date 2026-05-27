@@ -292,3 +292,15 @@ export interface CreateSpecificationRequest {
   entities?: SpecificationEntity[]
   datasets: SpecificationDataset[]
 }
+
+// POST /exams/{examId}/results/{resultId}/execute-sql
+export interface TeacherSqlExecutionResult {
+  success: boolean
+  resultSet: Record<string, unknown>[] | null
+  rowCount: number | null
+  executionTimeMs: number | null
+  statusMessage: string | null
+  errorMessage: string | null
+  schema: unknown[] | null
+  routines: unknown[] | null
+}

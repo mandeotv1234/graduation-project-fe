@@ -12,6 +12,7 @@ import {
   BarChart2,
   ArrowUpDown
 } from 'lucide-react'
+import DOMPurify from 'dompurify'
 import styles from './exam-statistics-dashboard.module.scss'
 import type { ExamStatistics, QuestionTypeAccuracy } from '@/lib/types'
 
@@ -501,14 +502,17 @@ export function ExamStatisticsDashboard({
                       {q.orderIndex}
                     </td>
                     <td>
-                      <span
+                      <div
                         style={{
                           fontSize: '0.78rem',
                           color: 'var(--color-foreground)'
                         }}
-                      >
-                        {q.content || `Câu ${q.orderIndex}`}
-                      </span>
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(
+                            q.content || `Câu ${q.orderIndex}`
+                          )
+                        }}
+                      />
                     </td>
                     <td>
                       <span className={styles.questionTypeBadge}>
