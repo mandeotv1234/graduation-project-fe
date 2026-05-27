@@ -2,12 +2,34 @@
 @reference '../../../../../../../globals.css';
 
 .dialogOverlay {
-  @apply fixed inset-0 z-[100] bg-background/95 backdrop-blur-md overflow-y-auto;
-  @apply flex flex-col items-center py-6 sm:py-12 px-4 sm:px-6;
+  @apply fixed inset-0 z-[100] bg-background/95 backdrop-blur-md;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* Hide scrollbar but keep scroll functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+  
+  /* Ensure content can scroll */
+  min-height: 100vh;
 }
 
 .resultCard {
   @apply w-full max-w-4xl bg-card border border-border/50 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-500;
+  margin: auto 0;
+  
+  /* Remove auto scale - let it scroll naturally */
+  @media (min-height: 700px) {
+    margin: auto;
+  }
 
   .header {
     @apply relative p-6 sm:p-12 text-center overflow-hidden bg-muted/30;
@@ -98,6 +120,14 @@
 
   .modalScrollArea {
     @apply flex-1 overflow-y-auto p-8 bg-muted/10;
+    
+    /* Hide scrollbar but keep scroll functionality */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    
+    &::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
 
     .questionsGrid {
       @apply space-y-6 max-w-4xl mx-auto;
