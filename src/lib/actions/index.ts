@@ -33,7 +33,10 @@ export {
   regradeAllExamResults,
   getRulePresets,
   createRulePreset,
-  deleteRulePreset
+  deleteRulePreset,
+  teacherExecuteSqlOnResult,
+  teacherResetResultSchema,
+  dropAllExamSchemas
 } from '@/lib/actions/teacher.action'
 export * from '@/lib/actions/anti-cheat.action'
 export * from '@/lib/actions/notification.action'

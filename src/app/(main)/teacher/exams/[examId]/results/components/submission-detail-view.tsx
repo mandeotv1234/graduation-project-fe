@@ -97,6 +97,7 @@ export function SubmissionDetailView({
   const [previousScores, setPreviousScores] = useState<PreviousScores | null>(
     null
   )
+
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollStartRef = useRef<number>(0)
   const POLL_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes max polling

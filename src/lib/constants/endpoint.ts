@@ -99,6 +99,11 @@ export const ENDPOINTS = Object.freeze({
   EXAM_REGRADE_RESULT: (examId: number, resultId: number) =>
     `/exams/${examId}/results/${resultId}/regrade`,
   EXAM_REGRADE_ALL: (examId: number) => `/exams/${examId}/regrade-all`,
+  TEACHER_RESULT_EXECUTE_SQL: (examId: number, resultId: number) =>
+    `/exams/${examId}/results/${resultId}/execute-sql`,
+  TEACHER_RESULT_RESET_SCHEMA: (examId: number, resultId: number) =>
+    `/exams/${examId}/results/${resultId}/reset-schema`,
+  EXAM_DROP_ALL_SCHEMAS: (examId: number) => `/exams/${examId}/schemas`,
   RULE_PRESETS: '/exams/rule-presets',
   RULE_PRESET_DELETE: (id: number) => `/exams/rule-presets/${id}`,
 

@@ -28,7 +28,8 @@ import {
   RegradeAllResponse,
   RulePreset,
   CreateRulePresetRequest,
-  ExamStatistics
+  ExamStatistics,
+  TeacherSqlExecutionResult
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -283,4 +284,32 @@ export async function updateSpecification(
     ENDPOINTS.SPECIFICATION_DETAIL(specificationId),
     data
   )
+}
+
+// ===== Teacher Result SQL Operations =====
+
+export async function teacherExecuteSqlOnResult(
+  examId: number,
+  resultId: number,
+  sql: string
+): Promise<ApiResponse<TeacherSqlExecutionResult>> {
+  return apiClient.post<TeacherSqlExecutionResult>(
+    ENDPOINTS.TEACHER_RESULT_EXECUTE_SQL(examId, resultId),
+    { sql }
+  )
+}
+
+export async function teacherResetResultSchema(
+  examId: number,
+  resultId: number
+): Promise<ApiResponse<null>> {
+  return apiClient.post<null>(
+    ENDPOINTS.TEACHER_RESULT_RESET_SCHEMA(examId, resultId)
+  )
+}
+
+export async function dropAllExamSchemas(
+  examId: number
+): Promise<ApiResponse<null>> {
+  return apiClient.delete<null>(ENDPOINTS.EXAM_DROP_ALL_SCHEMAS(examId))
 }
