@@ -52,6 +52,21 @@ const GRADING_TYPE_LABELS: Record<string, string> = {
   MIXED: 'Kết hợp'
 }
 
+function getResultStatusLabel(status: TeacherExamResultDetail['status']) {
+  switch (status) {
+    case 'COMPLETED':
+      return 'Hoàn tất'
+    case 'FAILED':
+      return 'Thất bại'
+    case 'SYSTEM_ERROR':
+      return 'Lỗi hệ thống'
+    case 'GRADING':
+      return 'Đang chấm'
+    default:
+      return 'Chờ chấm'
+  }
+}
+
 export function SubmissionDetailView({
   examId,
   submissionId,
@@ -313,9 +328,14 @@ export function SubmissionDetailView({
               <AlertCircle className="h-3 w-3" />
               Thất bại
             </span>
+          ) : detail.status === 'SYSTEM_ERROR' ? (
+            <span className={`${styles.statusBadge} ${styles.failed}`}>
+              <AlertCircle className="h-3 w-3" />
+              Lỗi hệ thống
+            </span>
           ) : (
             <span className={`${styles.statusBadge} ${styles.pending}`}>
-              Đang chấm...
+              {getResultStatusLabel(detail.status)}...
             </span>
           )}
         </div>

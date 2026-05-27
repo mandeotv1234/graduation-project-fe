@@ -55,6 +55,25 @@ interface ExamResultsViewProps {
   initialStats: ExamStatistics | null
 }
 
+function isScoredStatus(status: TeacherExamResult['status']) {
+  return status === 'COMPLETED' || status === 'FAILED'
+}
+
+function getResultStatusLabel(status: TeacherExamResult['status']) {
+  switch (status) {
+    case 'COMPLETED':
+      return 'Hoàn tất'
+    case 'FAILED':
+      return 'Thất bại'
+    case 'SYSTEM_ERROR':
+      return 'Lỗi hệ thống'
+    case 'GRADING':
+      return 'Đang chấm'
+    default:
+      return 'Chờ chấm'
+  }
+}
+
 export function ExamResultsView({
   examId,
   examTitle,
@@ -224,7 +243,7 @@ export function ExamResultsView({
 
   if (scoreFilter !== 'all') {
     baseResults = baseResults.filter((r) => {
-      if (r.status === 'PENDING') return false
+      if (!isScoredStatus(r.status)) return false
       if (scoreFilter === 'gte5') return r.totalScore >= 5
       if (scoreFilter === 'gte8') return r.totalScore >= 8
       if (scoreFilter === 'gte9') return r.totalScore >= 9
@@ -327,7 +346,7 @@ export function ExamResultsView({
   const paginatedResults = filteredResults
 
   const uniqueStudentsCount = new Set(results.map((r) => r.studentId)).size
-  const gradedResults = results.filter((r) => r.status !== 'PENDING')
+  const gradedResults = results.filter((r) => isScoredStatus(r.status))
   const stats = {
     totalCount: initialStats?.totalSubmissions ?? uniqueStudentsCount,
     passed: initialStats
@@ -375,13 +394,7 @@ export function ExamResultsView({
       `"${r.studentEmail}"`,
       `"${formatDateTime(r.submittedAt)}"`,
       r.attemptNumber,
-      `"${
-        r.status === 'COMPLETED'
-          ? 'Hoàn tất'
-          : r.status === 'FAILED'
-            ? 'Thất bại'
-            : 'Đang chấm'
-      }"`,
+      `"${getResultStatusLabel(r.status)}"`,
       r.totalScore,
       r.maxScore
     ])
@@ -739,8 +752,8 @@ export function ExamResultsView({
                                         value={a.submissionId}
                                       >
                                         Lần {a.attemptNumber}{' '}
-                                        {a.status === 'PENDING'
-                                          ? '(Đang chấm)'
+                                        {!isScoredStatus(a.status)
+                                          ? `(${getResultStatusLabel(a.status)})`
                                           : `(${a.totalScore}đ)`}
                                       </option>
                                     )
@@ -774,19 +787,26 @@ export function ExamResultsView({
                                 <AlertCircle className="h-3 w-3" />
                                 Thất bại
                               </span>
+                            ) : activeResult.status === 'SYSTEM_ERROR' ? (
+                              <span
+                                className={`${styles.statusBadge} ${styles.failed}`}
+                              >
+                                <AlertCircle className="h-3 w-3" />
+                                Lỗi hệ thống
+                              </span>
                             ) : (
                               <span
                                 className={`${styles.statusBadge} ${styles.pending}`}
                               >
                                 <Loader2 className="h-3 w-3 animate-spin" />
-                                Đang chấm
+                                {getResultStatusLabel(activeResult.status)}
                               </span>
                             )}
                           </td>
                           <td className="text-right pr-6">
-                            {activeResult.status === 'PENDING' ? (
+                            {!isScoredStatus(activeResult.status) ? (
                               <span className="text-xs text-muted-foreground italic">
-                                Đang chấm...
+                                {getResultStatusLabel(activeResult.status)}...
                               </span>
                             ) : (
                               <div className="flex flex-col items-end">
