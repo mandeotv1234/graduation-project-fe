@@ -39,6 +39,9 @@ export const ENDPOINTS = Object.freeze({
   CLASS_TEACHER: (classId: number, teacherId: number) =>
     `/classes/${classId}/teachers/${teacherId}`,
   CLASS_RESTORE: (classId: number) => `/classes/${classId}/restore`,
+  CLASS_BANS: (classId: number) => `/classes/${classId}/bans`,
+  CLASS_UNBAN: (classId: number, studentId: number) =>
+    `/classes/${classId}/bans/${studentId}`,
 
   // Teacher - Exams
   CREATE_EXAM: '/exams',

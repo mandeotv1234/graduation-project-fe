@@ -18,6 +18,18 @@ export interface PaginatedApiResponse<T> {
   message: string
 }
 
+// ===== Ban Types =====
+
+export interface BannedStudentInfo {
+  id: number
+  studentId: number
+  email: string
+  fullName: string
+  bannedAt: string
+  reason: string | null
+  bannedBy: string
+}
+
 // ===== Class Types =====
 
 // GET /api/classes → GetClassesResponseDto

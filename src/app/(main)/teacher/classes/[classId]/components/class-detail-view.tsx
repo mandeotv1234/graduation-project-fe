@@ -1,10 +1,12 @@
 'use client'
 
 import {
+  Ban,
   Calendar,
   Clock,
   Database,
   FileText,
+  Loader2,
   Plus,
   Settings,
   Trash2,
@@ -16,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
+import { ClassBansSection } from '@/app/(main)/teacher/classes/[classId]/components/class-bans-section'
 import { ClassTeachersSection } from '@/app/(main)/teacher/classes/[classId]/components/class-teachers-section'
 import { Pagination } from '@/components/shared/pagination'
 import {
@@ -28,10 +31,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { PATH } from '@/lib/constants'
-import { deleteExam } from '@/lib/actions'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { PATH } from '@/lib/constants'
+import { banStudent, deleteExam } from '@/lib/actions'
+import {
+  BannedStudentInfo,
   ClassDetail,
   ClassExamItem,
   ClassTeacher,
@@ -48,6 +62,7 @@ interface ClassDetailViewProps {
   studentPagination?: PaginationMeta
   exams: ClassExamItem[]
   currentStudentPage: number
+  bans: BannedStudentInfo[]
 }
 
 const EXAM_STATUS_CONFIG = {
@@ -96,11 +111,42 @@ export function ClassDetailView({
   students,
   studentPagination,
   exams,
-  currentStudentPage
+  currentStudentPage,
+  bans
 }: ClassDetailViewProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [examToDelete, setExamToDelete] = useState<number | null>(null)
+  const [studentToBan, setStudentToBan] = useState<StudentInClass | null>(null)
+  const [banReason, setBanReason] = useState('')
+  const [isBanning, setIsBanning] = useState(false)
+
+  const bannedIds = new Set(bans.map((b) => b.studentId))
+
+  const handleBanStudent = () => {
+    if (!studentToBan) return
+    setIsBanning(true)
+    startTransition(async () => {
+      try {
+        const res = await banStudent(classDetail.id, {
+          studentId: studentToBan.id,
+          reason: banReason.trim()
+        })
+        if (res.code === 'OK') {
+          toast.success(`Đã cấm sinh viên ${studentToBan.fullName}`)
+          setStudentToBan(null)
+          setBanReason('')
+          router.refresh()
+        } else {
+          toast.error(res.message || 'Không thể cấm sinh viên')
+        }
+      } catch {
+        toast.error('Có lỗi xảy ra khi cấm sinh viên')
+      } finally {
+        setIsBanning(false)
+      }
+    })
+  }
 
   const goToStudentPage = (page: number) => {
     router.push(`?studentPage=${page}`, { scroll: false })
@@ -206,6 +252,8 @@ export function ClassDetailView({
         currentTeacherId={currentTeacherId}
         teachers={teachers}
       />
+
+      <ClassBansSection classId={classDetail.id} bans={bans} />
 
       {/* Exams section */}
       <section className="space-y-4">
@@ -351,36 +399,79 @@ export function ClassDetailView({
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Tiến bộ
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Thao tác
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {students.map((student, index) => (
-                  <tr
-                    key={student.id}
-                    className="border-b border-border/50 transition-colors hover:bg-muted/30"
-                  >
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {(currentStudentPage - 1) * 10 + index + 1}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-foreground">
-                      {student.fullName}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {student.email}
-                    </td>
-                    <td className="px-4 py-3 text-left">
-                      <Link
-                        href={PATH.TEACHER_STUDENT_PROGRESS(
-                          classDetail.id,
-                          student.id
+                {students.map((student, index) => {
+                  const isBanned = bannedIds.has(student.id)
+                  return (
+                    <tr
+                      key={student.id}
+                      className="border-b border-border/50 transition-colors hover:bg-muted/30"
+                    >
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {(currentStudentPage - 1) * 10 + index + 1}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        <span className="flex items-center gap-2">
+                          {student.fullName}
+                          {isBanned && (
+                            <Badge
+                              variant="destructive"
+                              className="text-xs px-1.5 py-0"
+                            >
+                              Đã cấm
+                            </Badge>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {student.email}
+                      </td>
+                      <td className="px-4 py-3 text-left">
+                        <Link
+                          href={PATH.TEACHER_STUDENT_PROGRESS(
+                            classDetail.id,
+                            student.id
+                          )}
+                          className="text-primary hover:underline"
+                        >
+                          Xem tiến bộ
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        {isBanned ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled
+                            className="gap-1.5 text-muted-foreground"
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                            Đã cấm
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => {
+                              setStudentToBan(student)
+                              setBanReason('')
+                            }}
+                            disabled={isPending}
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                            Cấm
+                          </Button>
                         )}
-                        className="text-primary hover:underline"
-                      >
-                        Xem tiến bộ
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -400,6 +491,66 @@ export function ClassDetailView({
             />
           )}
       </section>
+
+      {/* Ban student dialog */}
+      <Dialog
+        open={Boolean(studentToBan)}
+        onOpenChange={(open) => {
+          if (!open && !isBanning) {
+            setStudentToBan(null)
+            setBanReason('')
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cấm sinh viên thi</DialogTitle>
+            <DialogDescription>
+              {studentToBan ? (
+                <>
+                  Sinh viên <strong>{studentToBan.fullName}</strong> sẽ không
+                  thể bắt đầu phiên thi trong lớp này.
+                </>
+              ) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Lý do (tùy chọn)
+            </label>
+            <Textarea
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+              placeholder="Nhập lý do cấm thi..."
+              rows={3}
+              disabled={isBanning}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStudentToBan(null)
+                setBanReason('')
+              }}
+              disabled={isBanning}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBanStudent}
+              disabled={isBanning}
+            >
+              {isBanning ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Xác nhận cấm'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -112,9 +112,13 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
 
         router.push(PATH.STUDENT_EXAM_DOING(exam.examId))
       } else {
-        setError(
-          result.message || 'Không nhận được phản hồi hợp lệ từ máy chủ.'
-        )
+        if (result.code === 'STUDENT_BANNED') {
+          setError(result.message)
+        } else {
+          setError(
+            result.message || 'Không nhận được phản hồi hợp lệ từ máy chủ.'
+          )
+        }
         if (document.fullscreenElement) {
           await document.exitFullscreen()
         }
