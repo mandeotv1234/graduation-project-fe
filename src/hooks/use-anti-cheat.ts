@@ -53,6 +53,10 @@ export function useAntiCheat({
 
   const lastViolationTimeRef = useRef(0)
 
+  // Monotonic heartbeat sequence — a ref so it survives effect re-runs (not reset to 1),
+  // otherwise the server would read a regressed seq as a replay and false-flag tampering.
+  const heartbeatSeqRef = useRef(0)
+
   // Record violation — stable callback (does not depend on totalViolations)
   const recordViolation = useCallback(
     async (type: ViolationType, detail?: string) => {
@@ -411,12 +415,11 @@ export function useAntiCheat({
     if (!antiCheatEnabled || settings?.integrityCheckEnabled === false) return
 
     const intervalSec = settings?.heartbeatIntervalSec ?? 8
-    let seq = 1
 
     const tick = () => {
       const failedChecks = runIntegrityCanary()
       sendHeartbeat(examId, {
-        seq: seq++,
+        seq: ++heartbeatSeqRef.current,
         clientTs: Date.now(),
         integrityOk: failedChecks.length === 0,
         failedChecks

@@ -2,7 +2,7 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // Static security headers. The per-request CSP (with nonce) is set in middleware.ts.
+  // Static security headers. The per-request CSP (with nonce) is set in proxy.ts.
   async headers() {
     return [
       {
