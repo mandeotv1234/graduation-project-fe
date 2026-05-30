@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef } from 'react'
 
 import { reportViolation } from '@/lib/actions/anti-cheat.action'
+import { sendHeartbeat } from '@/lib/actions/heartbeat.action'
 import {
   MAX_VIOLATIONS_BEFORE_SUBMIT,
   VIOLATION_LABELS,
   ViolationType
 } from '@/lib/constants/violation'
+import { runIntegrityCanary } from '@/lib/utils'
 import {
   addViolation,
   markViolationSynced,
@@ -401,6 +403,39 @@ export function useAntiCheat({
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [enabled])
+
+  // 7. Heartbeat loop + integrity canary (Tier 2 anti-tamper).
+  //    Heartbeats let the server detect tampering: a stopped stream (killed scripts)
+  //    or integrityOk=false trigger INTEGRITY_TAMPERED server-side.
+  useEffect(() => {
+    if (!antiCheatEnabled || settings?.integrityCheckEnabled === false) return
+
+    const intervalSec = settings?.heartbeatIntervalSec ?? 8
+    let seq = 1
+
+    const tick = () => {
+      const failedChecks = runIntegrityCanary()
+      sendHeartbeat(examId, {
+        seq: seq++,
+        clientTs: Date.now(),
+        integrityOk: failedChecks.length === 0,
+        failedChecks
+      }).catch((error) => {
+        // Network failure must not break the exam — server absence-detection is the backstop.
+        console.warn('[AntiCheat] Heartbeat failed', error)
+      })
+    }
+
+    tick() // send immediately so the server starts tracking without a full interval delay
+    const timer = setInterval(tick, intervalSec * 1000)
+
+    return () => clearInterval(timer)
+  }, [
+    antiCheatEnabled,
+    examId,
+    settings?.integrityCheckEnabled,
+    settings?.heartbeatIntervalSec
+  ])
 
   const bypassAntiCheat = useCallback(() => {
     isBypassedRef.current = true
