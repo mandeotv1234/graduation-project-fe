@@ -40,6 +40,7 @@ export {
   dropAllExamSchemas
 } from '@/lib/actions/teacher.action'
 export * from '@/lib/actions/anti-cheat.action'
+export * from '@/lib/actions/heartbeat.action'
 export * from '@/lib/actions/notification.action'
 export {
   getSpecifications,

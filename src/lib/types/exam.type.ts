@@ -45,6 +45,24 @@ export interface ExamSettings {
   /** DDL giáo viên nạp vào schema sinh viên khi bắt đầu thi */
   isLoadDdl?: boolean
   seedDatasetId?: number | null
+  // Anti-tamper proctoring (Tier 2)
+  heartbeatIntervalSec?: number
+  maxHeartbeatGapSec?: number
+  integrityCheckEnabled?: boolean
+  requireLockdownBrowser?: boolean
+}
+
+// POST /api/exams/{examId}/heartbeat → RecordHeartbeatRequestDto / HeartbeatResponseDto
+export interface HeartbeatPayload {
+  seq: number
+  clientTs: number
+  integrityOk: boolean
+  failedChecks: string[]
+}
+
+export interface HeartbeatResponse {
+  ok: boolean
+  serverTs: number
 }
 
 export interface StudentExamDetail {
