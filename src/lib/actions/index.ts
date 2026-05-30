@@ -19,6 +19,7 @@ export {
   deleteClass,
   restoreClass,
   getStudentsInClass,
+  getTeacherStudentProgress,
   getClassExams,
   getClassTeachers,
   addTeacherToClass,

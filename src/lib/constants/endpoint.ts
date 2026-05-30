@@ -32,6 +32,8 @@ export const ENDPOINTS = Object.freeze({
   CLASSES: '/classes',
   CLASS_DETAIL: (classId: number) => `/classes/${classId}`,
   CLASS_STUDENTS: (classId: number) => `/classes/${classId}/students`,
+  CLASS_STUDENT_PROGRESS: (classId: number, studentId: number) =>
+    `/classes/${classId}/students/${studentId}/progress`,
   CLASS_EXAMS: (classId: number) => `/classes/${classId}/exams`,
   CLASS_TEACHERS: (classId: number) => `/classes/${classId}/teachers`,
   CLASS_TEACHER: (classId: number, teacherId: number) =>

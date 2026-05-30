@@ -15,6 +15,7 @@ import {
   AddTeacherToClassRequest,
   TeacherExamResult,
   TeacherExamResultDetail,
+  TeacherStudentProgressResponse,
   CreateExamRequest,
   CreateExamResponse,
   UpdateTeacherExamSettingsRequest,
@@ -81,6 +82,16 @@ export async function getStudentsInClass(
     queries: { page, size, sortBy, sortOrder },
     cache: 'no-store'
   }) as Promise<PaginatedApiResponse<StudentInClass>>
+}
+
+export async function getTeacherStudentProgress(
+  classId: number,
+  studentId: number
+): Promise<ApiResponse<TeacherStudentProgressResponse>> {
+  return apiClient.get<TeacherStudentProgressResponse>(
+    ENDPOINTS.CLASS_STUDENT_PROGRESS(classId, studentId),
+    { cache: 'no-store' }
+  )
 }
 
 export async function getClassExams(

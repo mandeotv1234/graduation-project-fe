@@ -120,6 +120,24 @@ const TEACHER_BREADCRUMB_RULES: TeacherBreadcrumbRule[] = [
     ]
   },
   {
+    id: 'teacher-class-student-progress',
+    kind: 'template',
+    template: '/teacher/classes/:classId/students/:studentId/progress',
+    crumbs: [
+      HOME_CRUMB,
+      {
+        label: ':classLabel',
+        href: '/teacher/classes/:classId',
+        clickable: true
+      },
+      {
+        label: 'Dữ liệu sinh viên - :studentLabel',
+        href: '/teacher/classes/:classId/students/:studentId/progress',
+        clickable: false
+      }
+    ]
+  },
+  {
     id: 'teacher-specifications',
     kind: 'template',
     template: '/teacher/specifications',

@@ -348,6 +348,9 @@ export function ClassDetailView({
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Email
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Tiến bộ
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -364,6 +367,17 @@ export function ClassDetailView({
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {student.email}
+                    </td>
+                    <td className="px-4 py-3 text-left">
+                      <Link
+                        href={PATH.TEACHER_STUDENT_PROGRESS(
+                          classDetail.id,
+                          student.id
+                        )}
+                        className="text-primary hover:underline"
+                      >
+                        Xem tiến bộ
+                      </Link>
                     </td>
                   </tr>
                 ))}

@@ -1,4 +1,4 @@
-import { ExamSettings } from './exam.type'
+import { ExamSettings, GradingStatus } from './exam.type'
 import type { SpecificationSchemaJsonTable } from './specification-schema-json.type'
 
 // ===== Pagination Types =====
@@ -78,6 +78,34 @@ export interface StudentInClass {
   email: string
   fullName: string
   createdAt: string
+}
+
+export type TeacherStudentProgressStatus = GradingStatus | 'NOT_SUBMITTED'
+
+export interface TeacherStudentProgressResponse {
+  classId: number
+  classCode: string
+  semester: string
+  student: {
+    id: number
+    fullName: string
+    email: string
+  }
+  exams: TeacherStudentProgressExam[]
+}
+
+export interface TeacherStudentProgressExam {
+  examId: number
+  title: string
+  durationMinutes: number | null
+  gradingMethod: string
+  attemptCount: number
+  latestSubmittedAt: string | null
+  finalScore: number | null
+  maxScore: number | null
+  finalPercent: number | null
+  status: TeacherStudentProgressStatus
+  selectedSubmissionId: number | null
 }
 
 // ===== Exam (Teacher) Types =====
