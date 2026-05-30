@@ -672,6 +672,51 @@ export function ExamSettingsForm({
                 </div>
               )}
 
+              <hr className="border-border" />
+              <ToggleField
+                control={control}
+                name="settings.integrityCheckEnabled"
+                label="Phát hiện can thiệp hệ thống giám sát"
+                description="Trình duyệt gửi tín hiệu định kỳ về máy chủ. Nếu script chống gian lận bị vô hiệu hoá hoặc tín hiệu bị ngắt, hệ thống sẽ ghi nhận vi phạm."
+              />
+
+              <div className="ml-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    Chu kỳ gửi tín hiệu (giây)
+                  </label>
+                  <Input
+                    {...register('settings.heartbeatIntervalSec')}
+                    type="number"
+                    min={3}
+                    max={60}
+                    className="focus-visible:ring-blue-500"
+                  />
+                  {errors.settings?.heartbeatIntervalSec && (
+                    <p className="mt-1 text-xs text-destructive">
+                      {errors.settings.heartbeatIntervalSec.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    Ngưỡng mất tín hiệu tối đa (giây)
+                  </label>
+                  <Input
+                    {...register('settings.maxHeartbeatGapSec')}
+                    type="number"
+                    min={10}
+                    max={120}
+                    className="focus-visible:ring-blue-500"
+                  />
+                  {errors.settings?.maxHeartbeatGapSec && (
+                    <p className="mt-1 text-xs text-destructive">
+                      {errors.settings.maxHeartbeatGapSec.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="mt-4 flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/10 p-4">
                 <Settings className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-600" />
                 <p className="text-xs text-orange-700 dark:text-orange-400">
