@@ -85,10 +85,10 @@ function ExamCard({ exam }: { exam: StudentExamListItem }) {
                 <span
                   className={cn(
                     styles.statusBadge,
-                    'bg-destructive/10 text-destructive border-destructive/20'
+                    'inline-flex items-center gap-1.5 bg-destructive/10 text-destructive border-destructive/20'
                   )}
                 >
-                  <Ban className="h-3.5 w-3.5" />
+                  <Ban className="h-3.5 w-3.5 shrink-0" />
                   Bị cấm thi
                 </span>
               ) : (
