@@ -217,6 +217,7 @@ export interface StudentExamResultResponse {
 
 export interface TeacherExamResult {
   submissionId: number
+  examId?: number
   studentId: number
   studentName: string
   studentEmail: string

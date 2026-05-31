@@ -1,10 +1,19 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import Editor, { type OnMount } from '@monaco-editor/react'
 import { useTheme } from 'next-themes'
 import { Geist_Mono } from 'next/font/google'
+import { Maximize2 } from 'lucide-react'
 import type * as monaco from 'monaco-editor'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog'
 
 const geistMono = Geist_Mono({
   subsets: ['latin'],
@@ -14,14 +23,20 @@ const geistMono = Geist_Mono({
 interface SqlViewerProps {
   value: string
   height?: string
+  showExpandButton?: boolean
 }
 
-export function SqlViewer({ value, height }: SqlViewerProps) {
+export function SqlViewer({
+  value,
+  height,
+  showExpandButton = true
+}: SqlViewerProps) {
   const { theme, systemTheme } = useTheme()
   const currentTheme = theme === 'system' ? systemTheme : theme
   const isDark = currentTheme === 'dark'
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const lineCount = (value ?? '').split('\n').length
   const computedHeight =
@@ -29,6 +44,28 @@ export function SqlViewer({ value, height }: SqlViewerProps) {
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor
+  }
+
+  const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
+    readOnly: true,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    fontSize: 13,
+    lineNumbers: 'off',
+    wordWrap: 'on',
+    automaticLayout: true,
+    padding: { top: 8, bottom: 8 },
+    contextmenu: false,
+    fontFamily: geistMono.style.fontFamily,
+    renderLineHighlight: 'none',
+    overviewRulerLanes: 0,
+    hideCursorInOverviewRuler: true,
+    selectionHighlight: false,
+    folding: false,
+    glyphMargin: false,
+    lineDecorationsWidth: 0,
+    lineNumbersMinChars: 0,
+    scrollbar: { vertical: 'hidden', horizontal: 'auto' }
   }
 
   // Fix scroll trapping: intercept wheel events in capture phase before Monaco gets them.
@@ -74,7 +111,50 @@ export function SqlViewer({ value, height }: SqlViewerProps) {
   }, [])
 
   return (
-    <div ref={wrapperRef} style={{ height: computedHeight, width: '100%' }}>
+    <div
+      ref={wrapperRef}
+      className="group/sql-viewer relative"
+      style={{ height: computedHeight, width: '100%' }}
+    >
+      {showExpandButton && (
+        <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="absolute right-1.5 top-1.5 z-10 h-6 w-6 rounded-md border-border/60 bg-background/70 p-0 opacity-0 shadow-none transition-opacity hover:bg-background group-hover/sql-viewer:opacity-60 focus-visible:opacity-100 hover:opacity-100"
+              title="Phóng to SQL"
+              aria-label="Phóng to SQL"
+            >
+              <Maximize2 className="h-3 w-3" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="flex h-[90vh] w-[95vw] max-w-[95vw] flex-col p-4 sm:max-w-[95vw]">
+            <DialogHeader>
+              <DialogTitle>Xem SQL</DialogTitle>
+            </DialogHeader>
+            <div className="min-h-0 flex-1 overflow-hidden rounded-md border bg-background">
+              <Editor
+                height="100%"
+                language="sql"
+                value={value ?? ''}
+                theme={isDark ? 'vs-dark' : 'vs'}
+                onMount={handleEditorMount}
+                options={{
+                  ...editorOptions,
+                  fontSize: 14,
+                  lineNumbers: 'on',
+                  lineNumbersMinChars: 3,
+                  lineDecorationsWidth: 8,
+                  scrollbar: { vertical: 'auto', horizontal: 'auto' }
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <Editor
         height={computedHeight}
         language="sql"
@@ -97,27 +177,7 @@ export function SqlViewer({ value, height }: SqlViewerProps) {
             {value}
           </pre>
         }
-        options={{
-          readOnly: true,
-          minimap: { enabled: false },
-          scrollBeyondLastLine: false,
-          fontSize: 13,
-          lineNumbers: 'off',
-          wordWrap: 'on',
-          automaticLayout: true,
-          padding: { top: 8, bottom: 8 },
-          contextmenu: false,
-          fontFamily: geistMono.style.fontFamily,
-          renderLineHighlight: 'none',
-          overviewRulerLanes: 0,
-          hideCursorInOverviewRuler: true,
-          selectionHighlight: false,
-          folding: false,
-          glyphMargin: false,
-          lineDecorationsWidth: 0,
-          lineNumbersMinChars: 0,
-          scrollbar: { vertical: 'hidden', horizontal: 'auto' }
-        }}
+        options={editorOptions}
       />
     </div>
   )

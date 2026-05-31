@@ -6,6 +6,7 @@ import {
   getClassDetail,
   getClassExams,
   getClasses,
+  getTeacherStudentProgress,
   getTeacherExamDetail,
   getSpecificationDetail
 } from '@/lib/actions'
@@ -39,6 +40,23 @@ function parseExamId(catchAll: string[]) {
 function parseSpecificationId(catchAll: string[]) {
   if (catchAll[0] === 'specifications' && /^\d+$/.test(catchAll[1] ?? '')) {
     return catchAll[1]
+  }
+
+  return null
+}
+
+function parseStudentProgressParams(catchAll: string[]) {
+  if (
+    catchAll[0] === 'classes' &&
+    /^\d+$/.test(catchAll[1] ?? '') &&
+    catchAll[2] === 'students' &&
+    /^\d+$/.test(catchAll[3] ?? '') &&
+    catchAll[4] === 'progress'
+  ) {
+    return {
+      classId: catchAll[1],
+      studentId: catchAll[3]
+    }
   }
 
   return null
@@ -116,11 +134,13 @@ export default async function TeacherBreadcrumbSlot({
   const classId = parseClassId(catchAll)
   const examId = parseExamId(catchAll)
   const specificationId = parseSpecificationId(catchAll)
+  const studentProgressParams = parseStudentProgressParams(catchAll)
 
   let classLabel: string | undefined
   let classIdForExam: string | undefined
   let examTitle: string | undefined
   let specificationName: string | undefined
+  let studentLabel: string | undefined
 
   if (classId) {
     try {
@@ -130,6 +150,26 @@ export default async function TeacherBreadcrumbSlot({
         : `Lớp ${classId}`
     } catch {
       classLabel = `Lớp ${classId}`
+    }
+  }
+
+  if (studentProgressParams) {
+    try {
+      const progressResponse = await getTeacherStudentProgress(
+        Number(studentProgressParams.classId),
+        Number(studentProgressParams.studentId)
+      )
+      if (progressResponse.data) {
+        classLabel = progressResponse.data.classCode
+          ? `Lớp ${progressResponse.data.classCode}`
+          : `Lớp ${studentProgressParams.classId}`
+        studentLabel =
+          progressResponse.data.student.fullName ||
+          progressResponse.data.student.email ||
+          `Sinh viên ${studentProgressParams.studentId}`
+      }
+    } catch {
+      studentLabel = `Sinh viên ${studentProgressParams.studentId}`
     }
   }
 
@@ -193,7 +233,8 @@ export default async function TeacherBreadcrumbSlot({
     classId: classIdForExam,
     classLabel,
     examTitle,
-    specificationName
+    specificationName,
+    studentLabel
   }).map((item) => {
     if (item.href === '/teacher/classes/') {
       return {
