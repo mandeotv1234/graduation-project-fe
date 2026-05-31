@@ -1,5 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
+
+import { useActionLock } from '@/hooks/use-action-lock'
 import { ExamQuestionItem } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import styles from '@/app/(main)/student/exams/[examId]/take/components/question-sidebar/question-sidebar.module.scss'
@@ -32,6 +35,23 @@ export function QuestionSidebar({
   isOverviewSelected = false,
   header
 }: QuestionSidebarProps) {
+  const { runLocked, unlock } = useActionLock()
+
+  useEffect(() => {
+    unlock()
+  }, [currentIndex, isOverviewSelected, unlock])
+
+  const handleSelectOverview = () => {
+    if (!onSelectOverview) return
+    runLocked(onSelectOverview, { skip: isOverviewSelected })
+  }
+
+  const handleSelectQuestion = (index: number) => {
+    runLocked(() => onSelect(index), {
+      skip: !isOverviewSelected && index === currentIndex
+    })
+  }
+
   return (
     <div className={cn(styles.container, 'scrollbar-thin')}>
       <div className={styles.inner}>
@@ -44,7 +64,7 @@ export function QuestionSidebar({
         <div className={styles.list}>
           {onSelectOverview && (
             <button
-              onClick={onSelectOverview}
+              onClick={handleSelectOverview}
               className={cn(
                 styles.item,
                 'group',
@@ -87,7 +107,7 @@ export function QuestionSidebar({
             return (
               <button
                 key={q.id}
-                onClick={() => onSelect(index)}
+                onClick={() => handleSelectQuestion(index)}
                 className={cn(
                   styles.item,
                   'group',

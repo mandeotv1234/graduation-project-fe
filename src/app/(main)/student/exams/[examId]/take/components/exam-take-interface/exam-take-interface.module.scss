@@ -157,7 +157,7 @@
 
 // Mini horizontal question navigator strip (visible in split mode only)
 .miniQuestionNav {
-  @apply flex gap-1 px-3 py-2 border-b border-border bg-muted/20 overflow-x-auto shrink-0 flex-nowrap;
+  @apply flex gap-1 px-3 py-2 border-b border-border bg-muted/20 overflow-x-auto shrink-0 flex-nowrap relative z-50;
 
   .miniNavBtn {
     @apply shrink-0 flex items-center px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors;

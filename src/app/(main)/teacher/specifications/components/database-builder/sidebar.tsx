@@ -80,15 +80,17 @@ export function Sidebar() {
             <div
               key={ds.id}
               onClick={() => setActiveView({ type: 'dataset', id: ds.id })}
-              className={`group w-full flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors cursor-pointer select-none ${
+              className={`group w-full flex items-start gap-1 px-3 py-2 text-sm rounded-md transition-colors cursor-pointer select-none ${
                 activeView.type === 'dataset' && activeView.id === ds.id
                   ? 'bg-green-50 text-green-700 font-medium'
                   : 'text-neutral-700 hover:bg-neutral-100'
               }`}
             >
-              <div className="flex items-center gap-2 flex-1 min-w-0 text-left pointer-events-none">
-                <FileSpreadsheet className="w-4 h-4 opacity-50 shrink-0" />
-                <span className="truncate">{ds.name}</span>
+              <div className="flex items-start gap-2 flex-1 min-w-0 text-left pointer-events-none">
+                <FileSpreadsheet className="mt-0.5 w-4 h-4 opacity-50 shrink-0" />
+                <span className="min-w-0 break-words leading-snug">
+                  {ds.name}
+                </span>
               </div>
               <button
                 onClick={(e) => {

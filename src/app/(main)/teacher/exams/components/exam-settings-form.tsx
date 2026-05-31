@@ -551,7 +551,7 @@ export function ExamSettingsForm({
                 />
               </div>
 
-              <div className="space-y-3 border-t border-border pt-4">
+              <div className="flex flex-col gap-4 border-t border-border pt-4">
                 <ToggleField
                   control={control}
                   name="settings.isLoadDdl"
@@ -560,7 +560,7 @@ export function ExamSettingsForm({
                 />
 
                 {isLoadDdl && (
-                  <div>
+                  <div className="border-t border-border pt-4">
                     <label className="mb-2 block text-sm font-medium text-foreground">
                       Dataset dùng để nạp dữ liệu mẫu
                     </label>

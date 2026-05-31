@@ -36,6 +36,8 @@ interface SqlEditorPanelProps {
   value: string
   onChange: (value: string) => void
   onExecute: () => void
+  /** Called when user runs only the selected text. Receives the selected snippet. */
+  onExecuteSelected?: (selectedSql: string) => void
   onClearSchema?: () => void
   isLoading: boolean
   isClearing?: boolean
@@ -48,6 +50,7 @@ export function SqlEditorPanel({
   value,
   onChange,
   onExecute,
+  onExecuteSelected,
   onClearSchema,
   isLoading,
   isClearing = false,
@@ -57,6 +60,9 @@ export function SqlEditorPanel({
   const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
   const { resolvedTheme } = useTheme()
   const [editorLoading, setEditorLoading] = useState(true)
+  const [selectedText, setSelectedText] = useState('')
+  const editorRef = useRef<monacoType.editor.IStandaloneCodeEditor | null>(null)
+  const monacoRef = useRef<Monaco | null>(null)
   const completionDisposable = useRef<monacoType.IDisposable | null>(null)
 
   // Keep latest schema and routines in refs so the Monaco provider closure always sees the freshest data
@@ -67,6 +73,7 @@ export function SqlEditorPanel({
 
   // ─── Register completion provider on beforeMount ────────────────
   const handleBeforeMount = (monaco: Monaco) => {
+    monacoRef.current = monaco
     // Dispose previous provider if any (e.g. hot-reload)
     completionDisposable.current?.dispose()
 
@@ -681,7 +688,13 @@ export function SqlEditorPanel({
         )}
 
         <Button
-          onClick={onExecute}
+          onClick={() => {
+            if (selectedText && onExecuteSelected) {
+              onExecuteSelected(selectedText)
+            } else {
+              onExecute()
+            }
+          }}
           disabled={isLoading || isClearing}
           className={styles.executeButton}
         >
@@ -708,7 +721,41 @@ export function SqlEditorPanel({
           onChange={(val) => onChange(val || '')}
           beforeMount={handleBeforeMount}
           onMount={(editor) => {
+            editorRef.current = editor
             setEditorLoading(false)
+
+            // Track text selection to enable "Run selected" button
+            editor.onDidChangeCursorSelection(() => {
+              const selection = editor.getSelection()
+              if (!selection || selection.isEmpty()) {
+                setSelectedText('')
+                return
+              }
+              const text = editor.getModel()?.getValueInRange(selection) || ''
+              setSelectedText(text.trim())
+            })
+
+            // Ctrl+Enter / Cmd+Enter → run selected or all
+            const monaco = monacoRef.current
+            if (monaco) {
+              editor.addCommand(
+                monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+                () => {
+                  const sel = editorRef.current?.getSelection()
+                  const selText =
+                    sel && !sel.isEmpty()
+                      ? editorRef.current?.getModel()?.getValueInRange(sel) ||
+                        ''
+                      : ''
+                  if (selText.trim() && onExecuteSelected) {
+                    onExecuteSelected(selText.trim())
+                  } else {
+                    onExecute()
+                  }
+                }
+              )
+            }
+
             if (!isDev) {
               // Disable Monaco's own context menu
               editor.updateOptions({ contextmenu: false })

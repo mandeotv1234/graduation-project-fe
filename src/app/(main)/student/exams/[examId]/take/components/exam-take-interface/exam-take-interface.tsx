@@ -344,6 +344,17 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     applySchemaMeta(schema, res?.routines)
   }, [examTake, applySchemaMeta])
 
+  const handleExecuteSelectedSql = useCallback(
+    async (selectedSql: string) => {
+      const res = await examTake.handleExecuteSql(selectedSql)
+
+      const schema = res?.schema
+      if (!schema || schema.length === 0) return
+      applySchemaMeta(schema, res?.routines)
+    },
+    [examTake, applySchemaMeta]
+  )
+
   const handleClearSchema = useCallback(async () => {
     setIsClearing(true)
     try {
@@ -455,17 +466,6 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         : timerState === 'warning'
           ? styles.warning
           : ''
-
-  // Update document title with remaining time
-  useEffect(() => {
-    if (!examActive) return
-    const time = formatTime(remainingSeconds)
-    const storedTitle = document.title
-    document.title = `[${time}] ${exam.title}`
-    return () => {
-      document.title = storedTitle
-    }
-  }, [remainingSeconds, examActive, exam.title, formatTime])
 
   // Only conditionally render UI, never call hooks conditionally
   useEffect(() => {
@@ -945,6 +945,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                         examTake.updateAnswer(examTake.currentQuestion.id, val)
                       }
                       onExecute={handleExecuteSqlAndRefreshSchema}
+                      onExecuteSelected={handleExecuteSelectedSql}
                       onClearSchema={handleClearSchema}
                       isLoading={examTake.isLoading}
                       isClearing={isClearing}
@@ -1181,6 +1182,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                         examTake.updateAnswer(examTake.currentQuestion.id, val)
                       }
                       onExecute={handleExecuteSqlAndRefreshSchema}
+                      onExecuteSelected={handleExecuteSelectedSql}
                       onClearSchema={handleClearSchema}
                       isLoading={examTake.isLoading}
                       isClearing={isClearing}

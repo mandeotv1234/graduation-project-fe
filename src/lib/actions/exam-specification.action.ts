@@ -16,19 +16,6 @@ import {
   SpecificationSchemaJsonTable
 } from '@/lib/types'
 
-function parseApiErrorCode(error: unknown): string | null {
-  if (typeof error !== 'string' || error.trim().length === 0) {
-    return null
-  }
-
-  try {
-    const parsed = JSON.parse(error) as { code?: unknown }
-    return typeof parsed.code === 'string' ? parsed.code : null
-  } catch {
-    return null
-  }
-}
-
 export async function getSpecifications(): Promise<
   ApiResponse<SpecificationResponse[]>
 > {
@@ -68,25 +55,10 @@ export async function generateSpecificationSchemaFromDDL(data: {
 export async function getExamSpecification(
   examId: number
 ): Promise<ApiResponse<ExamSpecification>> {
-  try {
-    return await apiClient.get<ExamSpecification>(
-      ENDPOINTS.EXAM_SPECIFICATION(examId),
-      {
-        cache: 'no-store'
-      }
-    )
-  } catch (error) {
-    const code = parseApiErrorCode(error)
-    if (code !== 'NOT_FOUND' && code !== '404') {
-      throw error
-    }
-
-    return {
-      data: undefined,
-      code: 'NOT_FOUND',
-      message: 'No specification found'
-    }
-  }
+  return apiClient.get<ExamSpecification>(
+    ENDPOINTS.EXAM_SPECIFICATION(examId),
+    { cache: 'no-store' }
+  )
 }
 
 export async function saveExamSpecification(
