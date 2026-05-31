@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FileText, CheckCircle2, GraduationCap } from 'lucide-react'
 
+import { SidebarNavLink } from '@/components/shared/sidebar-nav-link'
 import { PATH } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
@@ -49,9 +50,10 @@ export function StudentSidebar() {
           const isActive = pathname.startsWith(item.href)
 
           return (
-            <Link
+            <SidebarNavLink
               key={item.href}
               href={item.href}
+              isActive={isActive}
               className={cn(
                 'group flex items-center gap-4 rounded-2xl px-4 py-3.5 transition-all outline-none',
                 isActive
@@ -90,7 +92,7 @@ export function StudentSidebar() {
                   </span>
                 )}
               </span>
-            </Link>
+            </SidebarNavLink>
           )
         })}
       </nav>

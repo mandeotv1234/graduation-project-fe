@@ -358,7 +358,8 @@
 }
 
 .react-flow__node {
-  max-width: 288px;
+  min-width: 220px;
+  max-width: 260px;
   background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -420,6 +421,8 @@
 
 /* Table node */
 .table {
+  width: 100%;
+  min-width: 220px;
   background-color: var(--card);
   border-radius: 12px;
   overflow: hidden;
@@ -458,11 +461,21 @@
 .column-name__inner {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   padding: 8px;
   position: relative;
 }
 
+.column-name__name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 .column-name__type {
+  flex-shrink: 0;
   color: #bbb;
 }
 
@@ -478,9 +491,10 @@
 }
 
 .key-icon {
+  display: block;
+  flex-shrink: 0;
   width: 12px;
   height: 12px;
-  margin-right: 4px;
 }
 
 .editor-container .tiptap table,

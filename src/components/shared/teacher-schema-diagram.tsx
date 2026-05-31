@@ -73,8 +73,8 @@ export function KeyIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="800"
-      height="800"
+      width={12}
+      height={12}
       fill="#000"
       version="1.1"
       viewBox="0 0 485.017 485.017"

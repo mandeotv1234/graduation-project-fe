@@ -126,6 +126,7 @@ export interface ExecuteSqlRequest {
 
 export interface ExecuteSqlResponse {
   resultSet: Record<string, unknown>[]
+  columns?: string[]
   rowCount: number
   executionTimeMs: number
   errorMessage: string | null

@@ -35,19 +35,29 @@ export function ResultPanel({ result }: ResultPanelProps) {
     )
   }
 
-  const columns =
-    result.resultSet.length > 0 ? Object.keys(result.resultSet[0]) : []
+  const columns = result.columns?.length
+    ? result.columns
+    : result.resultSet.length > 0
+      ? Object.keys(result.resultSet[0])
+      : []
 
   if (columns.length === 0) {
+    // Both DDL and SELECT with 0 rows return "Commands completed successfully."
+    // DML (INSERT/UPDATE/DELETE) returns "(N row(s) affected)"
+    const noDataMessage =
+      !result.statusMessage ||
+      result.statusMessage === 'Commands completed successfully.'
+
     return (
       <div className={styles.feedbackWrapper}>
         <div className={styles.successBox}>
           <CheckCircle2 className={styles.feedbackIconSuccess} />
           <div className={styles.feedbackText}>
-            <p className={styles.successTitle}>Thành công</p>
+            <p className={styles.successTitle}>Thực thi thành công</p>
             <pre className={styles.successDetail}>
-              {result.statusMessage ||
-                'Câu lệnh thực thi thành công (không có dữ liệu trả về)'}
+              {noDataMessage
+                ? 'Câu lệnh thực thi thành công (không có dữ liệu trả về).'
+                : result.statusMessage}
             </pre>
           </div>
         </div>
@@ -87,19 +97,35 @@ export function ResultPanel({ result }: ResultPanelProps) {
               </tr>
             </thead>
             <tbody className={styles.tbody}>
-              {result.resultSet.map((row, i) => (
-                <tr key={i} className={cn(styles.row, 'group')}>
-                  {columns.map((col) => (
-                    <td key={col} className={styles.cell}>
-                      {row[col] === null ? (
-                        <span className={styles.nullValue}>NULL</span>
-                      ) : (
-                        String(row[col])
-                      )}
-                    </td>
-                  ))}
+              {result.resultSet.length === 0 ? (
+                <tr className={cn(styles.row, 'group')}>
+                  <td
+                    colSpan={columns.length}
+                    className={styles.cell}
+                    style={{
+                      textAlign: 'center',
+                      padding: '2rem',
+                      color: 'var(--muted-foreground)'
+                    }}
+                  >
+                    Không có dòng nào phù hợp với điều kiện truy vấn.
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                result.resultSet.map((row, i) => (
+                  <tr key={i} className={cn(styles.row, 'group')}>
+                    {columns.map((col) => (
+                      <td key={col} className={styles.cell}>
+                        {row[col] === null ? (
+                          <span className={styles.nullValue}>NULL</span>
+                        ) : (
+                          String(row[col])
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

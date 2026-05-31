@@ -74,23 +74,27 @@ export function useExamTake(
     [questions.length]
   )
 
-  const handleExecuteSql = useCallback(async () => {
-    if (!currentQuestion) return
+  const handleExecuteSql = useCallback(
+    async (selectedSql?: string) => {
+      if (!currentQuestion) return
 
-    const sql = answers[currentQuestion.id]
-    if (!sql?.trim()) {
-      toast.warning('Vui lòng nhập câu lệnh SQL')
-      return
-    }
+      // If caller passes a selected snippet, run that; otherwise run the full answer
+      const sql = selectedSql?.trim() || answers[currentQuestion.id]
+      if (!sql?.trim()) {
+        toast.warning('Vui lòng nhập câu lệnh SQL')
+        return
+      }
 
-    const response = await callApi(executeSql(exam.examId, { sql }), false)
+      const response = await callApi(executeSql(exam.examId, { sql }), false)
 
-    if (response.data) {
-      setSqlResult(response.data)
-      return response.data
-    }
-    return null
-  }, [currentQuestion, answers, exam.examId, callApi])
+      if (response.data) {
+        setSqlResult(response.data)
+        return response.data
+      }
+      return null
+    },
+    [currentQuestion, answers, exam.examId, callApi]
+  )
 
   // Open confirmation dialog instead of window.confirm
   const handleRequestSubmit = useCallback(() => {

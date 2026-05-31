@@ -255,16 +255,49 @@ export class ApiClient {
     return JSON.parse(text) as ApiResponse<T>
   }
 
+  /**
+   * Converts a caught error into an ApiResponse instead of re-throwing.
+   * Next.js redirect/notFound errors (digest property) are always re-thrown
+   * so that auth redirects and not-found pages still work correctly.
+   */
+  private parseErrorResponse<T>(error: unknown): ApiResponse<T> {
+    // Re-throw Next.js internal errors (redirect, notFound, etc.)
+    if (error instanceof Error && 'digest' in error) {
+      throw error
+    }
+
+    const raw = typeof error === 'string' ? error : ''
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { code?: string; message?: string }
+        return {
+          code: parsed.code || 'ERROR',
+          message: parsed.message || 'Đã có lỗi xảy ra',
+          data: undefined as unknown as T
+        }
+      } catch {
+        return { code: 'ERROR', message: raw, data: undefined as unknown as T }
+      }
+    }
+
+    const message = error instanceof Error ? error.message : 'Đã có lỗi xảy ra'
+    return { code: 'ERROR', message, data: undefined as unknown as T }
+  }
+
   async get<T>(
     endpoint: string,
     options?: Omit<RequestOptions, 'method'>
   ): Promise<ApiResponse<T>> {
-    const res = await this.request(endpoint, {
-      method: 'GET',
-      cache: 'force-cache',
-      ...options
-    })
-    return this.parseJson<T>(res)
+    try {
+      const res = await this.request(endpoint, {
+        method: 'GET',
+        cache: 'force-cache',
+        ...options
+      })
+      return this.parseJson<T>(res)
+    } catch (error: unknown) {
+      return this.parseErrorResponse<T>(error)
+    }
   }
 
   async post<T>(
@@ -272,12 +305,16 @@ export class ApiClient {
     data?: unknown,
     options?: Omit<RequestOptions, 'method' | 'body'>
   ): Promise<ApiResponse<T>> {
-    const res = await this.request(endpoint, {
-      method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
-      ...options
-    })
-    return this.parseJson<T>(res)
+    try {
+      const res = await this.request(endpoint, {
+        method: 'POST',
+        body: data ? JSON.stringify(data) : undefined,
+        ...options
+      })
+      return this.parseJson<T>(res)
+    } catch (error: unknown) {
+      return this.parseErrorResponse<T>(error)
+    }
   }
 
   async put<T>(
@@ -285,25 +322,37 @@ export class ApiClient {
     data?: unknown,
     options?: Omit<RequestOptions, 'method' | 'body'>
   ): Promise<ApiResponse<T>> {
-    const res = await this.request(endpoint, {
-      method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
-      ...options
-    })
-    return this.parseJson<T>(res)
+    try {
+      const res = await this.request(endpoint, {
+        method: 'PUT',
+        body: data ? JSON.stringify(data) : undefined,
+        ...options
+      })
+      return this.parseJson<T>(res)
+    } catch (error: unknown) {
+      return this.parseErrorResponse<T>(error)
+    }
   }
 
   async patch<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
-    const res = await this.request(endpoint, {
-      method: 'PATCH',
-      body: data ? JSON.stringify(data) : undefined
-    })
-    return this.parseJson<T>(res)
+    try {
+      const res = await this.request(endpoint, {
+        method: 'PATCH',
+        body: data ? JSON.stringify(data) : undefined
+      })
+      return this.parseJson<T>(res)
+    } catch (error: unknown) {
+      return this.parseErrorResponse<T>(error)
+    }
   }
 
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    const res = await this.request(endpoint, { method: 'DELETE' })
-    return this.parseJson<T>(res)
+    try {
+      const res = await this.request(endpoint, { method: 'DELETE' })
+      return this.parseJson<T>(res)
+    } catch (error: unknown) {
+      return this.parseErrorResponse<T>(error)
+    }
   }
 }
 

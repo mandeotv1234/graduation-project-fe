@@ -3,49 +3,15 @@ import { toast } from 'sonner'
 
 import { ApiResponse } from '@/lib/types'
 
+/** HTTP 2xx codes and named success codes returned by the backend */
+function isSuccessCode(code: string): boolean {
+  const num = parseInt(code, 10)
+  if (!isNaN(num)) return num >= 200 && num < 300
+  return ['SUCCESS', 'OK', 'CREATED'].includes(code.toUpperCase())
+}
+
 export function useApi() {
   const [isLoading, setIsLoading] = useState(false)
-
-  const translateMessage = (msg: string): string => {
-    const map: Record<string, string> = {
-      // Success messages
-      'Exam created successfully': 'Đề thi đã được tạo thành công!',
-      'Exam updated successfully': 'Cập nhật đề thi thành công!',
-      'Exam deleted successfully': 'Xóa đề thi thành công!',
-      'Questions created successfully': 'Tạo câu hỏi thành công!',
-      'Questions updated successfully': 'Cập nhật câu hỏi thành công!',
-      'Specification updated successfully': 'Cập nhật đặc tả thành công!',
-      'Specification deleted successfully': 'Xoá đặc tả thành công!',
-      'Class created successfully': 'Tạo lớp học thành công!',
-      'Class updated successfully': 'Cập nhật lớp học thành công!',
-      'Students added successfully': 'Thêm sinh viên thành công!',
-      'Assignment updated successfully': 'Cập nhật bài tập thành công!',
-      'Operation successfully': 'Thao tác thành công!',
-      'Login successfully': 'Đăng nhập thành công!',
-      'Google login successfully': 'Đăng nhập Google thành công!',
-      'Microsoft login successfully': 'Đăng nhập Microsoft thành công!',
-      'Teacher added to class successfully':
-        'Thêm giảng viên vào lớp học thành công!',
-      'Teacher removed from class successfully':
-        'Xóa giảng viên khỏi lớp học thành công!',
-      'Rubric generated successfully': 'Tạo rubric thành công!',
-      'Exam submitted successfully': 'Nộp bài thành công!',
-      'Exam draft saved successfully': 'Lưu bài thi thành công!',
-      'Exam cleared successfully': 'Xóa bài thi thành công!',
-      'Schema cleared successfully': 'Xóa schema thành công!',
-      Success: 'Thành công!',
-
-      // Error messages
-      Unauthorized: 'Không có quyền truy cập!',
-      Forbidden: 'Truy cập bị từ chối!',
-      'Not Found': 'Không tìm thấy dữ liệu!',
-      'Internal Server Error': 'Lỗi hệ thống!',
-      'Bad Request': 'Yêu cầu không hợp lệ!',
-      'Token expired': 'Phiên đăng nhập hết hạn!',
-      'An unknown error occurred': 'Đã có lỗi xảy ra'
-    }
-    return map[msg] || msg
-  }
 
   const callApi = useCallback(
     async <T,>(
@@ -58,42 +24,25 @@ export function useApi() {
         const result = await promise
 
         if (showToast) {
-          toast.success(
-            translateMessage(result.message) || 'Thao tác thành công!'
-          )
+          if (isSuccessCode(result.code)) {
+            toast.success(result.message || 'Thao tác thành công!')
+          } else {
+            toast.error(result.message || 'Đã có lỗi xảy ra')
+          }
         }
 
         return result
       } catch (error: unknown) {
-        let errorMessage = 'An unknown error occurred'
-
-        if (error instanceof Error) {
-          try {
-            const parsed = JSON.parse(error.message) as { message?: string }
-            if (parsed?.message) {
-              errorMessage = parsed.message
-            }
-          } catch {
-            errorMessage = error.message || errorMessage
-          }
-        } else if (typeof error === 'string') {
-          try {
-            const parsed = JSON.parse(error) as { message?: string }
-            if (parsed?.message) {
-              errorMessage = parsed.message
-            }
-          } catch {
-            errorMessage = error
-          }
-        }
-
-        toast.error(translateMessage(errorMessage))
+        // Only truly exceptional cases reach here:
+        // Next.js SESSION_EXPIRED (redirect already in progress) or network errors.
+        // Do NOT show a toast — the redirect or network handler deals with it.
+        console.error('[useApi] Unhandled error:', error)
 
         return {
           code: 'UNHANDLED_ERROR',
-          message: errorMessage,
+          message: 'Đã có lỗi xảy ra',
           data: undefined
-        }
+        } as ApiResponse<T>
       } finally {
         setIsLoading(false)
       }
