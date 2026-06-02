@@ -4,7 +4,8 @@ import {
   getClassDetail,
   getStudentsInClass,
   getClassExams,
-  getClassTeachers
+  getClassTeachers,
+  getClassBans
 } from '@/lib/actions'
 import { PATH } from '@/lib/constants'
 import { ClassDetailView } from '@/app/(main)/teacher/classes/[classId]/components/class-detail-view'
@@ -54,12 +55,14 @@ export default async function ClassDetailPage({
     redirect(PATH.TEACHER_CLASSES)
   }
 
-  const [classRes, studentsRes, examsRes, teachersRes] = await Promise.all([
-    getClassDetail(classIdNum),
-    getStudentsInClass(classIdNum, Number(studentPage) || 1, 10),
-    getClassExams(classIdNum),
-    getClassTeachers(classIdNum)
-  ])
+  const [classRes, studentsRes, examsRes, teachersRes, bansRes] =
+    await Promise.all([
+      getClassDetail(classIdNum),
+      getStudentsInClass(classIdNum, Number(studentPage) || 1, 10),
+      getClassExams(classIdNum),
+      getClassTeachers(classIdNum),
+      getClassBans(classIdNum)
+    ])
 
   if (!classRes.data) {
     redirect(PATH.TEACHER_CLASSES)
@@ -74,6 +77,7 @@ export default async function ClassDetailPage({
       studentPagination={studentsRes.meta?.pagination}
       exams={examsRes.data || []}
       currentStudentPage={Number(studentPage) || 1}
+      bans={bansRes.data || []}
     />
   )
 }

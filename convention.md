@@ -162,4 +162,31 @@ While Tailwind is preferred, if you use SCSS:
 
 ---
 
+---
+
+## 10. Commit Message Convention
+
+**Format**: `GRAD-XXX: Commit message` (first letter of message uppercase)
+
+```
+GRAD-XXX: Short description of what was done
+```
+
+**Examples:**
+- `GRAD-45: Add SQL syntax highlighting to result pages`
+- `GRAD-68: Fix HTML rendering in exam statistics table`
+- `GRAD-102: Implement student result detail page`
+
+**Rules:**
+- Always prefix with the JIRA ticket ID: `GRAD-XXX`
+- Separate ticket ID from message with `: ` (colon + space)
+- First letter of the message must be **uppercase**
+- Use imperative mood: "Add", "Fix", "Implement", "Update", "Remove"
+- Keep the message concise (under 72 characters)
+
+**❌ Wrong**: `grad-45 add sql highlighting`, `GRAD-45 - add sql highlighting`, `GRAD-45: add sql highlighting` (lowercase first letter)  
+**✅ Correct**: `GRAD-45: Add SQL syntax highlighting to result pages`
+
+---
+
 _Created on: April 3, 2026_

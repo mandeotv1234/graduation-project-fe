@@ -1,7 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { Clock, CalendarDays, ArrowRight, FileText, Timer } from 'lucide-react'
+import {
+  Clock,
+  CalendarDays,
+  ArrowRight,
+  FileText,
+  Timer,
+  Ban
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { PATH } from '@/lib/constants'
@@ -46,64 +53,103 @@ function ExamStatusBadge({ status }: { status: string }) {
 
 function ExamCard({ exam }: { exam: StudentExamListItem }) {
   const status = getExamStatus(exam.startTime, exam.endTime)
-  const isAccessible = status === 'in_progress'
-  return (
-    <Link href={PATH.STUDENT_EXAM_TAKE(exam.examId)} className={styles.link}>
-      <div className={cn(styles.card, 'group')}>
-        {/* Gradient accent */}
-        <div className={cn(styles.cardAccent, 'group-hover:opacity-100')} />
+  const isBanned = exam.banned
+  const isAccessible = !isBanned && status === 'in_progress'
 
-        <div className={styles.cardContent}>
-          <div className={styles.cardMain}>
-            <div className={styles.titleRow}>
-              <div className={styles.iconBox}>
-                <FileText className="h-5 w-5" />
-              </div>
-              <div className={styles.titleBlock}>
-                <h3
+  const cardInner = (
+    <div className={cn(styles.card, 'group', isBanned && 'opacity-70')}>
+      {/* Gradient accent */}
+      <div
+        className={cn(
+          styles.cardAccent,
+          !isBanned && 'group-hover:opacity-100'
+        )}
+      />
+
+      <div className={styles.cardContent}>
+        <div className={styles.cardMain}>
+          <div className={styles.titleRow}>
+            <div className={styles.iconBox}>
+              <FileText className="h-5 w-5" />
+            </div>
+            <div className={styles.titleBlock}>
+              <h3
+                className={cn(
+                  styles.title,
+                  !isBanned && 'group-hover:text-primary transition-colors'
+                )}
+              >
+                {exam.title}
+              </h3>
+              {isBanned ? (
+                <span
                   className={cn(
-                    styles.title,
-                    'group-hover:text-primary transition-colors'
+                    styles.statusBadge,
+                    'inline-flex items-center gap-1.5 bg-destructive/10 text-destructive border-destructive/20'
                   )}
                 >
-                  {exam.title}
-                </h3>
+                  <Ban className="h-3.5 w-3.5 shrink-0" />
+                  Bị cấm thi
+                </span>
+              ) : (
                 <ExamStatusBadge status={status} />
-              </div>
-            </div>
-
-            <div className={styles.metaRow}>
-              <div className={styles.metaItem}>
-                <CalendarDays className="h-4 w-4" />
-                <span>Bắt đầu: {formatDateTime(exam.startTime)}</span>
-              </div>
-              <div className={styles.metaItem}>
-                <Clock className="h-4 w-4" />
-                <span>Kết thúc: {formatDateTime(exam.endTime)}</span>
-              </div>
-              {exam.durationMinutes && (
-                <div className={styles.metaItem}>
-                  <Timer className="h-4 w-4" />
-                  <span>{exam.durationMinutes} phút</span>
-                </div>
               )}
             </div>
           </div>
 
-          <div className={styles.actionWrap}>
-            {isAccessible ? (
-              <Button className={styles.enterButton}>
-                Vào thi
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button variant="outline" disabled>
-                {status === 'upcoming' ? 'Chưa mở' : 'Đã kết thúc'}
-              </Button>
+          <div className={styles.metaRow}>
+            <div className={styles.metaItem}>
+              <CalendarDays className="h-4 w-4" />
+              <span>Bắt đầu: {formatDateTime(exam.startTime)}</span>
+            </div>
+            <div className={styles.metaItem}>
+              <Clock className="h-4 w-4" />
+              <span>Kết thúc: {formatDateTime(exam.endTime)}</span>
+            </div>
+            {exam.durationMinutes && (
+              <div className={styles.metaItem}>
+                <Timer className="h-4 w-4" />
+                <span>{exam.durationMinutes} phút</span>
+              </div>
             )}
           </div>
         </div>
+
+        <div className={styles.actionWrap}>
+          {isBanned ? (
+            <Button
+              variant="outline"
+              disabled
+              className="border-destructive/30 text-destructive"
+            >
+              Bị cấm thi
+            </Button>
+          ) : isAccessible ? (
+            <Button className={styles.enterButton}>
+              Vào thi
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button variant="outline" disabled>
+              {status === 'upcoming' ? 'Chưa mở' : 'Đã kết thúc'}
+            </Button>
+          )}
+        </div>
       </div>
+    </div>
+  )
+
+  if (isBanned) {
+    return (
+      <div className={cn(styles.link, 'cursor-not-allowed')} aria-disabled>
+        {cardInner}
+      </div>
+    )
+  }
+
+  return (
+    <Link href={PATH.STUDENT_EXAM_TAKE(exam.examId)} className={styles.link}>
+      {cardInner}
     </Link>
   )
 }

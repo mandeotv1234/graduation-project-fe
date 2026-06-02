@@ -28,6 +28,7 @@ export interface StudentExamListItem {
   durationMinutes: number
   startTime: string
   endTime: string
+  banned: boolean
 }
 
 // GET /api/exams/{examId} → GetStudentExamResponseDto

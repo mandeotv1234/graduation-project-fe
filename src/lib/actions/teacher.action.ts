@@ -30,7 +30,8 @@ import {
   RulePreset,
   CreateRulePresetRequest,
   ExamStatistics,
-  TeacherSqlExecutionResult
+  TeacherSqlExecutionResult,
+  BannedStudentInfo
 } from '@/lib/types'
 
 // ===== Classes =====
@@ -132,6 +133,33 @@ export async function restoreClass(
   classId: number
 ): Promise<ApiResponse<null>> {
   return apiClient.post<null>(ENDPOINTS.CLASS_RESTORE(classId), {})
+}
+
+// ===== Class Bans =====
+
+export async function getClassBans(
+  classId: number,
+  page = 0,
+  size = 100
+): Promise<PaginatedApiResponse<BannedStudentInfo>> {
+  return apiClient.get(ENDPOINTS.CLASS_BANS(classId), {
+    queries: { page, size },
+    cache: 'no-store'
+  }) as Promise<PaginatedApiResponse<BannedStudentInfo>>
+}
+
+export async function banStudent(
+  classId: number,
+  body: { studentId: number; reason: string }
+): Promise<ApiResponse<null>> {
+  return apiClient.post<null>(ENDPOINTS.CLASS_BANS(classId), body)
+}
+
+export async function unbanStudent(
+  classId: number,
+  studentId: number
+): Promise<ApiResponse<null>> {
+  return apiClient.delete<null>(ENDPOINTS.CLASS_UNBAN(classId, studentId))
 }
 
 // ===== Exams =====
