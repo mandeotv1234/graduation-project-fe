@@ -21,6 +21,58 @@ function clearAuthCookies(response: NextResponse): NextResponse {
   return response
 }
 
+/**
+ * Tier-1 anti-tamper hardening: per-request CSP nonce + frame-busting.
+ * Blocks the naive injection vector (pasting an inline <script> to disable anti-cheat).
+ * Privileged contexts (DevTools, extensions) bypass CSP — server-side heartbeat
+ * detection (Tier 2) is the real backstop.
+ */
+function buildCsp(nonce: string): string {
+  let apiOrigin = ''
+  try {
+    apiOrigin = new URL(API_URL).origin
+  } catch {
+    apiOrigin = ''
+  }
+
+  const isDev = process.env.NODE_ENV !== 'production'
+  // Dev needs eval/inline for HMR + React Refresh; prod locks down to nonce + strict-dynamic.
+  const scriptSrc = isDev
+    ? "'self' 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval' blob:"
+    : `'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'`
+
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSrc}`,
+    "style-src 'self' 'unsafe-inline'", // Tailwind / inline styles
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "worker-src 'self' blob:", // Monaco editor workers
+    `connect-src 'self' ${apiOrigin} ws: wss: https:`.replace(/\s+/g, ' '),
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'"
+  ].join('; ')
+}
+
+/**
+ * NextResponse.next() with the CSP nonce threaded into both the request headers
+ * (so RSC can read x-nonce) and the response headers.
+ */
+function nextWithCsp(
+  request: NextRequest,
+  nonce: string,
+  csp: string
+): NextResponse {
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-nonce', nonce)
+  requestHeaders.set('content-security-policy', csp)
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
+  response.headers.set('content-security-policy', csp)
+  return response
+}
+
 async function refreshAccessToken(
   refreshToken: string
 ): Promise<RefreshTokenResponse | null> {
@@ -43,6 +95,9 @@ async function refreshAccessToken(
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  const csp = buildCsp(nonce)
+
   // ── If already authenticated, redirect away from public auth pages ──
   if (PUBLIC_PATH.some((path) => pathname.startsWith(path))) {
     const accessToken = request.cookies.get('accessToken')?.value
@@ -64,7 +119,7 @@ export async function proxy(request: NextRequest) {
       }
       return NextResponse.redirect(new URL(redirectTo, request.url))
     }
-    return NextResponse.next()
+    return nextWithCsp(request, nonce, csp)
   }
 
   const isPrivateRoute =
@@ -72,12 +127,12 @@ export async function proxy(request: NextRequest) {
     PRIVATE_PATH.some((path) => pathname.startsWith(path))
 
   if (!isPrivateRoute) {
-    return NextResponse.next()
+    return nextWithCsp(request, nonce, csp)
   }
 
   const accessToken = request.cookies.get('accessToken')?.value
   if (accessToken) {
-    return NextResponse.next()
+    return nextWithCsp(request, nonce, csp)
   }
 
   const refreshToken = request.cookies.get('refreshToken')?.value
@@ -85,7 +140,7 @@ export async function proxy(request: NextRequest) {
   // POST = server action call; redirect would break the RSC protocol.
   // ApiClient handles token refresh for server actions instead.
   if (request.method === 'POST') {
-    return NextResponse.next()
+    return nextWithCsp(request, nonce, csp)
   }
 
   if (!refreshToken) {

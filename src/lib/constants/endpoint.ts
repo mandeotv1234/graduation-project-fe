@@ -22,6 +22,7 @@ export const ENDPOINTS = Object.freeze({
   // Anti-Cheating
   EXAM_START_SESSION: (examId: number) => `/exams/${examId}/start-session`,
   EXAM_REPORT_VIOLATION: (examId: number) => `/exams/${examId}/violations`,
+  EXAM_HEARTBEAT: (examId: number) => `/exams/${examId}/heartbeat`,
   EXAM_TIME: (examId: number) => `/exams/${examId}/time`,
   EXAM_DEVICE_CONFLICT_APPROVE: (examId: number, conflictId: string) =>
     `/exams/${examId}/device-conflict/${conflictId}/approve`,

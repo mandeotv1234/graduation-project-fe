@@ -26,6 +26,9 @@ export const examSettingsFormSchema = z
       allowOvertime: z.boolean().default(false),
       gradingMethod: z.string().default('highest_score'),
       showResultAfterSubmit: z.boolean().default(false),
+      integrityCheckEnabled: z.boolean().default(true),
+      heartbeatIntervalSec: z.coerce.number().min(3).max(60).default(8),
+      maxHeartbeatGapSec: z.coerce.number().min(10).max(120).default(25),
       isLoadDdl: z.boolean().default(false),
       seedDatasetId: z
         .preprocess(

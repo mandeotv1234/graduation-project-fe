@@ -11,6 +11,9 @@ export type NormalizedExamSettings = {
   gradingMethod: string
   showResultAfterSubmit: boolean
   maxViolations: number
+  integrityCheckEnabled: boolean
+  heartbeatIntervalSec: number
+  maxHeartbeatGapSec: number
   isLoadDdl: boolean
   seedDatasetId?: number
 }
@@ -28,6 +31,9 @@ const DEFAULT_SETTINGS: NormalizedExamSettings = {
   gradingMethod: 'highest_score',
   showResultAfterSubmit: false,
   maxViolations: 3,
+  integrityCheckEnabled: true,
+  heartbeatIntervalSec: 8,
+  maxHeartbeatGapSec: 25,
   isLoadDdl: false
 }
 
@@ -56,6 +62,12 @@ export function normalizeExamSettings(
     showResultAfterSubmit:
       raw.showResultAfterSubmit ?? DEFAULT_SETTINGS.showResultAfterSubmit,
     maxViolations: raw.maxViolations ?? DEFAULT_SETTINGS.maxViolations,
+    integrityCheckEnabled:
+      raw.integrityCheckEnabled ?? DEFAULT_SETTINGS.integrityCheckEnabled,
+    heartbeatIntervalSec:
+      raw.heartbeatIntervalSec ?? DEFAULT_SETTINGS.heartbeatIntervalSec,
+    maxHeartbeatGapSec:
+      raw.maxHeartbeatGapSec ?? DEFAULT_SETTINGS.maxHeartbeatGapSec,
     isLoadDdl,
     seedDatasetId:
       isLoadDdl && seedDatasetIdRaw != null && seedDatasetIdRaw !== ''
