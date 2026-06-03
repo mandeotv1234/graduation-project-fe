@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { headers } from 'next/headers'
 
 import '@/app/globals.css'
 import { ReduxProvider } from '@/lib/redux'
@@ -26,17 +27,30 @@ export const metadata: Metadata = {
   description: 'Graduation Project'
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const nonce = (await headers()).get('x-nonce') ?? ''
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
+        {/* Set __webpack_nonce__ before any other scripts so webpack adds the nonce
+            to all dynamically injected chunks. Must be the first child of <body>. */}
+        {nonce && (
+          <script
+            nonce={nonce}
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{
+              __html: `window.__webpack_nonce__='${nonce}'`
+            }}
+          />
+        )}
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

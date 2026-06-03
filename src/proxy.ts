@@ -36,10 +36,12 @@ function buildCsp(nonce: string): string {
   }
 
   const isDev = process.env.NODE_ENV !== 'production'
-  // Dev needs eval/inline for HMR + React Refresh; prod locks down to nonce + strict-dynamic.
+  // Dev needs eval/inline for HMR + React Refresh.
+  // Prod: 'self' allows Next.js static chunks (strict-dynamic would disable it and block them);
+  // nonce gates inline scripts; wasm-unsafe-eval is needed for Monaco/WASM workers.
   const scriptSrc = isDev
     ? "'self' 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval' blob:"
-    : `'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'`
+    : `'self' 'nonce-${nonce}' 'wasm-unsafe-eval'`
 
   return [
     "default-src 'self'",
