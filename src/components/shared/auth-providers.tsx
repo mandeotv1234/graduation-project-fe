@@ -8,9 +8,10 @@ import { msalInstance } from '@/lib/msal-config'
 
 type AuthProvidersProps = {
   children: React.ReactNode
+  nonce?: string
 }
 
-export function AuthProviders({ children }: AuthProvidersProps) {
+export function AuthProviders({ children, nonce }: AuthProvidersProps) {
   const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export function AuthProviders({ children }: AuthProvidersProps) {
   return (
     <GoogleOAuthProvider
       clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}
+      nonce={nonce}
     >
       <MsalProvider instance={msalInstance}>{children}</MsalProvider>
     </GoogleOAuthProvider>

@@ -57,7 +57,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProviders>
+          <AuthProviders nonce={nonce}>
             <ReduxProvider>
               <TeacherNotificationHandler />
               {children}

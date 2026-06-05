@@ -41,16 +41,17 @@ function buildCsp(nonce: string): string {
   // nonce gates inline scripts; wasm-unsafe-eval is needed for Monaco/WASM workers.
   const scriptSrc = isDev
     ? "'self' 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval' blob:"
-    : `'self' 'nonce-${nonce}' 'wasm-unsafe-eval'`
+    : `'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://accounts.google.com/gsi/`
 
   return [
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'", // Tailwind / inline styles
-    "img-src 'self' data: blob:",
+    "img-src 'self' data: blob: https://lh3.googleusercontent.com",
     "font-src 'self' data:",
     "worker-src 'self' blob:", // Monaco editor workers
     `connect-src 'self' ${apiOrigin} ws: wss: https:`.replace(/\s+/g, ' '),
+    'frame-src https://accounts.google.com',
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
