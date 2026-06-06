@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
-import Editor, { type OnMount } from '@monaco-editor/react'
+import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import { useTheme } from 'next-themes'
 import { Geist_Mono } from 'next/font/google'
 import { Maximize2 } from 'lucide-react'
@@ -24,26 +24,55 @@ interface SqlViewerProps {
   value: string
   height?: string
   showExpandButton?: boolean
+  /** Force the editor into dark theme regardless of the app theme. */
+  forceDark?: boolean
 }
 
 export function SqlViewer({
   value,
   height,
-  showExpandButton = true
+  showExpandButton = true,
+  forceDark = false
 }: SqlViewerProps) {
   const { theme, systemTheme } = useTheme()
   const currentTheme = theme === 'system' ? systemTheme : theme
-  const isDark = currentTheme === 'dark'
+  const isDark = forceDark || currentTheme === 'dark'
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [isExpanded, setIsExpanded] = useState(false)
 
   const lineCount = (value ?? '').split('\n').length
   const computedHeight =
-    height ?? `${Math.min(Math.max(lineCount * 21 + 24, 80), 300)}px`
+    height ?? `${Math.min(Math.max(lineCount * 21 + 24, 80), 500)}px`
+
+  const handleBeforeMount: BeforeMount = (m) => {
+    m.editor.defineTheme('sql-viewer-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#FFFFFF',
+        'editorGutter.background': '#FFFFFF',
+        'editorLineNumber.foreground': '#6B7280',
+        'editorLineNumber.activeForeground': '#111827'
+      }
+    })
+    m.editor.defineTheme('sql-viewer-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#1e1e1e',
+        'editorGutter.background': '#1e1e1e',
+        'editorLineNumber.foreground': '#9CA3AF',
+        'editorLineNumber.activeForeground': '#F9FAFB'
+      }
+    })
+  }
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor
+    requestAnimationFrame(() => editor.layout())
   }
 
   const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
@@ -51,7 +80,9 @@ export function SqlViewer({
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     fontSize: 13,
-    lineNumbers: 'off',
+    lineNumbers: 'on',
+    lineNumbersMinChars: 3,
+    lineDecorationsWidth: 6,
     wordWrap: 'on',
     automaticLayout: true,
     padding: { top: 8, bottom: 8 },
@@ -63,8 +94,7 @@ export function SqlViewer({
     selectionHighlight: false,
     folding: false,
     glyphMargin: false,
-    lineDecorationsWidth: 0,
-    lineNumbersMinChars: 0,
+    stickyScroll: { enabled: false },
     scrollbar: { vertical: 'hidden', horizontal: 'auto' }
   }
 
@@ -139,7 +169,8 @@ export function SqlViewer({
                 height="100%"
                 language="sql"
                 value={value ?? ''}
-                theme={isDark ? 'vs-dark' : 'vs'}
+                theme={isDark ? 'sql-viewer-dark' : 'sql-viewer-light'}
+                beforeMount={handleBeforeMount}
                 onMount={handleEditorMount}
                 options={{
                   ...editorOptions,
@@ -159,7 +190,8 @@ export function SqlViewer({
         height={computedHeight}
         language="sql"
         value={value ?? ''}
-        theme={isDark ? 'vs-dark' : 'vs'}
+        theme={isDark ? 'sql-viewer-dark' : 'sql-viewer-light'}
+        beforeMount={handleBeforeMount}
         onMount={handleEditorMount}
         loading={
           <pre

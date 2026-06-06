@@ -46,6 +46,30 @@ export function TeacherSqlEditor({
 
   const handleEditorWillMount = (m: Monaco) => {
     monacoRef.current = m
+    // Custom themes: background khớp với --sub-background của app,
+    // line numbers có màu rõ ràng để không bị invisible trên nền này.
+    m.editor.defineTheme('sql-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#FCF8FF',
+        'editorGutter.background': '#FCF8FF',
+        'editorLineNumber.foreground': '#6B7280',
+        'editorLineNumber.activeForeground': '#111827'
+      }
+    })
+    m.editor.defineTheme('sql-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#131318',
+        'editorGutter.background': '#131318',
+        'editorLineNumber.foreground': '#9CA3AF',
+        'editorLineNumber.activeForeground': '#F9FAFB'
+      }
+    })
   }
 
   const handleEditorDidMount = (
@@ -57,7 +81,7 @@ export function TeacherSqlEditor({
     editor.updateOptions({
       fontSize: 14,
       lineNumbers: 'on',
-      lineNumbersMinChars: 2,
+      lineNumbersMinChars: 3,
       lineDecorationsWidth: 6,
       glyphMargin: false,
       folding: false,
@@ -74,6 +98,9 @@ export function TeacherSqlEditor({
       fontFamily: geistMono.style.fontFamily
     })
 
+    // Force recalculate width sau khi container render xong
+    requestAnimationFrame(() => editor.layout())
+
     editor.addCommand(m.KeyMod.CtrlCmd | m.KeyCode.Slash, () => {
       editor.getAction('editor.action.commentLine')?.run()
     })
@@ -85,10 +112,11 @@ export function TeacherSqlEditor({
     scrollBeyondLastLine: false,
     fontSize: 14,
     lineNumbers: 'on',
-    lineNumbersMinChars: 2,
+    lineNumbersMinChars: 3,
     lineDecorationsWidth: 6,
     glyphMargin: false,
     folding: false,
+    stickyScroll: { enabled: false },
     wordWrap: 'on',
     automaticLayout: true,
     tabSize: 2,
@@ -96,7 +124,7 @@ export function TeacherSqlEditor({
     formatOnPaste: true,
     formatOnType: false,
     readOnly,
-    padding: { top: 16, bottom: 16 },
+    padding: { top: 12, bottom: 12 },
     quickSuggestions: true,
     suggestOnTriggerCharacters: true,
     acceptSuggestionOnEnter: 'on',
@@ -132,7 +160,7 @@ export function TeacherSqlEditor({
                 onChange={onChange}
                 beforeMount={handleEditorWillMount}
                 onMount={handleEditorDidMount}
-                theme={isDark ? 'vs-dark' : 'vs'}
+                theme={isDark ? 'sql-dark' : 'sql-light'}
                 options={editorOptions}
               />
             </div>
@@ -147,7 +175,7 @@ export function TeacherSqlEditor({
         onChange={onChange}
         beforeMount={handleEditorWillMount}
         onMount={handleEditorDidMount}
-        theme={isDark ? 'vs-dark' : 'vs'}
+        theme={isDark ? 'sql-dark' : 'sql-light'}
         options={editorOptions}
       />
     </div>

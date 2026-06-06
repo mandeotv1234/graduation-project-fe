@@ -123,7 +123,7 @@ function SqlBlock({ label, value }: { label: string; value: string }) {
       <div className="text-xs font-bold uppercase tracking-wide text-foreground">
         {label}
       </div>
-      <div className="overflow-hidden rounded-lg border border-white/10">
+      <div className="overflow-hidden rounded-lg border border-border">
         <SqlViewer value={value} />
       </div>
     </section>

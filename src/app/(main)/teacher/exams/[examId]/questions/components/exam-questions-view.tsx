@@ -1343,7 +1343,7 @@ export function ExamQuestionsView({
                                   }
                                 />
                               )}
-                              <div className="h-[160px] overflow-hidden rounded-md border border-border bg-sub-background">
+                              <div className="h-[280px] overflow-hidden rounded-md border border-border bg-sub-background">
                                 <TeacherSqlEditor
                                   value={q.correctQuery}
                                   onChange={(value) =>
@@ -1379,7 +1379,7 @@ export function ExamQuestionsView({
                                     Script kiểm thử (Verify Script)
                                   </span>
                                 </label>
-                                <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
+                                <div className="h-[280px] overflow-hidden rounded-md border border-border bg-background">
                                   <TeacherSqlEditor
                                     value={q.verifyScript}
                                     onChange={(value) =>

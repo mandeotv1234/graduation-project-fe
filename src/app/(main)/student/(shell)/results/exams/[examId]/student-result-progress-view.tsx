@@ -325,14 +325,16 @@ function ScoreTrendChart({
               className="fill-background stroke-primary"
               strokeWidth="3"
             />
-            <text
-              x={point.x}
-              y={chart.bottom + 28}
-              textAnchor="middle"
-              className="fill-muted-foreground text-[11px]"
-            >
-              Lần {point.attemptNumber}
-            </text>
+            {point.showLabel && (
+              <text
+                x={point.x}
+                y={chart.bottom + 28}
+                textAnchor="middle"
+                className="fill-muted-foreground text-[11px]"
+              >
+                Lần {point.attemptNumber}
+              </text>
+            )}
           </g>
         ))}
       </svg>
@@ -349,6 +351,12 @@ function buildChart(attempts: StudentExamResultResponse[]) {
   const maxScore = Math.max(...attempts.map((attempt) => attempt.maxScore), 1)
   const xStep = attempts.length > 1 ? (right - left) / (attempts.length - 1) : 0
 
+  // Show at most ~12 x-axis labels so they never overlap. Always keep the
+  // first and last attempt labelled.
+  const maxLabels = 12
+  const lastIndex = attempts.length - 1
+  const labelStep = Math.max(1, Math.ceil(attempts.length / maxLabels))
+
   return {
     left,
     right,
@@ -360,7 +368,8 @@ function buildChart(attempts: StudentExamResultResponse[]) {
       id: attempt.id,
       attemptNumber: attempt.attemptNumber,
       x: attempts.length > 1 ? left + index * xStep : (left + right) / 2,
-      y: bottom - (attempt.totalScore / maxScore) * plotHeight
+      y: bottom - (attempt.totalScore / maxScore) * plotHeight,
+      showLabel: index % labelStep === 0 || index === lastIndex
     }))
   }
 }

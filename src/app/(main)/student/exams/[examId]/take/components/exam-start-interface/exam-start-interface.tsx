@@ -59,6 +59,14 @@ async function callStartSession(
   }
 }
 
+/** Localize known backend error messages to Vietnamese. */
+function localizeError(message: string): string {
+  if (/already ended|exam has ended|đã kết thúc/i.test(message)) {
+    return 'Bài thi đã kết thúc.'
+  }
+  return message
+}
+
 export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
   const router = useRouter()
   const [agreed, setAgreed] = useState(false)
@@ -69,6 +77,14 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
     conflictId: string
   } | null>(null)
   const [countdownStr, setCountdownStr] = useState<string | null>(null)
+  const [examEnded, setExamEnded] = useState(() =>
+    exam.endTime ? new Date(exam.endTime).getTime() <= Date.now() : false
+  )
+  // Student has used up all allowed attempts
+  const attemptsExhausted =
+    exam.maxAttempts != null && (exam.usedAttempts ?? 0) >= exam.maxAttempts
+  // The exam can no longer be started for any reason
+  const cannotStart = examEnded || attemptsExhausted
   const [canStart, setCanStart] = useState(() => {
     if (exam.maxAttempts === 1 && exam.startTime) {
       return new Date(exam.startTime).getTime() <= Date.now()
@@ -137,6 +153,12 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
 
   const handleStartExam = async () => {
     if (!agreed) return
+    const ended = exam.endTime
+      ? new Date(exam.endTime).getTime() <= Date.now()
+      : false
+    const noAttemptsLeft =
+      exam.maxAttempts != null && (exam.usedAttempts ?? 0) >= exam.maxAttempts
+    if (ended || noAttemptsLeft) return
     setIsStarting(true)
     setError(null)
 
@@ -153,6 +175,23 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
 
     await doStartSession()
   }
+
+  // Keep examEnded in sync while the page stays open
+  useEffect(() => {
+    if (!exam.endTime) return
+    const endObj = new Date(exam.endTime).getTime()
+    if (endObj <= Date.now()) {
+      setExamEnded(true)
+      return
+    }
+    const intervalId = setInterval(() => {
+      if (Date.now() >= endObj) {
+        setExamEnded(true)
+        clearInterval(intervalId)
+      }
+    }, 1000)
+    return () => clearInterval(intervalId)
+  }, [exam.endTime])
 
   useEffect(() => {
     if (!exam.startTime || exam.maxAttempts !== 1) return
@@ -185,6 +224,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
   useEffect(() => {
     if (
       canStart &&
+      !cannotStart &&
       !hasAutoStarted.current &&
       exam.maxAttempts === 1 &&
       exam.startTime
@@ -197,6 +237,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
     }
   }, [
     canStart,
+    cannotStart,
     exam.maxAttempts,
     exam.startTime,
     exam.settings?.forceFullscreen,
@@ -371,29 +412,34 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                 </div>
               )}
             </div>
-            {(!exam.startTime ||
-              exam.maxAttempts !== 1 ||
-              settings?.forceFullscreen) && (
-              <label className={styles.agreementLabel}>
-                <Checkbox
-                  checked={agreed}
-                  onCheckedChange={(checked: boolean | 'indeterminate') =>
-                    setAgreed(checked === true)
-                  }
-                  className={styles.checkbox}
-                />
-                <span className={styles.text}>
-                  Tôi đã đọc, hiểu và cam kết tuân thủ các quy định thi trực
-                  tuyến một cách nghiêm túc.
-                </span>
-              </label>
-            )}
+            {!cannotStart &&
+              (!exam.startTime ||
+                exam.maxAttempts !== 1 ||
+                settings?.forceFullscreen) && (
+                <label className={styles.agreementLabel}>
+                  <Checkbox
+                    checked={agreed}
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
+                      setAgreed(checked === true)
+                    }
+                    className={styles.checkbox}
+                  />
+                  <span className={styles.text}>
+                    Tôi đã đọc, hiểu và cam kết tuân thủ các quy định thi trực
+                    tuyến một cách nghiêm túc.
+                  </span>
+                </label>
+              )}
           </section>
 
           {/* Error message */}
-          {error && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
+          {(error || cannotStart) && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive text-center">
+              {error
+                ? localizeError(error)
+                : examEnded
+                  ? 'Bài thi đã kết thúc.'
+                  : 'Bạn đã hết lượt làm bài.'}
             </div>
           )}
 
@@ -403,6 +449,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
               size="lg"
               className={styles.startButton}
               disabled={
+                cannotStart ||
                 !canStart ||
                 (!agreed &&
                   (!exam.startTime ||
@@ -412,7 +459,11 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
               }
               onClick={handleStartExam}
             >
-              {isStarting ? (
+              {examEnded ? (
+                'Bài thi đã kết thúc'
+              ) : attemptsExhausted ? (
+                'Bạn đã hết lượt làm bài'
+              ) : isStarting ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Đang chuẩn bị phiên thi...

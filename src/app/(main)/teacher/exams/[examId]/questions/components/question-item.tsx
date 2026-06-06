@@ -719,7 +719,7 @@ export function QuestionItem({
                   }
                 />
               )}
-              <div className="h-[160px] overflow-hidden rounded-md border border-border bg-sub-background">
+              <div className="h-[280px] overflow-hidden rounded-md border border-border bg-sub-background">
                 <TeacherSqlEditor
                   value={editForm.correctQuery}
                   onChange={(v) =>
@@ -744,7 +744,7 @@ export function QuestionItem({
                     Script kiểm thử
                   </span>
                 </label>
-                <div className="h-[160px] overflow-hidden rounded-md border border-border bg-background">
+                <div className="h-[280px] overflow-hidden rounded-md border border-border bg-background">
                   <TeacherSqlEditor
                     value={editForm.verifyScript}
                     onChange={(v) =>
