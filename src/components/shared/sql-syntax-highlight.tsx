@@ -1,6 +1,7 @@
 'use client'
 
 import { Highlight, themes } from 'prism-react-renderer'
+import { useTheme } from 'next-themes'
 
 interface SqlSyntaxHighlightProps {
   code: string
@@ -11,10 +12,15 @@ export function SqlSyntaxHighlight({
   code,
   className
 }: SqlSyntaxHighlightProps) {
-  // Code-block card background is always white in this UI — use light token
-  // palette to keep contrast readable in both light and dark theme modes.
+  const { theme, systemTheme } = useTheme()
+  const isDark = (theme === 'system' ? systemTheme : theme) === 'dark'
+
   return (
-    <Highlight theme={themes.nightOwlLight} code={code} language="sql">
+    <Highlight
+      theme={isDark ? themes.nightOwl : themes.nightOwlLight}
+      code={code}
+      language="sql"
+    >
       {({ style, tokens, getLineProps, getTokenProps }) => {
         const { fontFamily, fontSize, ...themeStyle } = style
         void fontFamily
@@ -26,14 +32,35 @@ export function SqlSyntaxHighlight({
             style={{
               ...themeStyle,
               margin: 0,
-              background: 'transparent'
+              background: 'transparent',
+              display: 'table',
+              width: '100%'
             }}
           >
             {tokens.map((line, i) => (
-              <div key={i} {...getLineProps({ line })}>
-                {line.map((token, key) => (
-                  <span key={key} {...getTokenProps({ token })} />
-                ))}
+              <div
+                key={i}
+                {...getLineProps({ line })}
+                style={{ display: 'table-row' }}
+              >
+                <span
+                  style={{
+                    display: 'table-cell',
+                    userSelect: 'none',
+                    textAlign: 'right',
+                    paddingRight: '16px',
+                    minWidth: '2.5em',
+                    color: '#9CA3AF',
+                    opacity: 0.7
+                  }}
+                >
+                  {i + 1}
+                </span>
+                <span style={{ display: 'table-cell' }}>
+                  {line.map((token, key) => (
+                    <span key={key} {...getTokenProps({ token })} />
+                  ))}
+                </span>
               </div>
             ))}
           </pre>

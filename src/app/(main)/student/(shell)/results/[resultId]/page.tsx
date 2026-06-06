@@ -3,12 +3,14 @@ import { ArrowLeft, BarChart3 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  getExamDetail,
   getMyResultDetail,
   getMyResults
 } from '@/lib/actions/student-exam.action'
 import { PATH } from '@/lib/constants'
 import { cn, formatDateTime } from '@/lib/utils'
 import { ResultQuestionList } from './components/result-question-list'
+import { ResultSpecification } from './components/result-specification'
 
 export default async function StudentResultDetailPage({
   params
@@ -41,6 +43,11 @@ export default async function StudentResultDetailPage({
     ? (result.totalScore / result.maxScore) * 100
     : 0
 
+  const examDetail =
+    progressExamId !== null
+      ? ((await getExamDetail(progressExamId)).data ?? null)
+      : null
+
   return (
     <div className="mx-auto max-w-7xl space-y-3 pb-20">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -67,6 +74,14 @@ export default async function StudentResultDetailPage({
           </Button>
         )}
       </div>
+
+      {progressExamId !== null && (
+        <ResultSpecification
+          examId={progressExamId}
+          pdfFilePath={examDetail?.pdfFilePath}
+          originalPdfFileName={examDetail?.originalPdfFileName}
+        />
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="space-y-3 lg:sticky lg:top-1 lg:self-start">

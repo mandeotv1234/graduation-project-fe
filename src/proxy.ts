@@ -40,13 +40,13 @@ function buildCsp(nonce: string): string {
   // Prod: 'self' allows Next.js static chunks (strict-dynamic would disable it and block them);
   // nonce gates inline scripts; wasm-unsafe-eval is needed for Monaco/WASM workers.
   const scriptSrc = isDev
-    ? "'self' 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval' blob:"
-    : `'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://accounts.google.com/gsi/`
+    ? "'self' 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://accounts.google.com/gsi/"
+    : `'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://accounts.google.com/gsi/ https://cdn.jsdelivr.net 'sha256-wkjS4zijHQljbuQzwpQdd2Wvq3fpRtpxgPGRt+U5jFY='`
 
   return [
     "default-src 'self'",
     `script-src ${scriptSrc}`,
-    "style-src 'self' 'unsafe-inline'", // Tailwind / inline styles
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net", // Tailwind / inline styles + Monaco CSS
     "img-src 'self' data: blob: https://lh3.googleusercontent.com",
     "font-src 'self' data:",
     "worker-src 'self' blob:", // Monaco editor workers

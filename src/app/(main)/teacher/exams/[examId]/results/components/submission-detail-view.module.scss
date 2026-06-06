@@ -428,6 +428,292 @@
   }
 }
 
+:global(.dark) {
+  .container {
+    background-color: transparent;
+  }
+
+  .header .titleSection {
+    h1 { color: #f1f5f9; }
+    p { color: #94a3b8; }
+  }
+
+  .overviewCard {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: none;
+
+    .statItem {
+      .label { color: #94a3b8; }
+      .value { color: #f1f5f9; }
+    }
+  }
+
+  .questionCard {
+    background: #1e293b;
+    border-color: #334155;
+
+    &:hover { border-color: #475569; }
+  }
+
+  .qHeader {
+    background-color: #0f172a;
+    border-bottom-color: #334155;
+  }
+
+  .qTitle { color: #cbd5e1; }
+
+  .qScore {
+    &.passed { color: #4ade80; }
+    &.failed { color: #f87171; }
+  }
+
+  .collapseBtn { color: #94a3b8; }
+
+  .questionTypeBadge {
+    background-color: #334155;
+    color: #94a3b8;
+    border-color: #475569;
+  }
+
+  .gradingBadge {
+    &.gradingAuto {
+      background-color: #334155;
+      color: #94a3b8;
+      border-color: #475569;
+    }
+    &.gradingManual {
+      background-color: #1e3a5f;
+      color: #60a5fa;
+      border-color: #1e40af;
+    }
+  }
+
+  .qContent .prompt { color: #cbd5e1; }
+
+  .codeBlock {
+    background-color: #0f172a;
+    border-color: #334155;
+    box-shadow: none;
+
+    .codeHeader {
+      background-color: #1e293b;
+      border-bottom-color: #334155;
+    }
+
+    .codeMeta {
+      background-color: #1e293b;
+      border-color: #334155;
+      color: #94a3b8;
+    }
+
+    pre {
+      background-color: #0f172a;
+      color: #e2e8f0;
+    }
+
+    &.student {
+      border-color: #1e3a5f;
+
+      .codeHeader {
+        background-color: #0c1f3a;
+        border-bottom-color: #1e3a5f;
+      }
+
+      .codeTitle { color: #60a5fa; }
+    }
+
+    &.correct {
+      border-color: #14532d;
+
+      .codeHeader {
+        background-color: #052e16;
+        border-bottom-color: #14532d;
+      }
+
+      .codeTitle { color: #4ade80; }
+    }
+  }
+
+  .qFooter {
+    background-color: #2d1515;
+    border-top-color: #7f1d1d;
+    color: #fca5a5;
+
+    &.success {
+      background-color: #052e16;
+      border-top-color: #14532d;
+      color: #86efac;
+    }
+  }
+
+  .teacherComment {
+    background-color: #1e293b;
+    border-color: #334155;
+
+    .commentMeta { color: #94a3b8; }
+    .commentText { color: #cbd5e1; }
+  }
+
+  .editForm {
+    background-color: #1e293b;
+    border-color: #334155;
+  }
+
+  .correctLabel { color: #cbd5e1; }
+
+  .testCaseResults {
+    background-color: #1e293b;
+    border-color: #334155;
+  }
+
+  .testCaseHeader {
+    background-color: #0f172a;
+    border-bottom-color: #334155;
+    color: #cbd5e1;
+  }
+
+  .testCaseRow {
+    border-bottom-color: #334155;
+  }
+
+  .testCaseMessage { color: #fca5a5; }
+
+  .testCaseScore { color: #cbd5e1; }
+
+  .attemptNav {
+    background: #1e293b;
+    border-color: #334155;
+  }
+
+  .attemptNavLabel { color: #94a3b8; }
+
+  .attemptScrollBtn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+
+    &:hover {
+      background: #334155;
+      border-color: #475569;
+    }
+  }
+
+  .attemptPill {
+    background: #334155;
+    border-color: #475569;
+
+    &:hover:not(.attemptPillActive) {
+      background: #475569;
+      border-color: #64748b;
+    }
+  }
+
+  .attemptPillNumber { color: #cbd5e1; }
+  .attemptPillScore { color: #94a3b8; }
+
+  .comparisonBanner {
+    background-color: #1e3a5f;
+    border-color: #1e40af;
+    color: #93c5fd;
+  }
+
+  .gradingTrace {
+    border-top-color: #334155;
+  }
+
+  .traceTitle { color: #94a3b8; }
+
+  .traceKindBadge {
+    background-color: #334155;
+    color: #94a3b8;
+  }
+
+  .traceItemMessage { color: #94a3b8; }
+
+  .traceRuleMeta {
+    color: #94a3b8;
+    span, code {
+      border-color: #334155;
+      background-color: #1e293b;
+    }
+  }
+
+  .traceComparison {
+    code {
+      background-color: #334155;
+    }
+  }
+
+  .tracePass {
+    background-color: #052e16;
+    border-color: #14532d;
+    color: #86efac;
+  }
+
+  .traceFail {
+    background-color: #2d1515;
+    border-color: #7f1d1d;
+    color: #fca5a5;
+  }
+
+  .traceWarn {
+    background-color: #1c1407;
+    border-color: #713f12;
+    color: #fcd34d;
+  }
+
+  .traceInfo {
+    background-color: #0c1f3a;
+    border-color: #1e3a5f;
+    color: #93c5fd;
+  }
+
+  .traceBadgeFail {
+    background-color: #2d1515;
+    border-color: #7f1d1d;
+    color: #fca5a5;
+  }
+
+  .traceBadgeWarn {
+    background-color: #1c1407;
+    border-color: #713f12;
+    color: #fcd34d;
+  }
+
+  .traceBadgePass {
+    background-color: #052e16;
+    border-color: #14532d;
+    color: #86efac;
+  }
+
+  .traceBadgeInfo {
+    background-color: #0c1f3a;
+    border-color: #1e3a5f;
+    color: #93c5fd;
+  }
+
+  .errorDetail {
+    background-color: #2d1515;
+    border-top-color: #7f1d1d;
+
+    .errorSummary { color: #fca5a5; }
+
+    .errorSection {
+      background-color: #1a0a0a;
+      border-color: #7f1d1d;
+
+      .errorLabel { color: #fca5a5; }
+      pre { color: #fca5a5; }
+    }
+  }
+
+  .scoreDelta { }
+  .deltaPositive { color: #4ade80; background-color: #052e16; }
+  .deltaNegative { color: #f87171; background-color: #2d1515; }
+  .deltaNeutral { color: #94a3b8; background-color: #334155; }
+}
+
 // ===== Phase 7: teacher comment =====
 
 .teacherComment {

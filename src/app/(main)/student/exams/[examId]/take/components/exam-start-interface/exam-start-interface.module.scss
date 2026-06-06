@@ -64,7 +64,7 @@
           }
 
           .noRules {
-            @apply list-none text-on-tertiary -ml-5;
+            @apply list-none text-foreground/80 -ml-5;
           }
         }
       }
