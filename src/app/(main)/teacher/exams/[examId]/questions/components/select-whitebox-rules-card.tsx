@@ -19,7 +19,13 @@ interface WhiteboxPreset {
   // DANGEROUS presets risk penalising a semantically-equivalent answer, so they default to
   // deduct-only and hide FAIL behind an explicit confirm.
   dangerous: boolean
+  // FORBID_LITERAL_IN_WHERE is fuzzy: only ever deduct, never offer FAIL.
+  neverFail?: boolean
+  // Optional parameter input: a nesting-depth threshold or an aggregate allow-list (CSV).
+  param?: 'threshold' | 'argument'
 }
+
+const DEFAULT_NESTING_THRESHOLD = 2
 
 const PRESETS: WhiteboxPreset[] = [
   { condition: 'REQUIRE_JOIN', label: 'Bắt buộc dùng JOIN', dangerous: true },
@@ -32,7 +38,8 @@ const PRESETS: WhiteboxPreset[] = [
   {
     condition: 'REQUIRE_AGGREGATE',
     label: 'Bắt buộc dùng hàm tổng hợp (COUNT/SUM/AVG/MIN/MAX)',
-    dangerous: false
+    dangerous: false,
+    param: 'argument'
   },
   {
     condition: 'REQUIRE_DISTINCT',
@@ -64,6 +71,18 @@ const PRESETS: WhiteboxPreset[] = [
     condition: 'FORBID_SUBQUERY_IN_WHERE',
     label: 'Cấm truy vấn con trong WHERE',
     dangerous: true
+  },
+  {
+    condition: 'MAX_NESTING_DEPTH',
+    label: 'Giới hạn độ sâu lồng truy vấn con',
+    dangerous: false,
+    param: 'threshold'
+  },
+  {
+    condition: 'FORBID_LITERAL_IN_WHERE',
+    label: 'Cấm hằng số trong WHERE (nghi ghi cứng đáp án)',
+    dangerous: true,
+    neverFail: true
   }
 ]
 
@@ -90,7 +109,10 @@ export function SelectWhiteboxRulesCard({
           target: 'QUERY',
           condition: preset.condition,
           action: 'DEDUCT_POINTS',
-          penalty_value: defaultPenalty(totalPoints)
+          penalty_value: defaultPenalty(totalPoints),
+          ...(preset.param === 'threshold'
+            ? { threshold: DEFAULT_NESTING_THRESHOLD }
+            : {})
         }
       ])
     } else {
@@ -164,6 +186,42 @@ export function SelectWhiteboxRulesCard({
                   </span>
                 </label>
 
+                {checked && preset.param === 'threshold' && (
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    Tối đa
+                    <Input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={rule?.threshold ?? DEFAULT_NESTING_THRESHOLD}
+                      onChange={(e) =>
+                        updateRule(preset.condition, {
+                          threshold: Number(e.target.value)
+                        })
+                      }
+                      className="h-8 w-16"
+                    />
+                    cấp lồng
+                  </label>
+                )}
+
+                {checked && preset.param === 'argument' && (
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    Gồm
+                    <Input
+                      type="text"
+                      placeholder="VD: COUNT,SUM"
+                      value={rule?.argument ?? ''}
+                      onChange={(e) =>
+                        updateRule(preset.condition, {
+                          argument: e.target.value
+                        })
+                      }
+                      className="h-8 w-36"
+                    />
+                  </label>
+                )}
+
                 {checked && !isFailAll && (
                   <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     Trừ
@@ -184,7 +242,7 @@ export function SelectWhiteboxRulesCard({
                 )}
               </div>
 
-              {checked && preset.dangerous && (
+              {checked && preset.dangerous && !preset.neverFail && (
                 <label className="mt-2 flex items-center gap-2 pl-6 text-xs text-amber-700 dark:text-amber-400">
                   <Checkbox
                     checked={isFailAll}
@@ -194,6 +252,13 @@ export function SelectWhiteboxRulesCard({
                   />
                   Nâng cao: 0 điểm toàn bộ câu hỏi khi vi phạm (FAIL)
                 </label>
+              )}
+
+              {checked && preset.neverFail && (
+                <p className="mt-1.5 pl-6 text-xs text-amber-700 dark:text-amber-400">
+                  Quy tắc thử nghiệm, dễ chấm oan — luôn chỉ trừ điểm, không bao
+                  giờ đặt 0 điểm toàn bộ. Tắt nếu thấy báo nhầm nhiều.
+                </p>
               )}
             </div>
           )

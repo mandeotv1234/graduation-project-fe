@@ -589,6 +589,8 @@ export type QueryStructureCondition =
   | 'REQUIRE_AGGREGATE'
   | 'REQUIRE_DISTINCT'
   | 'FORBID_ORDER_BY'
+  | 'MAX_NESTING_DEPTH'
+  | 'FORBID_LITERAL_IN_WHERE'
 
 export type GradingRuleCondition =
   | 'IS_MISSING'
@@ -633,6 +635,9 @@ export interface InsertDataGradingRule {
   penalty_value?: number
   description?: string
   is_special?: boolean
+  // White-box parameterized checks (target = QUERY): nesting-depth limit and aggregate allow-list.
+  threshold?: number
+  argument?: string
   // Backward compatibility for previously saved data.
   rule_id?: string
 }
