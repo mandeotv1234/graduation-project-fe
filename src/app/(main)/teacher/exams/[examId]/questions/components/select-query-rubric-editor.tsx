@@ -26,6 +26,7 @@ import {
   SelectTestCase
 } from '@/lib/types'
 import { GradingRulesEditor } from './grading-rules-editor'
+import { SelectWhiteboxRulesCard } from './select-whitebox-rules-card'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { TestCaseTabs } from './test-case-tabs'
 
@@ -175,6 +176,10 @@ export function SelectQueryRubricEditor({
   const gradingRules = Array.isArray(payload.grading_rules)
     ? payload.grading_rules
     : []
+  // White-box QUERY rules live in the same array but are owned by the dedicated card; keep them
+  // out of the generic rules editor so teachers never edit raw QUERY JSON there.
+  const queryRules = gradingRules.filter((rule) => rule.target === 'QUERY')
+  const resultRules = gradingRules.filter((rule) => rule.target !== 'QUERY')
   const testCases = payload.test_cases
 
   const updateRubric = useCallback(
@@ -329,15 +334,26 @@ export function SelectQueryRubricEditor({
       )}
 
       {(!isWizardMode || wizardStep === 3) && (
-        <GradingRulesEditor
-          questionType="SELECT_QUERY"
-          totalPoints={totalPoints}
-          rules={gradingRules}
-          onChange={setGradingRules}
-          correctQuery={correctQuery}
-          questionContent={questionContent}
-          contextSummary={testCaseContextSummary}
-        />
+        <div className="space-y-4">
+          <GradingRulesEditor
+            questionType="SELECT_QUERY"
+            totalPoints={totalPoints}
+            rules={resultRules}
+            onChange={(nextResultRules) =>
+              setGradingRules([...nextResultRules, ...queryRules])
+            }
+            correctQuery={correctQuery}
+            questionContent={questionContent}
+            contextSummary={testCaseContextSummary}
+          />
+          <SelectWhiteboxRulesCard
+            totalPoints={totalPoints}
+            rules={queryRules}
+            onChange={(nextQueryRules) =>
+              setGradingRules([...resultRules, ...nextQueryRules])
+            }
+          />
+        </div>
       )}
 
       {(!isWizardMode || wizardStep === 2) && (

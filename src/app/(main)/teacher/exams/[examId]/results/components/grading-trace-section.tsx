@@ -86,6 +86,9 @@ function TraceItemRow({ item }: { item: GradingTraceItem }) {
               {(item.caseName || item.caseId) && (
                 <span>{item.caseName || `TC ${item.caseId}`}</span>
               )}
+              {item.ruleTarget === 'QUERY' && item.ruleCondition && (
+                <span>{formatQueryCondition(item.ruleCondition)}</span>
+              )}
               {(item.ruleTarget || item.ruleCondition) && (
                 <code>
                   {[item.ruleTarget, item.ruleCondition]
@@ -189,6 +192,25 @@ function formatAction(action: string): string {
 function isWeightBased(item: GradingTraceItem): boolean {
   if (!item.configSummary) return false
   return item.configSummary.includes('trọng số')
+}
+
+function formatQueryCondition(condition: string): string {
+  const labels: Record<string, string> = {
+    REQUIRE_JOIN: 'Thiếu JOIN bắt buộc',
+    FORBID_JOIN: 'Dùng JOIN bị cấm',
+    FORBID_SUBQUERY_IN_SELECT: 'Truy vấn con trong SELECT bị cấm',
+    FORBID_SUBQUERY_IN_FROM: 'Truy vấn con trong FROM bị cấm',
+    FORBID_SUBQUERY_IN_WHERE: 'Truy vấn con trong WHERE bị cấm',
+    REQUIRE_CTE: 'Thiếu CTE (WITH) bắt buộc',
+    FORBID_CTE: 'Dùng CTE (WITH) bị cấm',
+    REQUIRE_GROUP_BY: 'Thiếu GROUP BY bắt buộc',
+    REQUIRE_AGGREGATE: 'Thiếu hàm tổng hợp bắt buộc',
+    REQUIRE_DISTINCT: 'Thiếu DISTINCT bắt buộc',
+    FORBID_ORDER_BY: 'Dùng ORDER BY bị cấm',
+    MAX_NESTING_DEPTH: 'Truy vấn lồng quá sâu',
+    FORBID_LITERAL_IN_WHERE: 'Hằng số trong WHERE bị cấm'
+  }
+  return labels[condition] || condition
 }
 
 function formatKind(kind: string): string {
