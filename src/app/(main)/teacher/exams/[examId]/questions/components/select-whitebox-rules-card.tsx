@@ -2,94 +2,21 @@
 
 import { AlertTriangle } from 'lucide-react'
 
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 import { InsertDataGradingRule, QueryStructureCondition } from '@/lib/types'
+
+import {
+  DEFAULT_NESTING_THRESHOLD,
+  WHITEBOX_PRESETS,
+  WhiteboxPreset,
+  defaultWhiteboxPenalty
+} from './select-whitebox-presets'
+import { SelectWhiteboxRuleRow } from './select-whitebox-rule-row'
 
 interface SelectWhiteboxRulesCardProps {
   totalPoints: number
   // QUERY-target rules only; the parent merges these back with result-set rules.
   rules: InsertDataGradingRule[]
   onChange: (rules: InsertDataGradingRule[]) => void
-}
-
-interface WhiteboxPreset {
-  condition: QueryStructureCondition
-  label: string
-  // DANGEROUS presets risk penalising a semantically-equivalent answer, so they default to
-  // deduct-only and hide FAIL behind an explicit confirm.
-  dangerous: boolean
-  // FORBID_LITERAL_IN_WHERE is fuzzy: only ever deduct, never offer FAIL.
-  neverFail?: boolean
-  // Optional parameter input: a nesting-depth threshold or an aggregate allow-list (CSV).
-  param?: 'threshold' | 'argument'
-}
-
-const DEFAULT_NESTING_THRESHOLD = 2
-
-const PRESETS: WhiteboxPreset[] = [
-  { condition: 'REQUIRE_JOIN', label: 'Bắt buộc dùng JOIN', dangerous: true },
-  { condition: 'FORBID_JOIN', label: 'Cấm dùng JOIN', dangerous: false },
-  {
-    condition: 'REQUIRE_GROUP_BY',
-    label: 'Bắt buộc dùng GROUP BY',
-    dangerous: false
-  },
-  {
-    condition: 'REQUIRE_AGGREGATE',
-    label: 'Bắt buộc dùng hàm tổng hợp (COUNT/SUM/AVG/MIN/MAX)',
-    dangerous: false,
-    param: 'argument'
-  },
-  {
-    condition: 'REQUIRE_DISTINCT',
-    label: 'Bắt buộc dùng DISTINCT',
-    dangerous: true
-  },
-  {
-    condition: 'REQUIRE_CTE',
-    label: 'Bắt buộc dùng CTE (WITH)',
-    dangerous: true
-  },
-  { condition: 'FORBID_CTE', label: 'Cấm dùng CTE (WITH)', dangerous: false },
-  {
-    condition: 'FORBID_ORDER_BY',
-    label: 'Cấm dùng ORDER BY',
-    dangerous: false
-  },
-  {
-    condition: 'FORBID_SUBQUERY_IN_SELECT',
-    label: 'Cấm truy vấn con trong SELECT',
-    dangerous: true
-  },
-  {
-    condition: 'FORBID_SUBQUERY_IN_FROM',
-    label: 'Cấm truy vấn con trong FROM',
-    dangerous: true
-  },
-  {
-    condition: 'FORBID_SUBQUERY_IN_WHERE',
-    label: 'Cấm truy vấn con trong WHERE',
-    dangerous: true
-  },
-  {
-    condition: 'MAX_NESTING_DEPTH',
-    label: 'Giới hạn độ sâu lồng truy vấn con',
-    dangerous: false,
-    param: 'threshold'
-  },
-  {
-    condition: 'FORBID_LITERAL_IN_WHERE',
-    label: 'Cấm hằng số trong WHERE (nghi ghi cứng đáp án)',
-    dangerous: true,
-    neverFail: true
-  }
-]
-
-function defaultPenalty(totalPoints: number): number {
-  const tenth = Math.round(totalPoints * 0.1 * 100) / 100
-  const chosen = Math.max(0.25, tenth)
-  return totalPoints > 0 && chosen > totalPoints ? totalPoints : chosen
 }
 
 export function SelectWhiteboxRulesCard({
@@ -109,7 +36,7 @@ export function SelectWhiteboxRulesCard({
           target: 'QUERY',
           condition: preset.condition,
           action: 'DEDUCT_POINTS',
-          penalty_value: defaultPenalty(totalPoints),
+          penalty_value: defaultWhiteboxPenalty(totalPoints),
           ...(preset.param === 'threshold'
             ? { threshold: DEFAULT_NESTING_THRESHOLD }
             : {})
@@ -158,111 +85,16 @@ export function SelectWhiteboxRulesCard({
       </p>
 
       <div className="space-y-2">
-        {PRESETS.map((preset) => {
-          const rule = findRule(preset.condition)
-          const checked = Boolean(rule)
-          const isFailAll = rule?.action === 'FAIL_ALL'
-          return (
-            <div
-              key={preset.condition}
-              className="rounded-lg border border-border/60 bg-background/60 px-3 py-2"
-            >
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <label className="flex flex-1 items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={(value) => toggle(preset, value === true)}
-                  />
-                  <span>
-                    {preset.label}
-                    {preset.dangerous && (
-                      <span
-                        className="ml-1 text-amber-600 dark:text-amber-400"
-                        title="Quy tắc dễ chấm oan lời giải tương đương — mặc định chỉ trừ điểm."
-                      >
-                        *
-                      </span>
-                    )}
-                  </span>
-                </label>
-
-                {checked && preset.param === 'threshold' && (
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    Tối đa
-                    <Input
-                      type="number"
-                      min={0}
-                      step={1}
-                      value={rule?.threshold ?? DEFAULT_NESTING_THRESHOLD}
-                      onChange={(e) =>
-                        updateRule(preset.condition, {
-                          threshold: Number(e.target.value)
-                        })
-                      }
-                      className="h-8 w-16"
-                    />
-                    cấp lồng
-                  </label>
-                )}
-
-                {checked && preset.param === 'argument' && (
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    Gồm
-                    <Input
-                      type="text"
-                      placeholder="VD: COUNT,SUM"
-                      value={rule?.argument ?? ''}
-                      onChange={(e) =>
-                        updateRule(preset.condition, {
-                          argument: e.target.value
-                        })
-                      }
-                      className="h-8 w-36"
-                    />
-                  </label>
-                )}
-
-                {checked && !isFailAll && (
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    Trừ
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.25}
-                      value={rule?.penalty_value ?? 0}
-                      onChange={(e) =>
-                        updateRule(preset.condition, {
-                          penalty_value: Number(e.target.value)
-                        })
-                      }
-                      className="h-8 w-20"
-                    />
-                    điểm
-                  </label>
-                )}
-              </div>
-
-              {checked && preset.dangerous && !preset.neverFail && (
-                <label className="mt-2 flex items-center gap-2 pl-6 text-xs text-amber-700 dark:text-amber-400">
-                  <Checkbox
-                    checked={isFailAll}
-                    onCheckedChange={(value) =>
-                      toggleFailAll(preset, value === true)
-                    }
-                  />
-                  Nâng cao: 0 điểm toàn bộ câu hỏi khi vi phạm (FAIL)
-                </label>
-              )}
-
-              {checked && preset.neverFail && (
-                <p className="mt-1.5 pl-6 text-xs text-amber-700 dark:text-amber-400">
-                  Quy tắc thử nghiệm, dễ chấm oan — luôn chỉ trừ điểm, không bao
-                  giờ đặt 0 điểm toàn bộ. Tắt nếu thấy báo nhầm nhiều.
-                </p>
-              )}
-            </div>
-          )
-        })}
+        {WHITEBOX_PRESETS.map((preset) => (
+          <SelectWhiteboxRuleRow
+            key={preset.condition}
+            preset={preset}
+            rule={findRule(preset.condition)}
+            onToggle={toggle}
+            onUpdate={updateRule}
+            onToggleFailAll={toggleFailAll}
+          />
+        ))}
       </div>
 
       <p className="mt-3 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
