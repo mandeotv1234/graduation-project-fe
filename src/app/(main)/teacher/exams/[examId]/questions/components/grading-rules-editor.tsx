@@ -133,7 +133,9 @@ const SELECT_CONDITION_OPTIONS: Record<
     { value: 'TYPE_MISMATCH', label: 'Sai kiểu dữ liệu' },
     { value: 'LENGTH_MISMATCH', label: 'Sai độ dài' }
   ],
-  ROW_ORDER: [{ value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }]
+  ROW_ORDER: [{ value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }],
+  // White-box QUERY rules are configured via the dedicated white-box card, not this modal.
+  QUERY: []
 }
 
 const CREATE_CONDITION_OPTIONS: Partial<
@@ -203,7 +205,8 @@ const SELECT_MODIFIER_OPTIONS: Record<
   ],
   ROW_ORDER: [
     { value: 'SORT_ASC', label: 'Sắp xếp tăng dần trước khi so khớp' }
-  ]
+  ],
+  QUERY: []
 }
 
 const CREATE_MODIFIER_OPTIONS: Partial<

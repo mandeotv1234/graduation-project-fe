@@ -573,6 +573,22 @@ export type GradingRuleTarget =
   | 'ROW'
   | 'CELL_VALUE'
   | 'ROW_ORDER'
+  // White-box SELECT query-structure grading (consumed by the same rule engine).
+  | 'QUERY'
+
+// White-box query-structure conditions evaluated against the parsed student SQL (target = QUERY).
+export type QueryStructureCondition =
+  | 'REQUIRE_JOIN'
+  | 'FORBID_JOIN'
+  | 'FORBID_SUBQUERY_IN_SELECT'
+  | 'FORBID_SUBQUERY_IN_FROM'
+  | 'FORBID_SUBQUERY_IN_WHERE'
+  | 'REQUIRE_CTE'
+  | 'FORBID_CTE'
+  | 'REQUIRE_GROUP_BY'
+  | 'REQUIRE_AGGREGATE'
+  | 'REQUIRE_DISTINCT'
+  | 'FORBID_ORDER_BY'
 
 export type GradingRuleCondition =
   | 'IS_MISSING'
@@ -583,6 +599,7 @@ export type GradingRuleCondition =
   | 'TYPE_MISMATCH'
   | 'LENGTH_MISMATCH'
   | 'REFERENCE_ERROR'
+  | QueryStructureCondition
 
 export type GradingRuleModifier =
   | 'IGNORE_CASE'
