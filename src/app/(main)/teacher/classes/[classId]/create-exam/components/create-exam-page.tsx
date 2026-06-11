@@ -22,7 +22,11 @@ export default function CreateExamPageClient({
   const { callApi, isLoading } = useApi()
   const [pendingExamId, setPendingExamId] = useState<number | null>(null)
 
-  const onSubmit = async (data: ExamFormValues, pdfFile?: File | null) => {
+  const onSubmit = async (
+    data: ExamFormValues,
+    pdfFile?: File | null,
+    options?: { autoExtractFromPdf?: boolean; removePdf?: boolean }
+  ) => {
     const payload = {
       ...data,
       classId: classIdNum,
@@ -36,8 +40,8 @@ export default function CreateExamPageClient({
 
     if (!result.data) return
 
-    if (pdfFile) {
-      // PDF uploaded → open AI extraction dialog before navigating
+    if (pdfFile && options?.autoExtractFromPdf) {
+      // PDF uploaded + giáo viên chọn tách câu hỏi → mở hộp thoại AI trước khi điều hướng
       setPendingExamId(result.data.id)
     } else {
       router.push(PATH.TEACHER_EXAM_DETAIL(result.data.id))

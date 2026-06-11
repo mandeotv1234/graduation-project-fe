@@ -250,6 +250,8 @@ export interface UpdateExamRequest {
   maxAttempts?: number
   lateThreshold?: number
   settings?: ExamSettings
+  /** true = gỡ file PDF hiện tại (đặc tả spec vẫn giữ nguyên nếu có). */
+  removePdf?: boolean
 }
 
 // POST /api/exams/{examId}/questions → CreateExamQuestionRequestDto
