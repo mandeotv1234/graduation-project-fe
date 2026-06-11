@@ -155,7 +155,12 @@ function ExamCard({ exam }: { exam: StudentExamListItem }) {
 }
 
 export function ExamList({ exams }: ExamListProps) {
-  if (exams.length === 0) {
+  // Ẩn các bài thi đã kết thúc — sinh viên chỉ thấy bài sắp diễn ra / đang diễn ra.
+  const visibleExams = exams.filter(
+    (exam) => getExamStatus(exam.startTime, exam.endTime) !== 'ended'
+  )
+
+  if (visibleExams.length === 0) {
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyIconWrap}>
@@ -163,7 +168,7 @@ export function ExamList({ exams }: ExamListProps) {
         </div>
         <h3 className={styles.emptyTitle}>Chưa có bài thi nào</h3>
         <p className={styles.emptyDescription}>
-          Bạn chưa được đăng ký vào lớp nào có bài thi.
+          Hiện không có bài thi nào sắp diễn ra hoặc đang diễn ra.
         </p>
       </div>
     )
@@ -171,7 +176,7 @@ export function ExamList({ exams }: ExamListProps) {
 
   return (
     <div className={styles.list}>
-      {exams.map((exam) => (
+      {visibleExams.map((exam) => (
         <ExamCard key={exam.examId} exam={exam} />
       ))}
     </div>

@@ -287,8 +287,9 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       return
     }
 
-    if (hasPdf) return
-
+    // Đề có thể vừa có PDF (hiển thị đề bài) vừa có đặc tả spec.
+    // Luôn nạp spec nếu có để cấp schema/IntelliSense cho trình soạn SQL —
+    // không phụ thuộc việc đề có PDF hay không.
     getExamSpecification(exam.examId)
       .then((res) => {
         const spec: ExamSpecification | null = res.data ?? null
@@ -332,7 +333,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       .catch(() => {
         /* silent – IntelliSense just won't have schema context */
       })
-  }, [applySchemaMeta, exam.examId, exam.schema, hasPdf])
+  }, [applySchemaMeta, exam.examId, exam.schema])
 
   const handleExecuteSqlAndRefreshSchema = useCallback(async () => {
     const res = await examTake.handleExecuteSql()

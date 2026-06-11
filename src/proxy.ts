@@ -51,7 +51,7 @@ function buildCsp(nonce: string): string {
     "font-src 'self' data:",
     "worker-src 'self' blob:", // Monaco editor workers
     `connect-src 'self' ${apiOrigin} ws: wss: https:`.replace(/\s+/g, ' '),
-    'frame-src https://accounts.google.com',
+    "frame-src 'self' blob: https://accounts.google.com", // blob: cho iframe xem PDF đặc tả đề thi
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

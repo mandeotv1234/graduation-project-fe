@@ -77,7 +77,11 @@ export function EditExamSectionModal({
 
   const meta = SECTION_DIALOG[section]
 
-  const onSubmit = async (data: ExamFormValues, pdfFile?: File | null) => {
+  const onSubmit = async (
+    data: ExamFormValues,
+    pdfFile?: File | null,
+    options?: { autoExtractFromPdf?: boolean; removePdf?: boolean }
+  ) => {
     const payload = {
       ...data,
       startTime: data.startTime || null,
@@ -91,7 +95,10 @@ export function EditExamSectionModal({
         false
       )
     } else {
-      result = await callApi(updateExam(exam.id, payload), false)
+      result = await callApi(
+        updateExam(exam.id, { ...payload, removePdf: options?.removePdf }),
+        false
+      )
     }
 
     if (result.code === '200' || result.code === 'OK') {
