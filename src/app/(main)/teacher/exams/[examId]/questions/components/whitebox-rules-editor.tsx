@@ -16,6 +16,14 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import {
   Popover,
@@ -267,8 +275,8 @@ export function WhiteboxRulesEditor({
         {!loadingCatalog && !catalogError && (
           <div className="flex items-center gap-2">
             {presets.length > 0 && (
-              <Popover open={presetOpen} onOpenChange={setPresetOpen}>
-                <PopoverTrigger asChild>
+              <Dialog open={presetOpen} onOpenChange={setPresetOpen}>
+                <DialogTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
@@ -278,23 +286,51 @@ export function WhiteboxRulesEditor({
                     <FileText className="mr-1.5 h-4 w-4" />
                     Mẫu quy tắc
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-80 p-1">
-                  {presets.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => applyPreset(preset)}
-                      className="flex w-full flex-col items-start gap-0.5 rounded px-3 py-2 text-left text-sm hover:bg-muted"
-                    >
-                      <span className="font-medium">{preset.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {preset.description}
-                      </span>
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Mẫu quy tắc white-box</DialogTitle>
+                    <DialogDescription>
+                      Áp dụng bộ quy tắc gợi ý cho loại câu hỏi này (thay thế
+                      các quy tắc white-box hiện tại).
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h5 className="text-xs font-semibold">Mẫu hệ thống</h5>
+                    <Badge variant="secondary" className="text-[10px]">
+                      Gợi ý
+                    </Badge>
+                  </div>
+                  <ul className="space-y-2">
+                    {presets.map((preset) => (
+                      <li
+                        key={preset.id}
+                        className="flex flex-col gap-2 rounded-md border border-primary/20 bg-primary/5 p-3"
+                      >
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-primary">
+                            {preset.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {preset.description}
+                          </p>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => applyPreset(preset)}
+                            className="h-7 px-2.5 text-xs"
+                          >
+                            Áp dụng mẫu hệ thống
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </DialogContent>
+              </Dialog>
             )}
             <Popover open={addOpen} onOpenChange={setAddOpen}>
               <PopoverTrigger asChild>
