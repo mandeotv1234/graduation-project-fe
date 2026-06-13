@@ -5,7 +5,9 @@ import {
   CheckCircle2,
   HelpCircle,
   Loader2,
-  Play
+  Play,
+  Plus,
+  Search
 } from 'lucide-react'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -13,6 +15,12 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { getWhiteboxCatalog, validateWhitebox } from '@/lib/actions'
 import {
   WhiteboxCatalogItem,
@@ -32,6 +40,26 @@ interface WhiteboxRulesEditorProps {
   onChange: (rules: WhiteboxRule[], settings: WhiteboxSettings) => void
   // Teacher's model answer; "Run on model answer" validation uses it (warns, never blocks).
   sqlForPreview?: string
+}
+
+const GROUP_LABELS: Record<string, string> = {
+  SUBQUERY_CTE: 'Subquery & CTE',
+  JOIN: 'JOIN',
+  SELECT_LIST: 'SELECT list & DISTINCT',
+  AGGREGATE: 'Aggregate · GROUP BY · HAVING',
+  ORDER_WINDOW: 'ORDER BY & Window',
+  SET_OPERATION: 'Toán tử tập hợp',
+  GENERIC: 'Hàm & từ khóa'
+}
+
+const VIOLATION_STYLE: Record<
+  string,
+  { icon: typeof CheckCircle2; cls: string }
+> = {
+  FAIL: { icon: AlertTriangle, cls: 'text-rose-600 dark:text-rose-400' },
+  WARN: { icon: AlertTriangle, cls: 'text-amber-600 dark:text-amber-400' },
+  UNVERIFIED: { icon: HelpCircle, cls: 'text-slate-500 dark:text-slate-400' },
+  PASS: { icon: CheckCircle2, cls: 'text-emerald-600 dark:text-emerald-400' }
 }
 
 function defaultRuleFromCatalog(item: WhiteboxCatalogItem): WhiteboxRule {
@@ -55,16 +83,6 @@ function defaultRuleFromCatalog(item: WhiteboxCatalogItem): WhiteboxRule {
   }
 }
 
-const VIOLATION_STYLE: Record<
-  string,
-  { icon: typeof CheckCircle2; cls: string }
-> = {
-  FAIL: { icon: AlertTriangle, cls: 'text-rose-600 dark:text-rose-400' },
-  WARN: { icon: AlertTriangle, cls: 'text-amber-600 dark:text-amber-400' },
-  UNVERIFIED: { icon: HelpCircle, cls: 'text-slate-500 dark:text-slate-400' },
-  PASS: { icon: CheckCircle2, cls: 'text-emerald-600 dark:text-emerald-400' }
-}
-
 export function WhiteboxRulesEditor({
   questionType,
   totalPoints,
@@ -80,6 +98,8 @@ export function WhiteboxRulesEditor({
     null
   )
   const [isValidating, startValidating] = useTransition()
+  const [addOpen, setAddOpen] = useState(false)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     let active = true
@@ -100,26 +120,61 @@ export function WhiteboxRulesEditor({
     }
   }, [questionType])
 
-  const ruleById = useMemo(() => {
-    const map = new Map<string, WhiteboxRule>()
-    rules.forEach((rule) => map.set(rule.rule_id, rule))
+  const catalogById = useMemo(() => {
+    const map = new Map<string, WhiteboxCatalogItem>()
+    catalog.forEach((item) => map.set(item.ruleId, item))
     return map
-  }, [rules])
+  }, [catalog])
 
-  const toggle = (item: WhiteboxCatalogItem, checked: boolean) => {
-    if (checked) {
-      onChange([...rules, defaultRuleFromCatalog(item)], settings)
-    } else {
-      onChange(
-        rules.filter((r) => r.rule_id !== item.ruleId),
-        settings
-      )
+  const configuredIds = useMemo(
+    () => new Set(rules.map((r) => r.rule_id)),
+    [rules]
+  )
+
+  // Available rules to add, filtered by search and grouped by catalog group (order preserved).
+  const availableGroups = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const groups: { key: string; items: WhiteboxCatalogItem[] }[] = []
+    const indexOf = new Map<string, number>()
+    for (const item of catalog) {
+      if (configuredIds.has(item.ruleId)) continue
+      if (
+        term &&
+        !item.label.toLowerCase().includes(term) &&
+        !item.ruleId.toLowerCase().includes(term)
+      ) {
+        continue
+      }
+      let idx = indexOf.get(item.group)
+      if (idx === undefined) {
+        idx = groups.length
+        indexOf.set(item.group, idx)
+        groups.push({ key: item.group, items: [] })
+      }
+      groups[idx].items.push(item)
     }
+    return groups
+  }, [catalog, configuredIds, search])
+
+  const availableCount = availableGroups.reduce(
+    (sum, g) => sum + g.items.length,
+    0
+  )
+
+  const addRule = (item: WhiteboxCatalogItem) => {
+    onChange([...rules, defaultRuleFromCatalog(item)], settings)
   }
 
   const updateRule = (ruleId: string, patch: Partial<WhiteboxRule>) => {
     onChange(
       rules.map((r) => (r.rule_id === ruleId ? { ...r, ...patch } : r)),
+      settings
+    )
+  }
+
+  const removeRule = (ruleId: string) => {
+    onChange(
+      rules.filter((r) => r.rule_id !== ruleId),
       settings
     )
   }
@@ -230,17 +285,104 @@ export function WhiteboxRulesEditor({
       )}
 
       {!loadingCatalog && !catalogError && (
-        <div className="space-y-2">
-          {catalog.map((item) => (
-            <WhiteboxRuleRow
-              key={item.ruleId}
-              item={item}
-              rule={ruleById.get(item.ruleId)}
-              onToggle={toggle}
-              onUpdate={updateRule}
-            />
-          ))}
-        </div>
+        <>
+          {/* Only configured rules are shown — add more from the grouped picker below. */}
+          {rules.length > 0 ? (
+            <div className="space-y-2">
+              {rules.map((rule) => {
+                const item = catalogById.get(rule.rule_id)
+                if (!item) return null
+                return (
+                  <WhiteboxRuleRow
+                    key={rule.rule_id}
+                    item={item}
+                    rule={rule}
+                    onUpdate={updateRule}
+                    onRemove={removeRule}
+                  />
+                )
+              })}
+            </div>
+          ) : (
+            <p className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-center text-sm text-muted-foreground">
+              Chưa bật quy tắc whitebox nào. Bấm “Thêm quy tắc” để chọn.
+            </p>
+          )}
+
+          <Popover open={addOpen} onOpenChange={setAddOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3 gap-1.5"
+                disabled={availableCount === 0 && search.trim() === ''}
+              >
+                <Plus className="h-4 w-4" />
+                Thêm quy tắc
+                {availableCount > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    ({availableCount})
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-96 p-0">
+              <div className="flex items-center gap-2 border-b px-3 py-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Tìm quy tắc…"
+                  className="w-full bg-transparent text-sm outline-none"
+                />
+              </div>
+              <ScrollArea className="h-72">
+                {availableCount === 0 ? (
+                  <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                    Không còn quy tắc phù hợp.
+                  </p>
+                ) : (
+                  availableGroups.map((group) => (
+                    <div key={group.key} className="py-1">
+                      <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {GROUP_LABELS[group.key] ?? group.key}
+                      </div>
+                      {group.items.map((item) => (
+                        <button
+                          key={item.ruleId}
+                          type="button"
+                          onClick={() => addRule(item)}
+                          className="flex w-full items-start gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted"
+                        >
+                          <span
+                            className={cn(
+                              'mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                              item.type === 'FORBIDDEN'
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                                : item.type === 'REQUIRED'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                            )}
+                          >
+                            {item.type}
+                          </span>
+                          <span className="flex-1">
+                            <span className="block">{item.label}</span>
+                            <span className="block text-xs text-muted-foreground">
+                              {item.description}
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+        </>
       )}
 
       <div className="mt-4 flex items-center gap-3">
@@ -261,7 +403,7 @@ export function WhiteboxRulesEditor({
         </Button>
         {validation && !validation.sqlParseOk && (
           <span className="text-xs text-amber-600 dark:text-amber-400">
-            Đáp án mẫu không phân tích được cú pháp — các rule phụ thuộc parser
+            Đáp án mẫu không phân tích được cú pháp — rule phụ thuộc parser
             không kiểm chứng được.
           </span>
         )}
@@ -272,8 +414,8 @@ export function WhiteboxRulesEditor({
           {modelAnswerViolations.length > 0 ? (
             <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
               ⚠️ Đáp án mẫu vi phạm {modelAnswerViolations.length} quy tắc —
-              sinh viên làm giống đáp án cũng sẽ bị tính vi phạm. Hãy sửa đáp án
-              mẫu hoặc tắt rule (vẫn cho phép lưu).
+              sinh viên làm giống đáp án cũng bị tính vi phạm. Sửa đáp án mẫu
+              hoặc tắt rule (vẫn cho phép lưu).
             </p>
           ) : (
             <p className="text-xs text-emerald-700 dark:text-emerald-400">
