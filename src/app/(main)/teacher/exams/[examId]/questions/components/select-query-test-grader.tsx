@@ -71,9 +71,13 @@ export function SelectQueryTestGrader({
   const whiteboxSettings = payload?.whitebox_settings ?? {}
   const hasBlackbox =
     Array.isArray(payload?.test_cases) && payload!.test_cases.length > 0
+  const hasCorrectQuery = Boolean(correctQuery?.trim())
+  // Black-box preview runs with explicit test_cases OR just a model answer: runtime falls back
+  // to comparing the student query against correctQuery across datasets when test_cases is empty.
+  const canBlackbox = hasBlackbox || hasCorrectQuery
   const hasWhitebox = whiteboxRules.length > 0
   const hasRubric =
-    rubric?.question_category === 'SELECT_QUERY' && (hasBlackbox || hasWhitebox)
+    rubric?.question_category === 'SELECT_QUERY' && (canBlackbox || hasWhitebox)
 
   const rubricTotalPoints =
     typeof rubric?.total_points === 'number' &&
@@ -92,7 +96,7 @@ export function SelectQueryTestGrader({
     setWhitebox(null)
 
     await Promise.all([
-      hasBlackbox
+      canBlackbox
         ? testGradeSelectData(examId, {
             studentQuery: studentSql.trim(),
             correctQuery: correctQuery?.trim() || '',
@@ -136,10 +140,10 @@ export function SelectQueryTestGrader({
     ? (blackbox.earnedPoints / blackbox.totalPoints) * 100
     : 0
   // Final score preview = black-box earned minus capped white-box deduction (clamped at 0).
-  const finalScore =
-    blackbox && whitebox
-      ? Math.max(0, blackbox.earnedPoints - whitebox.cappedDeduction)
-      : null
+  // Shown for black-box-only too (deduction 0); white-box-only has no base score so stays null.
+  const finalScore = blackbox
+    ? Math.max(0, blackbox.earnedPoints - (whitebox?.cappedDeduction ?? 0))
+    : null
 
   return (
     <div className="space-y-4">
@@ -180,9 +184,9 @@ export function SelectQueryTestGrader({
           )}
         </Button>
         <span className="text-xs text-muted-foreground">
-          {hasBlackbox && hasWhitebox
+          {canBlackbox && hasWhitebox
             ? 'Chấm cả Black-box và White-box (hiển thị riêng).'
-            : hasBlackbox
+            : canBlackbox
               ? 'Chỉ chấm Black-box (chưa có quy tắc white-box).'
               : 'Chỉ chấm White-box (chưa có test case).'}
         </span>
@@ -193,11 +197,13 @@ export function SelectQueryTestGrader({
           Điểm cuối dự kiến:{' '}
           <span className="font-bold">{finalScore.toFixed(2)}</span> /{' '}
           {blackbox!.totalPoints.toFixed(2)}
-          <span className="text-muted-foreground">
-            {' '}
-            (black-box {blackbox!.earnedPoints.toFixed(2)} − white-box{' '}
-            {whitebox!.cappedDeduction.toFixed(2)})
-          </span>
+          {whitebox && (
+            <span className="text-muted-foreground">
+              {' '}
+              (black-box {blackbox!.earnedPoints.toFixed(2)} − white-box{' '}
+              {whitebox.cappedDeduction.toFixed(2)})
+            </span>
+          )}
         </div>
       )}
 
