@@ -320,8 +320,9 @@ export function SelectQueryTestGrader({
           <div className="divide-y divide-border">
             {whitebox.violations.filter((v) => v.status !== 'PASS').length ===
             0 ? (
-              <p className="px-4 py-3 text-xs text-emerald-700 dark:text-emerald-400">
-                ✓ Không vi phạm quy tắc white-box nào.
+              <p className="flex items-center gap-1.5 px-4 py-3 text-xs text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                Không vi phạm quy tắc white-box nào.
               </p>
             ) : (
               whitebox.violations

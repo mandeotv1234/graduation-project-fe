@@ -104,8 +104,8 @@ export function WhiteboxRuleRow({
           }
           className="h-8 rounded-md border border-input bg-background px-2 text-xs"
         >
-          <option value="WARNING_ONLY">⚠️ Chỉ cảnh báo</option>
-          <option value="DEDUCTION">🔴 Trừ điểm</option>
+          <option value="WARNING_ONLY">Chỉ cảnh báo</option>
+          <option value="DEDUCTION">Trừ điểm</option>
         </select>
         <button
           type="button"
