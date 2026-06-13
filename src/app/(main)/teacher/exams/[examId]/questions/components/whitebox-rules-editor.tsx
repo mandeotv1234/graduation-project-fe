@@ -44,6 +44,7 @@ import {
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
+import { SystemPresetList } from './system-preset-list'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { WhiteboxRuleRow } from './whitebox-rule-row'
 
@@ -295,40 +296,17 @@ export function WhiteboxRulesEditor({
                       các quy tắc white-box hiện tại).
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="mb-2 flex items-center justify-between">
-                    <h5 className="text-xs font-semibold">Mẫu hệ thống</h5>
-                    <Badge variant="secondary" className="text-[10px]">
-                      Gợi ý
-                    </Badge>
-                  </div>
-                  <ul className="space-y-2">
-                    {presets.map((preset) => (
-                      <li
-                        key={preset.id}
-                        className="flex flex-col gap-2 rounded-md border border-primary/20 bg-primary/5 p-3"
-                      >
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-primary">
-                            {preset.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {preset.description}
-                          </p>
-                        </div>
-                        <div className="flex justify-end">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => applyPreset(preset)}
-                            className="h-7 px-2.5 text-xs"
-                          >
-                            Áp dụng mẫu hệ thống
-                          </Button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  <SystemPresetList
+                    presets={presets.map((p) => ({
+                      id: p.id,
+                      name: p.name,
+                      description: p.description
+                    }))}
+                    onApply={(id) => {
+                      const preset = presets.find((p) => p.id === id)
+                      if (preset) applyPreset(preset)
+                    }}
+                  />
                 </DialogContent>
               </Dialog>
             )}
