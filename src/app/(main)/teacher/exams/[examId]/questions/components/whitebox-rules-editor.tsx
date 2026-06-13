@@ -10,7 +10,6 @@ import {
   Play,
   Plus,
   Save,
-  Search,
   Trash2
 } from 'lucide-react'
 import { useEffect, useMemo, useState, useTransition } from 'react'
@@ -28,12 +27,6 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   createRulePreset,
   deleteRulePreset,
@@ -55,6 +48,8 @@ import {
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
+import { WhiteboxAddRuleModal } from './whitebox-add-rule-modal'
+import { defaultRuleFromCatalog, detectConflicts } from './whitebox-authoring'
 import { SystemPresetList } from './system-preset-list'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { WhiteboxRuleRow } from './whitebox-rule-row'
@@ -69,16 +64,6 @@ interface WhiteboxRulesEditorProps {
   sqlForPreview?: string
 }
 
-const GROUP_LABELS: Record<string, string> = {
-  SUBQUERY_CTE: 'Subquery & CTE',
-  JOIN: 'JOIN',
-  SELECT_LIST: 'SELECT list & DISTINCT',
-  AGGREGATE: 'Aggregate · GROUP BY · HAVING',
-  ORDER_WINDOW: 'ORDER BY & Window',
-  SET_OPERATION: 'Toán tử tập hợp',
-  GENERIC: 'Hàm & từ khóa'
-}
-
 const VIOLATION_STYLE: Record<
   string,
   { icon: typeof CheckCircle2; cls: string }
@@ -87,27 +72,6 @@ const VIOLATION_STYLE: Record<
   WARN: { icon: AlertTriangle, cls: 'text-amber-600 dark:text-amber-400' },
   UNVERIFIED: { icon: HelpCircle, cls: 'text-slate-500 dark:text-slate-400' },
   PASS: { icon: CheckCircle2, cls: 'text-emerald-600 dark:text-emerald-400' }
-}
-
-function defaultRuleFromCatalog(item: WhiteboxCatalogItem): WhiteboxRule {
-  const params: Record<string, unknown> = {}
-  for (const spec of item.params) {
-    if (spec.type === 'NUMBER' && typeof spec.defaultValue === 'number') {
-      params[spec.name] = spec.defaultValue
-    } else if (spec.type === 'STRING_LIST') {
-      params[spec.name] = []
-    }
-  }
-  return {
-    rule_id: item.ruleId,
-    enabled: true,
-    type: item.type,
-    penalty_value: item.defaultPenaltyValue,
-    penalty_unit: item.defaultPenaltyUnit,
-    severity: item.defaultSeverity,
-    description: item.label,
-    params
-  }
 }
 
 export function WhiteboxRulesEditor({
@@ -125,9 +89,9 @@ export function WhiteboxRulesEditor({
     null
   )
   const [isValidating, startValidating] = useTransition()
+  // Add-rule modal: feature -> policy -> params -> penalty/severity, appended only on confirm.
   const [addOpen, setAddOpen] = useState(false)
   const [presetOpen, setPresetOpen] = useState(false)
-  const [search, setSearch] = useState('')
   // DB-backed teacher presets (WHITEBOX kind)
   const [savedPresets, setSavedPresets] = useState<RulePreset[]>([])
   const [isLoadingPresets, setIsLoadingPresets] = useState(false)
@@ -175,34 +139,16 @@ export function WhiteboxRulesEditor({
     [rules]
   )
 
-  // Available rules to add, filtered by search and grouped by catalog group (order preserved).
-  const availableGroups = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    const groups: { key: string; items: WhiteboxCatalogItem[] }[] = []
-    const indexOf = new Map<string, number>()
-    for (const item of catalog) {
-      if (configuredIds.has(item.ruleId)) continue
-      if (
-        term &&
-        !item.label.toLowerCase().includes(term) &&
-        !item.ruleId.toLowerCase().includes(term)
-      ) {
-        continue
-      }
-      let idx = indexOf.get(item.group)
-      if (idx === undefined) {
-        idx = groups.length
-        indexOf.set(item.group, idx)
-        groups.push({ key: item.group, items: [] })
-      }
-      groups[idx].items.push(item)
-    }
-    return groups
-  }, [catalog, configuredIds, search])
+  // Catalog rules not yet configured — gates the "Thêm quy tắc" button.
+  const availableCount = useMemo(
+    () => catalog.filter((item) => !configuredIds.has(item.ruleId)).length,
+    [catalog, configuredIds]
+  )
 
-  const availableCount = availableGroups.reduce(
-    (sum, g) => sum + g.items.length,
-    0
+  // Contradictory configured rules (catalog conflictsWith + MAX_JOIN_COUNT=0 vs REQUIRED_JOIN). Warn only.
+  const conflicts = useMemo(
+    () => detectConflicts(rules, catalogById),
+    [rules, catalogById]
   )
 
   const presets = useMemo(
@@ -321,8 +267,9 @@ export function WhiteboxRulesEditor({
     }
   }
 
-  const addRule = (item: WhiteboxCatalogItem) => {
-    onChange([...rules, defaultRuleFromCatalog(item)], settings)
+  // Append a fully-configured rule from the modal (rule_id stays the persisted identity).
+  const appendRule = (rule: WhiteboxRule) => {
+    onChange([...rules, rule], settings)
   }
 
   // Apply a preset bundle: resolve each rule_id against the backend catalog, then override the
@@ -582,77 +529,29 @@ export function WhiteboxRulesEditor({
                 </div>
               </DialogContent>
             </Dialog>
-            <Popover open={addOpen} onOpenChange={setAddOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 whitespace-nowrap px-4 text-sm"
-                  disabled={availableCount === 0 && search.trim() === ''}
-                >
-                  <Plus className="mr-1.5 h-4 w-4" />
-                  Thêm quy tắc
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-96 p-0">
-                <div className="flex items-center gap-2 border-b px-3 py-2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <input
-                    autoFocus
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Tìm quy tắc…"
-                    className="w-full bg-transparent text-sm outline-none"
-                  />
-                </div>
-                <ScrollArea className="h-72">
-                  {availableCount === 0 ? (
-                    <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                      Không còn quy tắc phù hợp.
-                    </p>
-                  ) : (
-                    availableGroups.map((group) => (
-                      <div key={group.key} className="py-1">
-                        <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          {GROUP_LABELS[group.key] ?? group.key}
-                        </div>
-                        {group.items.map((item) => (
-                          <button
-                            key={item.ruleId}
-                            type="button"
-                            onClick={() => addRule(item)}
-                            className="flex w-full items-start gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted"
-                          >
-                            <span
-                              className={cn(
-                                'mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold',
-                                item.type === 'FORBIDDEN'
-                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-                                  : item.type === 'REQUIRED'
-                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                              )}
-                            >
-                              {item.type}
-                            </span>
-                            <span className="flex-1">
-                              <span className="block">{item.label}</span>
-                              <span className="block text-xs text-muted-foreground">
-                                {item.description}
-                              </span>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    ))
-                  )}
-                </ScrollArea>
-              </PopoverContent>
-            </Popover>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 whitespace-nowrap px-4 text-sm"
+              disabled={availableCount === 0}
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              Thêm quy tắc
+            </Button>
           </div>
         )}
       </div>
+
+      <WhiteboxAddRuleModal
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        catalog={catalog}
+        rules={rules}
+        catalogById={catalogById}
+        onAdd={appendRule}
+      />
 
       <p className="mb-3 mt-1 text-sm text-muted-foreground">
         Kiểm tra <strong>cách viết</strong> câu truy vấn (JOIN, subquery, GROUP
@@ -709,6 +608,23 @@ export function WhiteboxRulesEditor({
           Dừng ở vi phạm đầu tiên
         </label>
       </div>
+
+      {conflicts.length > 0 && (
+        <div className="mb-3 space-y-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+          <p className="flex items-center gap-1.5 font-medium">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Phát hiện quy tắc mâu thuẫn (vẫn cho phép lưu):
+          </p>
+          <ul className="list-disc pl-6">
+            {conflicts.map((c, idx) => (
+              <li key={idx}>
+                <span className="font-medium">{c.labelA}</span> mâu thuẫn với{' '}
+                <span className="font-medium">{c.labelB}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {loadingCatalog && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

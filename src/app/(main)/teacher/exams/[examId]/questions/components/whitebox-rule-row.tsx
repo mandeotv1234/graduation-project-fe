@@ -12,18 +12,13 @@ import {
   WhiteboxSeverity
 } from '@/lib/types'
 
+import { POLICY_BADGE_CLASS } from './whitebox-authoring'
+
 interface WhiteboxRuleRowProps {
   item: WhiteboxCatalogItem
   rule: WhiteboxRule
   onUpdate: (ruleId: string, patch: Partial<WhiteboxRule>) => void
   onRemove: (ruleId: string) => void
-}
-
-const TYPE_BADGE: Record<string, string> = {
-  FORBIDDEN: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
-  REQUIRED:
-    'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
-  LIMIT: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
 }
 
 export function WhiteboxRuleRow({
@@ -61,13 +56,16 @@ export function WhiteboxRuleRow({
         <span
           className={cn(
             'rounded px-1.5 py-0.5 text-[10px] font-semibold',
-            TYPE_BADGE[item.type] ?? ''
+            POLICY_BADGE_CLASS[item.policy] ?? ''
           )}
         >
-          {item.type}
+          {item.policyLabel}
         </span>
-        <span className="flex-1 text-sm" title={item.description}>
-          {item.label}
+        <span className="flex-1" title={item.description}>
+          <span className="block text-sm">{item.featureLabel}</span>
+          <span className="block font-mono text-[10px] text-muted-foreground">
+            {item.ruleId}
+          </span>
         </span>
 
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">

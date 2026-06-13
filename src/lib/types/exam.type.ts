@@ -717,6 +717,19 @@ export type WhiteboxSeverity = 'DEDUCTION' | 'WARNING_ONLY'
 export type WhiteboxPenaltyUnit = 'ABSOLUTE' | 'PERCENTAGE_OF_QUESTION'
 export type WhiteboxStatus = 'PASS' | 'FAIL' | 'WARN' | 'UNVERIFIED'
 
+// Feature-policy authoring metadata (additive; backend-owned). The teacher picks a SQL feature, then
+// an allowed policy over it. rule_id remains the persisted/grading identity.
+export type WhiteboxFeatureKind = 'BOOLEAN' | 'NUMERIC' | 'SET' | 'COMPOSITE'
+export type WhiteboxPolicy =
+  | 'FORBID'
+  | 'REQUIRE'
+  | 'AT_MOST'
+  | 'AT_LEAST'
+  | 'EXACTLY'
+  | 'REQUIRE_ANY'
+  | 'REQUIRE_ALL'
+  | 'FORBID_ANY'
+
 // One configured rule stored under grading_payload.whitebox_rules[].
 export interface WhiteboxRule {
   rule_id: string
@@ -758,6 +771,13 @@ export interface WhiteboxCatalogItem {
   parserRequired: boolean
   questionTypes: string[]
   params: WhiteboxParamSpec[]
+  // Feature-policy authoring metadata (additive). FE groups the add-rule flow by featureId.
+  featureId: string
+  featureLabel: string
+  featureKind: WhiteboxFeatureKind
+  policy: WhiteboxPolicy
+  policyLabel: string
+  conflictsWith: string[]
 }
 
 export interface WhiteboxValidationViolation {
