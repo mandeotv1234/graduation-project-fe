@@ -780,7 +780,7 @@ export function GradingRulesEditor({
   const loadPresets = async () => {
     setIsLoadingPresets(true)
     try {
-      const res = await getRulePresets(questionType)
+      const res = await getRulePresets(questionType, 'BLACKBOX')
       if (res.data) setPresets(res.data)
     } catch {
       // console.error(e)
