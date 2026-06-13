@@ -3,9 +3,9 @@
 import {
   AlertTriangle,
   CheckCircle2,
+  FileText,
   HelpCircle,
   Loader2,
-  Package,
   Play,
   Plus,
   Search
@@ -13,6 +13,7 @@ import {
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -24,17 +25,18 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { getWhiteboxCatalog, validateWhitebox } from '@/lib/actions'
 import {
+  getWhiteboxPresets,
+  WhiteboxPreset
+} from '@/lib/constants/whitebox-presets'
+import {
   WhiteboxCatalogItem,
   WhiteboxRule,
   WhiteboxSettings,
   WhiteboxValidationResult
 } from '@/lib/types'
-import {
-  getWhiteboxPresets,
-  WhiteboxPreset
-} from '@/lib/constants/whitebox-presets'
 import { cn } from '@/lib/utils'
 
+import { TeacherSqlEditor } from './teacher-sql-editor'
 import { WhiteboxRuleRow } from './whitebox-rule-row'
 
 interface WhiteboxRulesEditorProps {
@@ -43,7 +45,7 @@ interface WhiteboxRulesEditorProps {
   rules: WhiteboxRule[]
   settings: WhiteboxSettings
   onChange: (rules: WhiteboxRule[], settings: WhiteboxSettings) => void
-  // Teacher's model answer; "Run on model answer" validation uses it (warns, never blocks).
+  // Teacher's model answer; pre-fills the "Chạy thử" box (teacher can tweak before running).
   sqlForPreview?: string
 }
 
@@ -104,7 +106,14 @@ export function WhiteboxRulesEditor({
   )
   const [isValidating, startValidating] = useTransition()
   const [addOpen, setAddOpen] = useState(false)
+  const [presetOpen, setPresetOpen] = useState(false)
   const [search, setSearch] = useState('')
+  // The SQL run by "Chạy thử"; pre-filled from the model answer, editable for ad-hoc checks.
+  const [previewSql, setPreviewSql] = useState(sqlForPreview ?? '')
+
+  useEffect(() => {
+    setPreviewSql(sqlForPreview ?? '')
+  }, [sqlForPreview])
 
   useEffect(() => {
     let active = true
@@ -166,15 +175,14 @@ export function WhiteboxRulesEditor({
     0
   )
 
-  const addRule = (item: WhiteboxCatalogItem) => {
-    onChange([...rules, defaultRuleFromCatalog(item)], settings)
-  }
-
   const presets = useMemo(
     () => getWhiteboxPresets(questionType),
     [questionType]
   )
-  const [presetOpen, setPresetOpen] = useState(false)
+
+  const addRule = (item: WhiteboxCatalogItem) => {
+    onChange([...rules, defaultRuleFromCatalog(item)], settings)
+  }
 
   // Apply a preset bundle: resolve each rule_id against the backend catalog, then override the
   // suggested severity/penalty/params. Replaces the current whitebox rules (mirrors black-box presets).
@@ -218,15 +226,15 @@ export function WhiteboxRulesEditor({
   }
 
   const runValidation = () => {
-    if (!sqlForPreview?.trim()) {
-      toast.warning('Chưa có đáp án mẫu để chạy thử.')
+    if (!previewSql.trim()) {
+      toast.warning('Chưa có SQL để chạy thử.')
       return
     }
     startValidating(async () => {
       try {
         const res = await validateWhitebox({
           questionType,
-          sql: sqlForPreview,
+          sql: previewSql,
           whiteboxRules: rules,
           whiteboxSettings: settings,
           questionPoints: totalPoints
@@ -245,12 +253,122 @@ export function WhiteboxRulesEditor({
 
   return (
     <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-4 dark:border-violet-900/40 dark:bg-violet-950/10">
-      <div className="mb-1 flex items-center gap-2">
-        <span className="text-base font-semibold text-foreground">
+      {/* Header mirrors the black-box rules editor: title + count on the left, actions on the right. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h4 className="flex items-center gap-2 text-base font-semibold text-foreground">
           🔬 Chấm phương pháp (White-box)
-        </span>
+          <Badge
+            variant="secondary"
+            className="rounded-full px-2.5 py-0.5 text-xs"
+          >
+            {rules.length}
+          </Badge>
+        </h4>
+        {!loadingCatalog && !catalogError && (
+          <div className="flex items-center gap-2">
+            {presets.length > 0 && (
+              <Popover open={presetOpen} onOpenChange={setPresetOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 whitespace-nowrap px-4 text-sm"
+                  >
+                    <FileText className="mr-1.5 h-4 w-4" />
+                    Mẫu quy tắc
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 p-1">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyPreset(preset)}
+                      className="flex w-full flex-col items-start gap-0.5 rounded px-3 py-2 text-left text-sm hover:bg-muted"
+                    >
+                      <span className="font-medium">{preset.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {preset.description}
+                      </span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )}
+            <Popover open={addOpen} onOpenChange={setAddOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 whitespace-nowrap px-4 text-sm"
+                  disabled={availableCount === 0 && search.trim() === ''}
+                >
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Thêm quy tắc
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-96 p-0">
+                <div className="flex items-center gap-2 border-b px-3 py-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    autoFocus
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Tìm quy tắc…"
+                    className="w-full bg-transparent text-sm outline-none"
+                  />
+                </div>
+                <ScrollArea className="h-72">
+                  {availableCount === 0 ? (
+                    <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                      Không còn quy tắc phù hợp.
+                    </p>
+                  ) : (
+                    availableGroups.map((group) => (
+                      <div key={group.key} className="py-1">
+                        <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {GROUP_LABELS[group.key] ?? group.key}
+                        </div>
+                        {group.items.map((item) => (
+                          <button
+                            key={item.ruleId}
+                            type="button"
+                            onClick={() => addRule(item)}
+                            className="flex w-full items-start gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted"
+                          >
+                            <span
+                              className={cn(
+                                'mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                                item.type === 'FORBIDDEN'
+                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                                  : item.type === 'REQUIRED'
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                              )}
+                            >
+                              {item.type}
+                            </span>
+                            <span className="flex-1">
+                              <span className="block">{item.label}</span>
+                              <span className="block text-xs text-muted-foreground">
+                                {item.description}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ))
+                  )}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
       </div>
-      <p className="mb-3 text-sm text-muted-foreground">
+
+      <p className="mb-3 mt-1 text-sm text-muted-foreground">
         Kiểm tra <strong>cách viết</strong> câu truy vấn (JOIN, subquery, GROUP
         BY…), độc lập với kết quả. Danh mục quy tắc do backend cung cấp. Mặc
         định chỉ cảnh báo — chuyển sang “Trừ điểm” khi cần.
@@ -318,199 +436,105 @@ export function WhiteboxRulesEditor({
         </p>
       )}
 
-      {!loadingCatalog && !catalogError && (
-        <>
-          {/* Only configured rules are shown — add more from the grouped picker below. */}
-          {rules.length > 0 ? (
-            <div className="space-y-2">
-              {rules.map((rule) => {
-                const item = catalogById.get(rule.rule_id)
-                if (!item) return null
-                return (
-                  <WhiteboxRuleRow
-                    key={rule.rule_id}
-                    item={item}
-                    rule={rule}
-                    onUpdate={updateRule}
-                    onRemove={removeRule}
-                  />
-                )
-              })}
-            </div>
-          ) : (
-            <p className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-center text-sm text-muted-foreground">
-              Chưa bật quy tắc whitebox nào. Bấm “Thêm quy tắc” để chọn.
-            </p>
-          )}
-
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {presets.length > 0 && (
-              <Popover open={presetOpen} onOpenChange={setPresetOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                  >
-                    <Package className="h-4 w-4" />
-                    Mẫu quy tắc
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-80 p-1">
-                  {presets.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => applyPreset(preset)}
-                      className="flex w-full flex-col items-start gap-0.5 rounded px-3 py-2 text-left text-sm hover:bg-muted"
-                    >
-                      <span className="font-medium">{preset.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {preset.description}
-                      </span>
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
-            )}
-            <Popover open={addOpen} onOpenChange={setAddOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={availableCount === 0 && search.trim() === ''}
-                >
-                  <Plus className="h-4 w-4" />
-                  Thêm quy tắc
-                  {availableCount > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      ({availableCount})
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-96 p-0">
-                <div className="flex items-center gap-2 border-b px-3 py-2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <input
-                    autoFocus
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Tìm quy tắc…"
-                    className="w-full bg-transparent text-sm outline-none"
-                  />
-                </div>
-                <ScrollArea className="h-72">
-                  {availableCount === 0 ? (
-                    <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                      Không còn quy tắc phù hợp.
-                    </p>
-                  ) : (
-                    availableGroups.map((group) => (
-                      <div key={group.key} className="py-1">
-                        <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          {GROUP_LABELS[group.key] ?? group.key}
-                        </div>
-                        {group.items.map((item) => (
-                          <button
-                            key={item.ruleId}
-                            type="button"
-                            onClick={() => addRule(item)}
-                            className="flex w-full items-start gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted"
-                          >
-                            <span
-                              className={cn(
-                                'mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold',
-                                item.type === 'FORBIDDEN'
-                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-                                  : item.type === 'REQUIRED'
-                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                              )}
-                            >
-                              {item.type}
-                            </span>
-                            <span className="flex-1">
-                              <span className="block">{item.label}</span>
-                              <span className="block text-xs text-muted-foreground">
-                                {item.description}
-                              </span>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    ))
-                  )}
-                </ScrollArea>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </>
-      )}
-
-      <div className="mt-4 flex items-center gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={runValidation}
-          disabled={isValidating}
-        >
-          {isValidating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          Chạy thử trên đáp án mẫu
-        </Button>
-        {validation && !validation.sqlParseOk && (
-          <span className="text-xs text-amber-600 dark:text-amber-400">
-            Đáp án mẫu không phân tích được cú pháp — rule phụ thuộc parser
-            không kiểm chứng được.
-          </span>
-        )}
-      </div>
-
-      {validation && (
-        <div className="mt-3 space-y-2 rounded-lg border border-border/60 bg-background/60 p-3">
-          {modelAnswerViolations.length > 0 ? (
-            <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
-              ⚠️ Đáp án mẫu vi phạm {modelAnswerViolations.length} quy tắc —
-              sinh viên làm giống đáp án cũng bị tính vi phạm. Sửa đáp án mẫu
-              hoặc tắt rule (vẫn cho phép lưu).
-            </p>
-          ) : (
-            <p className="text-xs text-emerald-700 dark:text-emerald-400">
-              ✓ Đáp án mẫu không vi phạm quy tắc nào.
-            </p>
-          )}
-          {validation.violations
-            .filter((v) => v.status !== 'PASS')
-            .map((v, idx) => {
-              const style =
-                VIOLATION_STYLE[v.status] ?? VIOLATION_STYLE.UNVERIFIED
-              const Icon = style.icon
+      {!loadingCatalog &&
+        !catalogError &&
+        (rules.length > 0 ? (
+          <div className="space-y-2">
+            {rules.map((rule) => {
+              const item = catalogById.get(rule.rule_id)
+              if (!item) return null
               return (
-                <div key={idx} className="flex items-start gap-2 text-xs">
-                  <Icon
-                    className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', style.cls)}
-                  />
-                  <span>
-                    <span className="font-medium">{v.label}</span>
-                    {v.reason ? ` — ${v.reason}` : ''}
-                    {v.deductedPoints > 0
-                      ? ` (−${v.deductedPoints.toFixed(2)}đ)`
-                      : ''}
-                  </span>
-                </div>
+                <WhiteboxRuleRow
+                  key={rule.rule_id}
+                  item={item}
+                  rule={rule}
+                  onUpdate={updateRule}
+                  onRemove={removeRule}
+                />
               )
             })}
+          </div>
+        ) : (
+          <p className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-center text-sm text-muted-foreground">
+            Chưa bật quy tắc whitebox nào. Bấm “Mẫu quy tắc” hoặc “Thêm quy
+            tắc”.
+          </p>
+        ))}
+
+      {/* Run the rules against a SQL answer (pre-filled with the model answer) — warns, never blocks. */}
+      <div className="mt-4 space-y-2 rounded-lg border border-border/60 bg-background/60 p-3">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Chạy thử trên đáp án mẫu
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={runValidation}
+            disabled={isValidating}
+          >
+            {isValidating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            Chạy thử
+          </Button>
         </div>
-      )}
+        <div className="h-32 overflow-hidden rounded-md border border-border bg-sub-background">
+          <TeacherSqlEditor
+            value={previewSql}
+            onChange={(value) => setPreviewSql(value || '')}
+            height="100%"
+          />
+        </div>
+
+        {validation && !validation.sqlParseOk && (
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            SQL không phân tích được cú pháp — rule phụ thuộc parser không kiểm
+            chứng được (UNVERIFIED).
+          </p>
+        )}
+
+        {validation && (
+          <div className="space-y-2">
+            {modelAnswerViolations.length > 0 ? (
+              <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                ⚠️ SQL này vi phạm {modelAnswerViolations.length} quy tắc — nếu
+                là đáp án mẫu, sinh viên làm giống cũng bị tính vi phạm. Sửa đáp
+                án mẫu hoặc tắt rule (vẫn cho phép lưu).
+              </p>
+            ) : (
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                ✓ Không vi phạm quy tắc nào.
+              </p>
+            )}
+            {validation.violations
+              .filter((v) => v.status !== 'PASS')
+              .map((v, idx) => {
+                const style =
+                  VIOLATION_STYLE[v.status] ?? VIOLATION_STYLE.UNVERIFIED
+                const Icon = style.icon
+                return (
+                  <div key={idx} className="flex items-start gap-2 text-xs">
+                    <Icon
+                      className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', style.cls)}
+                    />
+                    <span>
+                      <span className="font-medium">{v.label}</span>
+                      {v.reason ? ` — ${v.reason}` : ''}
+                      {v.deductedPoints > 0
+                        ? ` (−${v.deductedPoints.toFixed(2)}đ)`
+                        : ''}
+                    </span>
+                  </div>
+                )
+              })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
