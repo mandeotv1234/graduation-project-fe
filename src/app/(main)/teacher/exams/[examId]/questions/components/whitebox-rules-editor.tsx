@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   HelpCircle,
   Loader2,
+  Package,
   Play,
   Plus,
   Search
@@ -28,6 +29,10 @@ import {
   WhiteboxSettings,
   WhiteboxValidationResult
 } from '@/lib/types'
+import {
+  getWhiteboxPresets,
+  WhiteboxPreset
+} from '@/lib/constants/whitebox-presets'
 import { cn } from '@/lib/utils'
 
 import { WhiteboxRuleRow } from './whitebox-rule-row'
@@ -163,6 +168,35 @@ export function WhiteboxRulesEditor({
 
   const addRule = (item: WhiteboxCatalogItem) => {
     onChange([...rules, defaultRuleFromCatalog(item)], settings)
+  }
+
+  const presets = useMemo(
+    () => getWhiteboxPresets(questionType),
+    [questionType]
+  )
+  const [presetOpen, setPresetOpen] = useState(false)
+
+  // Apply a preset bundle: resolve each rule_id against the backend catalog, then override the
+  // suggested severity/penalty/params. Replaces the current whitebox rules (mirrors black-box presets).
+  const applyPreset = (preset: WhiteboxPreset) => {
+    const next: WhiteboxRule[] = []
+    for (const presetRule of preset.rules) {
+      const item = catalogById.get(presetRule.ruleId)
+      if (!item) continue
+      const base = defaultRuleFromCatalog(item)
+      next.push({
+        ...base,
+        severity: presetRule.severity ?? base.severity,
+        penalty_value: presetRule.penaltyValue ?? base.penalty_value,
+        penalty_unit: presetRule.penaltyUnit ?? base.penalty_unit,
+        params: presetRule.params
+          ? { ...base.params, ...presetRule.params }
+          : base.params
+      })
+    }
+    onChange(next, settings)
+    setPresetOpen(false)
+    toast.success(`Đã áp dụng mẫu: ${preset.name}`)
   }
 
   const updateRule = (ruleId: string, patch: Partial<WhiteboxRule>) => {
@@ -309,79 +343,111 @@ export function WhiteboxRulesEditor({
             </p>
           )}
 
-          <Popover open={addOpen} onOpenChange={setAddOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-3 gap-1.5"
-                disabled={availableCount === 0 && search.trim() === ''}
-              >
-                <Plus className="h-4 w-4" />
-                Thêm quy tắc
-                {availableCount > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    ({availableCount})
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-96 p-0">
-              <div className="flex items-center gap-2 border-b px-3 py-2">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <input
-                  autoFocus
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Tìm quy tắc…"
-                  className="w-full bg-transparent text-sm outline-none"
-                />
-              </div>
-              <ScrollArea className="h-72">
-                {availableCount === 0 ? (
-                  <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                    Không còn quy tắc phù hợp.
-                  </p>
-                ) : (
-                  availableGroups.map((group) => (
-                    <div key={group.key} className="py-1">
-                      <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        {GROUP_LABELS[group.key] ?? group.key}
-                      </div>
-                      {group.items.map((item) => (
-                        <button
-                          key={item.ruleId}
-                          type="button"
-                          onClick={() => addRule(item)}
-                          className="flex w-full items-start gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted"
-                        >
-                          <span
-                            className={cn(
-                              'mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold',
-                              item.type === 'FORBIDDEN'
-                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-                                : item.type === 'REQUIRED'
-                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                            )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {presets.length > 0 && (
+              <Popover open={presetOpen} onOpenChange={setPresetOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    <Package className="h-4 w-4" />
+                    Mẫu quy tắc
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-80 p-1">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyPreset(preset)}
+                      className="flex w-full flex-col items-start gap-0.5 rounded px-3 py-2 text-left text-sm hover:bg-muted"
+                    >
+                      <span className="font-medium">{preset.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {preset.description}
+                      </span>
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            )}
+            <Popover open={addOpen} onOpenChange={setAddOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={availableCount === 0 && search.trim() === ''}
+                >
+                  <Plus className="h-4 w-4" />
+                  Thêm quy tắc
+                  {availableCount > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      ({availableCount})
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-96 p-0">
+                <div className="flex items-center gap-2 border-b px-3 py-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    autoFocus
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Tìm quy tắc…"
+                    className="w-full bg-transparent text-sm outline-none"
+                  />
+                </div>
+                <ScrollArea className="h-72">
+                  {availableCount === 0 ? (
+                    <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                      Không còn quy tắc phù hợp.
+                    </p>
+                  ) : (
+                    availableGroups.map((group) => (
+                      <div key={group.key} className="py-1">
+                        <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {GROUP_LABELS[group.key] ?? group.key}
+                        </div>
+                        {group.items.map((item) => (
+                          <button
+                            key={item.ruleId}
+                            type="button"
+                            onClick={() => addRule(item)}
+                            className="flex w-full items-start gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted"
                           >
-                            {item.type}
-                          </span>
-                          <span className="flex-1">
-                            <span className="block">{item.label}</span>
-                            <span className="block text-xs text-muted-foreground">
-                              {item.description}
+                            <span
+                              className={cn(
+                                'mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                                item.type === 'FORBIDDEN'
+                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                                  : item.type === 'REQUIRED'
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                              )}
+                            >
+                              {item.type}
                             </span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ))
-                )}
-              </ScrollArea>
-            </PopoverContent>
-          </Popover>
+                            <span className="flex-1">
+                              <span className="block">{item.label}</span>
+                              <span className="block text-xs text-muted-foreground">
+                                {item.description}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ))
+                  )}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
+          </div>
         </>
       )}
 
