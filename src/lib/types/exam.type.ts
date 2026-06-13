@@ -340,7 +340,8 @@ export interface GradingTraceItem {
     | 'EXECUTION_ERROR'
     | 'TEACHER_CONFIG'
     | 'SUMMARY'
-  status: 'PASS' | 'FAIL' | 'WARN' | 'INFO'
+    | 'WHITEBOX_CHECK'
+  status: 'PASS' | 'FAIL' | 'WARN' | 'INFO' | 'UNVERIFIED'
   label: string
   message?: string
   caseId?: string
@@ -704,6 +705,81 @@ export interface SelectTestCase {
 export interface SelectQueryGradingPayload {
   grading_rules?: InsertDataGradingRule[]
   test_cases: SelectTestCase[]
+  // Canonical white-box contract (method grading). Shared across SQL question types.
+  whitebox_rules?: WhiteboxRule[]
+  whitebox_settings?: WhiteboxSettings
+}
+
+// === White-box (method) grading — canonical contract ===
+
+export type WhiteboxRuleType = 'FORBIDDEN' | 'REQUIRED' | 'LIMIT'
+export type WhiteboxSeverity = 'DEDUCTION' | 'WARNING_ONLY'
+export type WhiteboxPenaltyUnit = 'ABSOLUTE' | 'PERCENTAGE_OF_QUESTION'
+export type WhiteboxStatus = 'PASS' | 'FAIL' | 'WARN' | 'UNVERIFIED'
+
+// One configured rule stored under grading_payload.whitebox_rules[].
+export interface WhiteboxRule {
+  rule_id: string
+  enabled: boolean
+  type?: WhiteboxRuleType
+  penalty_value: number
+  penalty_unit: WhiteboxPenaltyUnit
+  severity: WhiteboxSeverity
+  description?: string
+  // Rule-specific parameters: max_depth, max_joins, keywords[], functions[], operators[].
+  params?: Record<string, unknown>
+}
+
+// Shared scoring controls stored under grading_payload.whitebox_settings.
+export interface WhiteboxSettings {
+  max_total_deduction?: number | null
+  max_total_deduction_pct?: number | null
+  stop_on_first_violation?: boolean
+}
+
+// Backend-owned catalog (source of truth; the FE never hardcodes rule definitions).
+export interface WhiteboxParamSpec {
+  name: string
+  type: 'NUMBER' | 'STRING_LIST'
+  label: string
+  required: boolean
+  defaultValue?: number | string | null
+}
+
+export interface WhiteboxCatalogItem {
+  ruleId: string
+  type: WhiteboxRuleType
+  group: string
+  label: string
+  description: string
+  defaultSeverity: WhiteboxSeverity
+  defaultPenaltyValue: number
+  defaultPenaltyUnit: WhiteboxPenaltyUnit
+  parserRequired: boolean
+  questionTypes: string[]
+  params: WhiteboxParamSpec[]
+}
+
+export interface WhiteboxValidationViolation {
+  ruleId: string
+  status: WhiteboxStatus
+  label: string
+  reason?: string
+  expected?: string
+  actual?: string
+  configuredPenalty?: number
+  deductedPoints: number
+}
+
+export interface WhiteboxValidationResult {
+  sqlParseOk: boolean
+  rawDeduction: number
+  cappedDeduction: number
+  passCount: number
+  failCount: number
+  warnCount: number
+  unverifiedCount: number
+  violations: WhiteboxValidationViolation[]
 }
 
 // === FUNCTION/STORED_PROCEDURE Grading Types ===

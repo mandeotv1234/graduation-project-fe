@@ -88,6 +88,10 @@ export const ENDPOINTS = Object.freeze({
     `/exams/${examId}/test-grade-trigger`,
   EXAM_RUN_SELECT_TESTCASE: (examId: number) =>
     `/exams/${examId}/run-select-testcase`,
+  // White-box (method grading): backend-owned catalog + stateless validation/preview.
+  WHITEBOX_CATALOG: (questionType: string) =>
+    `/exams/whitebox/catalog?questionType=${questionType}`,
+  WHITEBOX_VALIDATE: '/exams/whitebox/validate',
   EXAM_BUILD_INSERT_TABLES: (examId: number) =>
     `/exams/${examId}/build-insert-tables`,
   EXAM_BUILD_CREATE_TABLES: (examId: number) =>

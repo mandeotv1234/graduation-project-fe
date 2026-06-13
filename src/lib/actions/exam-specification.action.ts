@@ -13,7 +13,11 @@ import {
   SpecificationResponse,
   SpecificationDetailResponse,
   CreateSpecificationRequest,
-  SpecificationSchemaJsonTable
+  SpecificationSchemaJsonTable,
+  WhiteboxCatalogItem,
+  WhiteboxValidationResult,
+  WhiteboxRule,
+  WhiteboxSettings
 } from '@/lib/types'
 
 export async function getSpecifications(): Promise<
@@ -121,6 +125,30 @@ export async function generateGradingRubric(data: {
   }>
 }): Promise<ApiResponse<string>> {
   return apiClient.post<string>(ENDPOINTS.EXAM_GENERATE_RUBRIC, data)
+}
+
+// Fetches the backend-owned white-box rule catalog (source of truth) for a question type.
+export async function getWhiteboxCatalog(
+  questionType = 'SELECT_QUERY'
+): Promise<ApiResponse<WhiteboxCatalogItem[]>> {
+  return apiClient.get<WhiteboxCatalogItem[]>(
+    ENDPOINTS.WHITEBOX_CATALOG(questionType),
+    { cache: 'no-store' }
+  )
+}
+
+// Stateless white-box validation/preview (model answer or arbitrary SQL). Never blocks save.
+export async function validateWhitebox(data: {
+  questionType?: string
+  sql: string
+  whiteboxRules: WhiteboxRule[]
+  whiteboxSettings?: WhiteboxSettings
+  questionPoints: number
+}): Promise<ApiResponse<WhiteboxValidationResult>> {
+  return apiClient.post<WhiteboxValidationResult>(
+    ENDPOINTS.WHITEBOX_VALIDATE,
+    data
+  )
 }
 
 export async function testGradeCreateTable(data: {
