@@ -916,6 +916,7 @@ export interface RulePreset {
   name: string
   questionType: string
   rulesJson: string
+  kind: string
   createdAt: string
   updatedAt: string
 }
@@ -924,6 +925,7 @@ export interface CreateRulePresetRequest {
   name: string
   questionType: string
   rulesJson: string
+  kind?: string
 }
 
 // ===== Feedback Types =====

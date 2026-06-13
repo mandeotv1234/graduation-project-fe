@@ -272,10 +272,13 @@ export async function getExamStatistics(
 // ===== Rule Presets =====
 
 export async function getRulePresets(
-  questionType: string
+  questionType: string,
+  kind?: string
 ): Promise<ApiResponse<RulePreset[]>> {
+  const queries: Record<string, string> = { questionType }
+  if (kind) queries.kind = kind
   return apiClient.get<RulePreset[]>(ENDPOINTS.RULE_PRESETS, {
-    queries: { questionType },
+    queries,
     cache: 'no-store'
   })
 }

@@ -8,7 +8,9 @@ import {
   Loader2,
   Play,
   Plus,
-  Search
+  Save,
+  Search,
+  Trash2
 } from 'lucide-react'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -31,12 +33,19 @@ import {
   PopoverTrigger
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { getWhiteboxCatalog, validateWhitebox } from '@/lib/actions'
+import {
+  createRulePreset,
+  deleteRulePreset,
+  getRulePresets,
+  getWhiteboxCatalog,
+  validateWhitebox
+} from '@/lib/actions'
 import {
   getWhiteboxPresets,
   WhiteboxPreset
 } from '@/lib/constants/whitebox-presets'
 import {
+  RulePreset,
   WhiteboxCatalogItem,
   WhiteboxRule,
   WhiteboxSettings,
@@ -117,6 +126,11 @@ export function WhiteboxRulesEditor({
   const [addOpen, setAddOpen] = useState(false)
   const [presetOpen, setPresetOpen] = useState(false)
   const [search, setSearch] = useState('')
+  // DB-backed teacher presets (WHITEBOX kind)
+  const [savedPresets, setSavedPresets] = useState<RulePreset[]>([])
+  const [isLoadingPresets, setIsLoadingPresets] = useState(false)
+  const [isSavingPreset, setIsSavingPreset] = useState(false)
+  const [newPresetName, setNewPresetName] = useState('')
   // The SQL run by "Chạy thử"; pre-filled from the model answer, editable for ad-hoc checks.
   const [previewSql, setPreviewSql] = useState(sqlForPreview ?? '')
 
@@ -188,6 +202,66 @@ export function WhiteboxRulesEditor({
     () => getWhiteboxPresets(questionType),
     [questionType]
   )
+
+  const loadSavedPresets = async () => {
+    setIsLoadingPresets(true)
+    try {
+      const res = await getRulePresets(questionType, 'WHITEBOX')
+      if (res.data) setSavedPresets(res.data)
+    } catch {
+      // silently ignore
+    } finally {
+      setIsLoadingPresets(false)
+    }
+  }
+
+  const handleSavePreset = async () => {
+    if (!newPresetName.trim()) {
+      toast.error('Vui lòng nhập tên mẫu')
+      return
+    }
+    if (rules.length === 0) {
+      toast.error('Không có quy tắc nào để lưu')
+      return
+    }
+    setIsSavingPreset(true)
+    try {
+      await createRulePreset({
+        name: newPresetName.trim(),
+        questionType,
+        rulesJson: JSON.stringify(rules),
+        kind: 'WHITEBOX'
+      })
+      toast.success('Đã lưu mẫu quy tắc')
+      setNewPresetName('')
+      loadSavedPresets()
+    } catch {
+      toast.error('Lỗi khi lưu mẫu')
+    } finally {
+      setIsSavingPreset(false)
+    }
+  }
+
+  const handleApplySavedPreset = (preset: RulePreset) => {
+    try {
+      const parsed = JSON.parse(preset.rulesJson) as WhiteboxRule[]
+      onChange(parsed, settings)
+      toast.success(`Đã áp dụng mẫu: ${preset.name}`)
+      setPresetOpen(false)
+    } catch {
+      toast.error('Lỗi khi đọc dữ liệu mẫu')
+    }
+  }
+
+  const handleDeletePreset = async (id: number) => {
+    try {
+      await deleteRulePreset(id)
+      setSavedPresets((prev) => prev.filter((p) => p.id !== id))
+      toast.success('Đã xóa mẫu')
+    } catch {
+      toast.error('Lỗi khi xóa mẫu')
+    }
+  }
 
   const addRule = (item: WhiteboxCatalogItem) => {
     onChange([...rules, defaultRuleFromCatalog(item)], settings)
@@ -275,41 +349,147 @@ export function WhiteboxRulesEditor({
         </h4>
         {!loadingCatalog && !catalogError && (
           <div className="flex items-center gap-2">
-            {presets.length > 0 && (
-              <Dialog open={presetOpen} onOpenChange={setPresetOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 whitespace-nowrap px-4 text-sm"
-                  >
-                    <FileText className="mr-1.5 h-4 w-4" />
-                    Mẫu quy tắc
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Mẫu quy tắc white-box</DialogTitle>
-                    <DialogDescription>
-                      Áp dụng bộ quy tắc gợi ý cho loại câu hỏi này (thay thế
-                      các quy tắc white-box hiện tại).
-                    </DialogDescription>
-                  </DialogHeader>
-                  <SystemPresetList
-                    presets={presets.map((p) => ({
-                      id: p.id,
-                      name: p.name,
-                      description: p.description
-                    }))}
-                    onApply={(id) => {
-                      const preset = presets.find((p) => p.id === id)
-                      if (preset) applyPreset(preset)
-                    }}
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
+            <Dialog
+              open={presetOpen}
+              onOpenChange={(open) => {
+                setPresetOpen(open)
+                if (open) loadSavedPresets()
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 whitespace-nowrap px-4 text-sm"
+                >
+                  <FileText className="mr-1.5 h-4 w-4" />
+                  Mẫu quy tắc
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Mẫu quy tắc white-box</DialogTitle>
+                  <DialogDescription>
+                    Lưu hoặc tải bộ quy tắc cho loại câu hỏi này (thay thế các
+                    quy tắc white-box hiện tại).
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-2">
+                  {/* Save new preset */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Tên mẫu quy tắc mới..."
+                      value={newPresetName}
+                      onChange={(e) => setNewPresetName(e.target.value)}
+                      className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm"
+                    />
+                    <Button
+                      onClick={handleSavePreset}
+                      disabled={
+                        isSavingPreset ||
+                        !newPresetName.trim() ||
+                        rules.length === 0
+                      }
+                      size="sm"
+                    >
+                      {isSavingPreset ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                      )}
+                      Lưu làm mẫu mới
+                    </Button>
+                  </div>
+
+                  {/* System presets */}
+                  {presets.length > 0 && (
+                    <div className="border-t border-border pt-4">
+                      <SystemPresetList
+                        presets={presets.map((p) => ({
+                          id: p.id,
+                          name: p.name,
+                          description: p.description
+                        }))}
+                        onApply={(id) => {
+                          const preset = presets.find((p) => p.id === id)
+                          if (preset) applyPreset(preset)
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* DB-backed saved presets */}
+                  <div className="border-t border-border pt-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <h5 className="text-xs font-semibold">
+                        Danh sách mẫu đã lưu của bạn
+                      </h5>
+                    </div>
+
+                    {isLoadingPresets ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Loader2 className="mb-2 h-5 w-5 animate-spin text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Đang tải...
+                        </span>
+                      </div>
+                    ) : savedPresets.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-8 bg-sub-background">
+                        <p className="text-sm text-muted-foreground">
+                          Bạn chưa lưu mẫu nào.
+                        </p>
+                      </div>
+                    ) : (
+                      <ul className="max-h-60 space-y-2 overflow-y-auto pr-1">
+                        {savedPresets.map((p) => (
+                          <li
+                            key={p.id}
+                            className="flex flex-col gap-2 rounded-md border border-border bg-sub-background p-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span
+                                className="truncate text-sm font-semibold text-sub-primary"
+                                title={p.name}
+                              >
+                                {p.name}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(p.createdAt).toLocaleDateString(
+                                  'vi-VN'
+                                )}
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleApplySavedPreset(p)}
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  Áp dụng mẫu này
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeletePreset(p.id)}
+                                  className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Popover open={addOpen} onOpenChange={setAddOpen}>
               <PopoverTrigger asChild>
                 <Button
