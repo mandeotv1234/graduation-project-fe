@@ -1,7 +1,13 @@
 'use client'
 
 import React from 'react'
-import { CheckCircle2, AlertCircle, AlertTriangle, Info } from 'lucide-react'
+import {
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  HelpCircle,
+  Info
+} from 'lucide-react'
 import { GradingTrace, GradingTraceItem } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import styles from './submission-detail-view.module.scss'
@@ -10,7 +16,9 @@ const STATUS_CONFIG = {
   PASS: { icon: CheckCircle2, className: styles.tracePass },
   FAIL: { icon: AlertCircle, className: styles.traceFail },
   WARN: { icon: AlertTriangle, className: styles.traceWarn },
-  INFO: { icon: Info, className: styles.traceInfo }
+  INFO: { icon: Info, className: styles.traceInfo },
+  // Parser-dependent white-box check that could not be verified (no score effect).
+  UNVERIFIED: { icon: HelpCircle, className: styles.traceInfo }
 } as const
 
 interface GradingTraceSectionProps {
@@ -220,7 +228,8 @@ function formatKind(kind: string): string {
     METADATA_CHECK: 'Metadata',
     EXECUTION_ERROR: 'Lỗi thực thi',
     TEACHER_CONFIG: 'Cấu hình GV',
-    SUMMARY: 'Tổng kết'
+    SUMMARY: 'Tổng kết',
+    WHITEBOX_CHECK: 'Whitebox'
   }
   return labels[kind] || kind
 }
