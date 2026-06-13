@@ -256,7 +256,7 @@ export function WhiteboxRulesEditor({
       {/* Header mirrors the black-box rules editor: title + count on the left, actions on the right. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h4 className="flex items-center gap-2 text-base font-semibold text-foreground">
-          🔬 Chấm phương pháp (White-box)
+          Chấm phương pháp (White-box)
           <Badge
             variant="secondary"
             className="rounded-full px-2.5 py-0.5 text-xs"

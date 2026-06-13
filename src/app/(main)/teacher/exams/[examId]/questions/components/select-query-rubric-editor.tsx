@@ -364,7 +364,7 @@ export function SelectQueryRubricEditor({
         <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-4 dark:border-sky-900/40 dark:bg-sky-950/10">
           <div className="mb-1 flex items-center gap-2">
             <span className="text-base font-semibold text-foreground">
-              📊 Chấm theo kết quả (Black-box)
+              Chấm theo kết quả (Black-box)
             </span>
           </div>
           <p className="mb-3 text-sm text-muted-foreground">
