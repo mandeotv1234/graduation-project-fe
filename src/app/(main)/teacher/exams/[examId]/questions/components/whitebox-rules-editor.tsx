@@ -6,6 +6,7 @@ import {
   FileText,
   HelpCircle,
   Loader2,
+  Pencil,
   Play,
   Plus,
   Save,
@@ -38,6 +39,7 @@ import {
   deleteRulePreset,
   getRulePresets,
   getWhiteboxCatalog,
+  updateRulePreset,
   validateWhitebox
 } from '@/lib/actions'
 import {
@@ -131,6 +133,11 @@ export function WhiteboxRulesEditor({
   const [isLoadingPresets, setIsLoadingPresets] = useState(false)
   const [isSavingPreset, setIsSavingPreset] = useState(false)
   const [newPresetName, setNewPresetName] = useState('')
+  // When set, the dialog is editing this saved preset: "Cập nhật mẫu" overwrites it instead of creating a new one.
+  const [editingPreset, setEditingPreset] = useState<{
+    id: number
+    name: string
+  } | null>(null)
   // The SQL run by "Chạy thử"; pre-filled from the model answer, editable for ad-hoc checks.
   const [previewSql, setPreviewSql] = useState(sqlForPreview ?? '')
 
@@ -242,15 +249,66 @@ export function WhiteboxRulesEditor({
     }
   }
 
+  // Overwrite the saved preset currently being edited with the editor's current rules.
+  const handleUpdatePreset = async () => {
+    if (!editingPreset) return
+    if (!newPresetName.trim()) {
+      toast.error('Vui lòng nhập tên mẫu')
+      return
+    }
+    if (rules.length === 0) {
+      toast.error('Không có quy tắc nào để lưu')
+      return
+    }
+    setIsSavingPreset(true)
+    try {
+      await updateRulePreset(editingPreset.id, {
+        name: newPresetName.trim(),
+        rulesJson: JSON.stringify(rules)
+      })
+      toast.success('Đã cập nhật mẫu quy tắc')
+      setEditingPreset(null)
+      setNewPresetName('')
+      loadSavedPresets()
+    } catch {
+      toast.error('Lỗi khi cập nhật mẫu')
+    } finally {
+      setIsSavingPreset(false)
+    }
+  }
+
   const handleApplySavedPreset = (preset: RulePreset) => {
     try {
       const parsed = JSON.parse(preset.rulesJson) as WhiteboxRule[]
       onChange(parsed, settings)
+      setEditingPreset(null)
       toast.success(`Đã áp dụng mẫu: ${preset.name}`)
       setPresetOpen(false)
     } catch {
       toast.error('Lỗi khi đọc dữ liệu mẫu')
     }
+  }
+
+  // Load a saved preset's rules into the White-box step and enter edit mode so the teacher can
+  // tweak rules inline, then re-open this dialog and overwrite the preset.
+  const handleEditSavedPreset = (preset: RulePreset) => {
+    try {
+      const parsed = JSON.parse(preset.rulesJson) as WhiteboxRule[]
+      onChange(parsed, settings)
+      setEditingPreset({ id: preset.id, name: preset.name })
+      setNewPresetName(preset.name)
+      setPresetOpen(false)
+      toast.info(
+        `Đang sửa mẫu "${preset.name}". Chỉnh quy tắc rồi mở lại “Mẫu quy tắc” → “Cập nhật mẫu”.`
+      )
+    } catch {
+      toast.error('Lỗi khi đọc dữ liệu mẫu')
+    }
+  }
+
+  const cancelEditingPreset = () => {
+    setEditingPreset(null)
+    setNewPresetName('')
   }
 
   const handleDeletePreset = async (id: number) => {
@@ -286,6 +344,7 @@ export function WhiteboxRulesEditor({
       })
     }
     onChange(next, settings)
+    setEditingPreset(null)
     setPresetOpen(false)
     toast.success(`Đã áp dụng mẫu: ${preset.name}`)
   }
@@ -377,31 +436,55 @@ export function WhiteboxRulesEditor({
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
-                  {/* Save new preset */}
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Tên mẫu quy tắc mới..."
-                      value={newPresetName}
-                      onChange={(e) => setNewPresetName(e.target.value)}
-                      className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm"
-                    />
-                    <Button
-                      onClick={handleSavePreset}
-                      disabled={
-                        isSavingPreset ||
-                        !newPresetName.trim() ||
-                        rules.length === 0
-                      }
-                      size="sm"
-                    >
-                      {isSavingPreset ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="mr-2 h-4 w-4" />
-                      )}
-                      Lưu làm mẫu mới
-                    </Button>
+                  {/* Save new preset, or update the one currently being edited */}
+                  <div className="space-y-2">
+                    {editingPreset && (
+                      <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs">
+                        <span className="font-medium text-primary">
+                          Đang sửa mẫu: {editingPreset.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={cancelEditingPreset}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          Thoát
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Tên mẫu quy tắc mới..."
+                        value={newPresetName}
+                        onChange={(e) => setNewPresetName(e.target.value)}
+                        className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm"
+                      />
+                      <Button
+                        onClick={
+                          editingPreset ? handleUpdatePreset : handleSavePreset
+                        }
+                        disabled={
+                          isSavingPreset ||
+                          !newPresetName.trim() ||
+                          rules.length === 0
+                        }
+                        size="sm"
+                      >
+                        {isSavingPreset ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="mr-2 h-4 w-4" />
+                        )}
+                        {editingPreset ? 'Cập nhật mẫu' : 'Lưu làm mẫu mới'}
+                      </Button>
+                    </div>
+                    {rules.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Thêm quy tắc ở bước White-box (nút “Thêm quy tắc”)
+                        trước, rồi quay lại đây để lưu thành mẫu.
+                      </p>
+                    )}
                   </div>
 
                   {/* System presets */}
@@ -471,6 +554,15 @@ export function WhiteboxRulesEditor({
                                   className="h-7 px-2 text-xs"
                                 >
                                   Áp dụng mẫu này
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditSavedPreset(p)}
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  <Pencil className="mr-1 h-3 w-3" />
+                                  Sửa
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -695,14 +787,18 @@ export function WhiteboxRulesEditor({
         {validation && (
           <div className="space-y-2">
             {modelAnswerViolations.length > 0 ? (
-              <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
-                ⚠️ SQL này vi phạm {modelAnswerViolations.length} quy tắc — nếu
-                là đáp án mẫu, sinh viên làm giống cũng bị tính vi phạm. Sửa đáp
-                án mẫu hoặc tắt rule (vẫn cho phép lưu).
+              <p className="flex items-start gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  SQL này vi phạm {modelAnswerViolations.length} quy tắc — nếu
+                  là đáp án mẫu, sinh viên làm giống cũng bị tính vi phạm. Sửa
+                  đáp án mẫu hoặc tắt rule (vẫn cho phép lưu).
+                </span>
               </p>
             ) : (
-              <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                ✓ Không vi phạm quy tắc nào.
+              <p className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                Không vi phạm quy tắc nào.
               </p>
             )}
             {validation.violations

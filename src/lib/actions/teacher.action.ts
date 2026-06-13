@@ -289,6 +289,13 @@ export async function createRulePreset(
   return apiClient.post<RulePreset>(ENDPOINTS.RULE_PRESETS, data)
 }
 
+export async function updateRulePreset(
+  id: number,
+  data: { name: string; rulesJson: string }
+): Promise<ApiResponse<RulePreset>> {
+  return apiClient.put<RulePreset>(ENDPOINTS.RULE_PRESET_UPDATE(id), data)
+}
+
 export async function deleteRulePreset(id: number): Promise<ApiResponse<null>> {
   return apiClient.delete<null>(ENDPOINTS.RULE_PRESET_DELETE(id))
 }

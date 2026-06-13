@@ -115,6 +115,7 @@ export const ENDPOINTS = Object.freeze({
     `/exams/${examId}/results/${resultId}/reset-schema`,
   EXAM_DROP_ALL_SCHEMAS: (examId: number) => `/exams/${examId}/schemas`,
   RULE_PRESETS: '/exams/rule-presets',
+  RULE_PRESET_UPDATE: (id: number) => `/exams/rule-presets/${id}`,
   RULE_PRESET_DELETE: (id: number) => `/exams/rule-presets/${id}`,
 
   // Teacher - Notifications

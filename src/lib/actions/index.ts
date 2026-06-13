@@ -34,6 +34,7 @@ export {
   regradeAllExamResults,
   getRulePresets,
   createRulePreset,
+  updateRulePreset,
   deleteRulePreset,
   teacherExecuteSqlOnResult,
   teacherResetResultSchema,
