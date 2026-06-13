@@ -359,37 +359,40 @@ export function SelectQueryRubricEditor({
         </div>
       )}
 
+      {/* Step 3 (create wizard) = Black-box. In edit mode (no wizardStep) both zones stack. */}
       {(!isWizardMode || wizardStep === 3) && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-4 dark:border-sky-900/40 dark:bg-sky-950/10">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="text-base font-semibold text-foreground">
-                📊 Chấm theo kết quả (Black-box)
-              </span>
-            </div>
-            <p className="mb-3 text-sm text-muted-foreground">
-              So sánh <strong>kết quả trả về</strong> của câu truy vấn với đáp
-              án mẫu (cột, dòng, thứ tự). Không quan tâm cách viết câu lệnh.
-            </p>
-            <GradingRulesEditor
-              questionType="SELECT_QUERY"
-              totalPoints={totalPoints}
-              rules={resultRules}
-              onChange={(nextResultRules) => setGradingRules(nextResultRules)}
-              correctQuery={correctQuery}
-              questionContent={questionContent}
-              contextSummary={testCaseContextSummary}
-            />
+        <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-4 dark:border-sky-900/40 dark:bg-sky-950/10">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-base font-semibold text-foreground">
+              📊 Chấm theo kết quả (Black-box)
+            </span>
           </div>
-          <WhiteboxRulesEditor
+          <p className="mb-3 text-sm text-muted-foreground">
+            So sánh <strong>kết quả trả về</strong> của câu truy vấn với đáp án
+            mẫu (cột, dòng, thứ tự). Không quan tâm cách viết câu lệnh.
+          </p>
+          <GradingRulesEditor
             questionType="SELECT_QUERY"
             totalPoints={totalPoints}
-            rules={whiteboxRules}
-            settings={whiteboxSettings}
-            onChange={setWhitebox}
-            sqlForPreview={correctQuery}
+            rules={resultRules}
+            onChange={(nextResultRules) => setGradingRules(nextResultRules)}
+            correctQuery={correctQuery}
+            questionContent={questionContent}
+            contextSummary={testCaseContextSummary}
           />
         </div>
+      )}
+
+      {/* Step 4 (create wizard) = White-box. */}
+      {(!isWizardMode || wizardStep === 4) && (
+        <WhiteboxRulesEditor
+          questionType="SELECT_QUERY"
+          totalPoints={totalPoints}
+          rules={whiteboxRules}
+          settings={whiteboxSettings}
+          onChange={setWhitebox}
+          sqlForPreview={correctQuery}
+        />
       )}
 
       {(!isWizardMode || wizardStep === 2) && (
