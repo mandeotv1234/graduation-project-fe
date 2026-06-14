@@ -101,14 +101,14 @@ function QuestionResultCard({
           </div>
         )}
 
-        {question.gradingTrace?.items?.length ? (
+        {question.gradingTrace?.items?.filter((item) => item.kind === 'WHITEBOX_CHECK').length ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
             <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-amber-700 dark:text-amber-400">
               <AlertCircle className="h-4 w-4" />
               Trừ điểm phương pháp (cách viết câu lệnh)
             </div>
             <ul className="space-y-1.5">
-              {question.gradingTrace.items.map((item, i) => (
+              {question.gradingTrace.items.filter((item) => item.kind === 'WHITEBOX_CHECK').map((item, i) => (
                 <li
                   key={i}
                   className="flex items-start justify-between gap-3 text-sm text-amber-800 dark:text-amber-300"

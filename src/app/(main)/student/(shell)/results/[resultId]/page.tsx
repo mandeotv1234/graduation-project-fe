@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, BarChart3 } from 'lucide-react'
+import { ArrowLeft, BarChart3, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -58,20 +58,33 @@ export default async function StudentResultDetailPage({
           </Link>
         </Button>
         {progressExamId !== null && (
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1.5 px-3 text-xs font-semibold shadow-none"
-          >
-            <Link
-              href={PATH.STUDENT_EXAM_RESULT_PROGRESS(progressExamId)}
-              className="gap-2"
+          <div className="flex flex-wrap gap-2">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 px-3 text-xs font-semibold shadow-none"
             >
-              <BarChart3 className="h-4 w-4" />
-              Xem tổng quan bài thi
-            </Link>
-          </Button>
+              <Link href={PATH.STUDENT_EXAM_RESULT_FEEDBACK(parsedResultId)}>
+                <Sparkles className="h-4 w-4" />
+                Xem feedback AI
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 px-3 text-xs font-semibold shadow-none"
+            >
+              <Link
+                href={PATH.STUDENT_EXAM_RESULT_PROGRESS(progressExamId)}
+                className="gap-2"
+              >
+                <BarChart3 className="h-4 w-4" />
+                Xem tổng quan bài thi
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
 

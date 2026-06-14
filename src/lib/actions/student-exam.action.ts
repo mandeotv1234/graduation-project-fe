@@ -15,6 +15,7 @@ import {
   SubmitFeedbackRequest,
   SubmitFeedbackResponse,
   StudentExamResultResponse,
+  StudentFeedbackResponse,
   PaginatedResult,
   TeacherExamResultDetail
 } from '@/lib/types'
@@ -150,6 +151,17 @@ export async function getMyResultDetail(
 ): Promise<ApiResponse<TeacherExamResultDetail>> {
   return apiClient.get<TeacherExamResultDetail>(
     ENDPOINTS.MY_RESULT_DETAIL(resultId),
+    {
+      cache: 'no-store'
+    }
+  )
+}
+
+export async function getMyResultFeedback(
+  resultId: number
+): Promise<ApiResponse<StudentFeedbackResponse>> {
+  return apiClient.get<StudentFeedbackResponse>(
+    ENDPOINTS.MY_RESULT_FEEDBACK(resultId),
     {
       cache: 'no-store'
     }
