@@ -23,9 +23,12 @@ import {
   GradingRubric,
   InsertDataGradingRule,
   SelectQueryGradingPayload,
-  SelectTestCase
+  SelectTestCase,
+  WhiteboxRule,
+  WhiteboxSettings
 } from '@/lib/types'
 import { GradingRulesEditor } from './grading-rules-editor'
+import { WhiteboxRulesEditor } from './whitebox-rules-editor'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { TestCaseTabs } from './test-case-tabs'
 
@@ -126,9 +129,17 @@ function normalizeSelectRubric(
 ): GradingRubric {
   const payload = (rubric.grading_payload ||
     {}) as Partial<SelectQueryGradingPayload>
+  // Result-set rules only. Legacy white-box rules (target === 'QUERY') are dropped here — the clean
+  // cut moved white-box config to grading_payload.whitebox_rules; there is no bridge.
   const gradingRules = Array.isArray(payload.grading_rules)
-    ? (payload.grading_rules as InsertDataGradingRule[])
+    ? (payload.grading_rules as InsertDataGradingRule[]).filter(
+        (rule) => rule.target !== 'QUERY'
+      )
     : []
+  const whiteboxRules = Array.isArray(payload.whitebox_rules)
+    ? payload.whitebox_rules
+    : []
+  const whiteboxSettings = payload.whitebox_settings ?? {}
   const testCasesRaw = Array.isArray(payload.test_cases)
     ? payload.test_cases
     : []
@@ -146,6 +157,8 @@ function normalizeSelectRubric(
     grading_payload: {
       ...payload,
       grading_rules: gradingRules,
+      whitebox_rules: whiteboxRules,
+      whitebox_settings: whiteboxSettings,
       test_cases: testCases
     }
   }
@@ -172,9 +185,14 @@ export function SelectQueryRubricEditor({
   }, [currentRubric])
 
   const payload = currentRubric.grading_payload as SelectQueryGradingPayload
-  const gradingRules = Array.isArray(payload.grading_rules)
+  // grading_rules is result-set only after normalize; white-box lives in its own canonical keys.
+  const resultRules = Array.isArray(payload.grading_rules)
     ? payload.grading_rules
     : []
+  const whiteboxRules = Array.isArray(payload.whitebox_rules)
+    ? payload.whitebox_rules
+    : []
+  const whiteboxSettings = payload.whitebox_settings ?? {}
   const testCases = payload.test_cases
 
   const updateRubric = useCallback(
@@ -191,8 +209,21 @@ export function SelectQueryRubricEditor({
       ...r,
       grading_payload: {
         ...(r.grading_payload as SelectQueryGradingPayload),
-        grading_rules: gradingRules,
         test_cases: cases
+      }
+    }))
+  }
+
+  const setWhitebox = (
+    nextRules: WhiteboxRule[],
+    nextSettings: WhiteboxSettings
+  ) => {
+    updateRubric((r) => ({
+      ...r,
+      grading_payload: {
+        ...(r.grading_payload as SelectQueryGradingPayload),
+        whitebox_rules: nextRules,
+        whitebox_settings: nextSettings
       }
     }))
   }
@@ -328,15 +359,39 @@ export function SelectQueryRubricEditor({
         </div>
       )}
 
+      {/* Step 3 (create wizard) = Black-box. In edit mode (no wizardStep) both zones stack. */}
       {(!isWizardMode || wizardStep === 3) && (
-        <GradingRulesEditor
+        <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-4 dark:border-sky-900/40 dark:bg-sky-950/10">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-base font-semibold text-foreground">
+              Chấm theo kết quả (Black-box)
+            </span>
+          </div>
+          <p className="mb-3 text-sm text-muted-foreground">
+            So sánh <strong>kết quả trả về</strong> của câu truy vấn với đáp án
+            mẫu (cột, dòng, thứ tự). Không quan tâm cách viết câu lệnh.
+          </p>
+          <GradingRulesEditor
+            questionType="SELECT_QUERY"
+            totalPoints={totalPoints}
+            rules={resultRules}
+            onChange={(nextResultRules) => setGradingRules(nextResultRules)}
+            correctQuery={correctQuery}
+            questionContent={questionContent}
+            contextSummary={testCaseContextSummary}
+          />
+        </div>
+      )}
+
+      {/* Step 4 (create wizard) = White-box. */}
+      {(!isWizardMode || wizardStep === 4) && (
+        <WhiteboxRulesEditor
           questionType="SELECT_QUERY"
           totalPoints={totalPoints}
-          rules={gradingRules}
-          onChange={setGradingRules}
-          correctQuery={correctQuery}
-          questionContent={questionContent}
-          contextSummary={testCaseContextSummary}
+          rules={whiteboxRules}
+          settings={whiteboxSettings}
+          onChange={setWhitebox}
+          sqlForPreview={correctQuery}
         />
       )}
 

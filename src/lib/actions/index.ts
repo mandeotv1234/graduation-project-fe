@@ -34,6 +34,7 @@ export {
   regradeAllExamResults,
   getRulePresets,
   createRulePreset,
+  updateRulePreset,
   deleteRulePreset,
   teacherExecuteSqlOnResult,
   teacherResetResultSchema,
@@ -63,7 +64,9 @@ export {
   testGradeTriggerData,
   executeSelectTestCaseConfig,
   buildInsertTablesFromAnswer,
-  buildCreateTablesFromAnswer
+  buildCreateTablesFromAnswer,
+  getWhiteboxCatalog,
+  validateWhitebox
 } from '@/lib/actions/exam-specification.action'
 export * from '@/lib/actions/library.action'
 export * from '@/lib/actions/admin.action'

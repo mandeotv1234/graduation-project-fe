@@ -340,7 +340,8 @@ export interface GradingTraceItem {
     | 'EXECUTION_ERROR'
     | 'TEACHER_CONFIG'
     | 'SUMMARY'
-  status: 'PASS' | 'FAIL' | 'WARN' | 'INFO'
+    | 'WHITEBOX_CHECK'
+  status: 'PASS' | 'FAIL' | 'WARN' | 'INFO' | 'UNVERIFIED'
   label: string
   message?: string
   caseId?: string
@@ -573,6 +574,24 @@ export type GradingRuleTarget =
   | 'ROW'
   | 'CELL_VALUE'
   | 'ROW_ORDER'
+  // White-box SELECT query-structure grading (consumed by the same rule engine).
+  | 'QUERY'
+
+// White-box query-structure conditions evaluated against the parsed student SQL (target = QUERY).
+export type QueryStructureCondition =
+  | 'REQUIRE_JOIN'
+  | 'FORBID_JOIN'
+  | 'FORBID_SUBQUERY_IN_SELECT'
+  | 'FORBID_SUBQUERY_IN_FROM'
+  | 'FORBID_SUBQUERY_IN_WHERE'
+  | 'REQUIRE_CTE'
+  | 'FORBID_CTE'
+  | 'REQUIRE_GROUP_BY'
+  | 'REQUIRE_AGGREGATE'
+  | 'REQUIRE_DISTINCT'
+  | 'FORBID_ORDER_BY'
+  | 'MAX_NESTING_DEPTH'
+  | 'FORBID_LITERAL_IN_WHERE'
 
 export type GradingRuleCondition =
   | 'IS_MISSING'
@@ -583,6 +602,7 @@ export type GradingRuleCondition =
   | 'TYPE_MISMATCH'
   | 'LENGTH_MISMATCH'
   | 'REFERENCE_ERROR'
+  | QueryStructureCondition
 
 export type GradingRuleModifier =
   | 'IGNORE_CASE'
@@ -616,6 +636,9 @@ export interface InsertDataGradingRule {
   penalty_value?: number
   description?: string
   is_special?: boolean
+  // White-box parameterized checks (target = QUERY): nesting-depth limit and aggregate allow-list.
+  threshold?: number
+  argument?: string
   // Backward compatibility for previously saved data.
   rule_id?: string
 }
@@ -682,6 +705,101 @@ export interface SelectTestCase {
 export interface SelectQueryGradingPayload {
   grading_rules?: InsertDataGradingRule[]
   test_cases: SelectTestCase[]
+  // Canonical white-box contract (method grading). Shared across SQL question types.
+  whitebox_rules?: WhiteboxRule[]
+  whitebox_settings?: WhiteboxSettings
+}
+
+// === White-box (method) grading — canonical contract ===
+
+export type WhiteboxRuleType = 'FORBIDDEN' | 'REQUIRED' | 'LIMIT'
+export type WhiteboxSeverity = 'DEDUCTION' | 'WARNING_ONLY'
+export type WhiteboxPenaltyUnit = 'ABSOLUTE' | 'PERCENTAGE_OF_QUESTION'
+export type WhiteboxStatus = 'PASS' | 'FAIL' | 'WARN' | 'UNVERIFIED'
+
+// Feature-policy authoring metadata (additive; backend-owned). The teacher picks a SQL feature, then
+// an allowed policy over it. rule_id remains the persisted/grading identity.
+export type WhiteboxFeatureKind = 'BOOLEAN' | 'NUMERIC' | 'SET' | 'COMPOSITE'
+export type WhiteboxPolicy =
+  | 'FORBID'
+  | 'REQUIRE'
+  | 'AT_MOST'
+  | 'AT_LEAST'
+  | 'EXACTLY'
+  | 'REQUIRE_ANY'
+  | 'REQUIRE_ALL'
+  | 'FORBID_ANY'
+
+// One configured rule stored under grading_payload.whitebox_rules[].
+export interface WhiteboxRule {
+  rule_id: string
+  enabled: boolean
+  type?: WhiteboxRuleType
+  penalty_value: number
+  penalty_unit: WhiteboxPenaltyUnit
+  severity: WhiteboxSeverity
+  description?: string
+  // Rule-specific parameters: max_depth, max_joins, keywords[], functions[], operators[].
+  params?: Record<string, unknown>
+}
+
+// Shared scoring controls stored under grading_payload.whitebox_settings.
+export interface WhiteboxSettings {
+  max_total_deduction?: number | null
+  max_total_deduction_pct?: number | null
+  stop_on_first_violation?: boolean
+}
+
+// Backend-owned catalog (source of truth; the FE never hardcodes rule definitions).
+export interface WhiteboxParamSpec {
+  name: string
+  type: 'NUMBER' | 'STRING_LIST'
+  label: string
+  required: boolean
+  defaultValue?: number | string | null
+}
+
+export interface WhiteboxCatalogItem {
+  ruleId: string
+  type: WhiteboxRuleType
+  group: string
+  label: string
+  description: string
+  defaultSeverity: WhiteboxSeverity
+  defaultPenaltyValue: number
+  defaultPenaltyUnit: WhiteboxPenaltyUnit
+  parserRequired: boolean
+  questionTypes: string[]
+  params: WhiteboxParamSpec[]
+  // Feature-policy authoring metadata (additive). FE groups the add-rule flow by featureId.
+  featureId: string
+  featureLabel: string
+  featureKind: WhiteboxFeatureKind
+  policy: WhiteboxPolicy
+  policyLabel: string
+  conflictsWith: string[]
+}
+
+export interface WhiteboxValidationViolation {
+  ruleId: string
+  status: WhiteboxStatus
+  label: string
+  reason?: string
+  expected?: string
+  actual?: string
+  configuredPenalty?: number
+  deductedPoints: number
+}
+
+export interface WhiteboxValidationResult {
+  sqlParseOk: boolean
+  rawDeduction: number
+  cappedDeduction: number
+  passCount: number
+  failCount: number
+  warnCount: number
+  unverifiedCount: number
+  violations: WhiteboxValidationViolation[]
 }
 
 // === FUNCTION/STORED_PROCEDURE Grading Types ===
@@ -818,6 +936,7 @@ export interface RulePreset {
   name: string
   questionType: string
   rulesJson: string
+  kind: string
   createdAt: string
   updatedAt: string
 }
@@ -826,6 +945,7 @@ export interface CreateRulePresetRequest {
   name: string
   questionType: string
   rulesJson: string
+  kind?: string
 }
 
 // ===== Feedback Types =====

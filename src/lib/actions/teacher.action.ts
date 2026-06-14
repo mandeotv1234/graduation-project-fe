@@ -272,10 +272,13 @@ export async function getExamStatistics(
 // ===== Rule Presets =====
 
 export async function getRulePresets(
-  questionType: string
+  questionType: string,
+  kind?: string
 ): Promise<ApiResponse<RulePreset[]>> {
+  const queries: Record<string, string> = { questionType }
+  if (kind) queries.kind = kind
   return apiClient.get<RulePreset[]>(ENDPOINTS.RULE_PRESETS, {
-    queries: { questionType },
+    queries,
     cache: 'no-store'
   })
 }
@@ -284,6 +287,13 @@ export async function createRulePreset(
   data: CreateRulePresetRequest
 ): Promise<ApiResponse<RulePreset>> {
   return apiClient.post<RulePreset>(ENDPOINTS.RULE_PRESETS, data)
+}
+
+export async function updateRulePreset(
+  id: number,
+  data: { name: string; rulesJson: string }
+): Promise<ApiResponse<RulePreset>> {
+  return apiClient.put<RulePreset>(ENDPOINTS.RULE_PRESET_UPDATE(id), data)
 }
 
 export async function deleteRulePreset(id: number): Promise<ApiResponse<null>> {

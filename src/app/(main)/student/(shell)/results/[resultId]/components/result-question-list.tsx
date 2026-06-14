@@ -101,6 +101,33 @@ function QuestionResultCard({
           </div>
         )}
 
+        {question.gradingTrace?.items?.length ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+            <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-amber-700 dark:text-amber-400">
+              <AlertCircle className="h-4 w-4" />
+              Trừ điểm phương pháp (cách viết câu lệnh)
+            </div>
+            <ul className="space-y-1.5">
+              {question.gradingTrace.items.map((item, i) => (
+                <li
+                  key={i}
+                  className="flex items-start justify-between gap-3 text-sm text-amber-800 dark:text-amber-300"
+                >
+                  <span>
+                    {item.label.replace(/^\[Whitebox\]\s*/, '')}
+                    {item.message ? ` — ${item.message}` : ''}
+                  </span>
+                  {item.deductedPoints != null && item.deductedPoints > 0 && (
+                    <span className="shrink-0 font-semibold">
+                      −{Number(item.deductedPoints).toFixed(2)}đ
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         {question.teacherComment && (
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
             <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase text-blue-700 dark:text-blue-400">

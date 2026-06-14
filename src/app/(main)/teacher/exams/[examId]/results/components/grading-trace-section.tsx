@@ -1,7 +1,13 @@
 'use client'
 
 import React from 'react'
-import { CheckCircle2, AlertCircle, AlertTriangle, Info } from 'lucide-react'
+import {
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  HelpCircle,
+  Info
+} from 'lucide-react'
 import { GradingTrace, GradingTraceItem } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import styles from './submission-detail-view.module.scss'
@@ -10,7 +16,9 @@ const STATUS_CONFIG = {
   PASS: { icon: CheckCircle2, className: styles.tracePass },
   FAIL: { icon: AlertCircle, className: styles.traceFail },
   WARN: { icon: AlertTriangle, className: styles.traceWarn },
-  INFO: { icon: Info, className: styles.traceInfo }
+  INFO: { icon: Info, className: styles.traceInfo },
+  // Parser-dependent white-box check that could not be verified (no score effect).
+  UNVERIFIED: { icon: HelpCircle, className: styles.traceInfo }
 } as const
 
 interface GradingTraceSectionProps {
@@ -85,6 +93,9 @@ function TraceItemRow({ item }: { item: GradingTraceItem }) {
             <div className={styles.traceRuleMeta}>
               {(item.caseName || item.caseId) && (
                 <span>{item.caseName || `TC ${item.caseId}`}</span>
+              )}
+              {item.ruleTarget === 'QUERY' && item.ruleCondition && (
+                <span>{formatQueryCondition(item.ruleCondition)}</span>
               )}
               {(item.ruleTarget || item.ruleCondition) && (
                 <code>
@@ -191,6 +202,25 @@ function isWeightBased(item: GradingTraceItem): boolean {
   return item.configSummary.includes('trọng số')
 }
 
+function formatQueryCondition(condition: string): string {
+  const labels: Record<string, string> = {
+    REQUIRE_JOIN: 'Thiếu JOIN bắt buộc',
+    FORBID_JOIN: 'Dùng JOIN bị cấm',
+    FORBID_SUBQUERY_IN_SELECT: 'Truy vấn con trong SELECT bị cấm',
+    FORBID_SUBQUERY_IN_FROM: 'Truy vấn con trong FROM bị cấm',
+    FORBID_SUBQUERY_IN_WHERE: 'Truy vấn con trong WHERE bị cấm',
+    REQUIRE_CTE: 'Thiếu CTE (WITH) bắt buộc',
+    FORBID_CTE: 'Dùng CTE (WITH) bị cấm',
+    REQUIRE_GROUP_BY: 'Thiếu GROUP BY bắt buộc',
+    REQUIRE_AGGREGATE: 'Thiếu hàm tổng hợp bắt buộc',
+    REQUIRE_DISTINCT: 'Thiếu DISTINCT bắt buộc',
+    FORBID_ORDER_BY: 'Dùng ORDER BY bị cấm',
+    MAX_NESTING_DEPTH: 'Truy vấn lồng quá sâu',
+    FORBID_LITERAL_IN_WHERE: 'Hằng số trong WHERE bị cấm'
+  }
+  return labels[condition] || condition
+}
+
 function formatKind(kind: string): string {
   const labels: Record<string, string> = {
     TEST_CASE: 'Test case',
@@ -198,7 +228,8 @@ function formatKind(kind: string): string {
     METADATA_CHECK: 'Metadata',
     EXECUTION_ERROR: 'Lỗi thực thi',
     TEACHER_CONFIG: 'Cấu hình GV',
-    SUMMARY: 'Tổng kết'
+    SUMMARY: 'Tổng kết',
+    WHITEBOX_CHECK: 'Whitebox'
   }
   return labels[kind] || kind
 }

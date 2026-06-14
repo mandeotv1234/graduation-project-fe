@@ -43,6 +43,7 @@ import {
   InsertDataGradingRule,
   RulePreset
 } from '@/lib/types'
+import { SystemPresetList } from './system-preset-list'
 
 export type RuleQuestionType = 'CREATE_TABLE' | 'SELECT_QUERY' | 'INSERT_DATA'
 
@@ -133,7 +134,9 @@ const SELECT_CONDITION_OPTIONS: Record<
     { value: 'TYPE_MISMATCH', label: 'Sai kiểu dữ liệu' },
     { value: 'LENGTH_MISMATCH', label: 'Sai độ dài' }
   ],
-  ROW_ORDER: [{ value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }]
+  ROW_ORDER: [{ value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }],
+  // White-box QUERY rules are configured via the dedicated white-box card, not this modal.
+  QUERY: []
 }
 
 const CREATE_CONDITION_OPTIONS: Partial<
@@ -203,7 +206,8 @@ const SELECT_MODIFIER_OPTIONS: Record<
   ],
   ROW_ORDER: [
     { value: 'SORT_ASC', label: 'Sắp xếp tăng dần trước khi so khớp' }
-  ]
+  ],
+  QUERY: []
 }
 
 const CREATE_MODIFIER_OPTIONS: Partial<
@@ -776,7 +780,7 @@ export function GradingRulesEditor({
   const loadPresets = async () => {
     setIsLoadingPresets(true)
     try {
-      const res = await getRulePresets(questionType)
+      const res = await getRulePresets(questionType, 'BLACKBOX')
       if (res.data) setPresets(res.data)
     } catch {
       // console.error(e)
@@ -1789,47 +1793,17 @@ export function GradingRulesEditor({
             </div>
 
             <div className="pt-4 border-t border-border">
-              <div className="mb-2 flex items-center justify-between">
-                <h5 className="text-xs font-semibold">Mẫu hệ thống</h5>
-                <Badge variant="secondary" className="text-[10px]">
-                  Gợi ý
-                </Badge>
-              </div>
-
-              {systemPresets.length === 0 ? (
-                <div className="py-4 text-sm text-muted-foreground">
-                  Chưa có mẫu hệ thống cho loại câu hỏi này.
-                </div>
-              ) : (
-                <ul className="space-y-2">
-                  {systemPresets.map((preset) => (
-                    <li
-                      key={preset.id}
-                      className="flex flex-col gap-2 rounded-md border border-primary/20 bg-primary/5 p-3"
-                    >
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-primary">
-                          {preset.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {preset.description}
-                        </p>
-                      </div>
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleApplySystemPreset(preset)}
-                          className="h-7 text-xs px-2.5"
-                        >
-                          Áp dụng mẫu hệ thống
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <SystemPresetList
+                presets={systemPresets.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  description: p.description
+                }))}
+                onApply={(id) => {
+                  const preset = systemPresets.find((p) => p.id === id)
+                  if (preset) handleApplySystemPreset(preset)
+                }}
+              />
             </div>
 
             <div className="pt-4 border-t border-border">
