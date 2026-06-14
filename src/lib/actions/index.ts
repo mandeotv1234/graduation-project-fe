@@ -28,6 +28,8 @@ export {
   updateTeacherExamSettings,
   getTeacherExamTemplateVersions,
   getExamResults,
+  getExamMutationAnalytics,
+  getExamStatistics,
   getTeacherSubmissionDetail,
   overrideSubmissionScore,
   regradeExamResult,

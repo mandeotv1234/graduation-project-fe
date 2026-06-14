@@ -39,6 +39,7 @@ import type {
   TeacherExamResult,
   GradingNotificationDto,
   ExamStatistics,
+  ExamMutationAnalytics,
   PaginationMeta
 } from '@/lib/types'
 import { subscribeToTeacherGradingResult } from '@/lib/socket'
@@ -46,6 +47,7 @@ import { regradeAllExamResults } from '@/lib/actions'
 import { getExamResults } from '@/lib/actions/teacher.action'
 import { formatDateTime } from '@/lib/utils/time'
 import { ExamStatisticsDashboard } from './exam-statistics-dashboard/exam-statistics-dashboard'
+import { MutationAnalytics } from './mutation-analytics/mutation-analytics'
 
 interface ExamResultsViewProps {
   examId: number
@@ -53,6 +55,7 @@ interface ExamResultsViewProps {
   initialResults: TeacherExamResult[]
   initialPagination?: PaginationMeta
   initialStats: ExamStatistics | null
+  initialMutationAnalytics: ExamMutationAnalytics | null
 }
 
 function isScoredStatus(status: TeacherExamResult['status']) {
@@ -79,7 +82,8 @@ export function ExamResultsView({
   examTitle,
   initialResults,
   initialPagination,
-  initialStats
+  initialStats,
+  initialMutationAnalytics
 }: ExamResultsViewProps) {
   const router = useRouter()
   const [results, setResults] = useState<TeacherExamResult[]>(initialResults)
@@ -555,6 +559,38 @@ export function ExamResultsView({
               </span>
             )}
           </Tabs.Trigger>
+
+          <Tabs.Trigger
+            value="mutation-analytics"
+            id="tab-mutation-analytics"
+            style={{
+              padding: '0.6rem 1rem',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              borderRadius: '0.5rem 0.5rem 0 0',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background:
+                activeTab === 'mutation-analytics'
+                  ? 'var(--color-background)'
+                  : 'transparent',
+              color:
+                activeTab === 'mutation-analytics'
+                  ? 'var(--color-foreground)'
+                  : 'var(--color-muted-foreground)',
+              borderBottom:
+                activeTab === 'mutation-analytics'
+                  ? '2px solid var(--color-primary)'
+                  : '2px solid transparent',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <BarChart2 style={{ width: '0.85rem', height: '0.85rem' }} />
+            Phân tích lỗi
+          </Tabs.Trigger>
         </Tabs.List>
 
         {/* ===== Tab: Danh sách kết quả ===== */}
@@ -870,6 +906,24 @@ export function ExamResultsView({
               <p style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
                 Thống kê sẽ hiển thị khi có bài nộp đã được chấm xong.
               </p>
+            </div>
+          )}
+        </Tabs.Content>
+
+        {/* ===== Tab: Phân tích lỗi mutation ===== */}
+        <Tabs.Content value="mutation-analytics">
+          {initialMutationAnalytics ? (
+            <MutationAnalytics data={initialMutationAnalytics} />
+          ) : (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '3rem',
+                color: 'var(--color-muted-foreground)',
+                fontSize: '0.875rem'
+              }}
+            >
+              Chưa có dữ liệu phân tích lỗi cho bài thi này.
             </div>
           )}
         </Tabs.Content>

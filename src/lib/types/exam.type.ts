@@ -1034,3 +1034,36 @@ export interface SubmitFeedbackResponse {
   generalFeedback?: string
   createdAt: string
 }
+
+// ===== Mutation Analytics (GET /api/exams/{examId}/mutation-analytics) =====
+
+export interface MutationStat {
+  mutationType: string
+  label: string
+  failCount: number
+  failRate: number
+  avgDeduction: number
+}
+
+export interface QuestionMutationSummary {
+  questionId: number
+  orderIndex: number
+  questionTitle: string
+  avgScore: number
+  maxScore: number
+  passRate: number
+  mutationBreakdown: MutationStat[]
+  rubricHealthWarnings: string[]
+}
+
+export interface MutationGlobalInsights {
+  topMutationTypes: string[]
+  studyRecommendations: string[]
+}
+
+export interface ExamMutationAnalytics {
+  examId: number
+  totalStudents: number
+  questionSummaries: QuestionMutationSummary[]
+  globalInsights: MutationGlobalInsights
+}

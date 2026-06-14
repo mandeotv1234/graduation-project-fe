@@ -102,6 +102,8 @@ export const ENDPOINTS = Object.freeze({
   EXAM_RESULT_DETAIL: (examId: number, resultId: number) =>
     `/exams/${examId}/results/${resultId}`,
   EXAM_STATISTICS: (examId: number) => `/exams/${examId}/statistics`,
+  EXAM_MUTATION_ANALYTICS: (examId: number) =>
+    `/exams/${examId}/mutation-analytics`,
   EXAM_OVERRIDE_SUBMISSION: (
     examId: number,
     resultId: number,

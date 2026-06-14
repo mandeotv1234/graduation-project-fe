@@ -526,6 +526,8 @@ export function RoutineRubricEditor({
   const isWizardMode = typeof wizardStep === 'number'
   const isTestCasesStep = !isWizardMode || wizardStep === 2
   const isRulesStep = !isWizardMode || wizardStep === 3
+  // White-box step (step 4 in 5-step whitebox wizard, or always in edit mode)
+  const isWhiteboxStep = !isWizardMode || wizardStep === 4
 
   useEffect(() => {
     if (!isWizardMode) return
@@ -1116,17 +1118,19 @@ export function RoutineRubricEditor({
         </div>
       )}
 
-      {isRulesStep && (
-        <div className="space-y-4">
-          <WhiteboxRulesEditor
-            questionType={questionType}
-            totalPoints={totalPoints}
-            rules={whitebox_rules}
-            settings={whitebox_settings}
-            onChange={setWhitebox}
-            sqlForPreview={correctQuery}
-          />
+      {isWhiteboxStep && (
+        <WhiteboxRulesEditor
+          questionType={questionType}
+          totalPoints={totalPoints}
+          rules={whitebox_rules}
+          settings={whitebox_settings}
+          onChange={setWhitebox}
+          sqlForPreview={correctQuery}
+        />
+      )}
 
+      {isRulesStep && (
+        <div className="space-y-2">
           <div className={styles.summary}>
             <div className={styles.summaryLeft}>
               <Equal className={styles.summaryIcon} />
