@@ -23,8 +23,6 @@ const PCT: WhiteboxPenaltyUnit = 'PERCENTAGE_OF_QUESTION'
 const DEDUCT: WhiteboxSeverity = 'DEDUCTION'
 const WARN: WhiteboxSeverity = 'WARNING_ONLY'
 
-// v1: SELECT_QUERY only (the only type with a backend white-box catalog). Other types get bundles
-// once their evaluators land.
 export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
   {
     id: 'select-no-subquery-require-join',
@@ -115,6 +113,188 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
         ruleId: 'REQUIRED_HAVING',
         severity: WARN,
         penaltyValue: 15,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+
+  // ---- FUNCTION presets ----
+  {
+    id: 'function-basic-quality',
+    name: 'Kiểm tra cơ bản hàm (Function)',
+    description: 'Bắt buộc RETURN, cấm DML và SQL động trong hàm.',
+    questionType: 'FUNCTION',
+    rules: [
+      {
+        ruleId: 'REQUIRED_RETURN',
+        severity: DEDUCT,
+        penaltyValue: 15,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_DML_IN_FUNCTION',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_DYNAMIC_SQL',
+        severity: DEDUCT,
+        penaltyValue: 25,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+  {
+    id: 'function-scalar-strict',
+    name: 'Hàm vô hướng nghiêm ngặt',
+    description:
+      'Bắt buộc hàm vô hướng, RETURN, SCHEMABINDING và cấm hàm không tất định.',
+    questionType: 'FUNCTION',
+    rules: [
+      {
+        ruleId: 'REQUIRED_SCALAR_FUNCTION',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'REQUIRED_RETURN',
+        severity: DEDUCT,
+        penaltyValue: 15,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'REQUIRED_SCHEMABINDING',
+        severity: WARN,
+        penaltyValue: 5,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_NONDETERMINISTIC_FN',
+        severity: DEDUCT,
+        penaltyValue: 10,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+  {
+    id: 'function-no-cursor-dynamic',
+    name: 'Cấm CURSOR và SQL động trong hàm',
+    description:
+      'Cấm dùng CURSOR và EXEC()/sp_executesql để tránh anti-pattern.',
+    questionType: 'FUNCTION',
+    rules: [
+      {
+        ruleId: 'FORBIDDEN_CURSOR',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_DYNAMIC_SQL',
+        severity: DEDUCT,
+        penaltyValue: 25,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+
+  // ---- STORED_PROCEDURE presets ----
+  {
+    id: 'sp-basic-quality',
+    name: 'Kiểm tra cơ bản stored procedure',
+    description: 'Bắt buộc TRY/CATCH, SET NOCOUNT ON và cấm SQL động.',
+    questionType: 'STORED_PROCEDURE',
+    rules: [
+      {
+        ruleId: 'SP_REQUIRED_TRY_CATCH',
+        severity: DEDUCT,
+        penaltyValue: 15,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'SP_REQUIRED_SET_NOCOUNT_ON',
+        severity: WARN,
+        penaltyValue: 5,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'SP_FORBIDDEN_DYNAMIC_SQL',
+        severity: DEDUCT,
+        penaltyValue: 25,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+  {
+    id: 'sp-transaction-safety',
+    name: 'An toàn transaction',
+    description:
+      'Bắt buộc Transaction kết hợp TRY/CATCH để đảm bảo tính toàn vẹn dữ liệu.',
+    questionType: 'STORED_PROCEDURE',
+    rules: [
+      {
+        ruleId: 'SP_REQUIRED_TRANSACTION',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'SP_REQUIRED_TRY_CATCH',
+        severity: DEDUCT,
+        penaltyValue: 15,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+  {
+    id: 'sp-strict-production',
+    name: 'Stored procedure chuẩn production',
+    description:
+      'Đầy đủ: TRY/CATCH, Transaction, SET NOCOUNT ON, cấm CURSOR/DDL/TRUNCATE.',
+    questionType: 'STORED_PROCEDURE',
+    rules: [
+      {
+        ruleId: 'SP_REQUIRED_TRY_CATCH',
+        severity: DEDUCT,
+        penaltyValue: 15,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'SP_REQUIRED_TRANSACTION',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'SP_REQUIRED_SET_NOCOUNT_ON',
+        severity: WARN,
+        penaltyValue: 5,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'SP_FORBIDDEN_CURSOR',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'SP_FORBIDDEN_DDL_IN_PROC',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'SP_FORBIDDEN_TRUNCATE',
+        severity: DEDUCT,
+        penaltyValue: 15,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'SP_FORBIDDEN_PRINT',
+        severity: WARN,
+        penaltyValue: 5,
         penaltyUnit: PCT
       }
     ]

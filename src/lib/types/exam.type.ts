@@ -919,6 +919,8 @@ export interface RoutineGradingPayload {
   grading_settings: RoutineGradingSettings
   routines: RoutineRubricRoutine[]
   test_cases?: RoutineTestCase[]
+  whitebox_rules?: WhiteboxRule[]
+  whitebox_settings?: WhiteboxSettings
 }
 
 // === TRIGGER Grading Types ===

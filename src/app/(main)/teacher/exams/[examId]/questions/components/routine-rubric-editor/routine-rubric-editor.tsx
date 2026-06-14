@@ -24,10 +24,13 @@ import {
   RoutineType,
   SyntaxErrorAction,
   RoutineTestCase,
-  VerificationType
+  VerificationType,
+  WhiteboxRule,
+  WhiteboxSettings
 } from '@/lib/types'
 import { TeacherSqlEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/teacher-sql-editor'
 import { TestCaseTabs } from '@/app/(main)/teacher/exams/[examId]/questions/components/test-case-tabs'
+import { WhiteboxRulesEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/whitebox-rules-editor'
 
 function createDefaultRoutine(
   defaultType: RoutineType = 'FUNCTION'
@@ -103,6 +106,8 @@ function normalizeRoutinePayload(
   grading_settings: RoutineGradingSettings
   routines: RoutineRubricRoutine[]
   test_cases: RoutineTestCase[]
+  whitebox_rules: WhiteboxRule[]
+  whitebox_settings: WhiteboxSettings
 } {
   const defaultSettings: RoutineGradingSettings = {
     syntax_error_action: 'FAIL_ALL',
@@ -113,7 +118,9 @@ function normalizeRoutinePayload(
     return {
       grading_settings: defaultSettings,
       routines: [],
-      test_cases: []
+      test_cases: [],
+      whitebox_rules: [],
+      whitebox_settings: {}
     }
   }
 
@@ -140,7 +147,15 @@ function normalizeRoutinePayload(
       ? (payloadRecord.test_cases as RoutineTestCase[]).map((tc, index) =>
           normalizeRoutineTestCase(tc, index, questionType)
         )
-      : []
+      : [],
+    whitebox_rules: Array.isArray(payloadRecord.whitebox_rules)
+      ? (payloadRecord.whitebox_rules as WhiteboxRule[])
+      : [],
+    whitebox_settings:
+      payloadRecord.whitebox_settings &&
+      typeof payloadRecord.whitebox_settings === 'object'
+        ? (payloadRecord.whitebox_settings as WhiteboxSettings)
+        : {}
   }
 }
 
@@ -319,7 +334,13 @@ export function RoutineRubricEditor({
 
   const rubricCategory =
     questionType === 'STORED_PROCEDURE' ? 'STORED_PROCEDURE' : 'FUNCTION'
-  const { grading_settings, routines, test_cases } = useMemo(
+  const {
+    grading_settings,
+    routines,
+    test_cases,
+    whitebox_rules,
+    whitebox_settings
+  } = useMemo(
     () => normalizeRoutinePayload(rubric?.grading_payload, questionType),
     [rubric, questionType]
   )
@@ -328,7 +349,9 @@ export function RoutineRubricEditor({
     (
       nextSettings: RoutineGradingSettings,
       nextRoutines: RoutineRubricRoutine[],
-      nextTestCases: RoutineTestCase[] = test_cases
+      nextTestCases: RoutineTestCase[] = test_cases,
+      nextWhiteboxRules: WhiteboxRule[] = whitebox_rules,
+      nextWhiteboxSettings: WhiteboxSettings = whitebox_settings
     ) => {
       onChange({
         total_points: totalPoints,
@@ -336,7 +359,9 @@ export function RoutineRubricEditor({
         grading_payload: {
           grading_settings: nextSettings,
           routines: nextRoutines,
-          test_cases: nextTestCases
+          test_cases: nextTestCases,
+          whitebox_rules: nextWhiteboxRules,
+          whitebox_settings: nextWhiteboxSettings
         }
       })
     },
@@ -345,16 +370,31 @@ export function RoutineRubricEditor({
       totalPoints,
       rubric?.question_category,
       rubricCategory,
-      test_cases
+      test_cases,
+      whitebox_rules,
+      whitebox_settings
     ]
   )
 
   const setRoutines = useCallback(
     (updater: (prev: RoutineRubricRoutine[]) => RoutineRubricRoutine[]) => {
       const next = updater(routines)
-      syncRubric(grading_settings, next)
+      syncRubric(
+        grading_settings,
+        next,
+        test_cases,
+        whitebox_rules,
+        whitebox_settings
+      )
     },
-    [grading_settings, routines, syncRubric]
+    [
+      grading_settings,
+      routines,
+      test_cases,
+      whitebox_rules,
+      whitebox_settings,
+      syncRubric
+    ]
   )
 
   const setTestCases = useCallback(
@@ -364,7 +404,33 @@ export function RoutineRubricEditor({
         | ((prev: RoutineTestCase[]) => RoutineTestCase[])
     ) => {
       const next = typeof updater === 'function' ? updater(test_cases) : updater
-      syncRubric(grading_settings, routines, next)
+      syncRubric(
+        grading_settings,
+        routines,
+        next,
+        whitebox_rules,
+        whitebox_settings
+      )
+    },
+    [
+      grading_settings,
+      routines,
+      test_cases,
+      whitebox_rules,
+      whitebox_settings,
+      syncRubric
+    ]
+  )
+
+  const setWhitebox = useCallback(
+    (nextRules: WhiteboxRule[], nextSettings: WhiteboxSettings) => {
+      syncRubric(
+        grading_settings,
+        routines,
+        test_cases,
+        nextRules,
+        nextSettings
+      )
     },
     [grading_settings, routines, test_cases, syncRubric]
   )
@@ -1051,7 +1117,16 @@ export function RoutineRubricEditor({
       )}
 
       {isRulesStep && (
-        <div className="space-y-2">
+        <div className="space-y-4">
+          <WhiteboxRulesEditor
+            questionType={questionType}
+            totalPoints={totalPoints}
+            rules={whitebox_rules}
+            settings={whitebox_settings}
+            onChange={setWhitebox}
+            sqlForPreview={correctQuery}
+          />
+
           <div className={styles.summary}>
             <div className={styles.summaryLeft}>
               <Equal className={styles.summaryIcon} />
