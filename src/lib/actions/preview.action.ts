@@ -4,6 +4,7 @@ import { apiClient } from '@/lib/api'
 import { ENDPOINTS } from '@/lib/constants'
 import type {
   ApiResponse,
+  ExamQuestionItem,
   StudentExamDetail,
   SubmitExamResponse
 } from '@/lib/types'
@@ -11,8 +12,21 @@ import type {
 export async function getExamPreview(
   examId: number
 ): Promise<ApiResponse<StudentExamDetail>> {
-  const data = await apiClient.get(ENDPOINTS.EXAM_PREVIEW(examId))
+  const data = await apiClient.get(ENDPOINTS.EXAM_PREVIEW(examId), {
+    ignoreAuthError: true,
+    cache: 'no-store'
+  })
   return data as ApiResponse<StudentExamDetail>
+}
+
+export async function getPreviewExamQuestions(
+  examId: number
+): Promise<ApiResponse<ExamQuestionItem[]>> {
+  const data = await apiClient.get(ENDPOINTS.EXAM_QUESTIONS(examId), {
+    ignoreAuthError: true,
+    cache: 'no-store'
+  })
+  return data as ApiResponse<ExamQuestionItem[]>
 }
 
 export interface InitializePreviewSchemaResponse {

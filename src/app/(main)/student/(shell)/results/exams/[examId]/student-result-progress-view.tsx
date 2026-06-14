@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, ArrowLeft } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Sparkles } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -179,7 +179,7 @@ export function StudentResultProgressView({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] text-sm">
+          <table className="w-full min-w-[780px] text-sm">
             <thead className="bg-muted/60 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-5 py-3 text-left font-semibold">Lần thi</th>
@@ -189,6 +189,7 @@ export function StudentResultProgressView({
                 <th className="px-5 py-3 text-left font-semibold">
                   Trạng thái
                 </th>
+                <th className="px-5 py-3 text-right font-semibold">Feedback</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -233,6 +234,9 @@ export function StudentResultProgressView({
                     </td>
                     <td className="px-5 py-3">
                       <AttemptStatus attempt={attempt} />
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <AttemptFeedbackAction attempt={attempt} />
                     </td>
                   </tr>
                 )
@@ -421,6 +425,32 @@ function AttemptStatus({ attempt }: { attempt: StudentExamResultResponse }) {
   }
 
   return <Badge variant="secondary">Đang xử lý</Badge>
+}
+
+function AttemptFeedbackAction({
+  attempt
+}: {
+  attempt: StudentExamResultResponse
+}) {
+  if (!attempt.allowReview) {
+    return <span className="text-xs text-muted-foreground">Không khả dụng</span>
+  }
+
+  if (attempt.status !== 'COMPLETED') {
+    return <span className="text-xs text-muted-foreground">Chưa chấm</span>
+  }
+
+  return (
+    <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
+      <Link
+        href={PATH.STUDENT_EXAM_RESULT_FEEDBACK(attempt.id)}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <Sparkles className="h-3.5 w-3.5" />
+        Feedback AI
+      </Link>
+    </Button>
+  )
 }
 
 function ProgressTone({ improvement }: { improvement: number }) {

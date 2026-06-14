@@ -72,6 +72,7 @@ export * from '@/lib/actions/library.action'
 export * from '@/lib/actions/admin.action'
 export {
   getExamPreview,
+  getPreviewExamQuestions,
   initializePreviewSchema,
   clearPreviewSchema,
   submitExamPreview

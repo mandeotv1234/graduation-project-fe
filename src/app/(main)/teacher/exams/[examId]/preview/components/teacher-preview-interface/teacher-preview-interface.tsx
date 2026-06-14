@@ -168,15 +168,14 @@ export function TeacherPreviewInterface({
     initPreview()
   }, [exam.examId, applySchemaMeta])
 
-  // Load spec for IntelliSense
+  // Load spec for IntelliSense — runs once; editorSchema functional update guards against
+  // overwriting a real sandbox schema that may have loaded concurrently
   useEffect(() => {
     getExamSpecification(exam.examId)
       .then((res) => {
         const spec: ExamSpecification | null = res.data ?? null
         if (!spec) return
         setExamSpecification(spec)
-
-        if (schemaMeta && schemaMeta.length > 0) return
 
         let parsedSchemaJson: SpecificationSchemaJsonTable[] = []
         const rawSchemaJson = spec.schemaJson
@@ -192,7 +191,7 @@ export function TeacherPreviewInterface({
           parsedSchemaJson = rawSchemaJson
         }
 
-        const tables: SchemaTable[] =
+        const specTables: SchemaTable[] =
           spec.entities?.length > 0
             ? spec.entities.map((entity) => ({
                 tableName: entity.entityName,
@@ -208,12 +207,16 @@ export function TeacherPreviewInterface({
                   type: col.dataType
                 }))
               }))
-        setEditorSchema(tables)
+
+        // Only apply spec schema if real sandbox schema hasn't loaded yet
+        setEditorSchema((current) =>
+          current.length > 0 ? current : specTables
+        )
       })
       .catch(() => {
         /* silent — IntelliSense just won't have schema context */
       })
-  }, [exam.examId, schemaMeta])
+  }, [exam.examId])
 
   const handleExecuteSqlAndRefreshSchema = useCallback(async () => {
     const res = await examTake.handleExecuteSql()
@@ -236,16 +239,11 @@ export function TeacherPreviewInterface({
     setIsClearing(true)
     try {
       const res = await clearPreviewSchema(exam.examId)
-      if (
-        (res as { code?: string }).code === 'OK' ||
-        !(res as { code?: string }).code
-      ) {
+      if (res.code === 'OK') {
         toast.success('Đã xoá sạch schema xem thử!')
         applySchemaMeta([])
       } else {
-        toast.error(
-          (res as { message?: string }).message || 'Xoá schema thất bại'
-        )
+        toast.error(res.message || 'Xoá schema thất bại')
       }
     } catch (err) {
       toast.error(
@@ -625,23 +623,35 @@ export function TeacherPreviewInterface({
 
             {/* Shortcut hint panel */}
             {showShortcutHint && (
-              <div className={styles.shortcutHint}>
-                <div className={styles.shortcutRow}>
-                  <kbd>Alt+S</kbd> Chuyển Đề/Câu hỏi
+              <div className={styles.shortcutHintPanel}>
+                <div className={styles.shortcutHintTitle}>
+                  <span className="flex items-center gap-1.5">
+                    <Keyboard className="h-3.5 w-3.5" />
+                    Phím tắt bàn phím
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowShortcutHint(false)}
+                    className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
                 <div className={styles.shortcutRow}>
-                  <kbd>Alt+←</kbd> Câu trước
+                  <span className={styles.shortcutDesc}>Đặc tả ↔ Câu hỏi</span>
+                  <kbd className={styles.kbd}>Alt + S</kbd>
                 </div>
                 <div className={styles.shortcutRow}>
-                  <kbd>Alt+→</kbd> Câu sau
+                  <span className={styles.shortcutDesc}>Câu trước</span>
+                  <kbd className={styles.kbd}>Alt + ←</kbd>
                 </div>
-                <button
-                  type="button"
-                  className={styles.closeHint}
-                  onClick={() => setShowShortcutHint(false)}
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className={styles.shortcutRow}>
+                  <span className={styles.shortcutDesc}>Câu tiếp theo</span>
+                  <kbd className={styles.kbd}>Alt + →</kbd>
+                </div>
+                <p className={styles.shortcutNote}>
+                  * Phím tắt hoạt động ở cả hai chế độ xem
+                </p>
               </div>
             )}
 
@@ -757,7 +767,7 @@ export function TeacherPreviewInterface({
                   </div>
                 )
               ) : isOverviewSelected ? (
-                <div className={styles.overviewSchema}>
+                <div className="flex h-full min-h-0 flex-col">
                   <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/30 px-4 py-2">
                     <h4 className="text-sm font-semibold text-foreground">
                       Đặc tả CSDL

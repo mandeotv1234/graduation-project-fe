@@ -90,9 +90,10 @@ export default function ExamInterface({
             setInitialSeconds(sessionRes.data.remainingSeconds)
           } else {
             // Fallback: get exam time
-            const timeRes = await import(
-              '@/lib/actions/anti-cheat.action'
-            ).then((m) => m.getExamTime(examId))
+            const timeRes =
+              await import('@/lib/actions/anti-cheat.action').then((m) =>
+                m.getExamTime(examId)
+              )
             if (timeRes.data && timeRes.data.remainingSeconds > 0) {
               setInitialSeconds(timeRes.data.remainingSeconds)
             }
@@ -124,7 +125,7 @@ export default function ExamInterface({
           errCode === 'UNAUTHORIZED' ||
           errMessage === 'Access Denied'
         ) {
-          if (typeof window !== 'undefined') window.location.href = '/login'
+          setError(errMessage || 'Bạn không có quyền bắt đầu phiên thi này.')
           return
         }
 

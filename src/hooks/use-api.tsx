@@ -34,8 +34,8 @@ export function useApi() {
         return result
       } catch (error: unknown) {
         // Only truly exceptional cases reach here:
-        // Next.js SESSION_EXPIRED (redirect already in progress) or network errors.
-        // Do NOT show a toast — the redirect or network handler deals with it.
+        // Next.js internal control-flow errors or network errors.
+        // API error responses are converted into ApiResponse by apiClient.
         console.error('[useApi] Unhandled error:', error)
 
         return {

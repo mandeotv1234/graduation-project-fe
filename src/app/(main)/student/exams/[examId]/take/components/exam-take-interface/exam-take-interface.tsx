@@ -523,7 +523,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
           errCode === 'UNAUTHORIZED' ||
           errMessage === 'Access Denied'
         ) {
-          if (typeof window !== 'undefined') window.location.href = '/login'
+          setError(errMessage || 'Bạn không có quyền truy cập phiên thi này.')
           return
         }
 

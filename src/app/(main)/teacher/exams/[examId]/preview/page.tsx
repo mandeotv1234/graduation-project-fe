@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
-import { getExamPreview } from '@/lib/actions/preview.action'
-import { getExamQuestionsByExamId } from '@/lib/actions'
+import {
+  getExamPreview,
+  getPreviewExamQuestions
+} from '@/lib/actions/preview.action'
 import { PATH } from '@/lib/constants'
 import { TeacherPreviewInterface } from './components/teacher-preview-interface/teacher-preview-interface'
 
@@ -20,7 +22,7 @@ export default async function TeacherExamPreviewPage({
 
   const [examRes, questionsRes] = await Promise.all([
     getExamPreview(examIdNum).catch(() => ({ data: null })),
-    getExamQuestionsByExamId(examIdNum).catch(() => ({ data: [] }))
+    getPreviewExamQuestions(examIdNum).catch(() => ({ data: [] }))
   ])
 
   const exam = examRes.data

@@ -1,7 +1,6 @@
 import { COOKIE_BASE_OPTIONS, ENDPOINTS } from '@/lib/constants'
 import { ApiResponse, RefreshTokenResponse } from '@/lib/types'
 import { getCookie, setCookie, toExpiryDate } from '@/lib/utils'
-import { redirect } from 'next/navigation'
 import qs from 'qs'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
@@ -150,29 +149,6 @@ export class ApiClient {
     return this.refreshPromise
   }
 
-  private async clearAuthSession(): Promise<void> {
-    try {
-      await Promise.all([
-        setCookie('accessToken', '', { maxAge: 0, path: '/' }),
-        setCookie('refreshToken', '', { maxAge: 0, path: '/' }),
-        setCookie('userRole', '', { maxAge: 0, path: '/' })
-      ])
-    } catch {
-      // cookie write not allowed in read-only context
-    }
-  }
-
-  private async handleSessionExpired(): Promise<never> {
-    await this.clearAuthSession()
-
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
-      throw new Error('SESSION_EXPIRED')
-    }
-
-    redirect('/login')
-  }
-
   async request(
     endpoint: string,
     options: RequestOptions = {}
@@ -208,9 +184,6 @@ export class ApiClient {
           await this.traceResponse(retryRes, 'response-retry', requestUrl)
 
           if (!retryRes.ok) {
-            if (retryRes.status === 401 || retryRes.status === 403) {
-              await this.handleSessionExpired()
-            }
             let errorBody: string
             try {
               const errorJson = await retryRes.json()
@@ -225,8 +198,6 @@ export class ApiClient {
           }
           return retryRes
         }
-
-        await this.handleSessionExpired()
       }
     }
 

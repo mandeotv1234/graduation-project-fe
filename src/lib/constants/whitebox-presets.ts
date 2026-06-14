@@ -28,8 +28,8 @@ const WARN: WhiteboxSeverity = 'WARNING_ONLY'
 export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
   {
     id: 'select-no-subquery-require-join',
-    name: 'Cấm truy vấn lồng, bắt buộc JOIN',
-    description: 'Buộc dùng JOIN thay vì subquery / comma-join.',
+    name: 'Cấm tất cả truy vấn lồng, bắt buộc JOIN',
+    description: 'Cấm toàn bộ subquery ở mọi mệnh đề, buộc dùng JOIN thay thế.',
     questionType: 'SELECT_QUERY',
     rules: [
       {
@@ -47,6 +47,27 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
       {
         ruleId: 'FORBIDDEN_OLD_JOIN_SYNTAX',
         severity: WARN,
+        penaltyValue: 15,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+  {
+    id: 'select-no-subquery-in-where-from',
+    name: 'Cấm subquery trong WHERE và FROM',
+    description:
+      'Cấm dùng subquery trong WHERE/FROM, nhưng vẫn cho phép trong SELECT và HAVING.',
+    questionType: 'SELECT_QUERY',
+    rules: [
+      {
+        ruleId: 'FORBIDDEN_SUBQUERY_IN_WHERE',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_SUBQUERY_IN_FROM',
+        severity: DEDUCT,
         penaltyValue: 15,
         penaltyUnit: PCT
       }
