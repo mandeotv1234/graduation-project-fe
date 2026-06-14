@@ -874,6 +874,7 @@ export function SelectQueryRubricEditor({
           )}
         </div>
       )}
+
     </div>
   )
 }

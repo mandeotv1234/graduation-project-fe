@@ -12,7 +12,7 @@ import {
   Save,
   Trash2
 } from 'lucide-react'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -88,7 +88,7 @@ export function WhiteboxRulesEditor({
   const [validation, setValidation] = useState<WhiteboxValidationResult | null>(
     null
   )
-  const [isValidating, startValidating] = useTransition()
+  const [isValidating, setIsValidating] = useState(false)
   // Add-rule modal: feature -> policy -> params -> penalty/severity, appended only on confirm.
   const [addOpen, setAddOpen] = useState(false)
   const [presetOpen, setPresetOpen] = useState(false)
@@ -314,25 +314,26 @@ export function WhiteboxRulesEditor({
     onChange(rules, { ...settings, ...patch })
   }
 
-  const runValidation = () => {
+  const runValidation = async () => {
     if (!previewSql.trim()) {
       toast.warning('Chưa có SQL để chạy thử.')
       return
     }
-    startValidating(async () => {
-      try {
-        const res = await validateWhitebox({
-          questionType,
-          sql: previewSql,
-          whiteboxRules: rules,
-          whiteboxSettings: settings,
-          questionPoints: totalPoints
-        })
-        setValidation(res.data ?? null)
-      } catch {
-        toast.error('Chạy thử whitebox thất bại.')
-      }
-    })
+    setIsValidating(true)
+    try {
+      const res = await validateWhitebox({
+        questionType,
+        sql: previewSql,
+        whiteboxRules: rules,
+        whiteboxSettings: settings,
+        questionPoints: totalPoints
+      })
+      setValidation(res.data ?? null)
+    } catch {
+      toast.error('Chạy thử whitebox thất bại.')
+    } finally {
+      setIsValidating(false)
+    }
   }
 
   const modelAnswerViolations =

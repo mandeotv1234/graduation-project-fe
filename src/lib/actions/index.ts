@@ -70,3 +70,10 @@ export {
 } from '@/lib/actions/exam-specification.action'
 export * from '@/lib/actions/library.action'
 export * from '@/lib/actions/admin.action'
+export {
+  getExamPreview,
+  getPreviewExamQuestions,
+  initializePreviewSchema,
+  clearPreviewSchema,
+  submitExamPreview
+} from '@/lib/actions/preview.action'

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import {
   Trophy,
   CheckCircle2,
@@ -11,10 +12,12 @@ import {
   Clock,
   ArrowLeft,
   AlertCircle,
-  MessageSquare
+  MessageSquare,
+  Sparkles
 } from 'lucide-react'
 import { SubmitExamResponse } from '@/lib/types'
 import { Button } from '@/components/ui/button'
+import { PATH } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import styles from '@/app/(main)/student/exams/[examId]/take/components/submit-result-dialog/submit-result-dialog.module.scss'
 import { FeedbackDialog } from './feedback-dialog'
@@ -170,6 +173,23 @@ export function SubmitResultDialog({
               <FileText className="h-5 w-5 mr-2" />
               Chi tiết bài làm
             </Button>
+
+            {result.resultId && result.status === 'COMPLETED' && (
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className={cn(
+                  styles.viewDetailsBtn,
+                  'ml-2 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 hover:text-primary'
+                )}
+              >
+                <Link href={PATH.STUDENT_EXAM_RESULT_FEEDBACK(result.resultId)}>
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Feedback AI bài làm
+                </Link>
+              </Button>
+            )}
 
             <Button
               onClick={() => setShowFeedbackModal(true)}

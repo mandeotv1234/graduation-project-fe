@@ -12,6 +12,8 @@ export const ENDPOINTS = Object.freeze({
   ENROLLED_EXAMS: '/exams/enrolled',
   MY_RESULTS: '/exams/my-results',
   MY_RESULT_DETAIL: (resultId: number) => `/exams/my-results/${resultId}`,
+  MY_RESULT_FEEDBACK: (resultId: number) =>
+    `/exams/my-results/${resultId}/feedback`,
   EXAM_DETAIL: (examId: number) => `/exams/${examId}`,
   EXAM_QUESTIONS: (examId: number) => `/exams/${examId}/questions`,
   EXAM_EXECUTE_SQL: (examId: number) => `/exams/${examId}/execute-sql`,
@@ -114,6 +116,12 @@ export const ENDPOINTS = Object.freeze({
   TEACHER_RESULT_RESET_SCHEMA: (examId: number, resultId: number) =>
     `/exams/${examId}/results/${resultId}/reset-schema`,
   EXAM_DROP_ALL_SCHEMAS: (examId: number) => `/exams/${examId}/schemas`,
+  EXAM_PREVIEW: (examId: number) => `/exams/${examId}/preview`,
+  EXAM_PREVIEW_INITIALIZE: (examId: number) =>
+    `/exams/${examId}/preview/initialize`,
+  EXAM_PREVIEW_CLEAR_SCHEMA: (examId: number) =>
+    `/exams/${examId}/preview/clear-schema`,
+  EXAM_PREVIEW_SUBMIT: (examId: number) => `/exams/${examId}/preview/submit`,
   RULE_PRESETS: '/exams/rule-presets',
   RULE_PRESET_UPDATE: (id: number) => `/exams/rule-presets/${id}`,
   RULE_PRESET_DELETE: (id: number) => `/exams/rule-presets/${id}`,

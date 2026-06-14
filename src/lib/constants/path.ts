@@ -12,6 +12,8 @@ export const PATH = {
   STUDENT_EXAM_RESULT_PROGRESS: (examId: number) =>
     `/student/results/exams/${examId}`,
   STUDENT_EXAM_RESULT: (resultId: number) => `/student/results/${resultId}`,
+  STUDENT_EXAM_RESULT_FEEDBACK: (resultId: number) =>
+    `/student/results/${resultId}/feedback`,
 
   // Teacher paths
   TEACHER_CLASSES: '/teacher/classes',
@@ -37,6 +39,7 @@ export const PATH = {
   TEACHER_SPECIFICATION_EDIT: (specificationId: number) =>
     `/teacher/specifications/${specificationId}/edit`,
   TEACHER_LIBRARY: '/teacher/library',
+  TEACHER_EXAM_PREVIEW: (examId: number) => `/teacher/exams/${examId}/preview`,
 
   // Admin paths
   ADMIN: '/admin',

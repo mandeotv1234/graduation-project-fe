@@ -376,6 +376,16 @@ export function TeacherExamDetailContent({
                 Giám sát thi
               </Button>
             </Link>
+            <Link href={PATH.TEACHER_EXAM_PREVIEW(exam.id)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-orange-400 text-orange-500 hover:bg-orange-50 hover:text-orange-600"
+              >
+                <Eye className="h-4 w-4" />
+                Xem thử như sinh viên
+              </Button>
+            </Link>
             <Link href={`/teacher/exams/${exam.id}/results`}>
               <Button variant="outline" size="sm" className="gap-2">
                 <Users className="h-4 w-4" />

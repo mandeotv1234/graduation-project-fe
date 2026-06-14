@@ -133,7 +133,6 @@ export function useExamTake(
       } else {
         // If we get an error response (like 401/403/500) during submission,
         // it might be because the backend auto-submit job already finished and cleared the session.
-        // We should redirect to the exams list rather than letting the global interceptor logout.
         console.warn(
           'Submission returned no data or error, redirecting to exams list:',
           response

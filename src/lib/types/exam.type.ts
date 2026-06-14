@@ -204,6 +204,7 @@ export type GradingStatus =
   | 'SYSTEM_ERROR'
 
 export interface SubmitExamResponse {
+  resultId?: number
   examId: number
   studentId: number
   submittedAt: string
@@ -232,6 +233,67 @@ export interface StudentExamResultResponse {
   submittedAt: string
   status: GradingStatus
   allowReview: boolean
+}
+
+export interface StudentFeedbackAttemptPoint {
+  resultId: number
+  attemptNumber: number
+  totalScore: number
+  maxScore: number
+  submittedAt: string
+  status: GradingStatus
+}
+
+export interface StudentFeedbackProgress {
+  attemptCount: number
+  firstScore: number
+  currentScore: number
+  bestScore: number
+  averageScore: number
+  improvementFromFirstPercent: number
+  currentAttemptDeltaPercent: number | null
+  attempts: StudentFeedbackAttemptPoint[]
+}
+
+export interface StudentFeedbackEvidence {
+  kind: string
+  status: 'PASS' | 'FAIL' | 'WARN' | 'INFO' | string
+  label?: string | null
+  message?: string | null
+  deductedPoints?: number | null
+  expected?: string | null
+  actual?: string | null
+}
+
+export interface StudentQuestionFeedback {
+  questionId: number
+  orderIndex: number
+  questionType: string
+  scoreEarned: number
+  maxPoints: number
+  diagnosis: string
+  mistakes: string[]
+  advice: string[]
+  evidence: StudentFeedbackEvidence[]
+}
+
+export interface StudentFeedbackResponse {
+  resultId: number
+  examId: number
+  examTitle: string
+  attemptNumber: number
+  totalScore: number
+  maxScore: number
+  submittedAt: string
+  generatedByAi: boolean
+  generatedAt: string
+  progress: StudentFeedbackProgress
+  overallFeedback: string
+  progressFeedback: string
+  strengths: string[]
+  weaknesses: string[]
+  studyAdvice: string[]
+  questionFeedbacks: StudentQuestionFeedback[]
 }
 
 export interface TeacherExamResult {
