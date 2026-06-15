@@ -30,6 +30,7 @@ import {
   RulePreset,
   CreateRulePresetRequest,
   ExamStatistics,
+  ExamMutationAnalytics,
   TeacherSqlExecutionResult,
   BannedStudentInfo
 } from '@/lib/types'
@@ -267,6 +268,15 @@ export async function getExamStatistics(
   return apiClient.get<ExamStatistics>(ENDPOINTS.EXAM_STATISTICS(examId), {
     cache: 'no-store'
   })
+}
+
+export async function getExamMutationAnalytics(
+  examId: number
+): Promise<ApiResponse<ExamMutationAnalytics>> {
+  return apiClient.get<ExamMutationAnalytics>(
+    ENDPOINTS.EXAM_MUTATION_ANALYTICS(examId),
+    { cache: 'no-store' }
+  )
 }
 
 // ===== Rule Presets =====

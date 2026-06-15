@@ -919,6 +919,8 @@ export interface RoutineGradingPayload {
   grading_settings: RoutineGradingSettings
   routines: RoutineRubricRoutine[]
   test_cases?: RoutineTestCase[]
+  whitebox_rules?: WhiteboxRule[]
+  whitebox_settings?: WhiteboxSettings
 }
 
 // === TRIGGER Grading Types ===
@@ -1031,4 +1033,37 @@ export interface SubmitFeedbackResponse {
   featureRequests?: string
   generalFeedback?: string
   createdAt: string
+}
+
+// ===== Mutation Analytics (GET /api/exams/{examId}/mutation-analytics) =====
+
+export interface MutationStat {
+  mutationType: string
+  label: string
+  failCount: number
+  failRate: number
+  avgDeduction: number
+}
+
+export interface QuestionMutationSummary {
+  questionId: number
+  orderIndex: number
+  questionTitle: string
+  avgScore: number
+  maxScore: number
+  passRate: number
+  mutationBreakdown: MutationStat[]
+  rubricHealthWarnings: string[]
+}
+
+export interface MutationGlobalInsights {
+  topMutationTypes: string[]
+  studyRecommendations: string[]
+}
+
+export interface ExamMutationAnalytics {
+  examId: number
+  totalStudents: number
+  questionSummaries: QuestionMutationSummary[]
+  globalInsights: MutationGlobalInsights
 }
