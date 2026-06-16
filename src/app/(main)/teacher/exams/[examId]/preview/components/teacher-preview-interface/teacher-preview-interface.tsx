@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useExamTimer } from '@/hooks/use-exam-timer'
+import { fetchExamPdfBlobUrl } from '@/lib/api/pdf-client'
 import { getExamSpecification } from '@/lib/actions'
 import {
   clearPreviewSchema,
@@ -31,7 +32,15 @@ import type {
   StudentExamDetail
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Clock, Columns2, Keyboard, Send, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  Clock,
+  Columns2,
+  Keyboard,
+  Loader2,
+  Send,
+  X
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -65,6 +74,11 @@ export function TeacherPreviewInterface({
   const [isClearing, setIsClearing] = useState(false)
   const [examSpecification, setExamSpecification] =
     useState<ExamSpecification | null>(null)
+  const hasPdf = useMemo(
+    () => Boolean(exam.pdfFilePath && exam.pdfFilePath.trim().length > 0),
+    [exam.pdfFilePath]
+  )
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
 
   const schemaTablesForOverview = useMemo(() => {
     if (schemaMeta && schemaMeta.length > 0) {
@@ -133,6 +147,34 @@ export function TeacherPreviewInterface({
   )
 
   const examTake = useExamTake(exam, questions)
+
+  useEffect(() => {
+    if (!hasPdf) {
+      setPdfBlobUrl(null)
+      return
+    }
+
+    let objectUrl: string | null = null
+    let cancelled = false
+
+    fetchExamPdfBlobUrl(exam.examId)
+      .then((blobUrl) => {
+        if (cancelled) {
+          URL.revokeObjectURL(blobUrl)
+          return
+        }
+        objectUrl = blobUrl
+        setPdfBlobUrl(blobUrl)
+      })
+      .catch(() => {
+        if (!cancelled) setPdfBlobUrl(null)
+      })
+
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [exam.examId, hasPdf])
 
   // Timer counts down but never force-submits (allowOvertime intentionally true)
   const { remainingSeconds } = useExamTimer({
@@ -310,6 +352,29 @@ export function TeacherPreviewInterface({
           ? styles.warning
           : ''
 
+  const renderPdfSpecificationPanel = (headingClassName: string) => (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/30 px-4 py-2">
+        <h4 className={cn('font-semibold text-foreground', headingClassName)}>
+          {exam.originalPdfFileName || 'Đặc tả PDF'}
+        </h4>
+      </div>
+      <div className="min-h-0 flex-1 p-3">
+        {pdfBlobUrl ? (
+          <iframe
+            src={pdfBlobUrl}
+            title={exam.originalPdfFileName || 'Đặc tả PDF'}
+            className="h-full w-full rounded-lg border border-border bg-background"
+          />
+        ) : (
+          <div className="flex h-full min-h-[240px] items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
   // Keyboard shortcuts
   useEffect(() => {
     if (!sessionStarted) return
@@ -406,7 +471,7 @@ export function TeacherPreviewInterface({
           <span>CHẾ ĐỘ XEM THỬ — kết quả sẽ không được lưu vào hệ thống</span>
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded border border-white/30 px-2.5 py-1 text-xs font-medium hover:bg-orange-600"
+            className="cursor-pointer flex items-center gap-1.5 rounded border border-white/30 px-2.5 py-1 text-xs font-medium hover:bg-orange-600"
             onClick={() => router.push(PATH.TEACHER_EXAM_DETAIL(exam.examId))}
           >
             <ArrowLeft className="h-3.5 w-3.5" />
@@ -418,113 +483,117 @@ export function TeacherPreviewInterface({
           {/* Left: Question sidebar (default mode) or Spec panel (split mode) */}
           {layoutMode === 'split' ? (
             <div className={styles.splitSpecPanel}>
-              <div className="flex h-full min-h-0 flex-col">
-                <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/30 px-3 py-2">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                    Đặc tả CSDL
-                  </h4>
-                  <div className="flex rounded border border-border bg-background p-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setSpecViewMode('table')}
-                      className={cn(
-                        'rounded px-2 py-1 text-[10px] font-medium transition-colors',
-                        specViewMode === 'table'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-muted'
-                      )}
-                    >
-                      Bảng
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSpecViewMode('diagram')}
-                      className={cn(
-                        'rounded px-2 py-1 text-[10px] font-medium transition-colors',
-                        specViewMode === 'diagram'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-muted'
-                      )}
-                    >
-                      Sơ đồ
-                    </button>
+              {hasPdf ? (
+                renderPdfSpecificationPanel('text-xs uppercase tracking-wide')
+              ) : (
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/30 px-3 py-2">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                      Đặc tả CSDL
+                    </h4>
+                    <div className="flex rounded border border-border bg-background p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setSpecViewMode('table')}
+                        className={cn(
+                          'rounded px-2 py-1 text-[10px] font-medium transition-colors',
+                          specViewMode === 'table'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted'
+                        )}
+                      >
+                        Bảng
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSpecViewMode('diagram')}
+                        className={cn(
+                          'rounded px-2 py-1 text-[10px] font-medium transition-colors',
+                          specViewMode === 'diagram'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted'
+                        )}
+                      >
+                        Sơ đồ
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <ScrollArea className="min-h-0 flex-1">
-                  {specViewMode === 'table' ? (
-                    <div className="space-y-2 p-2">
-                      {schemaTablesForOverview.length > 0 ? (
-                        schemaTablesForOverview.map((table) => (
-                          <div
-                            key={table.tableName}
-                            className="overflow-hidden rounded border border-border/70"
-                          >
-                            <div className="border-b border-border bg-muted/30 px-2 py-1.5 text-xs font-semibold text-primary">
-                              {table.tableName}
-                            </div>
-                            <table className="w-full text-xs">
-                              <thead className="bg-muted/20 text-muted-foreground">
-                                <tr>
-                                  <th className="border-b border-r border-border px-2 py-1.5 text-left">
-                                    Cột
-                                  </th>
-                                  <th className="border-b border-r border-border px-2 py-1.5 text-left">
-                                    Kiểu
-                                  </th>
-                                  <th className="border-b border-border px-2 py-1.5 text-left">
-                                    Ràng buộc
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {table.columns.map((col) => (
-                                  <tr
-                                    key={`${table.tableName}-${col.name}`}
-                                    className="odd:bg-background even:bg-muted/10"
-                                  >
-                                    <td className="border-r border-border px-2 py-1 font-medium text-foreground">
-                                      {col.name}
-                                    </td>
-                                    <td className="border-r border-border px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                                      {col.type}
-                                    </td>
-                                    <td className="px-2 py-1 text-[10px] text-muted-foreground">
-                                      {[
-                                        col.primaryKey ? 'PK' : null,
-                                        col.foreignKey ? 'FK' : null,
-                                        !col.nullable ? 'NOT NULL' : null
-                                      ]
-                                        .filter(Boolean)
-                                        .join(' · ')}
-                                    </td>
+                  <ScrollArea className="min-h-0 flex-1">
+                    {specViewMode === 'table' ? (
+                      <div className="space-y-2 p-2">
+                        {schemaTablesForOverview.length > 0 ? (
+                          schemaTablesForOverview.map((table) => (
+                            <div
+                              key={table.tableName}
+                              className="overflow-hidden rounded border border-border/70"
+                            >
+                              <div className="border-b border-border bg-muted/30 px-2 py-1.5 text-xs font-semibold text-primary">
+                                {table.tableName}
+                              </div>
+                              <table className="w-full text-xs">
+                                <thead className="bg-muted/20 text-muted-foreground">
+                                  <tr>
+                                    <th className="border-b border-r border-border px-2 py-1.5 text-left">
+                                      Cột
+                                    </th>
+                                    <th className="border-b border-r border-border px-2 py-1.5 text-left">
+                                      Kiểu
+                                    </th>
+                                    <th className="border-b border-border px-2 py-1.5 text-left">
+                                      Ràng buộc
+                                    </th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {table.columns.map((col) => (
+                                    <tr
+                                      key={`${table.tableName}-${col.name}`}
+                                      className="odd:bg-background even:bg-muted/10"
+                                    >
+                                      <td className="border-r border-border px-2 py-1 font-medium text-foreground">
+                                        {col.name}
+                                      </td>
+                                      <td className="border-r border-border px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                                        {col.type}
+                                      </td>
+                                      <td className="px-2 py-1 text-[10px] text-muted-foreground">
+                                        {[
+                                          col.primaryKey ? 'PK' : null,
+                                          col.foreignKey ? 'FK' : null,
+                                          !col.nullable ? 'NOT NULL' : null
+                                        ]
+                                          .filter(Boolean)
+                                          .join(' · ')}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex h-20 items-center justify-center text-xs text-muted-foreground">
+                            Chưa có thông tin schema
                           </div>
-                        ))
-                      ) : (
-                        <div className="flex h-20 items-center justify-center text-xs text-muted-foreground">
-                          Chưa có thông tin schema
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="min-h-[300px]">
-                      {schemaDiagramData ? (
-                        <TeacherSchemaDiagram
-                          diagramData={schemaDiagramData}
-                          className="h-full border-0 rounded-none"
-                        />
-                      ) : (
-                        <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
-                          Chưa có thông tin lược đồ
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="min-h-[300px]">
+                        {schemaDiagramData ? (
+                          <TeacherSchemaDiagram
+                            diagramData={schemaDiagramData}
+                            className="h-full border-0 rounded-none"
+                          />
+                        ) : (
+                          <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+                            Chưa có thông tin lược đồ
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              )}
             </div>
           ) : (
             <div className={styles.desktopQuestionSidebar}>
@@ -767,113 +836,117 @@ export function TeacherPreviewInterface({
                   </div>
                 )
               ) : isOverviewSelected ? (
-                <div className="flex h-full min-h-0 flex-col">
-                  <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/30 px-4 py-2">
-                    <h4 className="text-sm font-semibold text-foreground">
-                      Đặc tả CSDL
-                    </h4>
-                    <div className="flex rounded-lg border border-border bg-background p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setSpecViewMode('table')}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                          specViewMode === 'table'
-                            ? 'bg-primary text-primary-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                        )}
-                      >
-                        Dạng bảng
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSpecViewMode('diagram')}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                          specViewMode === 'diagram'
-                            ? 'bg-primary text-primary-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                        )}
-                      >
-                        Sơ đồ quan hệ
-                      </button>
+                hasPdf ? (
+                  renderPdfSpecificationPanel('text-sm')
+                ) : (
+                  <div className="flex h-full min-h-0 flex-col">
+                    <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/30 px-4 py-2">
+                      <h4 className="text-sm font-semibold text-foreground">
+                        Đặc tả CSDL
+                      </h4>
+                      <div className="flex rounded-lg border border-border bg-background p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setSpecViewMode('table')}
+                          className={cn(
+                            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                            specViewMode === 'table'
+                              ? 'bg-primary text-primary-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                          )}
+                        >
+                          Dạng bảng
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSpecViewMode('diagram')}
+                          className={cn(
+                            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                            specViewMode === 'diagram'
+                              ? 'bg-primary text-primary-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                          )}
+                        >
+                          Sơ đồ quan hệ
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <ScrollArea className="flex-1">
-                    {specViewMode === 'table' ? (
-                      <div className="space-y-3 p-4">
-                        {schemaTablesForOverview.length > 0 ? (
-                          schemaTablesForOverview.map((table) => (
-                            <div
-                              key={table.tableName}
-                              className="overflow-hidden rounded-lg border border-border"
-                            >
-                              <div className="border-b border-border bg-muted/50 px-3 py-2 text-sm font-semibold text-primary">
-                                {table.tableName}
-                              </div>
-                              <table className="w-full text-sm">
-                                <thead className="bg-muted/30 text-muted-foreground">
-                                  <tr>
-                                    <th className="border-b border-r border-border px-3 py-2 text-left">
-                                      Cột
-                                    </th>
-                                    <th className="border-b border-r border-border px-3 py-2 text-left">
-                                      Kiểu
-                                    </th>
-                                    <th className="border-b border-border px-3 py-2 text-left">
-                                      Ràng buộc
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {table.columns.map((col) => (
-                                    <tr
-                                      key={`${table.tableName}-${col.name}`}
-                                      className="odd:bg-background even:bg-muted/10"
-                                    >
-                                      <td className="border-r border-border px-3 py-1.5 font-medium">
-                                        {col.name}
-                                      </td>
-                                      <td className="border-r border-border px-3 py-1.5 font-mono text-xs text-muted-foreground">
-                                        {col.type}
-                                      </td>
-                                      <td className="px-3 py-1.5 text-xs text-muted-foreground">
-                                        {[
-                                          col.primaryKey ? 'PK' : null,
-                                          col.foreignKey ? 'FK' : null,
-                                          !col.nullable ? 'NOT NULL' : null
-                                        ]
-                                          .filter(Boolean)
-                                          .join(' · ')}
-                                      </td>
+                    <ScrollArea className="flex-1">
+                      {specViewMode === 'table' ? (
+                        <div className="space-y-3 p-4">
+                          {schemaTablesForOverview.length > 0 ? (
+                            schemaTablesForOverview.map((table) => (
+                              <div
+                                key={table.tableName}
+                                className="overflow-hidden rounded-lg border border-border"
+                              >
+                                <div className="border-b border-border bg-muted/50 px-3 py-2 text-sm font-semibold text-primary">
+                                  {table.tableName}
+                                </div>
+                                <table className="w-full text-sm">
+                                  <thead className="bg-muted/30 text-muted-foreground">
+                                    <tr>
+                                      <th className="border-b border-r border-border px-3 py-2 text-left">
+                                        Cột
+                                      </th>
+                                      <th className="border-b border-r border-border px-3 py-2 text-left">
+                                        Kiểu
+                                      </th>
+                                      <th className="border-b border-border px-3 py-2 text-left">
+                                        Ràng buộc
+                                      </th>
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                  </thead>
+                                  <tbody>
+                                    {table.columns.map((col) => (
+                                      <tr
+                                        key={`${table.tableName}-${col.name}`}
+                                        className="odd:bg-background even:bg-muted/10"
+                                      >
+                                        <td className="border-r border-border px-3 py-1.5 font-medium">
+                                          {col.name}
+                                        </td>
+                                        <td className="border-r border-border px-3 py-1.5 font-mono text-xs text-muted-foreground">
+                                          {col.type}
+                                        </td>
+                                        <td className="px-3 py-1.5 text-xs text-muted-foreground">
+                                          {[
+                                            col.primaryKey ? 'PK' : null,
+                                            col.foreignKey ? 'FK' : null,
+                                            !col.nullable ? 'NOT NULL' : null
+                                          ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+                              Chưa có thông tin schema
                             </div>
-                          ))
-                        ) : (
-                          <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-                            Chưa có thông tin schema
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="h-full min-h-[400px]">
-                        {schemaDiagramData ? (
-                          <TeacherSchemaDiagram
-                            diagramData={schemaDiagramData}
-                            className="h-full border-0 rounded-none"
-                          />
-                        ) : (
-                          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-                            Chưa có thông tin lược đồ
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="h-full min-h-[400px]">
+                          {schemaDiagramData ? (
+                            <TeacherSchemaDiagram
+                              diagramData={schemaDiagramData}
+                              className="h-full border-0 rounded-none"
+                            />
+                          ) : (
+                            <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                              Chưa có thông tin lược đồ
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </div>
+                )
               ) : examTake.currentQuestion ? (
                 <ResizablePanel defaultSize={65} minSize={30} maxSize={85}>
                   <SqlEditorPanel

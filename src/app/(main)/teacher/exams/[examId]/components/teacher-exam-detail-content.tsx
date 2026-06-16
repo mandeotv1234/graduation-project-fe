@@ -55,7 +55,7 @@ import {
   TeacherExamDetail,
   TeacherExamTemplateVersionsResponse
 } from '@/lib/types'
-import { formatDateTime, getExamStatus } from '@/lib/utils'
+import { cn, formatDateTime, getExamStatus } from '@/lib/utils'
 import { ExamQuestionsView } from '../questions/components/exam-questions-view'
 import { EditExamSectionModal } from './edit-exam-section-modal'
 import { ExportExamPdfModal } from './export-exam-pdf-modal'
@@ -135,22 +135,32 @@ function OverviewItem({
   label,
   value,
   icon,
-  rightIcon
+  rightIcon,
+  className,
+  valueClassName
 }: {
   label: string
   value: React.ReactNode
   icon?: React.ReactNode
   rightIcon?: React.ReactNode
+  className?: string
+  valueClassName?: string
 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className={cn('rounded-lg border bg-card p-4', className)}>
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
-      <div className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
-        {icon}
-        <span>{value}</span>
-        {rightIcon}
+      <div className="flex min-w-0 items-start gap-2 text-sm font-semibold text-foreground sm:text-base">
+        {icon ? <span className="mt-0.5 shrink-0">{icon}</span> : null}
+        <span className={cn('min-w-0 flex-1 break-words', valueClassName)}>
+          {value}
+        </span>
+        {rightIcon ? (
+          <span className="mt-0.5 shrink-0 text-muted-foreground">
+            {rightIcon}
+          </span>
+        ) : null}
       </div>
     </div>
   )
@@ -588,6 +598,8 @@ export function TeacherExamDetailContent({
                   label="Đặc tả PDF"
                   icon={<Upload className="h-4 w-4 text-red-500/70" />}
                   value={displayExam.originalPdfFileName || 'File PDF'}
+                  className="sm:col-span-2"
+                  valueClassName="leading-snug"
                   rightIcon={
                     <button
                       onClick={handleViewPdf}

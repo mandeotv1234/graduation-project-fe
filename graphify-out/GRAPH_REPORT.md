@@ -1,16 +1,16 @@
-# Graph Report - graduation-project-fe  (2026-06-14)
+# Graph Report - graduation-project-fe  (2026-06-16)
 
 ## Corpus Check
-- 332 files · ~169,897 words
+- 333 files · ~171,792 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1831 nodes · 4758 edges · 104 communities (94 shown, 10 thin omitted)
+- 1842 nodes · 4791 edges · 95 communities (85 shown, 10 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `367a61ae`
+- Built from commit: `78a356cd`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -78,29 +78,23 @@
 - [[_COMMUNITY_Community 60|Community 60]]
 - [[_COMMUNITY_Community 61|Community 61]]
 - [[_COMMUNITY_Community 62|Community 62]]
-- [[_COMMUNITY_Community 63|Community 63]]
 - [[_COMMUNITY_Community 64|Community 64]]
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 67|Community 67]]
 - [[_COMMUNITY_Community 68|Community 68]]
 - [[_COMMUNITY_Community 69|Community 69]]
-- [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
 - [[_COMMUNITY_Community 72|Community 72]]
-- [[_COMMUNITY_Community 73|Community 73]]
 - [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 76|Community 76]]
-- [[_COMMUNITY_Community 77|Community 77]]
 - [[_COMMUNITY_Community 78|Community 78]]
 - [[_COMMUNITY_Community 79|Community 79]]
-- [[_COMMUNITY_Community 80|Community 80]]
 - [[_COMMUNITY_Community 81|Community 81]]
 - [[_COMMUNITY_Community 82|Community 82]]
 - [[_COMMUNITY_Community 83|Community 83]]
 - [[_COMMUNITY_Community 84|Community 84]]
-- [[_COMMUNITY_Community 85|Community 85]]
 - [[_COMMUNITY_Community 86|Community 86]]
 - [[_COMMUNITY_Community 88|Community 88]]
 - [[_COMMUNITY_Community 90|Community 90]]
@@ -109,12 +103,9 @@
 - [[_COMMUNITY_Community 98|Community 98]]
 - [[_COMMUNITY_Community 99|Community 99]]
 - [[_COMMUNITY_Community 100|Community 100]]
-- [[_COMMUNITY_Community 101|Community 101]]
-- [[_COMMUNITY_Community 102|Community 102]]
-- [[_COMMUNITY_Community 103|Community 103]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `cn()` - 126 edges
+1. `cn()` - 128 edges
 2. `Button` - 94 edges
 3. `PATH` - 49 edges
 4. `useApi()` - 35 edges
@@ -130,62 +121,62 @@
   src/app/(main)/student/exams/components/exam-list/exam-list.tsx → src/lib/utils/cn.ts
 - `ResultPanelProps` --references--> `ExecuteSqlResponse`  [EXTRACTED]
   src/app/(main)/student/exams/[examId]/take/components/result-panel/result-panel.tsx → src/lib/types/exam.type.ts
-- `ExamStartInterfaceProps` --references--> `StudentExamDetail`  [EXTRACTED]
-  src/app/(main)/student/exams/[examId]/take/components/exam-start-interface/exam-start-interface.tsx → src/lib/types/exam.type.ts
 - `KeyIcon()` --calls--> `cn()`  [EXTRACTED]
   src/app/(main)/student/exams/[examId]/take/components/schema-flow/schema-flow.tsx → src/lib/utils/cn.ts
 - `SpecificationPanel()` --calls--> `cn()`  [EXTRACTED]
   src/app/(main)/student/exams/[examId]/take/components/specification-panel/specification-panel.tsx → src/lib/utils/cn.ts
+- `ExamTakeBottomPanelProps` --references--> `ExecuteSqlResponse`  [EXTRACTED]
+  src/app/(main)/student/exams/[examId]/take/components/exam-take-bottom-panel/exam-take-bottom-panel.tsx → src/lib/types/exam.type.ts
 
-## Communities (104 total, 10 thin omitted)
-
-### Community 0 - "Community 0"
-Cohesion: 0.09
-Nodes (27): createExamQuestionsBatch(), getWhiteboxCatalog(), CreateTableQueryFromSpec(), sanitizeSchemaTables(), QUESTION_TYPES, GeneratedInsertDataQuestion, generateInsertDataQuestionFromDataset(), getDatasetTableNames() (+19 more)
+## Communities (95 total, 10 thin omitted)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.20
-Nodes (16): DatabaseBuilderContext, DatabaseBuilderContextType, DatabaseBuilderProvider(), DatabaseBuilderProviderProps, EMPTY_BUILDER_STATE, buildSchemaJson(), buildTableData(), generateDatasetScript() (+8 more)
+Cohesion: 0.08
+Nodes (38): createSpecification(), generateSpecificationSchemaByAI(), generateSpecificationSchemaFromDDL(), updateSpecification(), DatabaseBuilderContext, DatabaseBuilderContextType, DatabaseBuilderProvider(), DatabaseBuilderProviderProps (+30 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.04
 Nodes (48): dependencies, @azure/msal-browser, @azure/msal-react, class-variance-authority, clsx, date-fns, dompurify, @hookform/resolvers (+40 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.18
-Nodes (15): UseExamSocketOptions, connectListeners, connectStomp(), getStompClient(), subscribeToConnect(), subscribeToDeviceConflict(), subscribeToExamViolations(), subscribeToGradingResult() (+7 more)
+Cohesion: 0.26
+Nodes (11): connectListeners, connectStomp(), getStompClient(), subscribeToConnect(), subscribeToDeviceConflict(), subscribeToExamViolations(), subscribeToGradingResult(), subscribeToStudentSession() (+3 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.04
-Nodes (45): Columns, CreateExamQuestionBatch, CreateRulePresetRequest, CreateTableGradingPayload, ExtractedQuestionDraft, GradingRuleAction, GradingRuleCondition, GradingRuleModifier (+37 more)
+Cohesion: 0.05
+Nodes (38): Columns, CreateExamQuestionBatch, CreateRulePresetRequest, CreateTableGradingPayload, GradingSettings, InsertDataColumnConfig, InsertDataExpectedRow, InsertDataGradingPayload (+30 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.13
-Nodes (26): CloneExamTemplateDialogProps, EditExamSectionModalProps, SECTION_DIALOG, ExamMonitorPanelProps, StudentMonitorState, geistMono, TeacherSqlEditorProps, STEP_ITEMS (+18 more)
+Cohesion: 0.11
+Nodes (34): extractQuestionsFromPdf(), createExamQuestionsBatch(), EXAM_STATUS_CONFIG, ClassTeachersSection(), ClassTeachersSectionProps, CloneExamTemplateDialogProps, ExamMonitorPanelProps, StudentMonitorState (+26 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.06
-Nodes (53): buildCreateTablesFromAnswer(), CONSTRAINT_TYPES, createDefaultRubric(), CreateTableRubricEditor(), normalizeCreateTablePayload(), SQL_TYPES, ACTION_OPTIONS, ALL_TARGET_OPTIONS (+45 more)
+Cohesion: 0.07
+Nodes (51): ACTION_OPTIONS, ALL_TARGET_OPTIONS, buildBroadRuleSignature(), buildFriendlyRuleName(), buildRuleName(), buildRuleSummary(), buildStrictRuleSignature(), buildTargetConditionGuide() (+43 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.14
-Nodes (25): WhiteboxAddRuleModal(), WhiteboxAddRuleModalProps, ACTION_HINT, ACTION_LABEL, buildFeatureActions(), buildFeatureGroups(), defaultRuleFromCatalog(), detectConflicts() (+17 more)
+Cohesion: 0.12
+Nodes (32): WhiteboxAddRuleModal(), WhiteboxAddRuleModalProps, ACTION_HINT, ACTION_LABEL, buildFeatureActions(), buildFeatureGroups(), defaultRuleFromCatalog(), detectConflicts() (+24 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.19
-Nodes (14): ConflictErrorType, ConflictRow, EditClassPage(), EditClassPageProps, DatasetTableViewProps, ParsedTableData, metadata, CreateClassStudentInfo (+6 more)
+Nodes (19): ConflictErrorType, ConflictRow, EditClassPageProps, DatasetTableViewProps, ParsedTableData, CreateClassStudentInfo, Checkbox(), DialogOverlay() (+11 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.14
-Nodes (8): ExamBasicInfoProps, ExamDescriptionEditorProps, ExamFileUploadProps, ExamSampleDataTableProps, useRegister(), RegisterForm(), SampleDataRow, Label()
+Cohesion: 0.10
+Nodes (16): LoginForm(), ExamBasicInfoProps, ExamDescriptionEditorProps, ExamFileUploadProps, ExamSampleDataTableProps, ExamSchemaEditorProps, useLogin(), GoogleIcon() (+8 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.24
 Nodes (5): ResultGroupCard(), ResultGroup, formatScore(), ResultTone, StudentExamResultResponse
 
+### Community 12 - "Community 12"
+Cohesion: 0.10
+Nodes (11): buildCreateTablesFromAnswer(), CONSTRAINT_TYPES, createDefaultRubric(), CreateTableRubricEditor(), CreateTableRubricEditorProps, normalizeCreateTablePayload(), SQL_TYPES, ConstraintType (+3 more)
+
 ### Community 13 - "Community 13"
-Cohesion: 0.13
-Nodes (18): generateEntityDescription(), updateEntityDescription(), SpecificationEditViewProps, ExportExamPdfModal(), EntityDescriptionState, EntityDescriptionStatus, ExportExamPdfModalProps, ExportStep (+10 more)
+Cohesion: 0.10
+Nodes (22): submitFeedback(), SpecificationCreateView(), ExportExamPdfModal(), STEP_ITEMS, EntityDescriptionState, EntityDescriptionStatus, ExportExamPdfModalProps, ExportStep (+14 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.17
@@ -201,75 +192,75 @@ Nodes (21): addTeacherToClass(), banStudent(), createClass(), createRulePreset()
 
 ### Community 17 - "Community 17"
 Cohesion: 0.11
-Nodes (19): testGradeSelectData(), validateWhitebox(), createDefaultRubric(), InsertDataRubricEditor(), InsertDataRubricEditorProps, normalizeInsertDataPayload(), GradeDetail, GradeResult (+11 more)
+Nodes (20): buildInsertTablesFromAnswer(), deleteSpecification(), executeSelectTestCaseConfig(), generateEntityDescription(), getWhiteboxCatalog(), saveExamSpecification(), testGradeSelectData(), updateEntityDescription() (+12 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.26
 Nodes (14): ConfirmLeaveDialogProps, ConfirmSubmitDialogProps, RoutineSuggestion, SqlEditorPanelProps, RunTarget, SqlPlaygroundProps, AlertDialogAction, AlertDialogCancel (+6 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.09
-Nodes (17): buildCreateTableSqlFromDdl(), CreateTableQueryFromSpecProps, CreateTableSpecSource, Entity, EntityAttribute, normalizeTableName(), SchemaColumn, SchemaTable (+9 more)
+Cohesion: 0.12
+Nodes (12): buildCreateTableSqlFromDdl(), CreateTableQueryFromSpecProps, CreateTableSpecSource, Entity, EntityAttribute, normalizeTableName(), SchemaColumn, SchemaTable (+4 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.07
 Nodes (27): scripts, build, dev, format, lint, lint-staged, postinstall, prepare (+19 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.19
-Nodes (7): getMe(), AdminHeader(), TeacherHeader(), TeacherNotificationBell(), CreateExamHeaderProps, ModeToggle(), User
+Cohesion: 0.15
+Nodes (8): getMe(), AdminHeader(), TeacherNotificationBell(), CreateExamHeaderProps, ExamHeaderProps, ModeToggle(), StudentHeader(), formatTime()
 
 ### Community 22 - "Community 22"
-Cohesion: 0.10
-Nodes (24): deleteExam(), deleteExamQuestion(), extractQuestionsFromPdf(), forceSubmitStudentExam(), mockQuestions, remindStudent(), updateExam(), updateExamQuestion() (+16 more)
+Cohesion: 0.09
+Nodes (27): deleteExam(), deleteExamQuestion(), forceSubmitStudentExam(), mockQuestions, remindStudent(), updateExamQuestion(), ClassBansSectionProps, ClassDetailViewProps (+19 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.08
 Nodes (23): API Client, Architecture, Auth and Role-Based Routing, Class Utilities, CLAUDE.md — graduation-project-fe, Component Code Order, Component Structure, Constants (+15 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.12
-Nodes (17): buildChart(), compareHistoryRows(), formatScore(), formatSignedScore(), getImprovementTone(), getStatusConfig(), ProgressSummary, ScoreTrendChart() (+9 more)
+Cohesion: 0.11
+Nodes (19): buildChart(), compareHistoryRows(), formatScore(), formatSignedScore(), getImprovementTone(), getStatusConfig(), ProgressSummary, ScoreTrendChart() (+11 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.11
-Nodes (18): exportExamPdfBlob(), fetchExamPdfBlobUrl(), parseContentDispositionFilename(), ExamQuestionsViewProps, ResultSpecification(), ResultSpecificationProps, CreateExamFormProps, detectRelations() (+10 more)
+Cohesion: 0.12
+Nodes (16): exportExamPdfBlob(), fetchExamPdfBlobUrl(), parseContentDispositionFilename(), ResultSpecification(), ResultSpecificationProps, CreateExamFormProps, detectRelations(), DT_COLOR (+8 more)
 
 ### Community 26 - "Community 26"
 Cohesion: 0.47
 Nodes (5): getTeacherExamMonitor(), ExamMonitorPanel(), generateMetadata(), TeacherExamMonitorPage(), TeacherExamMonitorPageProps
 
 ### Community 27 - "Community 27"
-Cohesion: 0.14
-Nodes (13): deleteAllNotifications(), deleteNotification(), getNotifications(), getUnreadNotificationCount(), markAllNotificationsRead(), markNotificationRead(), extractAttemptNumber(), mapDtoToItem() (+5 more)
+Cohesion: 0.13
+Nodes (14): deleteAllNotifications(), deleteNotification(), getNotifications(), getUnreadNotificationCount(), markAllNotificationsRead(), markNotificationRead(), extractAttemptNumber(), mapDtoToItem() (+6 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.16
 Nodes (20): AttachmentBlock, AttachmentItem, BlockBase, BlockDefinition, BlockKind, createBlockId(), createBlocksFromSpecification(), createEmptyAttribute() (+12 more)
 
 ### Community 29 - "Community 29"
-Cohesion: 0.06
-Nodes (38): cloneExamTemplate(), getExamTemplates(), getExamTemplateVersions(), hideExamTemplateLineage(), shareExamAsTemplate(), updateExamTemplateVisibility(), CloneExamTemplateDialog(), ExamQuestionsView() (+30 more)
+Cohesion: 0.14
+Nodes (19): hideExamTemplateLineage(), updateExamTemplateVisibility(), ExamStatusBadge(), ExamQuestionsView(), formatVersionTimestamp(), getStatusMeta(), mapDatabaseInitialization(), mapGradingMethod() (+11 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.16
-Nodes (15): getMyResultFeedback(), AttemptTrend(), buildChart(), formatDelta(), formatScore(), MetricRow(), QuestionFeedbackCard(), scoreTone() (+7 more)
+Cohesion: 0.20
+Nodes (13): AttemptTrend(), buildChart(), formatDelta(), formatScore(), MetricRow(), QuestionFeedbackCard(), scoreTone(), StudentFeedbackView() (+5 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.13
-Nodes (19): ClassDetailView(), ExamStatusBadge(), ErrorSection, getSqlLineCount(), parseErrorSections(), QUESTION_TYPE_LABELS, QuestionCard(), getResultStatusLabel() (+11 more)
+Cohesion: 0.14
+Nodes (16): ErrorSection, getSqlLineCount(), parseErrorSections(), QUESTION_TYPE_LABELS, QuestionCard(), QuestionCardProps, ResultQuestionListProps, getResultStatusLabel() (+8 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.10
 Nodes (19): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+11 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.13
-Nodes (25): login(), loginWithGoogle(), loginWithMicrosoft(), logout(), refreshNewAccessToken(), setAuthCookies(), signUp(), RequestOptions (+17 more)
+Cohesion: 0.14
+Nodes (22): login(), loginWithGoogle(), loginWithMicrosoft(), logout(), refreshNewAccessToken(), setAuthCookies(), signUp(), loginRequest (+14 more)
 
 ### Community 34 - "Community 34"
-Cohesion: 0.13
-Nodes (20): clearPreviewSchema(), getExamPreview(), getPreviewExamQuestions(), initializePreviewSchema(), InitializePreviewSchemaResponse, PreviewSubmitAnswerItem, submitExamPreview(), ConfirmSubmitDialog() (+12 more)
+Cohesion: 0.07
+Nodes (41): clearPreviewSchema(), initializePreviewSchema(), InitializePreviewSchemaResponse, PreviewSubmitAnswerItem, submitExamPreview(), DraftRestoredBanner(), DraftRestoredBannerProps, NetworkStatusBanner() (+33 more)
 
 ### Community 35 - "Community 35"
 Cohesion: 0.11
@@ -284,12 +275,12 @@ Cohesion: 0.06
 Nodes (30): For --cluster-only, For git commit hook, For /graphify add, For /graphify explain, For /graphify path, For /graphify query, For native CLAUDE.md integration, For --update (incremental re-extraction) (+22 more)
 
 ### Community 38 - "Community 38"
-Cohesion: 0.17
-Nodes (11): applyIdentityColumnsFromDdl(), parseDataScript(), parseDataScriptToRowsByTable(), parseSchemaJson(), parseSpecificationToAppState(), parseValuesGroups(), schemaJsonToAppState(), splitSqlList() (+3 more)
+Cohesion: 0.14
+Nodes (10): AdminSidebar(), NAV_ITEMS, TeacherHeader(), NAV_ITEMS, TeacherSidebar(), SidebarNavLink(), SidebarNavLinkProps, NAV_ITEMS (+2 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.19
-Nodes (11): DatasetTableView(), ResizablePanel(), ResizablePanelProps, ButtonSpinner(), PageSpinner(), sizeMap, Spinner(), SpinnerProps (+3 more)
+Cohesion: 0.33
+Nodes (4): ButtonSpinner(), sizeMap, Spinner(), SpinnerProps
 
 ### Community 40 - "Community 40"
 Cohesion: 0.15
@@ -300,72 +291,72 @@ Cohesion: 0.14
 Nodes (17): collectIssueDetails(), collectIssueKeys(), createDefaultTestCase(), GeneratedRubricIssue, issueMatchesTestCase(), normalizeIssueKey(), normalizeRoutinePayload(), normalizeRoutineTestCase() (+9 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.12
-Nodes (19): WhiteboxRuleRow(), ExamTakeHeader(), ExamTakeHeaderProps, formatTime(), Pagination(), PaginationProps, FeedbackDialogProps, Checkbox() (+11 more)
+Cohesion: 0.67
+Nodes (3): ExamTakeHeader(), ExamTakeHeaderProps, formatTime()
 
 ### Community 43 - "Community 43"
-Cohesion: 0.11
-Nodes (20): sendHeartbeat(), clearExamSchema(), DraftResponse, executeSql(), getForwardedHeaders(), PaginationParams, SaveDraftRequest, saveExamDraft() (+12 more)
+Cohesion: 0.12
+Nodes (18): sendHeartbeat(), clearExamSchema(), DraftResponse, executeSql(), getForwardedHeaders(), getMyResultFeedback(), PaginationParams, SaveDraftRequest (+10 more)
 
 ### Community 44 - "Community 44"
 Cohesion: 0.12
 Nodes (16): 10. Commit Message Convention, 1. Core Principles, 2. Naming Conventions, 3. TypeScript Guidelines, 4. Component Structure, 5. Styling Standards (Tailwind CSS 4), 6. Form Handling & Validation, 7. State Management (+8 more)
 
 ### Community 45 - "Community 45"
-Cohesion: 0.10
-Nodes (13): AdminSidebar(), NAV_ITEMS, NAV_ITEMS, TeacherSidebar(), ROLES, UserRole, PATH, metadata (+5 more)
+Cohesion: 0.11
+Nodes (16): SpecificationEditView(), COOKIE_BASE_OPTIONS, ROLES, UserRole, PATH, PRIVATE_PATH, PUBLIC_PATH, metadata (+8 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.29
-Nodes (10): BlurOverlay(), ExamInterface(), ExamWatermark, ExamWatermarkProps, useAntiCheat(), useExamSocket(), useAppDispatch(), useAppSelector (+2 more)
+Cohesion: 0.15
+Nodes (21): BlurOverlay(), VIOLATION_LABELS, VIOLATION_SEVERITY, ViolationType, ExamInterface(), ExamTakeInterface(), ExamWatermark, ExamWatermarkProps (+13 more)
 
 ### Community 47 - "Community 47"
-Cohesion: 0.18
-Nodes (10): useActionLock(), PdfExtractDialogProps, QuestionNavigationProps, QUESTION_TYPE_CONFIG, QuestionPanel(), QuestionPanelProps, QUESTION_TYPE_LABELS, QuestionSidebar() (+2 more)
+Cohesion: 0.20
+Nodes (12): ExamBottomPanelProps, ExamInterfaceProps, ExamSidebarProps, ExamTakeBottomPanel(), ExamTakeBottomPanelProps, ResultPanel(), ResultPanelProps, TableSchema (+4 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.17
-Nodes (12): DraftRestoredBanner(), DraftRestoredBannerProps, NetworkStatusBanner(), NetworkStatusBannerProps, ConfirmLeaveDialog(), ExamTakeInterface(), useExamDraft(), FeedbackDialog() (+4 more)
+Cohesion: 0.20
+Nodes (8): ExamResultsViewProps, MUTATION_COLORS, MutationAnalytics(), MutationAnalyticsProps, ExamMutationAnalytics, MutationStat, QuestionMutationSummary, TeacherExamResult
 
 ### Community 49 - "Community 49"
-Cohesion: 0.07
-Nodes (39): createExam(), getSpecifications(), CreateClassPage(), CreateExamPageClient(), CreateExamPageClientProps, CreateExamView(), CreateExamViewProps, buildExamFormInitialData() (+31 more)
+Cohesion: 0.06
+Nodes (52): createExam(), updateExam(), getSpecificationDetail(), getSpecifications(), createExamWithPdf(), multipartFetch(), updateExamWithPdf(), ClassBansSection() (+44 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.14
-Nodes (13): AdminPaginationParams, getAdminFeedbacks(), getAdminUsers(), updateUserRole(), FeedbackList(), NpsScore(), AdminUserItem, FeedbackItem (+5 more)
+Cohesion: 0.07
+Nodes (28): AdminPaginationParams, getAdminFeedbacks(), getAdminUsers(), updateUserRole(), cloneExamTemplate(), getExamTemplates(), getExamTemplateVersions(), shareExamAsTemplate() (+20 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.08
-Nodes (23): testGradeRoutineData(), CreateTableRubricEditorProps, QuestionFormState, GradeDetail, GradeResult, InsertDataTestGrader(), InsertDataTestGraderProps, GradeDetail (+15 more)
+Cohesion: 0.06
+Nodes (50): testGradeCreateTable(), testGradeInsertData(), testGradeRoutineData(), testGradeTriggerData(), CreateTableQueryFromSpec(), sanitizeSchemaTables(), ExamQuestionsViewProps, QUESTION_TYPES (+42 more)
 
 ### Community 52 - "Community 52"
-Cohesion: 0.17
-Nodes (7): ExamStatisticsDashboard(), getScoreColorClass(), MiniDonutProps, QUESTION_TYPE_ICONS, QUESTION_TYPE_LABELS, RadarChartProps, QuestionTypeAccuracy
+Cohesion: 0.15
+Nodes (9): ExamStatisticsDashboard(), ExamStatisticsDashboardProps, getScoreColorClass(), MiniDonutProps, QUESTION_TYPE_ICONS, QUESTION_TYPE_LABELS, RadarChartProps, ExamStatistics (+1 more)
 
 ### Community 53 - "Community 53"
 Cohesion: 0.23
 Nodes (11): getClassBans(), getClassDetail(), getClassExams(), getClassTeachers(), getStudentsInClass(), ClassDetailPage(), ClassDetailPageProps, generateMetadata() (+3 more)
 
 ### Community 54 - "Community 54"
-Cohesion: 0.27
-Nodes (12): getTeacherExamDetail(), getExamSpecification(), getExamQuestionsByExamId(), getTeacherExamTemplateVersions(), ExamTakePage(), ExamTakePageProps, generateMetadata(), TeacherExamDetailPage() (+4 more)
+Cohesion: 0.24
+Nodes (14): getTeacherExamDetail(), getExamSpecification(), getExamPreview(), getPreviewExamQuestions(), getExamQuestionsByExamId(), getTeacherExamTemplateVersions(), generateMetadata(), TeacherExamDetailPage() (+6 more)
 
 ### Community 55 - "Community 55"
-Cohesion: 0.15
-Nodes (10): calcSide(), computeEdges(), EdgeConfig, HandleSide, nodeTypes, SchemaDiagramData, TableColumn, TableNode (+2 more)
+Cohesion: 0.10
+Nodes (13): StudentCommonBlock, StudentCommonPartView(), StudentCommonPartViewProps, calcSide(), computeEdges(), EdgeConfig, HandleSide, nodeTypes (+5 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.21
-Nodes (14): approveDeviceConflict(), extractErrorMessage(), getExamTime(), getTeacherExamViolations(), rejectDeviceConflict(), reportViolation(), startExamSession(), DeviceConflictDialog() (+6 more)
+Cohesion: 0.16
+Nodes (17): approveDeviceConflict(), extractErrorMessage(), getExamTime(), getTeacherExamViolations(), rejectDeviceConflict(), reportViolation(), startExamSession(), DeviceConflictDialog() (+9 more)
 
 ### Community 57 - "Community 57"
-Cohesion: 0.18
-Nodes (10): VIOLATION_LABELS, VIOLATION_SEVERITY, ViolationType, ExamHeaderProps, antiCheatSlice, AntiCheatState, initialState, ViolationEntry (+2 more)
+Cohesion: 0.31
+Nodes (7): buildFallbackTableScript(), buildForeignKeyScript(), CreateTableQuestionOptions, escapeSqlIdentifier(), generateCreateTableQuestionFromSchema(), GeneratedCreateTableQuestion, topologicalSortTables()
 
 ### Community 58 - "Community 58"
-Cohesion: 0.15
-Nodes (15): getSpecificationDetail(), getTeacherStudentProgress(), findExamMetaFromTeacherClasses(), parseClassId(), parseExamId(), parseSpecificationId(), parseStudentProgressParams(), ResolvedExamMeta (+7 more)
+Cohesion: 0.22
+Nodes (12): getTeacherStudentProgress(), findExamMetaFromTeacherClasses(), parseClassId(), parseExamId(), parseSpecificationId(), parseStudentProgressParams(), ResolvedExamMeta, TeacherBreadcrumbSlot() (+4 more)
 
 ### Community 59 - "Community 59"
 Cohesion: 0.24
@@ -379,97 +370,69 @@ Nodes (11): buildInitial(), calcSide(), computeEdges(), EdgeConfig, HandleSide, 
 Cohesion: 0.19
 Nodes (8): buildChart(), formatImprovement(), formatScore(), getAttemptLimitText(), ProgressSummary, ScoreTrendChart(), StudentResultProgressView(), SummaryMetric()
 
-### Community 62 - "Community 62"
-Cohesion: 0.83
-Nodes (3): createExamWithPdf(), multipartFetch(), updateExamWithPdf()
-
-### Community 63 - "Community 63"
-Cohesion: 0.14
-Nodes (13): buildInsertTablesFromAnswer(), createSpecification(), deleteSpecification(), executeSelectTestCaseConfig(), generateSpecificationSchemaByAI(), generateSpecificationSchemaFromDDL(), saveExamSpecification(), testGradeCreateTable() (+5 more)
-
 ### Community 64 - "Community 64"
-Cohesion: 0.16
-Nodes (13): deleteClass(), getClasses(), restoreClass(), ClassesPageProps, metadata, TeacherClassesPage(), ClassCard(), ClassesList() (+5 more)
+Cohesion: 0.17
+Nodes (13): deleteClass(), getClasses(), restoreClass(), ClassesPageProps, metadata, TeacherClassesPage(), ClassDetailView(), ClassCard() (+5 more)
 
 ### Community 65 - "Community 65"
-Cohesion: 0.23
-Nodes (10): DATA_TYPES, DeniedReviewDialog(), ResultList(), ScrollArea(), ScrollBar(), Select(), SelectContent(), SelectItem() (+2 more)
+Cohesion: 0.14
+Nodes (14): DATA_TYPES, DeniedReviewDialog(), ResultList(), ApiMeta, PaginatedResult, Select(), SelectContent(), SelectItem() (+6 more)
 
 ### Community 66 - "Community 66"
 Cohesion: 0.15
 Nodes (12): AGENTS.md - graduation-project-fe, Auth, Security, and Runtime Context, Backend Contract Context, Commands, Component Rules, Editing Guidance, graphify, Next.js and Data Rules (+4 more)
 
 ### Community 67 - "Community 67"
-Cohesion: 0.22
-Nodes (9): getExamDetail(), getMyResultDetail(), getMyResults(), StudentResultProgressPage(), formatScore(), resolveProgressExamId(), StudentResultDetailPage(), ExamStartPage() (+1 more)
+Cohesion: 0.31
+Nodes (6): getMyResultDetail(), getMyResults(), StudentResultProgressPage(), formatScore(), resolveProgressExamId(), StudentResultDetailPage()
 
 ### Community 68 - "Community 68"
-Cohesion: 0.23
-Nodes (8): ReduxProvider(), ReduxProviderProps, AppDispatch, RootState, store, initialState, sampleSlice, SampleState
+Cohesion: 0.11
+Nodes (16): geistMono, geistSans, metadata, msalInstance, ReduxProvider(), ReduxProviderProps, AppDispatch, RootState (+8 more)
 
 ### Community 69 - "Community 69"
-Cohesion: 0.24
-Nodes (10): generateGradingRubric(), createDefaultCase(), createDefaultRubric(), ensureMinimumCases(), normalizeSelectRubric(), SelectQueryRubricEditor(), SelectQueryRubricEditorProps, TestCaseTabs() (+2 more)
-
-### Community 70 - "Community 70"
-Cohesion: 0.29
-Nodes (9): PRIVATE_PATH, PUBLIC_PATH, buildCsp(), clearAuthCookies(), config, nextWithCsp(), parseExpiryDate(), proxy() (+1 more)
+Cohesion: 0.27
+Nodes (9): createDefaultCase(), createDefaultRubric(), ensureMinimumCases(), normalizeSelectRubric(), SelectQueryRubricEditor(), TestCaseTabs(), TestCaseTabsProps, WhiteboxRulesEditor() (+1 more)
 
 ### Community 71 - "Community 71"
-Cohesion: 0.21
-Nodes (7): ExamEditorProps, ExamInterfaceProps, QuestionListProps, geistMono, SqlEditor(), SqlEditorProps, Question
+Cohesion: 0.24
+Nodes (6): ExamEditorProps, QuestionListProps, geistMono, SqlEditor(), SqlEditorProps, Question
 
 ### Community 72 - "Community 72"
-Cohesion: 0.36
-Nodes (5): getExamDraft(), formatTime(), SaveStatusIndicator(), SaveStatusIndicatorProps, SaveStatus
-
-### Community 73 - "Community 73"
-Cohesion: 0.26
-Nodes (11): ClassBansSection(), ClassBansSectionProps, ClassDetailViewProps, EXAM_STATUS_CONFIG, ClassTeachersSection(), ClassTeachersSectionProps, BannedStudentInfo, ClassDetail (+3 more)
+Cohesion: 0.31
+Nodes (6): getExamDraft(), saveExamDraft(), formatTime(), SaveStatusIndicator(), SaveStatusIndicatorProps, SaveStatus
 
 ### Community 74 - "Community 74"
-Cohesion: 0.24
-Nodes (6): ExamStartInterface(), ExamStartInterfaceProps, localizeError(), FullscreenGate(), FullscreenGateProps, StartExamSessionResponse
+Cohesion: 0.17
+Nodes (10): getExamDetail(), ExamTakePage(), ExamTakePageProps, ExamStartInterface(), localizeError(), FullscreenGateProps, ExamStartPage(), ExamStartPageProps (+2 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.18
-Nodes (10): normalizeTriggerPayload(), toBoolean(), toSyntaxErrorAction(), TriggerRubricEditor(), TriggerRubricEditorProps, MissingPenaltyAction, SyntaxErrorAction, TriggerGradingSettings (+2 more)
+Nodes (10): generateGradingRubric(), normalizeTriggerPayload(), toBoolean(), toSyntaxErrorAction(), TriggerRubricEditorProps, MissingPenaltyAction, SyntaxErrorAction, TriggerGradingSettings (+2 more)
 
 ### Community 76 - "Community 76"
-Cohesion: 0.26
-Nodes (7): EntitiesEditorProps, ResultPanel(), ResultPanelProps, EntitiesEditor(), EntitiesEditorProps, SpecificationEntity, SpecificationEntityAttribute
-
-### Community 77 - "Community 77"
-Cohesion: 0.35
-Nodes (5): LoginForm(), useLogin(), GoogleIcon(), MicrosoftIcon(), LoginForm()
+Cohesion: 0.43
+Nodes (5): EntitiesEditorProps, EntitiesEditor(), EntitiesEditorProps, SpecificationEntity, SpecificationEntityAttribute
 
 ### Community 78 - "Community 78"
 Cohesion: 0.29
 Nodes (6): lint-staged, src/**/*.{ts,js,tsx}, name, private, type, version
 
-### Community 80 - "Community 80"
-Cohesion: 0.36
-Nodes (7): useBuilderContext(), DatasetEditor(), Header(), DatabaseBuilderInner(), DatabaseBuilderProps, SchemaEditor(), Sidebar()
-
 ### Community 81 - "Community 81"
-Cohesion: 0.28
-Nodes (7): QuestionCardProps, formatScore(), QuestionResultCard(), ResultQuestionList(), ResultQuestionListProps, SqlViewer(), QuestionResultDetail
+Cohesion: 0.27
+Nodes (7): formatScore(), QuestionResultCard(), ResultQuestionList(), SqlViewer(), Badge(), BadgeProps, badgeVariants
 
 ### Community 82 - "Community 82"
 Cohesion: 0.31
 Nodes (11): BLOCK_REGISTRY, ExamBlock, SqlDdlBlock, SqlDmlBlock, ExistingScriptOption, resolveScriptToRun(), ScriptSourceMode, ScriptPickerDialogProps (+3 more)
 
 ### Community 83 - "Community 83"
-Cohesion: 0.32
-Nodes (7): getExamResults(), getExamStatistics(), ExamResultsView(), ExamStatisticsDashboardProps, ExamResultsPage(), ExamResultsPageProps, ExamStatistics
+Cohesion: 0.43
+Nodes (6): getExamMutationAnalytics(), getExamResults(), getExamStatistics(), ExamResultsView(), ExamResultsPage(), ExamResultsPageProps
 
 ### Community 84 - "Community 84"
 Cohesion: 0.50
 Nodes (3): ExamFormInput, ExamFormValues, examSchema
-
-### Community 85 - "Community 85"
-Cohesion: 0.20
-Nodes (8): geistMono, geistSans, metadata, msalInstance, AuthProviders(), AuthProvidersProps, TeacherNotificationHandler(), ThemeProvider()
 
 ### Community 97 - "Community 97"
 Cohesion: 0.36
@@ -479,33 +442,25 @@ Nodes (6): getEnrolledExams(), ExamList(), ExamListProps, ExamStatusBadge(), Stu
 Cohesion: 0.67
 Nodes (3): getExamQuestions(), ExamPage(), tables
 
-### Community 101 - "Community 101"
-Cohesion: 0.25
-Nodes (3): StudentCommonBlock, StudentCommonPartView(), StudentCommonPartViewProps
-
-### Community 102 - "Community 102"
-Cohesion: 0.38
-Nodes (6): getWhiteboxPresets(), WHITEBOX_PRESETS, WhiteboxPreset, WhiteboxPresetRule, WhiteboxPenaltyUnit, WhiteboxSeverity
-
 ## Knowledge Gaps
-- **494 isolated node(s):** `config`, `name`, `version`, `private`, `type` (+489 more)
+- **496 isolated node(s):** `config`, `name`, `version`, `private`, `type` (+491 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `cn()` connect `Community 42` to `Community 5`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 17`, `Community 18`, `Community 24`, `Community 25`, `Community 29`, `Community 30`, `Community 31`, `Community 34`, `Community 39`, `Community 45`, `Community 47`, `Community 48`, `Community 49`, `Community 50`, `Community 55`, `Community 59`, `Community 60`, `Community 61`, `Community 64`, `Community 65`, `Community 67`, `Community 76`, `Community 79`, `Community 81`, `Community 97`?**
-  _High betweenness centrality (0.060) - this node is a cross-community bridge._
-- **Why does `Button` connect `Community 5` to `Community 0`, `Community 6`, `Community 7`, `Community 8`, `Community 10`, `Community 11`, `Community 13`, `Community 17`, `Community 18`, `Community 19`, `Community 21`, `Community 27`, `Community 28`, `Community 29`, `Community 30`, `Community 31`, `Community 34`, `Community 41`, `Community 42`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 51`, `Community 56`, `Community 57`, `Community 60`, `Community 61`, `Community 64`, `Community 65`, `Community 67`, `Community 69`, `Community 71`, `Community 73`, `Community 74`, `Community 75`, `Community 76`, `Community 77`, `Community 80`, `Community 97`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
-- **Why does `PATH` connect `Community 45` to `Community 0`, `Community 1`, `Community 5`, `Community 8`, `Community 10`, `Community 18`, `Community 21`, `Community 24`, `Community 26`, `Community 29`, `Community 30`, `Community 33`, `Community 34`, `Community 48`, `Community 49`, `Community 53`, `Community 54`, `Community 58`, `Community 61`, `Community 64`, `Community 65`, `Community 67`, `Community 70`, `Community 73`, `Community 74`, `Community 97`?**
-  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Why does `cn()` connect `Community 8` to `Community 5`, `Community 7`, `Community 9`, `Community 10`, `Community 11`, `Community 13`, `Community 17`, `Community 18`, `Community 24`, `Community 25`, `Community 27`, `Community 29`, `Community 30`, `Community 31`, `Community 34`, `Community 38`, `Community 39`, `Community 42`, `Community 46`, `Community 47`, `Community 49`, `Community 50`, `Community 51`, `Community 55`, `Community 59`, `Community 60`, `Community 61`, `Community 64`, `Community 65`, `Community 67`, `Community 79`, `Community 81`, `Community 97`?**
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `Button` connect `Community 5` to `Community 0`, `Community 1`, `Community 6`, `Community 7`, `Community 8`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 17`, `Community 18`, `Community 19`, `Community 21`, `Community 27`, `Community 28`, `Community 29`, `Community 30`, `Community 31`, `Community 34`, `Community 41`, `Community 42`, `Community 43`, `Community 46`, `Community 49`, `Community 50`, `Community 51`, `Community 56`, `Community 60`, `Community 61`, `Community 64`, `Community 65`, `Community 67`, `Community 69`, `Community 71`, `Community 74`, `Community 75`, `Community 76`, `Community 97`?**
+  _High betweenness centrality (0.035) - this node is a cross-community bridge._
+- **Why does `PATH` connect `Community 45` to `Community 1`, `Community 5`, `Community 8`, `Community 10`, `Community 18`, `Community 21`, `Community 24`, `Community 26`, `Community 29`, `Community 30`, `Community 33`, `Community 34`, `Community 38`, `Community 43`, `Community 49`, `Community 51`, `Community 53`, `Community 54`, `Community 58`, `Community 61`, `Community 64`, `Community 65`, `Community 67`, `Community 74`, `Community 97`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **What connects `config`, `name`, `version` to the rest of the system?**
-  _494 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.09009009009009009 - nodes in this community are weakly interconnected._
+  _496 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 1` be split into smaller, more focused modules?**
+  _Cohesion score 0.0784313725490196 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.041666666666666664 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
-  _Cohesion score 0.043478260869565216 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05128205128205128 - nodes in this community are weakly interconnected._
