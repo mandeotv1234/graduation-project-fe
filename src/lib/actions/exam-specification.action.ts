@@ -190,8 +190,6 @@ export async function testGradeCreateTable(data: {
     blackboxScore?: number | null
     whiteboxDeduction?: number | null
     details: { type: string; message: string; points: number }[]
-    blackboxScore?: number | null
-    whiteboxDeduction?: number | null
     finalScore?: number | null
   }>
 > {
