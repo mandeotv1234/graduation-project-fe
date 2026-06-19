@@ -298,6 +298,102 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
         penaltyUnit: PCT
       }
     ]
+  },
+
+  // ---- INSERT_DATA presets ----
+  {
+    id: 'insert-basic-safety',
+    name: 'INSERT an toàn cơ bản',
+    description:
+      'Cấm tự tắt ràng buộc/trigger, cấm IDENTITY_INSERT và bắt buộc ghi danh sách cột.',
+    questionType: 'INSERT_DATA',
+    rules: [
+      {
+        ruleId: 'FORBIDDEN_NOCHECK_CONSTRAINT',
+        severity: DEDUCT,
+        penaltyValue: 25,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_IDENTITY_INSERT',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_DISABLE_TRIGGER',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'REQUIRED_COLUMN_LIST',
+        severity: WARN,
+        penaltyValue: 10,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+  {
+    id: 'insert-strict-data-only',
+    name: 'INSERT thuần dữ liệu',
+    description:
+      'Chỉ cho phép kịch bản INSERT rõ ràng, cấm INSERT SELECT, UPDATE/DELETE, MERGE và TRUNCATE.',
+    questionType: 'INSERT_DATA',
+    rules: [
+      {
+        ruleId: 'REQUIRED_COLUMN_LIST',
+        severity: DEDUCT,
+        penaltyValue: 10,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_INSERT_SELECT',
+        severity: DEDUCT,
+        penaltyValue: 15,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_UPDATE_DELETE',
+        severity: DEDUCT,
+        penaltyValue: 25,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_MERGE',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_TRUNCATE',
+        severity: DEDUCT,
+        penaltyValue: 25,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+  {
+    id: 'insert-compact-script',
+    name: 'Giới hạn script INSERT',
+    description:
+      'Bắt buộc danh sách cột và giới hạn số câu lệnh để tránh script vòng vèo.',
+    questionType: 'INSERT_DATA',
+    rules: [
+      {
+        ruleId: 'REQUIRED_COLUMN_LIST',
+        severity: DEDUCT,
+        penaltyValue: 10,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'MAX_STATEMENTS',
+        severity: DEDUCT,
+        penaltyValue: 10,
+        penaltyUnit: PCT,
+        params: { max_statements: 5 }
+      }
+    ]
   }
 ]
 

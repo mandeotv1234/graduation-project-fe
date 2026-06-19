@@ -6,7 +6,10 @@ import { buildInsertTablesFromAnswer } from '@/lib/actions'
 import {
   GradingRubric,
   InsertDataExpectedDataset,
-  InsertDataGradingRule
+  InsertDataGradingPayload,
+  InsertDataGradingRule,
+  WhiteboxRule,
+  WhiteboxSettings
 } from '@/lib/types'
 import {
   Check,
@@ -23,6 +26,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { GradingRulesEditor } from './grading-rules-editor'
+import { WhiteboxRulesEditor } from './whitebox-rules-editor'
 
 // ===== Default factories =====
 
@@ -32,33 +36,51 @@ function createDefaultRubric(totalPoints: number): GradingRubric {
     question_category: 'INSERT_DATA',
     grading_payload: {
       grading_rules: [],
-      tables: []
+      tables: [],
+      whitebox_rules: [],
+      whitebox_settings: {}
     }
   }
 }
 
-function normalizeInsertDataPayload(
-  payload: GradingRubric['grading_payload'] | undefined
-): {
+type NormalizedInsertDataPayload = InsertDataGradingPayload & {
   grading_rules: InsertDataGradingRule[]
   tables: InsertDataExpectedDataset[]
-} {
+  whitebox_rules: WhiteboxRule[]
+  whitebox_settings: WhiteboxSettings
+}
+
+function normalizeInsertDataPayload(
+  payload: GradingRubric['grading_payload'] | undefined
+): NormalizedInsertDataPayload {
   if (!payload || typeof payload !== 'object') {
     return {
       grading_rules: [],
-      tables: []
+      tables: [],
+      whitebox_rules: [],
+      whitebox_settings: {}
     }
   }
 
   const payloadRecord = payload as Record<string, unknown>
 
   return {
+    ...(payloadRecord as Partial<InsertDataGradingPayload>),
     grading_rules: Array.isArray(payloadRecord.grading_rules)
       ? (payloadRecord.grading_rules as InsertDataGradingRule[])
       : [],
     tables: Array.isArray(payloadRecord.tables)
       ? (payloadRecord.tables as InsertDataExpectedDataset[])
-      : []
+      : [],
+    whitebox_rules: Array.isArray(payloadRecord.whitebox_rules)
+      ? (payloadRecord.whitebox_rules as WhiteboxRule[])
+      : [],
+    whitebox_settings:
+      payloadRecord.whitebox_settings &&
+      typeof payloadRecord.whitebox_settings === 'object' &&
+      !Array.isArray(payloadRecord.whitebox_settings)
+        ? (payloadRecord.whitebox_settings as WhiteboxSettings)
+        : {}
   }
 }
 
@@ -90,9 +112,14 @@ export function InsertDataRubricEditor({
     rubricRef.current = currentRubric
   }, [currentRubric])
 
-  const payload = normalizeInsertDataPayload(currentRubric.grading_payload)
+  const payload = useMemo(
+    () => normalizeInsertDataPayload(currentRubric.grading_payload),
+    [currentRubric.grading_payload]
+  )
   const gradingRules = payload.grading_rules
   const tables = payload.tables
+  const whiteboxRules = payload.whitebox_rules
+  const whiteboxSettings = payload.whitebox_settings
 
   // ===== Helper to update rubric immutably =====
   const updateRubric = useCallback(
@@ -112,6 +139,7 @@ export function InsertDataRubricEditor({
         total_points: totalPoints,
         question_category: 'INSERT_DATA',
         grading_payload: {
+          ...normalizedPayload,
           grading_rules: normalizedPayload.grading_rules,
           tables: newTables
         }
@@ -127,8 +155,28 @@ export function InsertDataRubricEditor({
         total_points: totalPoints,
         question_category: 'INSERT_DATA',
         grading_payload: {
+          ...normalizedPayload,
           grading_rules: newRules,
           tables: normalizedPayload.tables
+        }
+      }
+    })
+  }
+
+  const setWhitebox = (
+    nextRules: WhiteboxRule[],
+    nextSettings: WhiteboxSettings
+  ) => {
+    updateRubric((r) => {
+      const normalizedPayload = normalizeInsertDataPayload(r.grading_payload)
+      return {
+        ...r,
+        total_points: totalPoints,
+        question_category: 'INSERT_DATA',
+        grading_payload: {
+          ...normalizedPayload,
+          whitebox_rules: nextRules,
+          whitebox_settings: nextSettings
         }
       }
     })
@@ -180,11 +228,21 @@ export function InsertDataRubricEditor({
       question_category: 'INSERT_DATA',
       total_points: totalPoints,
       grading_payload: {
+        ...payload,
         grading_rules: gradingRules,
-        tables
+        tables,
+        whitebox_rules: whiteboxRules,
+        whitebox_settings: whiteboxSettings
       }
     }),
-    [totalPoints, gradingRules, tables]
+    [
+      totalPoints,
+      payload,
+      gradingRules,
+      tables,
+      whiteboxRules,
+      whiteboxSettings
+    ]
   )
 
   useEffect(() => {
@@ -284,12 +342,24 @@ export function InsertDataRubricEditor({
           total_points: totalPoints,
           question_category: 'INSERT_DATA',
           grading_payload: {
+            ...normalizeInsertDataPayload(
+              parsedPayload as GradingRubric['grading_payload']
+            ),
             grading_rules: Array.isArray(parsedPayload.grading_rules)
               ? (parsedPayload.grading_rules as InsertDataGradingRule[])
               : [],
             tables: Array.isArray(parsedPayload.tables)
               ? (parsedPayload.tables as InsertDataExpectedDataset[])
-              : []
+              : [],
+            whitebox_rules: Array.isArray(parsedPayload.whitebox_rules)
+              ? (parsedPayload.whitebox_rules as WhiteboxRule[])
+              : [],
+            whitebox_settings:
+              parsedPayload.whitebox_settings &&
+              typeof parsedPayload.whitebox_settings === 'object' &&
+              !Array.isArray(parsedPayload.whitebox_settings)
+                ? (parsedPayload.whitebox_settings as WhiteboxSettings)
+                : {}
           }
         }
       })
@@ -387,6 +457,17 @@ export function InsertDataRubricEditor({
           correctQuery={correctQuery}
           questionContent={questionContent}
           contextSummary={tableContextSummary}
+        />
+      )}
+
+      {(!isWizardMode || wizardStep === 4) && (
+        <WhiteboxRulesEditor
+          questionType="INSERT_DATA"
+          totalPoints={totalPoints}
+          rules={whiteboxRules}
+          settings={whiteboxSettings}
+          onChange={setWhitebox}
+          sqlForPreview={correctQuery}
         />
       )}
 

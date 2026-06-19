@@ -125,9 +125,29 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   }, [editorSchema, schemaMeta])
 
   const schemaDiagramData = useMemo(() => {
-    if (!schemaMeta || schemaMeta.length === 0) return null
-    return JSON.stringify(buildInitialSchemaDiagram(schemaMeta))
-  }, [schemaMeta])
+    const schemaForDiagram =
+      schemaMeta && schemaMeta.length > 0
+        ? schemaMeta
+        : schemaTablesForOverview.length > 0
+          ? (schemaTablesForOverview.map((table) => ({
+              tableName: table.tableName,
+              columns: table.columns.map((col) => ({
+                columnName: col.name,
+                dataType: col.type,
+                primaryKey: col.primaryKey,
+                nullable: col.nullable,
+                foreignKey: col.foreignKey,
+                referencesTable: col.referencesTable,
+                referencesColumn: col.referencesColumn,
+                unique: col.unique,
+                autoIncrement: col.autoIncrement
+              }))
+            })) as ExecuteSqlResponse['schema'])
+          : null
+
+    if (!schemaForDiagram || schemaForDiagram.length === 0) return null
+    return JSON.stringify(buildInitialSchemaDiagram(schemaForDiagram))
+  }, [schemaMeta, schemaTablesForOverview])
 
   const applySchemaMeta = useCallback(
     (
@@ -284,7 +304,6 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   useEffect(() => {
     if (exam.schema && exam.schema.length > 0) {
       applySchemaMeta(exam.schema)
-      return
     }
 
     // Đề có thể vừa có PDF (hiển thị đề bài) vừa có đặc tả spec.
@@ -654,7 +673,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                       </button>
                     </div>
                   </div>
-                  <ScrollArea className="min-h-0 flex-1">
+                  <div className="min-h-0 flex-1 overflow-auto">
                     {specViewMode === 'table' ? (
                       <div className="space-y-2 p-2">
                         {schemaTablesForOverview.length > 0 ? (
@@ -666,45 +685,47 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                               <div className="border-b border-border bg-muted/30 px-2 py-1.5 text-xs font-semibold text-primary">
                                 {table.tableName}
                               </div>
-                              <table className="w-full text-xs">
-                                <thead className="bg-muted/20 text-muted-foreground">
-                                  <tr>
-                                    <th className="border-b border-r border-border px-2 py-1.5 text-left">
-                                      Cột
-                                    </th>
-                                    <th className="border-b border-r border-border px-2 py-1.5 text-left">
-                                      Kiểu
-                                    </th>
-                                    <th className="border-b border-border px-2 py-1.5 text-left">
-                                      Ràng buộc
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {table.columns.map((col) => (
-                                    <tr
-                                      key={`${table.tableName}-${col.name}`}
-                                      className="odd:bg-background even:bg-muted/10"
-                                    >
-                                      <td className="border-r border-border px-2 py-1 font-medium text-foreground">
-                                        {col.name}
-                                      </td>
-                                      <td className="border-r border-border px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                                        {col.type}
-                                      </td>
-                                      <td className="px-2 py-1 text-[10px] text-muted-foreground">
-                                        {[
-                                          col.primaryKey ? 'PK' : null,
-                                          col.foreignKey ? 'FK' : null,
-                                          !col.nullable ? 'NOT NULL' : null
-                                        ]
-                                          .filter(Boolean)
-                                          .join(' · ')}
-                                      </td>
+                              <div className="overflow-x-auto">
+                                <table className="min-w-[520px] w-full border-collapse text-xs">
+                                  <thead className="bg-muted/20 text-muted-foreground">
+                                    <tr>
+                                      <th className="border-b border-r border-border px-2 py-1.5 text-left">
+                                        Cột
+                                      </th>
+                                      <th className="border-b border-r border-border px-2 py-1.5 text-left">
+                                        Kiểu
+                                      </th>
+                                      <th className="border-b border-border px-2 py-1.5 text-left">
+                                        Ràng buộc
+                                      </th>
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                  </thead>
+                                  <tbody>
+                                    {table.columns.map((col) => (
+                                      <tr
+                                        key={`${table.tableName}-${col.name}`}
+                                        className="odd:bg-background even:bg-muted/10"
+                                      >
+                                        <td className="border-r border-border px-2 py-1 font-medium text-foreground whitespace-nowrap">
+                                          {col.name}
+                                        </td>
+                                        <td className="border-r border-border px-2 py-1 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
+                                          {col.type}
+                                        </td>
+                                        <td className="px-2 py-1 text-[10px] text-muted-foreground whitespace-nowrap">
+                                          {[
+                                            col.primaryKey ? 'PK' : null,
+                                            col.foreignKey ? 'FK' : null,
+                                            !col.nullable ? 'NOT NULL' : null
+                                          ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
                             </div>
                           ))
                         ) : (
@@ -712,12 +733,43 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                             Chưa có thông tin schema
                           </div>
                         )}
+
+                        {examSpecification?.datasets?.length ? (
+                          <div className="space-y-3 pt-2">
+                            <div className="border-t border-border pt-3">
+                              <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                                Dữ liệu mẫu trong bảng
+                              </h4>
+                              <p className="text-[11px] text-muted-foreground">
+                                Hiển thị theo dataset hiện có của đề
+                              </p>
+                            </div>
+                            {examSpecification.datasets
+                              .slice()
+                              .sort((a, b) => a.orderIndex - b.orderIndex)
+                              .map((dataset, idx) => (
+                                <section
+                                  key={`${dataset.id ?? idx}-${dataset.name}`}
+                                  className="space-y-2"
+                                >
+                                  <h4 className="text-xs font-semibold text-foreground">
+                                    Dataset: {dataset.name}
+                                  </h4>
+                                  <DatasetTableView
+                                    sql={dataset.dataScript}
+                                    tableData={dataset.tableData}
+                                  />
+                                </section>
+                              ))}
+                          </div>
+                        ) : null}
                       </div>
                     ) : (
-                      <div className="min-h-[300px]">
+                      <div className="h-full min-h-full min-w-[720px]">
                         {schemaDiagramData ? (
                           <TeacherSchemaDiagram
                             diagramData={schemaDiagramData}
+                            readOnly
                             className="h-full border-0 rounded-none"
                           />
                         ) : (
@@ -727,7 +779,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                         )}
                       </div>
                     )}
-                  </ScrollArea>
+                  </div>
                 </div>
               )}
             </div>
@@ -1040,61 +1092,63 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                                         <div className="border-b border-border bg-muted/30 px-3 py-2 text-sm font-semibold text-primary">
                                           {table.tableName}
                                         </div>
-                                        <table className="w-full text-xs">
-                                          <thead className="bg-muted/20 text-muted-foreground">
-                                            <tr>
-                                              <th className="border-b border-r border-border px-3 py-2 text-left">
-                                                Cột
-                                              </th>
-                                              <th className="border-b border-r border-border px-3 py-2 text-left">
-                                                Kiểu dữ liệu
-                                              </th>
-                                              <th className="border-b border-border px-3 py-2 text-left">
-                                                Ràng buộc
-                                              </th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {table.columns.map((col) => (
-                                              <tr
-                                                key={`${table.tableName}-${col.name}`}
-                                                className="odd:bg-background even:bg-muted/10"
-                                              >
-                                                <td className="border-r border-border px-3 py-2 font-medium text-foreground">
-                                                  {col.name}
-                                                </td>
-                                                <td className="border-r border-border px-3 py-2 font-mono text-muted-foreground">
-                                                  {col.type}
-                                                </td>
-                                                <td className="px-3 py-2 text-muted-foreground">
-                                                  {[
-                                                    col.primaryKey
-                                                      ? 'PK'
-                                                      : null,
-                                                    col.foreignKey
-                                                      ? `FK${
-                                                          col.referencesTable
-                                                            ? ` -> ${col.referencesTable}.${col.referencesColumn || ''}`
-                                                            : ''
-                                                        }`
-                                                      : null,
-                                                    col.unique
-                                                      ? 'UNIQUE'
-                                                      : null,
-                                                    col.autoIncrement
-                                                      ? 'AUTO_INCREMENT'
-                                                      : null,
-                                                    !col.nullable
-                                                      ? 'NOT NULL'
-                                                      : 'NULL'
-                                                  ]
-                                                    .filter(Boolean)
-                                                    .join(' · ')}
-                                                </td>
+                                        <div className="overflow-x-auto">
+                                          <table className="min-w-[640px] w-full border-collapse text-xs">
+                                            <thead className="bg-muted/20 text-muted-foreground">
+                                              <tr>
+                                                <th className="border-b border-r border-border px-3 py-2 text-left">
+                                                  Cột
+                                                </th>
+                                                <th className="border-b border-r border-border px-3 py-2 text-left">
+                                                  Kiểu dữ liệu
+                                                </th>
+                                                <th className="border-b border-border px-3 py-2 text-left">
+                                                  Ràng buộc
+                                                </th>
                                               </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
+                                            </thead>
+                                            <tbody>
+                                              {table.columns.map((col) => (
+                                                <tr
+                                                  key={`${table.tableName}-${col.name}`}
+                                                  className="odd:bg-background even:bg-muted/10"
+                                                >
+                                                  <td className="border-r border-border px-3 py-2 font-medium text-foreground whitespace-nowrap">
+                                                    {col.name}
+                                                  </td>
+                                                  <td className="border-r border-border px-3 py-2 font-mono text-muted-foreground whitespace-nowrap">
+                                                    {col.type}
+                                                  </td>
+                                                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                                                    {[
+                                                      col.primaryKey
+                                                        ? 'PK'
+                                                        : null,
+                                                      col.foreignKey
+                                                        ? `FK${
+                                                            col.referencesTable
+                                                              ? ` -> ${col.referencesTable}.${col.referencesColumn || ''}`
+                                                              : ''
+                                                          }`
+                                                        : null,
+                                                      col.unique
+                                                        ? 'UNIQUE'
+                                                        : null,
+                                                      col.autoIncrement
+                                                        ? 'AUTO_INCREMENT'
+                                                        : null,
+                                                      !col.nullable
+                                                        ? 'NOT NULL'
+                                                        : 'NULL'
+                                                    ]
+                                                      .filter(Boolean)
+                                                      .join(' · ')}
+                                                  </td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
                                       </div>
                                     ))
                                   ) : (
@@ -1119,6 +1173,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                                 {schemaDiagramData ? (
                                   <TeacherSchemaDiagram
                                     diagramData={schemaDiagramData}
+                                    readOnly
                                     className="h-full border-0 rounded-none"
                                   />
                                 ) : (
@@ -1140,7 +1195,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                               Hiển thị theo dataset hiện có của đề
                             </p>
                           </div>
-                          <ScrollArea className="h-full min-h-0 flex-1 p-3">
+                          <div className="min-h-0 flex-1 overflow-auto p-3">
                             {examSpecification?.datasets?.length ? (
                               <div className="space-y-4">
                                 {examSpecification.datasets
@@ -1166,7 +1221,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                                 Chưa có dữ liệu mẫu để hiển thị
                               </div>
                             )}
-                          </ScrollArea>
+                          </div>
                         </section>
                       </div>
                     </div>

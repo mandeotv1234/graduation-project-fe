@@ -25,6 +25,9 @@ interface GradeResult {
   totalPoints: number
   earnedPoints: number
   allPassed: boolean
+  totalDeductions?: number | null
+  blackboxScore?: number | null
+  whiteboxDeduction?: number | null
   details: GradeDetail[]
 }
 
@@ -128,6 +131,10 @@ export function InsertDataTestGrader({
   const scorePercent = result
     ? (result.earnedPoints / result.totalPoints) * 100
     : 0
+  const hasScoreBreakdown =
+    result &&
+    typeof result.blackboxScore === 'number' &&
+    typeof result.whiteboxDeduction === 'number'
 
   return (
     <div className="space-y-4">
@@ -196,6 +203,28 @@ export function InsertDataTestGrader({
                 style={{ width: `${Math.min(100, scorePercent)}%` }}
               />
             </div>
+            {hasScoreBreakdown && (
+              <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                <div className="rounded-md border border-border bg-background px-3 py-2">
+                  <div className="font-semibold text-foreground">
+                    {Number(result.blackboxScore).toFixed(2)}
+                  </div>
+                  <div>Black-box</div>
+                </div>
+                <div className="rounded-md border border-border bg-background px-3 py-2">
+                  <div className="font-semibold text-red-600 dark:text-red-400">
+                    -{Number(result.whiteboxDeduction).toFixed(2)}
+                  </div>
+                  <div>White-box</div>
+                </div>
+                <div className="rounded-md border border-border bg-background px-3 py-2">
+                  <div className="font-semibold text-foreground">
+                    {Number(result.earnedPoints).toFixed(2)}
+                  </div>
+                  <div>Điểm cuối</div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Detail breakdown */}
