@@ -13,12 +13,12 @@ export interface SystemRulePreset {
   rules: InsertDataGradingRule[]
 }
 
-const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
+export const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
   {
     id: 'system-create-table-default',
-    name: 'Mẫu hệ thống - CREATE TABLE',
+    name: 'Mẫu hệ thống mặc định - CREATE TABLE',
     description:
-      'Bộ quy tắc mặc định cho lỗi thiếu/thừa bảng, cột, sai kiểu dữ liệu và sai ràng buộc.',
+      'Bộ quy tắc mặc định dựa trên % tỉ trọng điểm của bảng/câu hỏi.',
     questionType: 'CREATE_TABLE',
     rules: [
       {
@@ -26,8 +26,8 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         target: 'TABLE',
         condition: 'IS_MISSING',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.5,
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 100,
         description: 'Thiếu bảng bắt buộc thì trừ điểm.'
       },
       {
@@ -35,8 +35,8 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         target: 'TABLE',
         condition: 'IS_EXTRA',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.2,
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 10,
         description: 'Tạo thêm bảng không nằm trong đáp án thì trừ điểm.'
       },
       {
@@ -44,8 +44,8 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         target: 'COLUMN',
         condition: 'IS_MISSING',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.25,
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 15,
         description: 'Thiếu cột bắt buộc thì trừ điểm.'
       },
       {
@@ -53,35 +53,54 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         target: 'COLUMN',
         condition: 'IS_EXTRA',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.1,
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 15,
         description: 'Khai báo thêm cột không yêu cầu thì trừ điểm.'
       },
       {
-        rule_name: 'Sai kiểu dữ liệu cột',
+        rule_name: 'Sai họ kiểu dữ liệu',
         target: 'DATA_TYPE',
-        condition: 'TYPE_MISMATCH',
+        condition: 'FAMILY_MISMATCH',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.2,
-        description: 'Kiểu dữ liệu cột không khớp đáp án thì trừ điểm.'
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 15,
+        description: 'Kiểu dữ liệu cột sai họ thì trừ điểm.'
       },
       {
-        rule_name: 'Sai thứ tự cột',
-        target: 'COLUMN_ORDER',
-        condition: 'OUT_OF_ORDER',
+        rule_name: 'Sai kích thước/chi tiết kiểu',
+        target: 'DATA_TYPE',
+        condition: 'SIZE_MISMATCH',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.05,
-        description: 'Thứ tự cột sai so với đáp án thì trừ điểm.'
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 5,
+        description: 'Kiểu dữ liệu cùng họ nhưng sai kích thước thì trừ điểm.'
+      },
+      {
+        rule_name: 'Sai NULL/NOT NULL',
+        target: 'NULLABILITY',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 5,
+        description:
+          'Cột khai báo NULL/NOT NULL sai so với đáp án thì trừ điểm.'
+      },
+      {
+        rule_name: 'Sai identity',
+        target: 'IDENTITY',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 5,
+        description: 'Cột khai báo IDENTITY sai so với đáp án thì trừ điểm.'
       },
       {
         rule_name: 'Thiếu khóa chính',
         target: 'PRIMARY_KEY',
         condition: 'IS_MISSING',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.35,
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 20,
         description: 'Thiếu khóa chính thì trừ điểm.'
       },
       {
@@ -89,17 +108,26 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         target: 'PRIMARY_KEY',
         condition: 'IS_EXTRA',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.1,
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 10,
         description: 'Khai báo khóa chính thừa so với đáp án thì trừ điểm.'
+      },
+      {
+        rule_name: 'Sai cột khóa chính',
+        target: 'PRIMARY_KEY',
+        condition: 'MISMATCH',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 20,
+        description: 'Khóa chính khai báo sai cột so với đáp án thì trừ điểm.'
       },
       {
         rule_name: 'Thiếu khóa ngoại',
         target: 'FOREIGN_KEY',
         condition: 'IS_MISSING',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.3,
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 20,
         description: 'Thiếu khóa ngoại bắt buộc thì trừ điểm.'
       },
       {
@@ -107,36 +135,90 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         target: 'FOREIGN_KEY',
         condition: 'IS_EXTRA',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.1,
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 10,
         description: 'Khai báo khóa ngoại thừa thì trừ điểm.'
       },
       {
         rule_name: 'Sai tham chiếu khóa ngoại',
         target: 'FOREIGN_KEY',
-        condition: 'REFERENCE_ERROR',
+        condition: 'MISMATCH',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.3,
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 15,
         description: 'Khóa ngoại tham chiếu sai bảng/cột thì trừ điểm.'
       },
       {
-        rule_name: 'Thiếu ràng buộc cục bộ',
-        target: 'CONSTRAINT_LOCAL',
+        rule_name: 'Thiếu UNIQUE',
+        target: 'UNIQUE',
         condition: 'IS_MISSING',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.15,
-        description: 'Thiếu ràng buộc cục bộ quan trọng thì trừ điểm.'
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 0,
+        description: 'Thiếu UNIQUE constraint so với đáp án.'
       },
       {
-        rule_name: 'Thừa ràng buộc cục bộ',
-        target: 'CONSTRAINT_LOCAL',
+        rule_name: 'Thừa UNIQUE',
+        target: 'UNIQUE',
         condition: 'IS_EXTRA',
         modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.05,
-        description: 'Ràng buộc cục bộ thừa so với đáp án thì trừ điểm.'
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 0,
+        description: 'Tạo thêm UNIQUE constraint không có trong đáp án.'
+      },
+      {
+        rule_name: 'Thiếu CHECK',
+        target: 'CHECK',
+        condition: 'IS_MISSING',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 0,
+        description: 'Thiếu CHECK constraint so với đáp án.'
+      },
+      {
+        rule_name: 'Thừa CHECK',
+        target: 'CHECK',
+        condition: 'IS_EXTRA',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 0,
+        description: 'Tạo thêm CHECK constraint không có trong đáp án.'
+      },
+      {
+        rule_name: 'Sai biểu thức CHECK',
+        target: 'CHECK',
+        condition: 'EXPRESSION_MISMATCH',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 0,
+        description: 'CHECK constraint đúng đối tượng nhưng biểu thức sai.'
+      },
+      {
+        rule_name: 'Thiếu DEFAULT',
+        target: 'DEFAULT',
+        condition: 'IS_MISSING',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 0,
+        description: 'Thiếu DEFAULT trên cột so với đáp án.'
+      },
+      {
+        rule_name: 'Thừa DEFAULT',
+        target: 'DEFAULT',
+        condition: 'IS_EXTRA',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 0,
+        description: 'Tạo thêm DEFAULT không có trong đáp án.'
+      },
+      {
+        rule_name: 'Sai giá trị DEFAULT',
+        target: 'DEFAULT',
+        condition: 'VALUE_MISMATCH',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 0,
+        description: 'DEFAULT đúng cột nhưng giá trị sai.'
       }
     ]
   },
@@ -162,72 +244,8 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         condition: 'IS_EXTRA',
         modifiers: [],
         action: 'DEDUCT_POINTS',
-        penalty_value: 0.1,
-        description: 'Dòng dữ liệu thừa so với đáp án sẽ bị trừ điểm.'
-      },
-      {
-        rule_name: 'Sai giá trị trong ô dữ liệu',
-        target: 'CELL_VALUE',
-        condition: 'NOT_EQUAL',
-        modifiers: ['TRIM_WHITESPACE', 'TO_LOWERCASE'],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.1,
-        description: 'Giá trị trong ô không khớp đáp án sẽ bị trừ điểm.'
-      },
-      {
-        rule_name: 'Giá trị bị null không hợp lệ',
-        target: 'CELL_VALUE',
-        condition: 'IS_NULL',
-        modifiers: ['TRIM_WHITESPACE', 'TO_LOWERCASE'],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.1,
-        description:
-          'Ô dữ liệu bị null trong khi đáp án không null sẽ bị trừ điểm.'
-      },
-      {
-        rule_name: 'Sai thứ tự dòng dữ liệu',
-        target: 'ROW_ORDER',
-        condition: 'OUT_OF_ORDER',
-        modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.1,
-        description: 'Thứ tự dòng dữ liệu không đúng yêu cầu sẽ bị trừ điểm.'
-      },
-      {
-        rule_name: 'Sai ràng buộc khóa ngoại',
-        target: 'FOREIGN_KEY',
-        condition: 'REFERENCE_ERROR',
-        modifiers: [],
-        action: 'DEDUCT_POINTS',
         penalty_value: 0.25,
-        description: 'Dữ liệu vi phạm tham chiếu khóa ngoại sẽ bị trừ điểm.'
-      }
-    ]
-  },
-  {
-    id: 'system-select-query-default',
-    name: 'Mẫu hệ thống - SELECT QUERY',
-    description:
-      'Bộ quy tắc mặc định cho lỗi thiếu/thừa cột, thiếu/thừa dòng, sai giá trị và sai thứ tự kết quả.',
-    questionType: 'SELECT_QUERY',
-    rules: [
-      {
-        rule_name: 'Thiếu cột trong kết quả',
-        target: 'COLUMN',
-        condition: 'IS_MISSING',
-        modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.5,
-        description: 'Kết quả thiếu cột bắt buộc thì trừ điểm.'
-      },
-      {
-        rule_name: 'Thừa cột trong kết quả',
-        target: 'COLUMN',
-        condition: 'IS_EXTRA',
-        modifiers: [],
-        action: 'DEDUCT_POINTS',
-        penalty_value: 0.2,
-        description: 'Kết quả có cột thừa so với đáp án thì trừ điểm.'
+        description: 'Mỗi dòng dữ liệu thừa sẽ bị trừ điểm.'
       },
       {
         rule_name: 'Sai thứ tự dòng',
@@ -235,8 +253,112 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         condition: 'OUT_OF_ORDER',
         modifiers: [],
         action: 'DEDUCT_POINTS',
+        penalty_value: 0.05,
+        description:
+          'Đúng dòng dữ liệu nhưng sai thứ tự so với đáp án thì trừ điểm.'
+      },
+      {
+        rule_name: 'Ô sai giá trị (kiểu chữ)',
+        target: 'CELL_VALUE',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.1,
+        description: 'Giá trị text trong ô sai thì trừ điểm.'
+      },
+      {
+        rule_name: 'Ô sai giá trị (kiểu số)',
+        target: 'CELL_VALUE',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.1,
+        description: 'Giá trị số trong ô sai thì trừ điểm.'
+      },
+      {
+        rule_name: 'Ô sai giá trị (kiểu thời gian)',
+        target: 'CELL_VALUE',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.1,
+        description: 'Giá trị datetime trong ô sai thì trừ điểm.'
+      },
+      {
+        rule_name: 'Thiếu giá trị NULL',
+        target: 'CELL_VALUE',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.1,
+        description:
+          'Đáp án yêu cầu NULL nhưng sinh viên lại điền giá trị thì trừ điểm.'
+      },
+      {
+        rule_name: 'Thừa giá trị NULL',
+        target: 'CELL_VALUE',
+        condition: 'IS_NULL',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.1,
+        description:
+          'Đáp án yêu cầu có giá trị nhưng sinh viên điền NULL thì trừ điểm.'
+      }
+    ]
+  },
+  {
+    id: 'system-select-query-default',
+    name: 'Mẫu hệ thống - SELECT',
+    description:
+      'Bộ quy tắc mặc định cho lỗi sai dòng, sai cột, sai giá trị và sai thứ tự.',
+    questionType: 'SELECT_QUERY',
+    rules: [
+      {
+        rule_name: 'Thiếu dòng',
+        target: 'ROW',
+        condition: 'IS_MISSING',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
         penalty_value: 0.25,
-        description: 'Thứ tự dòng không đúng theo yêu cầu thì trừ điểm.'
+        description: 'Thiếu dòng kết quả so với đáp án thì trừ điểm.'
+      },
+      {
+        rule_name: 'Thừa dòng',
+        target: 'ROW',
+        condition: 'IS_EXTRA',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.25,
+        description: 'Thừa dòng kết quả so với đáp án thì trừ điểm.'
+      },
+      {
+        rule_name: 'Thiếu cột',
+        target: 'COLUMN',
+        condition: 'IS_MISSING',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.1,
+        description:
+          'Cột có trong đáp án nhưng không có trong kết quả thì trừ điểm.'
+      },
+      {
+        rule_name: 'Thừa cột',
+        target: 'COLUMN',
+        condition: 'IS_EXTRA',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.05,
+        description:
+          'Cột có trong kết quả nhưng không có trong đáp án thì trừ điểm.'
+      },
+      {
+        rule_name: 'Sai tên cột',
+        target: 'COLUMN',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.05,
+        description: 'Tên cột sai (so khớp theo vị trí cột) thì trừ điểm.'
       },
       {
         rule_name: 'Sai thứ tự cột',
@@ -244,8 +366,27 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         condition: 'OUT_OF_ORDER',
         modifiers: [],
         action: 'DEDUCT_POINTS',
-        penalty_value: 0.25,
-        description: 'Thứ tự cột không đúng theo đáp án thì trừ điểm.'
+        penalty_value: 0.05,
+        description: 'Cột đúng tên nhưng sai vị trí thì trừ điểm.'
+      },
+      {
+        rule_name: 'Ô sai giá trị',
+        target: 'CELL_VALUE',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.1,
+        description: 'Dữ liệu ô tại một dòng/cột cụ thể bị sai thì trừ điểm.'
+      },
+      {
+        rule_name: 'Sai thứ tự dòng',
+        target: 'ROW_ORDER',
+        condition: 'OUT_OF_ORDER',
+        modifiers: [],
+        action: 'DEDUCT_POINTS',
+        penalty_value: 0.1,
+        description:
+          'Đúng dòng dữ liệu nhưng sai thứ tự (nếu yêu cầu ORDER BY) thì trừ điểm.'
       }
     ]
   }
@@ -253,8 +394,6 @@ const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
 
 export function getSystemRulePresets(
   questionType: SystemRulePresetQuestionType
-) {
-  return SYSTEM_RULE_PRESETS.filter(
-    (item) => item.questionType === questionType
-  )
+): SystemRulePreset[] {
+  return SYSTEM_RULE_PRESETS.filter((p) => p.questionType === questionType)
 }

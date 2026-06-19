@@ -2,6 +2,10 @@ import type {
   SpecificationSchemaJsonForeignKey,
   SpecificationSchemaJsonTable
 } from '@/lib/types'
+import {
+  buildCreateTableSqlFromSpecSelection,
+  type CreateTableSpecSource
+} from './create-table-sql-from-spec'
 
 export type CreateTableQuestionOptions = {
   includeForeignKeys: boolean
@@ -99,7 +103,8 @@ const topologicalSortTables = (
 export const generateCreateTableQuestionFromSchema = (
   schemaTables: SpecificationSchemaJsonTable[],
   selectedTableNames: string[],
-  options: CreateTableQuestionOptions
+  options: CreateTableQuestionOptions,
+  specification?: CreateTableSpecSource | null
 ): GeneratedCreateTableQuestion => {
   const selectedSet = new Set(selectedTableNames)
   const selectedTables = schemaTables.filter((table) =>
@@ -114,12 +119,19 @@ export const generateCreateTableQuestionFromSchema = (
   }
 
   const orderedTables = topologicalSortTables(selectedTables)
-  const createTableScripts = orderedTables.map((table) =>
-    normalizeScript(table.script?.trim() || buildFallbackTableScript(table))
+  const scriptFromSpec = buildCreateTableSqlFromSpecSelection(
+    specification,
+    orderedTables.map((table) => table.tableName),
+    { includeForeignKeys: options.includeForeignKeys }
   )
+  const createTableScripts = scriptFromSpec.trim()
+    ? [normalizeScript(scriptFromSpec)]
+    : orderedTables.map((table) =>
+        normalizeScript(table.script?.trim() || buildFallbackTableScript(table))
+      )
 
   const fkScripts: string[] = []
-  if (options.includeForeignKeys) {
+  if (options.includeForeignKeys && !scriptFromSpec.trim()) {
     orderedTables.forEach((table) => {
       ;(table.foreignKeys || []).forEach((fk) => {
         if (!selectedSet.has(fk.targetTable)) return

@@ -143,6 +143,14 @@ function buildRoutineSchemaContext(
   return ''
 }
 
+function hasCreateExpectedTables(rubric?: GradingRubric | null) {
+  const payload = rubric?.grading_payload as
+    | { tables?: unknown }
+    | null
+    | undefined
+  return Array.isArray(payload?.tables) && payload.tables.length > 0
+}
+
 export function ExamQuestionsView({
   examId,
   examTitle,
@@ -857,8 +865,8 @@ export function ExamQuestionsView({
                     ? [
                         { step: 1, label: 'Nội dung & đáp án' },
                         { step: 2, label: 'Cấu hình kỳ vọng' },
-                        { step: 3, label: 'Kiểm tra kết quả' },
-                        { step: 4, label: 'Quy tắc cách viết' },
+                        { step: 3, label: 'Black-box' },
+                        { step: 4, label: 'White-box' },
                         { step: 5, label: 'Hoàn tất' }
                       ]
                     : [
@@ -1454,7 +1462,7 @@ export function ExamQuestionsView({
                             {step === 2
                               ? 'Bước 2: Cấu hình kỳ vọng'
                               : whiteboxSupported
-                                ? 'Bước 3: Kiểm tra kết quả'
+                                ? 'Bước 3: Black-box — chấm theo kết quả'
                                 : 'Bước 3: Thiết lập quy tắc chấm điểm'}
                           </h4>
                           {q.questionType === 'CREATE_TABLE' && (
@@ -1470,6 +1478,11 @@ export function ExamQuestionsView({
                               correctQuery={q.correctQuery}
                               questionContent={q.content}
                               wizardStep={step}
+                              onRequestWizardStep={(nextStep) =>
+                                updateQuestion(q.id, {
+                                  wizardStep: nextStep
+                                })
+                              }
                             />
                           )}
                           {q.questionType === 'INSERT_DATA' && (
@@ -1579,6 +1592,26 @@ export function ExamQuestionsView({
 
                       {whiteboxSupported && step === 4 && hasWizard && (
                         <>
+                          {q.questionType === 'CREATE_TABLE' && (
+                            <CreateTableRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              wizardStep={step}
+                              onRequestWizardStep={(nextStep) =>
+                                updateQuestion(q.id, {
+                                  wizardStep: nextStep
+                                })
+                              }
+                            />
+                          )}
                           {q.questionType === 'INSERT_DATA' && (
                             <InsertDataRubricEditor
                               examId={examId}
@@ -1776,6 +1809,16 @@ export function ExamQuestionsView({
                               ) {
                                 toast.error(
                                   'Vui lòng nhập nội dung đề bài và đáp án chuẩn trước khi qua bước tiếp theo'
+                                )
+                                return
+                              }
+                              if (
+                                q.questionType === 'CREATE_TABLE' &&
+                                step === 2 &&
+                                !hasCreateExpectedTables(q.rubricData)
+                              ) {
+                                toast.error(
+                                  'Vui lòng dựng cấu trúc đáp án thành công trước khi qua bước tiếp theo.'
                                 )
                                 return
                               }

@@ -574,17 +574,20 @@ export interface RubricColumn {
   name: string
   expected_type: string
   is_nullable: boolean
+  is_auto_increment?: boolean
   missing_column_penalty?: number
   type_mismatch_penalty?: number
 }
 
 export interface RubricConstraint {
+  name?: string
   type: ConstraintType
   columns: string[]
   missing_constraint_penalty?: number
   references_table?: string
   references_columns?: string[]
   expression?: string
+  default_value?: string
 }
 
 export interface RubricTable {
@@ -599,6 +602,8 @@ export interface CreateTableGradingPayload {
   grading_settings?: GradingSettings
   grading_rules?: InsertDataGradingRule[]
   tables: RubricTable[]
+  whitebox_rules?: WhiteboxRule[]
+  whitebox_settings?: WhiteboxSettings
 }
 
 export interface GradingRubric {
@@ -660,8 +665,13 @@ export type GradingRuleTarget =
   | 'TABLE'
   | 'COLUMN'
   | 'DATA_TYPE'
+  | 'NULLABILITY'
+  | 'IDENTITY'
   | 'PRIMARY_KEY'
   | 'FOREIGN_KEY'
+  | 'UNIQUE'
+  | 'CHECK'
+  | 'DEFAULT'
   | 'CONSTRAINT_LOCAL'
   | 'COLUMN_ORDER'
   | 'ROW'
@@ -694,6 +704,11 @@ export type GradingRuleCondition =
   | 'OUT_OF_ORDER'
   | 'TYPE_MISMATCH'
   | 'LENGTH_MISMATCH'
+  | 'FAMILY_MISMATCH'
+  | 'SIZE_MISMATCH'
+  | 'MISMATCH'
+  | 'EXPRESSION_MISMATCH'
+  | 'VALUE_MISMATCH'
   | 'REFERENCE_ERROR'
   | QueryStructureCondition
 

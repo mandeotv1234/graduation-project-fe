@@ -1,22 +1,23 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useRef } from 'react'
-import {
-  Background,
-  Handle,
-  type Edge,
-  type Node,
-  type NodeProps,
-  Position,
-  ReactFlow,
-  useEdgesState,
-  useNodesState,
-  type EdgeChange,
-  applyEdgeChanges
-} from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
 import type { ExecuteSqlResponse } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import {
+  applyEdgeChanges,
+  Background,
+  Handle,
+  Position,
+  ReactFlow,
+  MarkerType,
+  useEdgesState,
+  useNodesState,
+  type Edge,
+  type EdgeChange,
+  type Node,
+  type NodeProps
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react'
 
 type HandleSide = 'left' | 'right'
 export type EdgeConfig = {
@@ -164,7 +165,16 @@ export function computeEdges(nodes: Node[], edgeConfigs: EdgeConfig[]): Edge[] {
       sourceHandle: `${cfg.sourceKey}-${sourceSide}`,
       targetHandle: `${cfg.targetKey}-${targetSide}`,
       type: 'smoothstep',
-      markerEnd: 'url(#hasOne)',
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 15,
+        height: 15,
+        color: '#9ca3af'
+      },
+      style: {
+        strokeWidth: 2,
+        stroke: '#9ca3af'
+      },
       className: 'has-one-edge'
     })
   }
@@ -316,17 +326,18 @@ export function TeacherSchemaDiagram({
         'Flow w-full h-[500px] border border-border rounded-md bg-muted/20 relative',
         className
       )}
+      style={{ width: '100%', height: '100%', minHeight: '360px' }}
     >
       <Markers />
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        fitView={!parsedData}
+        fitView
         snapToGrid={true}
         snapGrid={[16, 16]}
         nodesConnectable={false}
-        nodesDraggable={!readOnly}
+        nodesDraggable={true}
         onNodesChange={onNodesChange}
         onNodeDragStop={onNodeDragStop}
         onEdgesChange={onEdgesChange}
