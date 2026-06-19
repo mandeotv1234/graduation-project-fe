@@ -161,6 +161,9 @@ export async function testGradeCreateTable(data: {
     earnedPoints: number
     totalPoints: number
     allPassed: boolean
+    totalDeductions?: number | null
+    blackboxScore?: number | null
+    whiteboxDeduction?: number | null
     details: { type: string; message: string; points: number }[]
   }>
 > {
@@ -180,6 +183,9 @@ export async function testGradeInsertData(
     earnedPoints: number
     totalPoints: number
     allPassed: boolean
+    totalDeductions?: number | null
+    blackboxScore?: number | null
+    whiteboxDeduction?: number | null
     details: { type: string; message: string; points: number }[]
   }>
 > {

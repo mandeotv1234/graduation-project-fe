@@ -1,15 +1,6 @@
 'use client'
 
 import { useMemo } from 'react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 
 interface DatasetTableViewProps {
   sql?: string
@@ -114,60 +105,69 @@ export function DatasetTableView({ sql, tableData }: DatasetTableViewProps) {
 
   return (
     <div className="space-y-4">
-      {parsedTables.map((parsedData) => (
-        <div
-          key={parsedData.tableName}
-          className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm"
-        >
-          <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2.5">
-            <div className="text-sm font-semibold text-primary">
-              Bảng: {parsedData.tableName}
+      {parsedTables.map((parsedData) => {
+        const tableMinWidth = Math.max(
+          720,
+          parsedData.columns.length * 190 + 56
+        )
+
+        return (
+          <div
+            key={parsedData.tableName}
+            className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm"
+          >
+            <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2.5">
+              <div className="text-sm font-semibold text-primary">
+                Bảng: {parsedData.tableName}
+              </div>
+              <div className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[11px] text-muted-foreground">
+                {parsedData.rows.length} dòng
+              </div>
             </div>
-            <div className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[11px] text-muted-foreground">
-              {parsedData.rows.length} dòng
-            </div>
-          </div>
-          <ScrollArea className="w-full whitespace-nowrap rounded-b-lg">
-            <div className="max-h-[360px] overflow-auto">
-              <Table>
-                <TableHeader className="sticky top-0 z-10 border-b border-border bg-muted/80 backdrop-blur supports-backdrop-filter:bg-muted/60">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-12 border-r border-border text-center font-semibold text-foreground">
+            <div className="max-h-[360px] min-w-0 overflow-auto rounded-b-lg">
+              <table
+                className="w-max border-collapse text-xs"
+                style={{ minWidth: tableMinWidth }}
+              >
+                <thead className="sticky top-0 z-10 border-b border-border bg-muted/80 text-foreground backdrop-blur supports-backdrop-filter:bg-muted/60">
+                  <tr>
+                    <th className="w-12 border-r border-border px-3 py-2 text-center font-semibold">
                       #
-                    </TableHead>
+                    </th>
                     {parsedData.columns.map((col, idx) => (
-                      <TableHead
+                      <th
                         key={`${parsedData.tableName}-${col}-${idx}`}
-                        className="min-w-[140px] max-w-[320px] truncate border-r border-border px-4 font-semibold text-foreground"
+                        className="min-w-[180px] max-w-[420px] border-r border-border px-4 py-2 text-left font-semibold"
                       >
                         {col}
-                      </TableHead>
+                      </th>
                     ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                  </tr>
+                </thead>
+                <tbody>
                   {parsedData.rows.length === 0 ? (
-                    <TableRow>
-                      <TableCell
+                    <tr>
+                      <td
                         colSpan={parsedData.columns.length + 1}
-                        className="text-center text-muted-foreground text-xs py-4"
+                        className="px-4 py-6 text-center text-xs text-muted-foreground"
                       >
                         Bảng không có dữ liệu
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ) : (
                     parsedData.rows.map((row, rIdx) => (
-                      <TableRow
+                      <tr
                         key={`${parsedData.tableName}-row-${rIdx}`}
                         className="odd:bg-background even:bg-muted/20 hover:bg-blue-50/60 dark:hover:bg-blue-900/10"
                       >
-                        <TableCell className="border-r border-border text-center text-muted-foreground">
+                        <td className="border-r border-border px-3 py-2 text-center text-muted-foreground">
                           {rIdx + 1}
-                        </TableCell>
+                        </td>
                         {parsedData.columns.map((_, cIdx) => (
-                          <TableCell
+                          <td
                             key={`${parsedData.tableName}-${rIdx}-${cIdx}`}
-                            className="max-w-[320px] truncate border-r border-border px-4 py-2 align-top"
+                            title={row[cIdx] ?? ''}
+                            className="max-w-[420px] truncate border-r border-border px-4 py-2 align-top whitespace-nowrap"
                           >
                             {row[cIdx] === 'null' ? (
                               <span className="text-muted-foreground/60 italic">
@@ -176,18 +176,17 @@ export function DatasetTableView({ sql, tableData }: DatasetTableViewProps) {
                             ) : (
                               (row[cIdx] ?? '')
                             )}
-                          </TableCell>
+                          </td>
                         ))}
-                      </TableRow>
+                      </tr>
                     ))
                   )}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </div>
-      ))}
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -732,6 +732,8 @@ export interface InsertDataGradingPayload {
   grading_settings?: InsertDataGradingSettings
   grading_rules?: InsertDataGradingRule[]
   tables?: InsertDataExpectedDataset[]
+  whitebox_rules?: WhiteboxRule[]
+  whitebox_settings?: WhiteboxSettings
 }
 
 // === SELECT_QUERY Grading Types ===
@@ -815,7 +817,7 @@ export interface WhiteboxSettings {
 // Backend-owned catalog (source of truth; the FE never hardcodes rule definitions).
 export interface WhiteboxParamSpec {
   name: string
-  type: 'NUMBER' | 'STRING_LIST'
+  type: 'NUMBER' | 'STRING_LIST' | 'STRING'
   label: string
   required: boolean
   defaultValue?: number | string | null
