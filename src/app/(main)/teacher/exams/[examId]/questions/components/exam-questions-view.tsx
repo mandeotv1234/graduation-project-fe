@@ -85,6 +85,12 @@ const QUESTION_TYPES = [
   { value: 'STORED_PROCEDURE', label: 'STORED PROCEDURE' }
 ]
 
+// FE-first override: question types whose White-box step should appear before the
+// backend catalog exposes their rules. The frontend wiring (rubric editor + step)
+// is ready ahead of the backend evaluators. Remove a type here once
+// getWhiteboxCatalog returns its rules so detection becomes fully catalog-driven.
+const WHITEBOX_FE_FORCED_TYPES = new Set(['TRIGGER'])
+
 interface ExamQuestionsViewProps {
   examId: number
   examTitle: string
@@ -962,27 +968,42 @@ export function ExamQuestionsView({
                 ].includes(normalizedQuestionType)
                 // Catalog-driven: a type with white-box rules gets an extra writing-rule step.
                 const whiteboxSupported =
-                  whiteboxSupportedByType[normalizedQuestionType] === true
-                const finalStep = whiteboxSupported ? 5 : 4
+                  whiteboxSupportedByType[normalizedQuestionType] === true ||
+                  WHITEBOX_FE_FORCED_TYPES.has(normalizedQuestionType)
+                // TRIGGER skips the old step-3 metadata/rules step — its wizard is
+                // 4 steps: 1 (content) → 2 (test cases) → 3 (whitebox) → 4 (done).
+                const finalStep =
+                  normalizedQuestionType === 'TRIGGER'
+                    ? 4
+                    : whiteboxSupported
+                      ? 5
+                      : 4
                 const stepItems = !hasWizard
                   ? [
                       { step: 1, label: 'Nội dung & đáp án' },
                       { step: finalStep, label: 'Hoàn tất' }
                     ]
-                  : whiteboxSupported
+                  : normalizedQuestionType === 'TRIGGER'
                     ? [
                         { step: 1, label: 'Nội dung & đáp án' },
                         { step: 2, label: 'Cấu hình kỳ vọng' },
-                        { step: 3, label: 'Kiểm tra kết quả' },
-                        { step: 4, label: 'Quy tắc cách viết' },
-                        { step: 5, label: 'Hoàn tất' }
-                      ]
-                    : [
-                        { step: 1, label: 'Nội dung & đáp án' },
-                        { step: 2, label: 'Cấu hình kỳ vọng' },
-                        { step: 3, label: 'Quy tắc chấm điểm' },
+                        { step: 3, label: 'Quy tắc cách viết' },
                         { step: 4, label: 'Hoàn tất' }
                       ]
+                    : whiteboxSupported
+                      ? [
+                          { step: 1, label: 'Nội dung & đáp án' },
+                          { step: 2, label: 'Cấu hình kỳ vọng' },
+                          { step: 3, label: 'Kiểm tra kết quả' },
+                          { step: 4, label: 'Quy tắc cách viết' },
+                          { step: 5, label: 'Hoàn tất' }
+                        ]
+                      : [
+                          { step: 1, label: 'Nội dung & đáp án' },
+                          { step: 2, label: 'Cấu hình kỳ vọng' },
+                          { step: 3, label: 'Quy tắc chấm điểm' },
+                          { step: 4, label: 'Hoàn tất' }
+                        ]
 
                 return (
                   <div
@@ -1569,9 +1590,11 @@ export function ExamQuestionsView({
                             <Sparkles className="h-4 w-4" />
                             {step === 2
                               ? 'Bước 2: Cấu hình kỳ vọng'
-                              : whiteboxSupported
-                                ? 'Bước 3: Kiểm tra kết quả'
-                                : 'Bước 3: Thiết lập quy tắc chấm điểm'}
+                              : normalizedQuestionType === 'TRIGGER'
+                                ? 'Bước 3: Quy tắc cách viết'
+                                : whiteboxSupported
+                                  ? 'Bước 3: Kiểm tra kết quả'
+                                  : 'Bước 3: Thiết lập quy tắc chấm điểm'}
                           </h4>
                           {q.questionType === 'CREATE_TABLE' && (
                             <CreateTableRubricEditor
