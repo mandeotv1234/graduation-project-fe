@@ -40,6 +40,16 @@ export const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         description: 'Tạo thêm bảng không nằm trong đáp án thì trừ điểm.'
       },
       {
+        rule_name: 'Sai tên bảng (Thay thế)',
+        target: 'TABLE',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 20,
+        description:
+          'Gõ sai tên bảng thì trừ điểm (không phạt thêm lỗi thiếu/thừa).'
+      },
+      {
         rule_name: 'Thiếu cột bắt buộc',
         target: 'COLUMN',
         condition: 'IS_MISSING',
@@ -56,6 +66,16 @@ export const SYSTEM_RULE_PRESETS: SystemRulePreset[] = [
         action: 'DEDUCT_PERCENTAGE',
         penalty_value: 15,
         description: 'Khai báo thêm cột không yêu cầu thì trừ điểm.'
+      },
+      {
+        rule_name: 'Sai tên cột (Thay thế)',
+        target: 'COLUMN',
+        condition: 'NOT_EQUAL',
+        modifiers: [],
+        action: 'DEDUCT_PERCENTAGE',
+        penalty_value: 10,
+        description:
+          'Gõ sai tên cột thì trừ điểm (không phạt thêm lỗi thiếu/thừa).'
       },
       {
         rule_name: 'Sai họ kiểu dữ liệu',

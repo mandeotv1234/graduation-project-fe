@@ -87,6 +87,15 @@ const TREE_CONFIG: GroupConfig[] = [
         target: 'TABLE',
         condition: 'IS_EXTRA',
         defaultPenalty: 10
+      },
+      {
+        id: 'table_replace',
+        label: 'Sai tên bảng',
+        microcopy:
+          'Phát hiện lỗi gõ sai tên thay vì báo lỗi thiếu và thừa đồng thời.',
+        target: 'TABLE',
+        condition: 'NOT_EQUAL',
+        defaultPenalty: 10
       }
     ]
   },
@@ -107,6 +116,15 @@ const TREE_CONFIG: GroupConfig[] = [
         target: 'COLUMN',
         condition: 'IS_EXTRA',
         defaultPenalty: 15
+      },
+      {
+        id: 'column_replace',
+        label: 'Sai tên cột',
+        microcopy:
+          'Phát hiện lỗi gõ sai tên thay vì báo lỗi thiếu và thừa đồng thời.',
+        target: 'COLUMN',
+        condition: 'NOT_EQUAL',
+        defaultPenalty: 10
       }
     ]
   },
@@ -332,45 +350,81 @@ export function CreateTableTreeRubric({
   const handleUpdateRule = (
     target: GradingRuleTarget,
     condition: GradingRuleCondition,
-    action: GradingRuleAction,
+    action: GradingRuleAction | 'IGNORE',
     penaltyValue: number,
     label: string
   ) => {
     const nextRules = [...rules]
-    const existIdx = nextRules.findIndex(
-      (r) => r.target === target && r.condition === condition
-    )
-    if (existIdx >= 0) {
-      nextRules[existIdx] = {
-        ...nextRules[existIdx],
-        action,
-        penalty_value: penaltyValue,
-        rule_name: nextRules[existIdx].rule_name || label
+
+    const applyToRule = (
+      t: GradingRuleTarget,
+      c: GradingRuleCondition,
+      a: GradingRuleAction | 'IGNORE',
+      p: number,
+      l: string
+    ) => {
+      const existIdx = nextRules.findIndex(
+        (r) => r.target === t && r.condition === c
+      )
+      if (existIdx >= 0) {
+        nextRules[existIdx] = {
+          ...nextRules[existIdx],
+          action: a as GradingRuleAction,
+          penalty_value: p,
+          rule_name: nextRules[existIdx].rule_name || l
+        }
+      } else {
+        nextRules.push({
+          rule_name: l,
+          target: t,
+          condition: c,
+          action: a as GradingRuleAction,
+          penalty_value: p,
+          modifiers: []
+        })
       }
-    } else {
-      nextRules.push({
-        rule_name: label,
-        target,
-        condition,
-        action,
-        penalty_value: penaltyValue,
-        modifiers: []
-      })
     }
-    // Debug toast & Local State update
+
+    applyToRule(target, condition, action, penaltyValue, label)
+
+    const nodesToIgnore = [`${target}|${condition}`]
+
+    // Nếu hành động là IGNORE, tìm các node con phụ thuộc (isChild: true) và ignore chúng
     if (action === 'IGNORE') {
-      setLocalIgnored((prev) => {
-        const next = new Set(prev)
-        next.add(`${target}|${condition}`)
-        return next
-      })
-    } else {
-      setLocalIgnored((prev) => {
-        const next = new Set(prev)
-        next.delete(`${target}|${condition}`)
-        return next
-      })
+      for (const group of TREE_CONFIG) {
+        const parentIdx = group.nodes.findIndex(
+          (n) => n.target === target && n.condition === condition && !n.isChild
+        )
+        if (parentIdx >= 0) {
+          let i = parentIdx + 1
+          while (i < group.nodes.length && group.nodes[i].isChild) {
+            const childNode = group.nodes[i]
+            applyToRule(
+              childNode.target,
+              childNode.condition,
+              'IGNORE',
+              0,
+              childNode.label
+            )
+            nodesToIgnore.push(`${childNode.target}|${childNode.condition}`)
+            i++
+          }
+          break
+        }
+      }
     }
+
+    // Local State update
+    setLocalIgnored((prev) => {
+      const next = new Set(prev)
+      if (action === 'IGNORE') {
+        nodesToIgnore.forEach((id) => next.add(id))
+      } else {
+        next.delete(`${target}|${condition}`)
+      }
+      return next
+    })
+
     onChange(nextRules)
   }
 
@@ -683,26 +737,15 @@ export function CreateTableTreeRubric({
                                 size="icon"
                                 className={`h-8 w-8 rounded-full transition-colors text-muted-foreground hover:text-destructive hover:bg-destructive/10`}
                                 onClick={() => {
-                                  if (isCustomized) {
-                                    handleDeleteRule(
-                                      node.target,
-                                      node.condition
-                                    )
-                                  } else {
-                                    handleUpdateRule(
-                                      node.target,
-                                      node.condition,
-                                      'IGNORE',
-                                      0,
-                                      node.label
-                                    )
-                                  }
+                                  handleUpdateRule(
+                                    node.target,
+                                    node.condition,
+                                    'IGNORE',
+                                    0,
+                                    node.label
+                                  )
                                 }}
-                                title={
-                                  isCustomized
-                                    ? 'Khôi phục mặc định'
-                                    : 'Bỏ qua luật này (Xóa khỏi cây)'
-                                }
+                                title="Xóa khỏi cây"
                               >
                                 <Trash2 className="h-4 w-4 pointer-events-none" />
                               </Button>
