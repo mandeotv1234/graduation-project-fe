@@ -181,6 +181,17 @@ export function ExamQuestionsView({
   const isDedicatedQuestionsPage =
     pathname === PATH.TEACHER_EXAM_QUESTIONS(examId)
 
+  const [isAddQuestionModalOpen, setIsAddQuestionModalOpen] = useState(false)
+  const [addQuestionForm, setAddQuestionForm] = useState<{
+    questionType: ExamQuestionItem['questionType']
+    points: number
+    difficultyLevel: number
+  }>({
+    questionType: 'SELECT_QUERY',
+    points: 1,
+    difficultyLevel: 1
+  })
+
   // Batch form state — multiple questions
   const [pendingQuestions, setPendingQuestions] = useState<QuestionFormState[]>(
     []
@@ -277,20 +288,26 @@ export function ExamQuestionsView({
     }
   }
 
-  const addEmptyQuestion = () => {
+  const addEmptyQuestion = (params?: {
+    questionType: ExamQuestionItem['questionType']
+    points: number
+    difficultyLevel: number
+  }) => {
     const newQuestion: QuestionFormState = {
       id: Date.now().toString(),
       content: '',
       correctQuery: '',
       verifyScript: '',
-      points: 1,
+      points: params?.points ?? 1,
       orderIndex: questions.length + pendingQuestions.length + 1,
-      questionType: 'SELECT_QUERY',
-      difficultyLevel: 1,
+      questionType: params?.questionType ?? 'SELECT_QUERY',
+      difficultyLevel: params?.difficultyLevel ?? 1,
       rubricData: null,
       wizardStep: 1
     }
     setPendingQuestions((prev) => [...prev, newQuestion])
+    setShowAddForm(true)
+    setIsAddQuestionModalOpen(false)
   }
 
   const updateQuestion = (id: string, updates: Partial<QuestionFormState>) => {
@@ -613,9 +630,10 @@ export function ExamQuestionsView({
               <Button
                 className="gap-2"
                 onClick={() => {
-                  setShowAddForm(true)
                   if (pendingQuestions.length === 0) {
-                    addEmptyQuestion()
+                    setIsAddQuestionModalOpen(true)
+                  } else {
+                    setShowAddForm(true)
                   }
                 }}
               >
@@ -671,9 +689,10 @@ export function ExamQuestionsView({
               )}
               <Button
                 onClick={() => {
-                  setShowAddForm(true)
                   if (pendingQuestions.length === 0) {
-                    addEmptyQuestion()
+                    setIsAddQuestionModalOpen(true)
+                  } else {
+                    setShowAddForm(true)
                   }
                 }}
                 className="gap-2"
@@ -831,6 +850,96 @@ export function ExamQuestionsView({
           </div>
         </section>
       )}
+
+      {/* Add question modal */}
+      <Dialog
+        open={isAddQuestionModalOpen}
+        onOpenChange={setIsAddQuestionModalOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Thêm câu hỏi mới</DialogTitle>
+            <DialogDescription>
+              Vui lòng chọn loại câu hỏi, điểm số và độ khó ban đầu.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Loại câu hỏi</label>
+              <select
+                value={addQuestionForm.questionType}
+                onChange={(e) =>
+                  setAddQuestionForm((prev) => ({
+                    ...prev,
+                    questionType: e.target
+                      .value as ExamQuestionItem['questionType']
+                  }))
+                }
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {QUESTION_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Điểm số</label>
+              <input
+                type="number"
+                value={addQuestionForm.points}
+                onChange={(e) =>
+                  setAddQuestionForm((prev) => ({
+                    ...prev,
+                    points: Number(e.target.value)
+                  }))
+                }
+                min={0.5}
+                step={0.5}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Độ khó (1-5)</label>
+              <input
+                type="number"
+                value={addQuestionForm.difficultyLevel}
+                onChange={(e) =>
+                  setAddQuestionForm((prev) => ({
+                    ...prev,
+                    difficultyLevel: Number(e.target.value)
+                  }))
+                }
+                min={1}
+                max={5}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAddQuestionModalOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                addEmptyQuestion({
+                  questionType: addQuestionForm.questionType,
+                  points: addQuestionForm.points,
+                  difficultyLevel: addQuestionForm.difficultyLevel
+                })
+              }}
+            >
+              Xác nhận
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add questions form (batch) */}
       {showAddForm && (
@@ -1321,10 +1430,10 @@ export function ExamQuestionsView({
                             >
                               <span
                                 className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-semibold transition-all ${
-                                  step === item.step
+                                  step > item.step
                                     ? 'border-primary bg-primary text-primary-foreground'
-                                    : step > item.step
-                                      ? 'border-primary bg-primary/10 text-primary'
+                                    : step === item.step
+                                      ? 'border-primary bg-background text-primary'
                                       : 'border-muted-foreground/30 bg-muted text-muted-foreground group-hover:border-primary/50'
                                 }`}
                               >

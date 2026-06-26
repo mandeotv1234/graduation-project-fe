@@ -205,7 +205,7 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
     id: 'create-table-basic-ddl',
     name: 'Kiểm tra DDL cơ bản',
     description:
-      'Bắt buộc PRIMARY KEY mỗi bảng, cấm kiểu dữ liệu deprecated và SELECT INTO.',
+      'Bắt buộc PRIMARY KEY mỗi bảng, cấm kiểu dữ liệu deprecated, SELECT INTO và WITH NOCHECK.',
     questionType: 'CREATE_TABLE',
     rules: [
       {
@@ -224,6 +224,12 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
         ruleId: 'FORBIDDEN_SELECT_INTO',
         severity: DEDUCT,
         penaltyValue: 30,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_NOCHECK',
+        severity: DEDUCT,
+        penaltyValue: 20,
         penaltyUnit: PCT
       }
     ]
