@@ -209,13 +209,13 @@ export function InsertDataTestGrader({
                   <div className="font-semibold text-foreground">
                     {Number(result.blackboxScore).toFixed(2)}
                   </div>
-                  <div>Black-box</div>
+                  <div>Kết quả</div>
                 </div>
                 <div className="rounded-md border border-border bg-background px-3 py-2">
                   <div className="font-semibold text-red-600 dark:text-red-400">
                     -{Number(result.whiteboxDeduction).toFixed(2)}
                   </div>
-                  <div>White-box</div>
+                  <div>Trừ quy tắc</div>
                 </div>
                 <div className="rounded-md border border-border bg-background px-3 py-2">
                   <div className="font-semibold text-foreground">

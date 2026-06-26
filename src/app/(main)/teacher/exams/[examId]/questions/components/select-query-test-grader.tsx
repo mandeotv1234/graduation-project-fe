@@ -106,9 +106,9 @@ export function SelectQueryTestGrader({
             .then((res) =>
               res.data
                 ? setBlackbox(res.data as GradeResult)
-                : toast.error(res.message || 'Lỗi chấm black-box')
+                : toast.error(res.message || 'Lỗi chấm kết quả')
             )
-            .catch(() => toast.error('Lỗi kết nối khi chấm black-box.'))
+            .catch(() => toast.error('Lỗi kết nối khi chấm kết quả.'))
         : Promise.resolve(),
       hasWhitebox
         ? validateWhitebox({
@@ -119,7 +119,7 @@ export function SelectQueryTestGrader({
             questionPoints: effectiveTotalPoints
           })
             .then((res) => res.data && setWhitebox(res.data))
-            .catch(() => toast.error('Lỗi kết nối khi chấm white-box.'))
+            .catch(() => toast.error('Lỗi kết nối khi chấm quy tắc.'))
         : Promise.resolve()
     ])
 
@@ -130,8 +130,8 @@ export function SelectQueryTestGrader({
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
         <AlertTriangle className="mx-auto mb-2 h-5 w-5 text-amber-500" />
-        Cần tạo test case (black-box) hoặc thêm quy tắc white-box trước khi chấm
-        thử.
+        Cần tạo test case (kiểm tra kết quả) hoặc thêm quy tắc cách viết trước
+        khi chấm thử.
       </div>
     )
   }
@@ -185,10 +185,10 @@ export function SelectQueryTestGrader({
         </Button>
         <span className="text-xs text-muted-foreground">
           {canBlackbox && hasWhitebox
-            ? 'Chấm cả Black-box và White-box (hiển thị riêng).'
+            ? 'Chấm đầy đủ: kết quả + quy tắc cách viết (hiển thị riêng).'
             : canBlackbox
-              ? 'Chỉ chấm Black-box (chưa có quy tắc white-box).'
-              : 'Chỉ chấm White-box (chưa có test case).'}
+              ? 'Chỉ chấm kết quả (chưa có quy tắc cách viết).'
+              : 'Chỉ chấm quy tắc cách viết (chưa có test case).'}
         </span>
       </div>
 
@@ -200,7 +200,7 @@ export function SelectQueryTestGrader({
           {whitebox && (
             <span className="text-muted-foreground">
               {' '}
-              (black-box {blackbox!.earnedPoints.toFixed(2)} − white-box{' '}
+              (kết quả {blackbox!.earnedPoints.toFixed(2)} − trừ quy tắc{' '}
               {whitebox.cappedDeduction.toFixed(2)})
             </span>
           )}
@@ -222,7 +222,7 @@ export function SelectQueryTestGrader({
           >
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-bold text-foreground">
-                Black-box (kết quả truy vấn)
+                Kết quả truy vấn
               </span>
               <span
                 className={cn(
@@ -311,7 +311,7 @@ export function SelectQueryTestGrader({
         <div className="overflow-hidden rounded-lg border border-violet-200 bg-card duration-300 animate-in fade-in-0 slide-in-from-top-2 dark:border-violet-900/40">
           <div className="flex items-center justify-between border-b border-border bg-violet-50/60 px-4 py-2.5 dark:bg-violet-950/20">
             <span className="text-sm font-bold text-foreground">
-              White-box (cách viết câu lệnh)
+              Quy tắc cách viết câu lệnh
             </span>
             <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
               −{whitebox.cappedDeduction.toFixed(2)}đ
@@ -328,7 +328,7 @@ export function SelectQueryTestGrader({
             0 ? (
               <p className="flex items-center gap-1.5 px-4 py-3 text-xs text-emerald-700 dark:text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                Không vi phạm quy tắc white-box nào.
+                Không vi phạm quy tắc cách viết nào.
               </p>
             ) : (
               whitebox.violations

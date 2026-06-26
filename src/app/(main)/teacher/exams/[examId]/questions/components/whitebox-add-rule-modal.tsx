@@ -13,7 +13,13 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import {
   WhiteboxCatalogItem,
   WhiteboxPenaltyUnit,
@@ -158,6 +164,13 @@ export function WhiteboxAddRuleModal({
     setDraft(defaultRuleFromCatalog(item))
   }
 
+  const selectOperatorByRuleId = (ruleId: string) => {
+    const item = activeActionGroup?.options.find(
+      (option) => option.ruleId === ruleId
+    )
+    if (item) selectOperator(item)
+  }
+
   const setParam = (name: string, value: unknown) => {
     setDraft((prev) =>
       prev
@@ -190,49 +203,51 @@ export function WhiteboxAddRuleModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
-        <DialogHeader className="border-b px-5 py-4">
-          <DialogTitle>Thêm quy tắc white-box</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="flex h-[calc(100dvh-2rem)] max-h-[760px] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="shrink-0 border-b px-5 py-4">
+          <DialogTitle className="text-xl font-bold text-foreground">
+            Thêm quy tắc cách viết
+          </DialogTitle>
+          <DialogDescription className="text-sm font-medium leading-6 text-slate-600 dark:text-slate-300">
             Chọn đối tượng kiểm tra, cách xử lý, tham số rồi mức điểm — quy tắc
             chỉ được thêm khi bấm “Thêm quy tắc”.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1">
-          <div className="space-y-5 px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 pb-8">
+          <div className="space-y-5">
             {/* Section 1 — object (feature) */}
             <section className="space-y-2">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                 1. Đối tượng kiểm tra
               </h5>
               {activeFeature ? (
                 <button
                   type="button"
                   onClick={clearFeature}
-                  className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-muted"
+                  className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-muted"
                 >
-                  <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+                  <ArrowLeft className="h-4 w-4 text-slate-500" />
                   <span className="font-medium">
                     {activeFeature.featureLabel}
                   </span>
-                  <span className="ml-1 text-xs text-muted-foreground">
+                  <span className="ml-1 text-xs font-medium text-slate-500 dark:text-slate-400">
                     đổi đối tượng khác
                   </span>
                 </button>
               ) : (
                 <>
                   <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Search className="h-4 w-4 text-slate-500" />
                     <input
                       autoFocus
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Tìm đối tượng kiểm tra…"
-                      className="w-full bg-transparent text-sm outline-none"
+                      className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-slate-400"
                     />
                   </div>
-                  <div className="max-h-56 overflow-y-auto rounded-md border">
+                  <div className="max-h-[calc(100dvh-23rem)] min-h-80 overflow-y-auto rounded-md border">
                     {availableCount === 0 ? (
                       <p className="px-3 py-6 text-center text-sm text-muted-foreground">
                         Không còn đối tượng phù hợp.
@@ -240,7 +255,7 @@ export function WhiteboxAddRuleModal({
                     ) : (
                       featureGroups.map((group) => (
                         <div key={group.key} className="py-1">
-                          <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                             {GROUP_LABELS[group.key] ?? group.key}
                           </div>
                           {group.features.map((feature) => {
@@ -254,17 +269,17 @@ export function WhiteboxAddRuleModal({
                                 key={feature.featureId}
                                 type="button"
                                 onClick={() => selectFeature(feature.featureId)}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-muted"
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-foreground hover:bg-muted"
                               >
                                 <span className="flex-1">
-                                  <span className="block">
+                                  <span className="block font-medium">
                                     {feature.featureLabel}
                                   </span>
-                                  <span className="block text-xs text-muted-foreground">
+                                  <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">
                                     {actionCount} cách xử lý
                                   </span>
                                 </span>
-                                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
                               </button>
                             )
                           })}
@@ -279,7 +294,7 @@ export function WhiteboxAddRuleModal({
             {/* Section 2 — Action/Type */}
             {activeFeature && (
               <section className="space-y-2">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                   2. Cách xử lý
                 </h5>
                 <div className="grid gap-1.5 sm:grid-cols-3">
@@ -296,21 +311,21 @@ export function WhiteboxAddRuleModal({
                         type="button"
                         onClick={() => selectAction(group)}
                         className={cn(
-                          'flex flex-col gap-0.5 rounded-md border px-3 py-2 text-left text-sm hover:bg-muted',
+                          'flex flex-col gap-1 rounded-md border px-3 py-2 text-left text-sm text-foreground hover:bg-muted',
                           selected
                             ? 'border-primary bg-primary/5'
                             : 'border-border'
                         )}
                       >
-                        <span className="flex items-center gap-1.5 font-medium">
+                        <span className="flex items-center gap-1.5 font-semibold">
                           {group.actionLabel}
                           {hint && (
-                            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+                            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
                               {hint}
                             </span>
                           )}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                           {ACTION_HINT[group.actionKey]}
                         </span>
                       </button>
@@ -320,32 +335,37 @@ export function WhiteboxAddRuleModal({
               </section>
             )}
 
-            {/* Section 2b — operator/match mode (only when an action maps to >1 policy) */}
+            {/* Section 2b — scope/match mode (only when an action maps to >1 backend rule) */}
             {activeActionGroup && activeActionGroup.options.length > 1 && (
               <section className="space-y-2">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Chế độ khớp
+                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                  Phạm vi áp dụng
                 </h5>
-                <div className="flex flex-wrap gap-1.5">
-                  {activeActionGroup.options.map((item) => {
-                    const selected = draft?.rule_id === item.ruleId
-                    return (
-                      <button
-                        key={item.ruleId}
-                        type="button"
-                        onClick={() => selectOperator(item)}
-                        className={cn(
-                          'rounded-md border px-3 py-1.5 text-sm hover:bg-muted',
-                          selected
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border'
-                        )}
-                      >
-                        {OPERATOR_LABEL[item.policy] ?? item.policyLabel}
-                      </button>
-                    )
-                  })}
-                </div>
+                <Select
+                  value={draft?.rule_id ?? ''}
+                  onValueChange={selectOperatorByRuleId}
+                >
+                  <SelectTrigger className="h-10 w-full text-left font-semibold text-foreground">
+                    <SelectValue placeholder="Chọn phạm vi kiểm tra" />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    align="start"
+                    sideOffset={4}
+                    className="w-[var(--radix-select-trigger-width)]"
+                  >
+                    {activeActionGroup.options.map((item) => (
+                      <SelectItem key={item.ruleId} value={item.ruleId}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Chọn rule cụ thể trong nhóm “
+                  {activeFeature?.featureLabel ?? 'đối tượng đã chọn'}”.
+                </p>
               </section>
             )}
 
@@ -353,7 +373,7 @@ export function WhiteboxAddRuleModal({
             {selectedItem && draft && (
               <>
                 {/* Resolved backend rule shown as technical reference only. */}
-                <p className="flex flex-wrap items-center gap-2 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                <p className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200">
                   <span
                     className={cn(
                       'rounded px-1.5 py-0.5 text-[10px] font-semibold',
@@ -367,11 +387,11 @@ export function WhiteboxAddRuleModal({
                 </p>
 
                 <section className="space-y-2">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                     3. Tham số
                   </h5>
                   {selectedItem.params.length === 0 ? (
-                    <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+                    <p className="rounded-md border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300">
                       Quy tắc này không cần tham số.
                     </p>
                   ) : (
@@ -380,7 +400,7 @@ export function WhiteboxAddRuleModal({
                         spec.type === 'NUMBER' ? (
                           <label
                             key={spec.name}
-                            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300"
                           >
                             {spec.label}
                             <Input
@@ -402,7 +422,7 @@ export function WhiteboxAddRuleModal({
                         ) : (
                           <label
                             key={spec.name}
-                            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300"
                           >
                             {spec.label}
                             <Input
@@ -428,10 +448,10 @@ export function WhiteboxAddRuleModal({
                 </section>
 
                 <section className="space-y-2">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                     4. Điểm trừ và mức áp dụng
                   </h5>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
                     <label className="flex items-center gap-1.5">
                       Trừ
                       <Input
@@ -448,37 +468,49 @@ export function WhiteboxAddRuleModal({
                         className="h-8 w-24"
                       />
                     </label>
-                    <select
+                    <Select
                       value={draft.penalty_unit}
-                      onChange={(e) =>
+                      onValueChange={(v) =>
                         setDraft({
                           ...draft,
-                          penalty_unit: e.target.value as WhiteboxPenaltyUnit
+                          penalty_unit: v as WhiteboxPenaltyUnit
                         })
                       }
-                      className="h-8 rounded-md border border-input bg-background px-2"
                     >
-                      <option value="ABSOLUTE">điểm</option>
-                      <option value="PERCENTAGE_OF_QUESTION">% câu</option>
-                    </select>
-                    <select
+                      <SelectTrigger className="h-8 w-[110px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ABSOLUTE">điểm</SelectItem>
+                        <SelectItem value="PERCENTAGE_OF_QUESTION">
+                          % câu
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
                       value={draft.severity}
-                      onChange={(e) =>
+                      onValueChange={(v) =>
                         setDraft({
                           ...draft,
-                          severity: e.target.value as WhiteboxSeverity
+                          severity: v as WhiteboxSeverity
                         })
                       }
-                      className="h-8 rounded-md border border-input bg-background px-2"
                     >
-                      <option value="WARNING_ONLY">Chỉ cảnh báo</option>
-                      <option value="DEDUCTION">Trừ điểm</option>
-                    </select>
+                      <SelectTrigger className="h-8 w-[150px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="WARNING_ONLY">
+                          Chỉ cảnh báo
+                        </SelectItem>
+                        <SelectItem value="DEDUCTION">Trừ điểm</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </section>
 
                 <section className="space-y-2">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                     5. Mô tả
                   </h5>
                   <Input
@@ -504,9 +536,9 @@ export function WhiteboxAddRuleModal({
               </>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="border-t px-5 py-3">
+        <DialogFooter className="shrink-0 border-t bg-background px-5 py-4">
           <Button
             type="button"
             variant="outline"

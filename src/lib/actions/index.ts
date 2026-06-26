@@ -59,6 +59,7 @@ export {
   getSpecificationDetail,
   updateSpecification,
   generateGradingRubric,
+  refineRubricTestCases,
   testGradeCreateTable,
   testGradeInsertData,
   testGradeSelectData,

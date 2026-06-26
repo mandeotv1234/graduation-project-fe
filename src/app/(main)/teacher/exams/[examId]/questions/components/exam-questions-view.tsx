@@ -36,7 +36,6 @@ import { useApi } from '@/hooks/use-api'
 import {
   createExamQuestionsBatch,
   deleteExamQuestion,
-  getWhiteboxCatalog,
   shareExamAsTemplate,
   updateExamQuestion
 } from '@/lib/actions'
@@ -75,6 +74,7 @@ import { RubricTestGrader } from './rubric-test-grader'
 import { SelectQueryTestGrader } from './select-query-test-grader'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { PdfUploadDialog } from './pdf-upload-dialog/pdf-upload-dialog'
+import { loadWhiteboxCatalogCached } from './whitebox-catalog-client'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -192,7 +192,7 @@ export function ExamQuestionsView({
       return
     }
     let active = true
-    getWhiteboxCatalog(addingQuestionType)
+    loadWhiteboxCatalogCached(addingQuestionType)
       .then((res) => {
         if (active) {
           setWhiteboxSupportedByType((prev) => ({
@@ -857,8 +857,8 @@ export function ExamQuestionsView({
                     ? [
                         { step: 1, label: 'Nội dung & đáp án' },
                         { step: 2, label: 'Cấu hình kỳ vọng' },
-                        { step: 3, label: 'Black-box' },
-                        { step: 4, label: 'White-box' },
+                        { step: 3, label: 'Kiểm tra kết quả' },
+                        { step: 4, label: 'Quy tắc cách viết' },
                         { step: 5, label: 'Hoàn tất' }
                       ]
                     : [
@@ -1447,142 +1447,242 @@ export function ExamQuestionsView({
                         </>
                       )}
 
-                      {(step === 2 ||
-                        step === 3 ||
-                        (whiteboxSupported && step === 4)) &&
-                        hasWizard && (
-                          <div className="rounded-lg border border-sub-primary/20 p-4 space-y-4">
-                            <h4 className="flex items-center gap-2 text-sm font-bold text-sub-primary">
-                              <Sparkles className="h-4 w-4" />
-                              {step === 2
-                                ? 'Bước 2: Cấu hình kỳ vọng'
-                                : step === 4
-                                  ? 'Bước 4: White-box — chấm phương pháp'
-                                  : whiteboxSupported
-                                    ? 'Bước 3: Black-box — chấm theo kết quả'
-                                    : 'Bước 3: Thiết lập quy tắc chấm điểm'}
-                            </h4>
-                            {q.questionType === 'CREATE_TABLE' && (
-                              <CreateTableRubricEditor
-                                examId={examId}
-                                totalPoints={q.points}
-                                rubric={q.rubricData ?? null}
-                                onChange={(rubric) =>
-                                  updateQuestion(q.id, {
-                                    rubricData: rubric
-                                  })
-                                }
-                                correctQuery={q.correctQuery}
-                                questionContent={q.content}
-                                wizardStep={step}
-                              />
-                            )}
-                            {q.questionType === 'INSERT_DATA' && (
-                              <InsertDataRubricEditor
-                                examId={examId}
-                                totalPoints={q.points}
-                                rubric={q.rubricData ?? null}
-                                onChange={(rubric) =>
-                                  updateQuestion(q.id, {
-                                    rubricData: rubric
-                                  })
-                                }
-                                correctQuery={q.correctQuery}
-                                questionContent={q.content}
-                                wizardStep={step}
-                              />
-                            )}
-                            {q.questionType === 'SELECT_QUERY' && (
-                              <SelectQueryRubricEditor
-                                examId={examId}
-                                totalPoints={q.points}
-                                rubric={q.rubricData ?? null}
-                                onChange={(rubric) =>
-                                  updateQuestion(q.id, {
-                                    rubricData: rubric
-                                  })
-                                }
-                                correctQuery={q.correctQuery}
-                                questionContent={q.content}
-                                contextQueries={[
-                                  ...questions
-                                    .filter(
-                                      (item) =>
-                                        item.id !== Number(q.id) &&
-                                        (item.questionType === 'CREATE_TABLE' ||
-                                          item.questionType ===
-                                            'INSERT_DATA') &&
-                                        Boolean(item.correctQuery?.trim())
-                                    )
-                                    .map((item) => ({
-                                      questionType: item.questionType,
-                                      content: item.content,
-                                      correctQuery: item.correctQuery
-                                    })),
-                                  ...pendingQuestions
-                                    .filter(
-                                      (item) =>
-                                        item.id !== q.id &&
-                                        (item.questionType === 'CREATE_TABLE' ||
-                                          item.questionType ===
-                                            'INSERT_DATA') &&
-                                        Boolean(item.correctQuery?.trim())
-                                    )
-                                    .map((item) => ({
-                                      questionType: item.questionType,
-                                      content: item.content,
-                                      correctQuery: item.correctQuery
-                                    }))
-                                ]}
-                                dependencyOptions={[
-                                  ...questions.map((existingQ) => ({
-                                    value: String(existingQ.id),
-                                    label: `#${existingQ.orderIndex} - Câu đã lưu`
+                      {(step === 2 || step === 3) && hasWizard && (
+                        <div className="rounded-lg border border-sub-primary/20 p-4 space-y-4">
+                          <h4 className="flex items-center gap-2 text-sm font-bold text-sub-primary">
+                            <Sparkles className="h-4 w-4" />
+                            {step === 2
+                              ? 'Bước 2: Cấu hình kỳ vọng'
+                              : whiteboxSupported
+                                ? 'Bước 3: Kiểm tra kết quả'
+                                : 'Bước 3: Thiết lập quy tắc chấm điểm'}
+                          </h4>
+                          {q.questionType === 'CREATE_TABLE' && (
+                            <CreateTableRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              wizardStep={step}
+                            />
+                          )}
+                          {q.questionType === 'INSERT_DATA' && (
+                            <InsertDataRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              wizardStep={step}
+                            />
+                          )}
+                          {q.questionType === 'SELECT_QUERY' && (
+                            <SelectQueryRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              contextQueries={[
+                                ...questions
+                                  .filter(
+                                    (item) =>
+                                      item.id !== Number(q.id) &&
+                                      (item.questionType === 'CREATE_TABLE' ||
+                                        item.questionType === 'INSERT_DATA') &&
+                                      Boolean(item.correctQuery?.trim())
+                                  )
+                                  .map((item) => ({
+                                    questionType: item.questionType,
+                                    content: item.content,
+                                    correctQuery: item.correctQuery
                                   })),
-                                  ...pendingQuestions
-                                    .filter((other) => other.id !== q.id)
-                                    .map((other) => ({
-                                      value: other.id,
-                                      label: `#${other.orderIndex} - Câu đang tạo`
-                                    }))
-                                ]}
-                                wizardStep={step}
-                              />
-                            )}
-                            {(q.questionType === 'FUNCTION' ||
-                              q.questionType === 'STORED_PROCEDURE') && (
-                              <RoutineRubricEditor
-                                questionType={q.questionType}
-                                totalPoints={q.points}
-                                rubric={q.rubricData ?? null}
-                                onChange={(rubric) =>
-                                  updateQuestion(q.id, {
-                                    rubricData: rubric
-                                  })
-                                }
-                                correctQuery={q.correctQuery}
-                                questionContent={q.content}
-                                schemaContext={routineSchemaContext}
-                                wizardStep={step}
-                              />
-                            )}
-                            {q.questionType === 'TRIGGER' && (
-                              <TriggerRubricEditor
-                                totalPoints={q.points}
-                                rubric={q.rubricData ?? null}
-                                onChange={(rubric) =>
-                                  updateQuestion(q.id, {
-                                    rubricData: rubric
-                                  })
-                                }
-                                correctQuery={q.correctQuery}
-                                questionContent={q.content}
-                                schemaContext={routineSchemaContext}
-                                wizardStep={step}
-                              />
-                            )}
-                          </div>
-                        )}
+                                ...pendingQuestions
+                                  .filter(
+                                    (item) =>
+                                      item.id !== q.id &&
+                                      (item.questionType === 'CREATE_TABLE' ||
+                                        item.questionType === 'INSERT_DATA') &&
+                                      Boolean(item.correctQuery?.trim())
+                                  )
+                                  .map((item) => ({
+                                    questionType: item.questionType,
+                                    content: item.content,
+                                    correctQuery: item.correctQuery
+                                  }))
+                              ]}
+                              dependencyOptions={[
+                                ...questions.map((existingQ) => ({
+                                  value: String(existingQ.id),
+                                  label: `#${existingQ.orderIndex} - Câu đã lưu`
+                                })),
+                                ...pendingQuestions
+                                  .filter((other) => other.id !== q.id)
+                                  .map((other) => ({
+                                    value: other.id,
+                                    label: `#${other.orderIndex} - Câu đang tạo`
+                                  }))
+                              ]}
+                              wizardStep={step}
+                            />
+                          )}
+                          {(q.questionType === 'FUNCTION' ||
+                            q.questionType === 'STORED_PROCEDURE') && (
+                            <RoutineRubricEditor
+                              questionType={q.questionType}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              schemaContext={routineSchemaContext}
+                              wizardStep={step}
+                            />
+                          )}
+                          {q.questionType === 'TRIGGER' && (
+                            <TriggerRubricEditor
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              schemaContext={routineSchemaContext}
+                              wizardStep={step}
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {whiteboxSupported && step === 4 && hasWizard && (
+                        <>
+                          {q.questionType === 'INSERT_DATA' && (
+                            <InsertDataRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              wizardStep={step}
+                            />
+                          )}
+                          {q.questionType === 'SELECT_QUERY' && (
+                            <SelectQueryRubricEditor
+                              examId={examId}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              contextQueries={[
+                                ...questions
+                                  .filter(
+                                    (item) =>
+                                      item.id !== Number(q.id) &&
+                                      (item.questionType === 'CREATE_TABLE' ||
+                                        item.questionType === 'INSERT_DATA') &&
+                                      Boolean(item.correctQuery?.trim())
+                                  )
+                                  .map((item) => ({
+                                    questionType: item.questionType,
+                                    content: item.content,
+                                    correctQuery: item.correctQuery
+                                  })),
+                                ...pendingQuestions
+                                  .filter(
+                                    (item) =>
+                                      item.id !== q.id &&
+                                      (item.questionType === 'CREATE_TABLE' ||
+                                        item.questionType === 'INSERT_DATA') &&
+                                      Boolean(item.correctQuery?.trim())
+                                  )
+                                  .map((item) => ({
+                                    questionType: item.questionType,
+                                    content: item.content,
+                                    correctQuery: item.correctQuery
+                                  }))
+                              ]}
+                              dependencyOptions={[
+                                ...questions.map((existingQ) => ({
+                                  value: String(existingQ.id),
+                                  label: `#${existingQ.orderIndex} - Câu đã lưu`
+                                })),
+                                ...pendingQuestions
+                                  .filter((other) => other.id !== q.id)
+                                  .map((other) => ({
+                                    value: other.id,
+                                    label: `#${other.orderIndex} - Câu đang tạo`
+                                  }))
+                              ]}
+                              wizardStep={step}
+                            />
+                          )}
+                          {(q.questionType === 'FUNCTION' ||
+                            q.questionType === 'STORED_PROCEDURE') && (
+                            <RoutineRubricEditor
+                              questionType={q.questionType}
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              schemaContext={routineSchemaContext}
+                              wizardStep={step}
+                            />
+                          )}
+                          {q.questionType === 'TRIGGER' && (
+                            <TriggerRubricEditor
+                              totalPoints={q.points}
+                              rubric={q.rubricData ?? null}
+                              onChange={(rubric) =>
+                                updateQuestion(q.id, {
+                                  rubricData: rubric
+                                })
+                              }
+                              correctQuery={q.correctQuery}
+                              questionContent={q.content}
+                              schemaContext={routineSchemaContext}
+                              wizardStep={step}
+                            />
+                          )}
+                        </>
+                      )}
 
                       {step === finalStep &&
                         (q.questionType === 'CREATE_TABLE' ||

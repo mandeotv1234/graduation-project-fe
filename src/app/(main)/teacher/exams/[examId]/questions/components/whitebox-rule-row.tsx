@@ -4,6 +4,13 @@ import { Trash2 } from 'lucide-react'
 
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import {
   WhiteboxCatalogItem,
@@ -11,8 +18,6 @@ import {
   WhiteboxRule,
   WhiteboxSeverity
 } from '@/lib/types'
-
-import { POLICY_BADGE_CLASS } from './whitebox-authoring'
 
 interface WhiteboxRuleRowProps {
   item: WhiteboxCatalogItem
@@ -55,12 +60,17 @@ export function WhiteboxRuleRow({
         />
         <span
           className={cn(
-            'rounded px-1.5 py-0.5 text-[10px] font-semibold',
-            POLICY_BADGE_CLASS[item.policy] ?? ''
+            'h-2 w-2 shrink-0 rounded-full',
+            item.policy === 'FORBID' || item.policy === 'FORBID_ANY'
+              ? 'bg-rose-500'
+              : item.policy === 'REQUIRE' ||
+                  item.policy === 'REQUIRE_ANY' ||
+                  item.policy === 'REQUIRE_ALL'
+                ? 'bg-emerald-500'
+                : 'bg-amber-500'
           )}
-        >
-          {item.policyLabel}
-        </span>
+          title={item.policyLabel}
+        />
         <span className="flex-1" title={item.description}>
           <span className="block text-sm">{item.featureLabel}</span>
           <span className="block font-mono text-[10px] text-muted-foreground">
@@ -81,30 +91,34 @@ export function WhiteboxRuleRow({
             className="h-8 w-20"
           />
         </label>
-        <select
+        <Select
           value={rule.penalty_unit}
-          onChange={(e) =>
-            onUpdate(item.ruleId, {
-              penalty_unit: e.target.value as WhiteboxPenaltyUnit
-            })
+          onValueChange={(v) =>
+            onUpdate(item.ruleId, { penalty_unit: v as WhiteboxPenaltyUnit })
           }
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
         >
-          <option value="ABSOLUTE">điểm</option>
-          <option value="PERCENTAGE_OF_QUESTION">% câu</option>
-        </select>
-        <select
+          <SelectTrigger className="h-8 w-[100px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ABSOLUTE">điểm</SelectItem>
+            <SelectItem value="PERCENTAGE_OF_QUESTION">% câu</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
           value={rule.severity}
-          onChange={(e) =>
-            onUpdate(item.ruleId, {
-              severity: e.target.value as WhiteboxSeverity
-            })
+          onValueChange={(v) =>
+            onUpdate(item.ruleId, { severity: v as WhiteboxSeverity })
           }
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
         >
-          <option value="WARNING_ONLY">Chỉ cảnh báo</option>
-          <option value="DEDUCTION">Trừ điểm</option>
-        </select>
+          <SelectTrigger className="h-8 w-[120px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="WARNING_ONLY">Chỉ cảnh báo</SelectItem>
+            <SelectItem value="DEDUCTION">Trừ điểm</SelectItem>
+          </SelectContent>
+        </Select>
         <button
           type="button"
           onClick={() => onRemove(item.ruleId)}

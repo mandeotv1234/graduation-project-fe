@@ -31,7 +31,6 @@ import {
   createRulePreset,
   deleteRulePreset,
   getRulePresets,
-  getWhiteboxCatalog,
   updateRulePreset,
   validateWhitebox
 } from '@/lib/actions'
@@ -52,6 +51,7 @@ import { WhiteboxAddRuleModal } from './whitebox-add-rule-modal'
 import { defaultRuleFromCatalog, detectConflicts } from './whitebox-authoring'
 import { SystemPresetList } from './system-preset-list'
 import { TeacherSqlEditor } from './teacher-sql-editor'
+import { loadWhiteboxCatalogCached } from './whitebox-catalog-client'
 import { WhiteboxRuleRow } from './whitebox-rule-row'
 
 interface WhiteboxRulesEditorProps {
@@ -112,15 +112,23 @@ export function WhiteboxRulesEditor({
   useEffect(() => {
     let active = true
     setLoadingCatalog(true)
-    getWhiteboxCatalog(questionType)
+    loadWhiteboxCatalogCached(questionType)
       .then((res) => {
         if (!active) return
-        setCatalog(res.data ?? [])
+        if (!Array.isArray(res.data)) {
+          setCatalog([])
+          setCatalogError(
+            res.message || 'Không tải được danh mục quy tắc cách viết.'
+          )
+          return
+        }
+        setCatalog(res.data)
         setCatalogError(null)
       })
       .catch(
         () =>
-          active && setCatalogError('Không tải được danh mục quy tắc whitebox.')
+          active &&
+          setCatalogError('Không tải được danh mục quy tắc cách viết.')
       )
       .finally(() => active && setLoadingCatalog(false))
     return () => {
@@ -330,7 +338,7 @@ export function WhiteboxRulesEditor({
       })
       setValidation(res.data ?? null)
     } catch {
-      toast.error('Chạy thử whitebox thất bại.')
+      toast.error('Chạy thử quy tắc thất bại.')
     } finally {
       setIsValidating(false)
     }
@@ -346,7 +354,7 @@ export function WhiteboxRulesEditor({
       {/* Header mirrors the black-box rules editor: title + count on the left, actions on the right. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h4 className="flex items-center gap-2 text-base font-semibold text-foreground">
-          Chấm phương pháp (White-box)
+          Quy tắc cách viết câu lệnh
           <Badge
             variant="secondary"
             className="rounded-full px-2.5 py-0.5 text-xs"
@@ -374,16 +382,16 @@ export function WhiteboxRulesEditor({
                   Mẫu quy tắc
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Mẫu quy tắc white-box</DialogTitle>
+              <DialogContent className="sm:max-w-md flex flex-col max-h-[85vh]">
+                <DialogHeader className="shrink-0">
+                  <DialogTitle>Mẫu quy tắc cách viết</DialogTitle>
                   <DialogDescription>
                     Lưu hoặc tải bộ quy tắc cho loại câu hỏi này (thay thế các
-                    quy tắc white-box hiện tại).
+                    quy tắc cách viết hiện tại).
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-2">
+                <div className="space-y-4 py-2 overflow-y-auto min-h-0 flex-1">
                   {/* Save new preset, or update the one currently being edited */}
                   <div className="space-y-2">
                     {editingPreset && (
@@ -429,8 +437,8 @@ export function WhiteboxRulesEditor({
                     </div>
                     {rules.length === 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Thêm quy tắc ở bước White-box (nút “Thêm quy tắc”)
-                        trước, rồi quay lại đây để lưu thành mẫu.
+                        Thêm quy tắc (nút “Thêm quy tắc”) trước, rồi quay lại
+                        đây để lưu thành mẫu.
                       </p>
                     )}
                   </div>
@@ -659,8 +667,7 @@ export function WhiteboxRulesEditor({
           </div>
         ) : (
           <p className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-center text-sm text-muted-foreground">
-            Chưa bật quy tắc whitebox nào. Bấm “Mẫu quy tắc” hoặc “Thêm quy
-            tắc”.
+            Chưa bật quy tắc nào. Bấm “Mẫu quy tắc” hoặc “Thêm quy tắc”.
           </p>
         ))}
 
@@ -686,7 +693,7 @@ export function WhiteboxRulesEditor({
             Chạy thử
           </Button>
         </div>
-        <div className="h-32 overflow-hidden rounded-md border border-border bg-sub-background">
+        <div className="h-56 overflow-hidden rounded-md border border-border bg-sub-background">
           <TeacherSqlEditor
             value={previewSql}
             onChange={(value) => setPreviewSql(value || '')}
