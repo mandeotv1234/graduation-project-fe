@@ -17,7 +17,9 @@ import {
   WhiteboxCatalogItem,
   WhiteboxValidationResult,
   WhiteboxRule,
-  WhiteboxSettings
+  WhiteboxSettings,
+  RefineRubricTestCasesRequest,
+  RefineRubricTestCasesResponse
 } from '@/lib/types'
 
 export async function getSpecifications(): Promise<
@@ -127,14 +129,37 @@ export async function generateGradingRubric(data: {
   return apiClient.post<string>(ENDPOINTS.EXAM_GENERATE_RUBRIC, data)
 }
 
+export async function refineRubricTestCases(
+  data: RefineRubricTestCasesRequest
+): Promise<ApiResponse<RefineRubricTestCasesResponse>> {
+  return apiClient.post<RefineRubricTestCasesResponse>(
+    ENDPOINTS.EXAM_REFINE_RUBRIC_TESTCASES,
+    data
+  )
+}
+
+// In-process cache for the catalog — static data that never changes between deploys.
+// Authorization headers prevent Next.js from caching this fetch, so we cache it here.
+const _catalogCache = new Map<string, WhiteboxCatalogItem[]>()
+const CATALOG_REQUEST_TIMEOUT_MS = 10_000
+
 // Fetches the backend-owned white-box rule catalog (source of truth) for a question type.
 export async function getWhiteboxCatalog(
   questionType = 'SELECT_QUERY'
 ): Promise<ApiResponse<WhiteboxCatalogItem[]>> {
-  return apiClient.get<WhiteboxCatalogItem[]>(
+  const key = questionType.toUpperCase()
+  const cached = _catalogCache.get(key)
+  if (cached) return { code: '200', message: 'OK', data: cached }
+
+  const result = await apiClient.get<WhiteboxCatalogItem[]>(
     ENDPOINTS.WHITEBOX_CATALOG(questionType),
-    { cache: 'no-store' }
+    {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(CATALOG_REQUEST_TIMEOUT_MS)
+    }
   )
+  if (Array.isArray(result.data)) _catalogCache.set(key, result.data)
+  return result
 }
 
 // Stateless white-box validation/preview (model answer or arbitrary SQL). Never blocks save.

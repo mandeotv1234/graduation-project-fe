@@ -28,6 +28,7 @@ import {
   MissingPenaltyAction
 } from '@/lib/types'
 import { TeacherSqlEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/teacher-sql-editor'
+import { AiRubricRefinementPanel } from '@/app/(main)/teacher/exams/[examId]/questions/components/ai-rubric-refinement-panel'
 
 function createDefaultTrigger(): TriggerRubricTrigger {
   return {
@@ -330,7 +331,50 @@ export function TriggerRubricEditor({
     } finally {
       setIsGenerating(false)
     }
-  }, [correctQuery, questionContent, totalPoints, onChange])
+  }, [correctQuery, questionContent, schemaContext, totalPoints, onChange])
+
+  const currentRubricForAi = useMemo<GradingRubric>(
+    () => ({
+      total_points: totalPoints,
+      question_category: rubric?.question_category || 'TRIGGER',
+      grading_payload: {
+        grading_settings,
+        triggers,
+        test_cases
+      }
+    }),
+    [
+      grading_settings,
+      rubric?.question_category,
+      test_cases,
+      totalPoints,
+      triggers
+    ]
+  )
+
+  const handleApplyAiRefinement = useCallback(
+    (nextRubric: GradingRubric) => {
+      const activeCaseId = test_cases[activeTestCaseIndex]?.case_id
+      const normalized = normalizeTriggerPayload(nextRubric.grading_payload)
+      const normalizedRubric: GradingRubric = {
+        ...nextRubric,
+        total_points: totalPoints,
+        question_category: 'TRIGGER',
+        grading_payload: {
+          grading_settings: normalized.grading_settings,
+          triggers: normalized.triggers,
+          test_cases: normalized.test_cases
+        }
+      }
+      const nextActiveIndex = activeCaseId
+        ? normalized.test_cases.findIndex((tc) => tc.case_id === activeCaseId)
+        : -1
+
+      onChange(normalizedRubric)
+      setActiveTestCaseIndex(nextActiveIndex >= 0 ? nextActiveIndex : 0)
+    },
+    [activeTestCaseIndex, onChange, test_cases, totalPoints]
+  )
 
   const isWizardMode = typeof wizardStep === 'number'
   const isTestCasesStep = !isWizardMode || wizardStep === 2
@@ -457,6 +501,21 @@ export function TriggerRubricEditor({
               )}
             </Button>
           </div>
+
+          <AiRubricRefinementPanel
+            questionType="TRIGGER"
+            totalPoints={totalPoints}
+            currentRubric={currentRubricForAi}
+            onApply={handleApplyAiRefinement}
+            correctQuery={correctQuery}
+            questionContent={questionContent}
+            schemaContext={schemaContext}
+            activeTargetId={test_cases[activeTestCaseIndex]?.case_id}
+            activeTargetLabel={
+              test_cases[activeTestCaseIndex]?.case_name ||
+              test_cases[activeTestCaseIndex]?.case_id
+            }
+          />
 
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-foreground flex items-center gap-2">

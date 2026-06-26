@@ -613,6 +613,37 @@ export interface GradingRubric {
     | Record<string, unknown>
 }
 
+export type RubricRefinementMode =
+  | 'EDIT_TEST_CASE'
+  | 'ADD_TEST_CASE'
+  | 'IMPROVE_COVERAGE'
+  | 'REBALANCE_POINTS'
+
+export interface RefineRubricTestCasesRequest {
+  correctQuery: string
+  questionContent: string
+  totalPoints: number
+  questionType?: string
+  schemaContext?: string
+  contextQueries?: Array<{
+    questionType?: string
+    content?: string
+    correctQuery: string
+  }>
+  currentRubric: GradingRubric
+  teacherInstruction: string
+  target: {
+    mode: RubricRefinementMode
+    testCaseId?: string
+  }
+}
+
+export interface RefineRubricTestCasesResponse {
+  rubric: GradingRubric
+  changeSummary: string[]
+  warnings: string[]
+}
+
 // === INSERT_DATA Grading Types ===
 
 export interface InsertDataGradingSettings {

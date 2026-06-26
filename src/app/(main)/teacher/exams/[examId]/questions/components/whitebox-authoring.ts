@@ -205,13 +205,30 @@ export function detectConflicts(
 
 // Catalog group display labels for the add-rule modal sections.
 export const GROUP_LABELS: Record<string, string> = {
+  // SELECT_QUERY groups
   SUBQUERY_CTE: 'Subquery & CTE',
   JOIN: 'JOIN',
   SELECT_LIST: 'SELECT list & DISTINCT',
   AGGREGATE: 'Aggregate · GROUP BY · HAVING',
   ORDER_WINDOW: 'ORDER BY & Window',
   SET_OPERATION: 'Toán tử tập hợp',
-  GENERIC: 'Hàm & từ khóa'
+  GENERIC: 'Hàm & từ khóa',
+  // FUNCTION groups
+  RETURN: 'Return & kiểu trả về',
+  OPTIONS: 'Tùy chọn hàm',
+  DETERMINISM: 'Tính xác định',
+  DML: 'DML bên trong hàm',
+  // STORED_PROCEDURE groups
+  ERROR_HANDLING: 'Xử lý lỗi',
+  TRANSACTION: 'Transaction',
+  SETTINGS: 'Cài đặt thực thi',
+  VALIDATION: 'Kiểm tra đầu vào',
+  PARAMETERS: 'Tham số',
+  DDL: 'DDL bên trong SP',
+  DEBUG: 'Debug / thông báo',
+  // Shared (FUNCTION + SP)
+  CURSOR: 'Cursor',
+  DYNAMIC_SQL: 'Dynamic SQL'
 }
 
 // Build the stored WhiteboxRule from a catalog entry using its suggested severity/penalty/params.

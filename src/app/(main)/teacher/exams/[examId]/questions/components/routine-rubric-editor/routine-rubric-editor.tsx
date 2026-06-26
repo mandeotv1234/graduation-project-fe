@@ -31,6 +31,7 @@ import {
 import { TeacherSqlEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/teacher-sql-editor'
 import { TestCaseTabs } from '@/app/(main)/teacher/exams/[examId]/questions/components/test-case-tabs'
 import { WhiteboxRulesEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/whitebox-rules-editor'
+import { AiRubricRefinementPanel } from '@/app/(main)/teacher/exams/[examId]/questions/components/ai-rubric-refinement-panel'
 
 function createDefaultRoutine(
   defaultType: RoutineType = 'FUNCTION'
@@ -571,6 +572,63 @@ export function RoutineRubricEditor({
       ? Math.min(activeTestCaseIndex, test_cases.length - 1)
       : 0
   const routineParameters = routines[0]?.parameters || []
+  const currentRubricForAi = useMemo<GradingRubric>(
+    () => ({
+      total_points: totalPoints,
+      question_category: rubric?.question_category || rubricCategory,
+      grading_payload: {
+        grading_settings,
+        routines,
+        test_cases,
+        whitebox_rules,
+        whitebox_settings
+      }
+    }),
+    [
+      grading_settings,
+      routines,
+      rubric?.question_category,
+      rubricCategory,
+      test_cases,
+      totalPoints,
+      whitebox_rules,
+      whitebox_settings
+    ]
+  )
+
+  const handleApplyAiRefinement = useCallback(
+    (nextRubric: GradingRubric) => {
+      const activeCaseId = test_cases[selectedTestCaseIndex]?.case_id
+      const normalizedPayload = normalizeRoutinePayload(
+        nextRubric.grading_payload,
+        questionType
+      )
+      const normalizedRubric: GradingRubric = {
+        ...nextRubric,
+        total_points: totalPoints,
+        question_category: rubricCategory,
+        grading_payload: normalizedPayload
+      }
+      const nextActiveIndex = activeCaseId
+        ? normalizedPayload.test_cases.findIndex(
+            (tc) => tc.case_id === activeCaseId
+          )
+        : -1
+
+      onChange(normalizedRubric)
+      setIssueCaseKeys(new Set())
+      setIssueDetails([])
+      setActiveTestCaseIndex(nextActiveIndex >= 0 ? nextActiveIndex : 0)
+    },
+    [
+      onChange,
+      questionType,
+      rubricCategory,
+      selectedTestCaseIndex,
+      test_cases,
+      totalPoints
+    ]
+  )
 
   return (
     <div ref={editorRootRef} className={styles.editor}>
@@ -597,6 +655,22 @@ export function RoutineRubricEditor({
               )}
             </Button>
           </div>
+
+          <AiRubricRefinementPanel
+            questionType={rubricCategory}
+            totalPoints={totalPoints}
+            currentRubric={currentRubricForAi}
+            onApply={handleApplyAiRefinement}
+            correctQuery={correctQuery}
+            questionContent={questionContent}
+            schemaContext={schemaContext}
+            activeTargetId={test_cases[selectedTestCaseIndex]?.case_id}
+            activeTargetLabel={
+              test_cases[selectedTestCaseIndex]?.description ||
+              test_cases[selectedTestCaseIndex]?.case_name ||
+              test_cases[selectedTestCaseIndex]?.case_id
+            }
+          />
 
           <div className="flex items-center justify-between pb-2">
             <h4 className="text-base font-semibold text-foreground flex items-center gap-2">

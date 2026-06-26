@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { AiRubricRefinementPanel } from './ai-rubric-refinement-panel'
 import { GradingRulesEditor } from './grading-rules-editor'
 
 // ===== Default factories =====
@@ -405,6 +406,62 @@ export function CreateTableRubricEditor({
     }
   }
 
+  const currentRubricForAi = useMemo<GradingRubric>(
+    () => ({
+      total_points: totalPoints,
+      question_category: 'CREATE_TABLE',
+      grading_payload: {
+        grading_rules: gradingRules,
+        tables
+      }
+    }),
+    [gradingRules, tables, totalPoints]
+  )
+
+  const handleApplyAiRefinement = useCallback(
+    (nextRubric: GradingRubric) => {
+      const activeTableName = tables[activeTableIndex]?.expected_name
+      const normalizedPayload = normalizeCreateTablePayload(
+        nextRubric.grading_payload
+      )
+      const refinedHasSpecialPenalty = hasAnySpecialPenaltyValue(
+        normalizedPayload.tables
+      )
+      const shouldKeepSpecialPenalties =
+        showSpecialPenalties || refinedHasSpecialPenalty
+      const normalizedTables = sanitizeSpecialPenaltyFields(
+        normalizedPayload.tables,
+        shouldKeepSpecialPenalties
+      )
+      const normalizedRubric: GradingRubric = {
+        ...nextRubric,
+        total_points: totalPoints,
+        question_category: 'CREATE_TABLE',
+        grading_payload: {
+          grading_rules: normalizedPayload.grading_rules,
+          tables: normalizedTables
+        }
+      }
+      const nextActiveIndex = activeTableName
+        ? normalizedTables.findIndex(
+            (table) => table.expected_name === activeTableName
+          )
+        : -1
+
+      if (refinedHasSpecialPenalty) {
+        setShowSpecialPenalties(true)
+      }
+      rubricRef.current = normalizedRubric
+      onChange(normalizedRubric)
+      setActiveTableIndex(nextActiveIndex >= 0 ? nextActiveIndex : 0)
+      setExpandedTables((prev) => ({
+        ...prev,
+        [nextActiveIndex >= 0 ? nextActiveIndex : 0]: true
+      }))
+    },
+    [activeTableIndex, onChange, showSpecialPenalties, tables, totalPoints]
+  )
+
   const isWizardMode = typeof wizardStep === 'number'
 
   // Auto-trigger build when entering Step 2 with empty tables
@@ -462,6 +519,22 @@ export function CreateTableRubricEditor({
             Bật trọng số đặc biệt theo bảng/cột/ràng buộc
           </label>
         </div>
+      )}
+
+      {(!isWizardMode || wizardStep === 2) && (
+        <AiRubricRefinementPanel
+          questionType="CREATE_TABLE"
+          totalPoints={totalPoints}
+          currentRubric={currentRubricForAi}
+          onApply={handleApplyAiRefinement}
+          correctQuery={correctQuery}
+          questionContent={questionContent}
+          activeTargetId={tables[activeTableIndex]?.expected_name}
+          activeTargetLabel={
+            tables[activeTableIndex]?.expected_name ||
+            (tables.length > 0 ? `Bảng ${activeTableIndex + 1}` : undefined)
+          }
+        />
       )}
 
       {(!isWizardMode || wizardStep === 3) && (

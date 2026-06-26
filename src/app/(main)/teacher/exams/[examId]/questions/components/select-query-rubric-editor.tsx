@@ -31,6 +31,7 @@ import { GradingRulesEditor } from './grading-rules-editor'
 import { WhiteboxRulesEditor } from './whitebox-rules-editor'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { TestCaseTabs } from './test-case-tabs'
+import { AiRubricRefinementPanel } from './ai-rubric-refinement-panel'
 
 const MIN_SELECT_TEST_CASES = 1
 
@@ -332,6 +333,27 @@ export function SelectQueryRubricEditor({
     }
   }
 
+  const handleApplyAiRefinement = useCallback(
+    (nextRubric: GradingRubric) => {
+      const activeCaseId = testCases[activeTestCaseIndex]?.case_id
+      const normalized = normalizeSelectRubric(nextRubric, totalPoints)
+      const normalizedCases =
+        (normalized.grading_payload as SelectQueryGradingPayload).test_cases ||
+        []
+      const nextActiveIndex = activeCaseId
+        ? normalizedCases.findIndex((tc) => tc.case_id === activeCaseId)
+        : -1
+
+      onChange(normalized)
+      setActiveTestCaseIndex(nextActiveIndex >= 0 ? nextActiveIndex : 0)
+      setExpandedCases((prev) => ({
+        ...prev,
+        [nextActiveIndex >= 0 ? nextActiveIndex : 0]: true
+      }))
+    },
+    [activeTestCaseIndex, onChange, testCases, totalPoints]
+  )
+
   const isWizardMode = typeof wizardStep === 'number'
 
   return (
@@ -364,7 +386,7 @@ export function SelectQueryRubricEditor({
         <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-4 dark:border-sky-900/40 dark:bg-sky-950/10">
           <div className="mb-1 flex items-center gap-2">
             <span className="text-base font-semibold text-foreground">
-              Chấm theo kết quả (Black-box)
+              Chấm theo kết quả
             </span>
           </div>
           <p className="mb-3 text-sm text-muted-foreground">
@@ -397,6 +419,21 @@ export function SelectQueryRubricEditor({
 
       {(!isWizardMode || wizardStep === 2) && (
         <div className="space-y-4 pt-4">
+          <AiRubricRefinementPanel
+            questionType="SELECT_QUERY"
+            totalPoints={totalPoints}
+            currentRubric={currentRubric}
+            onApply={handleApplyAiRefinement}
+            correctQuery={correctQuery}
+            questionContent={questionContent}
+            contextQueries={contextQueries}
+            activeTargetId={testCases[activeTestCaseIndex]?.case_id}
+            activeTargetLabel={
+              testCases[activeTestCaseIndex]?.case_name ||
+              testCases[activeTestCaseIndex]?.case_id
+            }
+          />
+
           <div className="flex items-center justify-between pb-2">
             <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
               Danh sách test case
@@ -874,7 +911,6 @@ export function SelectQueryRubricEditor({
           )}
         </div>
       )}
-
     </div>
   )
 }
