@@ -205,6 +205,11 @@ export function detectConflicts(
 
 // Catalog group display labels for the add-rule modal sections.
 export const GROUP_LABELS: Record<string, string> = {
+  KEYS: 'Khóa',
+  CONSTRAINTS: 'Ràng buộc',
+  COLUMNS: 'Cột',
+  DATA_TYPE: 'Kiểu dữ liệu',
+  SAFETY: 'An toàn DDL',
   // SELECT_QUERY groups
   SUBQUERY_CTE: 'Subquery & CTE',
   JOIN: 'JOIN',

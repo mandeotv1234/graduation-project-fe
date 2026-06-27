@@ -1,18 +1,26 @@
 'use client'
 
+import {
+  buildInitialSchemaDiagram,
+  TeacherSchemaDiagram
+} from '@/components/shared/teacher-schema-diagram'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { buildCreateTablesFromAnswer } from '@/lib/actions'
 import {
   ConstraintType,
+  CreateTableGradingPayload,
   GradingRubric,
   InsertDataGradingRule,
   MissingPenaltyAction,
   RubricColumn,
   RubricConstraint,
-  RubricTable
+  RubricTable,
+  WhiteboxRule,
+  WhiteboxSettings
 } from '@/lib/types'
 import {
+  AlertTriangle,
   ChevronDown,
   ChevronRight,
   Columns3,
@@ -24,8 +32,8 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { AiRubricRefinementPanel } from './ai-rubric-refinement-panel'
 import { GradingRulesEditor } from './grading-rules-editor'
+import { WhiteboxRulesEditor } from './whitebox-rules-editor'
 
 // ===== Default factories =====
 
@@ -35,7 +43,9 @@ function createDefaultRubric(totalPoints: number): GradingRubric {
     question_category: 'CREATE_TABLE',
     grading_payload: {
       grading_rules: [],
-      tables: []
+      tables: [],
+      whitebox_rules: [],
+      whitebox_settings: {}
     }
   }
 }
@@ -141,11 +151,16 @@ function normalizeCreateTablePayload(
 ): {
   grading_rules: InsertDataGradingRule[]
   tables: RubricTable[]
+  whitebox_rules: WhiteboxRule[]
+  whitebox_settings: WhiteboxSettings
+  grading_settings?: CreateTableGradingPayload['grading_settings']
 } {
   if (!payload || typeof payload !== 'object') {
     return {
       grading_rules: [],
-      tables: []
+      tables: [],
+      whitebox_rules: [],
+      whitebox_settings: {}
     }
   }
 
@@ -155,6 +170,19 @@ function normalizeCreateTablePayload(
     grading_rules: Array.isArray(payloadRecord.grading_rules)
       ? (payloadRecord.grading_rules as InsertDataGradingRule[])
       : [],
+    grading_settings:
+      payloadRecord.grading_settings &&
+      typeof payloadRecord.grading_settings === 'object'
+        ? (payloadRecord.grading_settings as CreateTableGradingPayload['grading_settings'])
+        : undefined,
+    whitebox_rules: Array.isArray(payloadRecord.whitebox_rules)
+      ? (payloadRecord.whitebox_rules as WhiteboxRule[])
+      : [],
+    whitebox_settings:
+      payloadRecord.whitebox_settings &&
+      typeof payloadRecord.whitebox_settings === 'object'
+        ? (payloadRecord.whitebox_settings as WhiteboxSettings)
+        : {},
     tables: Array.isArray(payloadRecord.tables)
       ? (payloadRecord.tables as RubricTable[]).map((table) => ({
           ...table,
@@ -238,6 +266,7 @@ interface CreateTableRubricEditorProps {
   correctQuery?: string
   questionContent?: string
   wizardStep?: number
+  onRequestWizardStep?: (step: number) => void
 }
 
 export function CreateTableRubricEditor({
@@ -247,7 +276,8 @@ export function CreateTableRubricEditor({
   onChange,
   correctQuery,
   questionContent,
-  wizardStep
+  wizardStep,
+  onRequestWizardStep
 }: CreateTableRubricEditorProps) {
   const currentRubric = rubric ?? createDefaultRubric(totalPoints)
   const rubricRef = useRef<GradingRubric>(currentRubric)
@@ -259,6 +289,8 @@ export function CreateTableRubricEditor({
   const payload = normalizeCreateTablePayload(currentRubric.grading_payload)
   const gradingRules = payload.grading_rules
   const tables = payload.tables
+  const whiteboxRules = payload.whitebox_rules
+  const whiteboxSettings = payload.whitebox_settings
   const hasSpecialPenaltyConfig = useMemo(
     () => hasAnySpecialPenaltyValue(tables),
     [tables]
@@ -291,7 +323,7 @@ export function CreateTableRubricEditor({
         total_points: totalPoints,
         question_category: 'CREATE_TABLE',
         grading_payload: {
-          grading_rules: normalizedPayload.grading_rules,
+          ...normalizedPayload,
           tables: sanitizedTables
         }
       }
@@ -306,8 +338,28 @@ export function CreateTableRubricEditor({
         total_points: totalPoints,
         question_category: 'CREATE_TABLE',
         grading_payload: {
+          ...normalizedPayload,
           grading_rules: newRules,
           tables: normalizedPayload.tables
+        }
+      }
+    })
+  }
+
+  const setWhitebox = (
+    nextRules: WhiteboxRule[],
+    nextSettings: WhiteboxSettings
+  ) => {
+    updateRubric((r) => {
+      const normalizedPayload = normalizeCreateTablePayload(r.grading_payload)
+      return {
+        ...r,
+        total_points: totalPoints,
+        question_category: 'CREATE_TABLE',
+        grading_payload: {
+          ...normalizedPayload,
+          whitebox_rules: nextRules,
+          whitebox_settings: nextSettings
         }
       }
     })
@@ -335,6 +387,7 @@ export function CreateTableRubricEditor({
 
   // ===== AI Generate =====
   const [isBuildingTables, setIsBuildingTables] = useState(false)
+  const [buildTablesError, setBuildTablesError] = useState<string | null>(null)
   const [showSpecialPenalties, setShowSpecialPenalties] = useState<boolean>(
     hasSpecialPenaltyConfig
   )
@@ -371,18 +424,25 @@ export function CreateTableRubricEditor({
 
   const handleBuildTablesFromAnswer = async () => {
     if (!correctQuery?.trim()) {
-      toast.error('Vui long nhap SQL dap an truoc khi dung cau truc bang')
+      const message = 'Vui lòng nhập SQL đáp án trước khi dựng cấu trúc.'
+      setBuildTablesError(message)
+      toast.error(message)
       return
     }
 
     setIsBuildingTables(true)
+    setBuildTablesError(null)
     try {
       const result = await buildCreateTablesFromAnswer(examId, {
         correctQuery: correctQuery.trim()
       })
 
       if (!result.data) {
-        toast.error(result.message || 'Khong the dung cau truc bang tu dap an')
+        const message = normalizeBuildTablesErrorMessage(
+          result.message || 'Không thể dựng cấu trúc bảng từ đáp án.'
+        )
+        setBuildTablesError(message)
+        toast.error(message)
         return
       }
 
@@ -391,7 +451,10 @@ export function CreateTableRubricEditor({
         : []
 
       if (generatedTables.length === 0) {
-        toast.error('Khong tao duoc tables tu SQL dap an')
+        const message =
+          'SQL đáp án chạy được nhưng không tìm thấy bảng CREATE TABLE để lưu cấu trúc.'
+        setBuildTablesError(message)
+        toast.error(message)
         return
       }
 
@@ -399,68 +462,18 @@ export function CreateTableRubricEditor({
       setTables(generatedTables, { specialPenaltyEnabled: false })
       setActiveTableIndex(0)
       toast.success(`Đã tạo ${generatedTables.length} bảng từ SQL đáp án`)
-    } catch {
-      toast.error('Lỗi khi dựng cấu trúc bảng từ đáp án. Vui lòng thử lại.')
+    } catch (error) {
+      const message = normalizeBuildTablesErrorMessage(
+        error instanceof Error && error.message
+          ? error.message
+          : 'Lỗi khi dựng cấu trúc bảng từ đáp án. Vui lòng thử lại.'
+      )
+      setBuildTablesError(message)
+      toast.error(message)
     } finally {
       setIsBuildingTables(false)
     }
   }
-
-  const currentRubricForAi = useMemo<GradingRubric>(
-    () => ({
-      total_points: totalPoints,
-      question_category: 'CREATE_TABLE',
-      grading_payload: {
-        grading_rules: gradingRules,
-        tables
-      }
-    }),
-    [gradingRules, tables, totalPoints]
-  )
-
-  const handleApplyAiRefinement = useCallback(
-    (nextRubric: GradingRubric) => {
-      const activeTableName = tables[activeTableIndex]?.expected_name
-      const normalizedPayload = normalizeCreateTablePayload(
-        nextRubric.grading_payload
-      )
-      const refinedHasSpecialPenalty = hasAnySpecialPenaltyValue(
-        normalizedPayload.tables
-      )
-      const shouldKeepSpecialPenalties =
-        showSpecialPenalties || refinedHasSpecialPenalty
-      const normalizedTables = sanitizeSpecialPenaltyFields(
-        normalizedPayload.tables,
-        shouldKeepSpecialPenalties
-      )
-      const normalizedRubric: GradingRubric = {
-        ...nextRubric,
-        total_points: totalPoints,
-        question_category: 'CREATE_TABLE',
-        grading_payload: {
-          grading_rules: normalizedPayload.grading_rules,
-          tables: normalizedTables
-        }
-      }
-      const nextActiveIndex = activeTableName
-        ? normalizedTables.findIndex(
-            (table) => table.expected_name === activeTableName
-          )
-        : -1
-
-      if (refinedHasSpecialPenalty) {
-        setShowSpecialPenalties(true)
-      }
-      rubricRef.current = normalizedRubric
-      onChange(normalizedRubric)
-      setActiveTableIndex(nextActiveIndex >= 0 ? nextActiveIndex : 0)
-      setExpandedTables((prev) => ({
-        ...prev,
-        [nextActiveIndex >= 0 ? nextActiveIndex : 0]: true
-      }))
-    },
-    [activeTableIndex, onChange, showSpecialPenalties, tables, totalPoints]
-  )
 
   const isWizardMode = typeof wizardStep === 'number'
 
@@ -482,7 +495,7 @@ export function CreateTableRubricEditor({
 
   return (
     <div className="space-y-5">
-      {(!isWizardMode || wizardStep === 2) && (
+      {!isWizardMode && (
         <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
@@ -521,18 +534,14 @@ export function CreateTableRubricEditor({
         </div>
       )}
 
-      {(!isWizardMode || wizardStep === 2) && (
-        <AiRubricRefinementPanel
-          questionType="CREATE_TABLE"
-          totalPoints={totalPoints}
-          currentRubric={currentRubricForAi}
-          onApply={handleApplyAiRefinement}
-          correctQuery={correctQuery}
-          questionContent={questionContent}
-          activeTargetId={tables[activeTableIndex]?.expected_name}
-          activeTargetLabel={
-            tables[activeTableIndex]?.expected_name ||
-            (tables.length > 0 ? `Bảng ${activeTableIndex + 1}` : undefined)
+      {isWizardMode && wizardStep === 2 && (
+        <CreateExpectedSchemaPreview
+          tables={tables}
+          isBuilding={isBuildingTables}
+          errorMessage={buildTablesError}
+          onRebuild={handleBuildTablesFromAnswer}
+          onBackToAnswer={
+            onRequestWizardStep ? () => onRequestWizardStep(1) : undefined
           }
         />
       )}
@@ -651,8 +660,19 @@ export function CreateTableRubricEditor({
         />
       )}
 
+      {(!isWizardMode || wizardStep === 4) && (
+        <WhiteboxRulesEditor
+          questionType="CREATE_TABLE"
+          totalPoints={totalPoints}
+          rules={whiteboxRules}
+          settings={whiteboxSettings}
+          onChange={setWhitebox}
+          sqlForPreview={correctQuery}
+        />
+      )}
+
       {/* Tables + Columns + Constraints */}
-      {(!isWizardMode || wizardStep === 2) && (
+      {!isWizardMode && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
@@ -735,6 +755,301 @@ export function CreateTableRubricEditor({
               />
             ) : null
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function normalizeBuildTablesErrorMessage(message: string) {
+  const fallback = 'Lỗi khi dựng cấu trúc bảng từ đáp án. Vui lòng thử lại.'
+  let normalized = (message || fallback).trim()
+
+  while (/^Lỗi thực thi SQL:\s*Lỗi thực thi SQL:/i.test(normalized)) {
+    normalized = normalized.replace(
+      /^Lỗi thực thi SQL:\s*Lỗi thực thi SQL:\s*/i,
+      'Lỗi thực thi SQL: '
+    )
+  }
+
+  return normalized
+}
+
+function buildCreateSchemaDiagramData(tables: RubricTable[]) {
+  const tableNames = new Set(
+    tables.map((table) => table.expected_name.trim()).filter(Boolean)
+  )
+  const primaryKeyColumnsByTable = new Map<string, Set<string>>()
+  const foreignKeyColumnsByTable = new Map<
+    string,
+    Map<string, { referencesTable: string; referencesColumn: string }>
+  >()
+
+  for (const table of tables) {
+    const tableName = table.expected_name.trim()
+    if (!tableName) continue
+
+    const pkColumns = new Set<string>()
+    const fkColumns = new Map<
+      string,
+      { referencesTable: string; referencesColumn: string }
+    >()
+
+    for (const constraint of table.constraints || []) {
+      if (constraint.type === 'PRIMARY_KEY') {
+        ;(constraint.columns || []).forEach((column) => pkColumns.add(column))
+      }
+
+      if (constraint.type === 'FOREIGN_KEY') {
+        const referencesTable = constraint.references_table?.trim() || ''
+        if (!referencesTable || !tableNames.has(referencesTable)) continue
+
+        const sourceColumns = constraint.columns || []
+        const targetColumns = constraint.references_columns || []
+        sourceColumns.forEach((sourceColumn, index) => {
+          const referencesColumn = targetColumns[index]
+          if (!sourceColumn || !referencesColumn) return
+          fkColumns.set(sourceColumn, { referencesTable, referencesColumn })
+        })
+      }
+    }
+
+    primaryKeyColumnsByTable.set(tableName, pkColumns)
+    foreignKeyColumnsByTable.set(tableName, fkColumns)
+  }
+
+  return JSON.stringify(
+    buildInitialSchemaDiagram(
+      tables
+        .filter((table) => table.expected_name.trim())
+        .map((table) => {
+          const tableName = table.expected_name.trim()
+          const pkColumns = primaryKeyColumnsByTable.get(tableName) ?? new Set()
+          const fkColumns =
+            foreignKeyColumnsByTable.get(tableName) ??
+            new Map<
+              string,
+              { referencesTable: string; referencesColumn: string }
+            >()
+
+          return {
+            tableName,
+            columns: table.columns.map((column) => {
+              const fk = fkColumns.get(column.name)
+              return {
+                columnName: column.name,
+                dataType: column.expected_type || 'UNKNOWN',
+                primaryKey: pkColumns.has(column.name),
+                foreignKey: Boolean(fk),
+                referencesTable: fk?.referencesTable ?? null,
+                referencesColumn: fk?.referencesColumn ?? null,
+                nullable: column.is_nullable
+              }
+            })
+          }
+        })
+    )
+  )
+}
+
+interface CombinedConstraint {
+  typeLabel: string
+  content: React.ReactNode
+}
+
+function getCombinedConstraints(table: RubricTable): CombinedConstraint[] {
+  const combined: CombinedConstraint[] = []
+
+  const notNullCols =
+    table.columns
+      ?.filter((c) => !c.is_nullable)
+      .map((c) => c.name)
+      .filter(Boolean) || []
+  if (notNullCols.length > 0) {
+    combined.push({ typeLabel: 'NOT NULL', content: notNullCols.join(', ') })
+  }
+
+  const identityCols =
+    table.columns
+      ?.filter((c) => c.is_auto_increment)
+      .map((c) => c.name)
+      .filter(Boolean) || []
+  if (identityCols.length > 0) {
+    combined.push({ typeLabel: 'IDENTITY', content: identityCols.join(', ') })
+  }
+
+  if (table.constraints) {
+    table.constraints.forEach((c) => {
+      let content: React.ReactNode = c.columns?.join(', ')
+      let typeLabel: string = c.type
+      if (c.type === 'PRIMARY_KEY') typeLabel = 'Khóa chính'
+      else if (c.type === 'FOREIGN_KEY') typeLabel = 'Khóa ngoại'
+
+      if (c.type === 'FOREIGN_KEY') {
+        content = (
+          <>
+            ({c.columns?.join(', ')}) &rarr; {c.references_table}(
+            {c.references_columns?.join(', ')})
+          </>
+        )
+      } else if (c.type === 'CHECK') {
+        content = c.expression
+      } else if (c.type === 'DEFAULT') {
+        content = `${c.columns?.join(', ')} = ${c.default_value || c.expression}`
+      }
+
+      combined.push({ typeLabel, content })
+    })
+  }
+
+  return combined
+}
+
+function CreateExpectedSchemaPreview({
+  tables,
+  isBuilding,
+  errorMessage,
+  onRebuild,
+  onBackToAnswer
+}: {
+  tables: RubricTable[]
+  isBuilding: boolean
+  errorMessage: string | null
+  onRebuild: () => void
+  onBackToAnswer?: () => void
+}) {
+  const diagramData = useMemo(
+    () => buildCreateSchemaDiagramData(tables),
+    [tables]
+  )
+
+  const tablesWithConstraints = useMemo(() => {
+    return tables
+      .map((t) => ({
+        ...t,
+        combinedConstraints: getCombinedConstraints(t)
+      }))
+      .filter((t) => t.combinedConstraints.length > 0)
+  }, [tables])
+
+  if (isBuilding) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <Loader2 className="h-5 w-5 animate-spin text-sub-primary" />
+          Đang chạy đáp án và dựng cấu trúc bảng...
+        </div>
+      </div>
+    )
+  }
+
+  if (errorMessage || tables.length === 0) {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+          <div className="min-w-0 flex-1 space-y-3">
+            <div>
+              <h4 className="text-sm font-bold text-destructive">
+                Không thể dựng cấu trúc đáp án
+              </h4>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {errorMessage || 'Chưa có bảng nào được extract từ SQL đáp án.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {onBackToAnswer && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={onBackToAnswer}
+                  className="h-8"
+                >
+                  Quay lại sửa đáp án
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={onRebuild}
+                className="h-8"
+              >
+                <Table2 className="mr-1.5 h-4 w-4" />
+                Dựng lại cấu trúc
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold uppercase text-muted-foreground">
+            Sơ đồ cơ sở dữ liệu
+          </div>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onRebuild}
+          className="h-8"
+        >
+          Dựng lại
+        </Button>
+      </div>
+      <div style={{ width: '100%', height: '360px' }}>
+        <TeacherSchemaDiagram
+          diagramData={diagramData}
+          readOnly
+          className="h-full w-full rounded-lg"
+        />
+      </div>
+
+      {tablesWithConstraints.length > 0 && (
+        <div className="pt-4 border-t border-border mt-6 space-y-3">
+          <div className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-2">
+            Danh sách ràng buộc
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {tablesWithConstraints.map((table, idx) => (
+              <div
+                key={idx}
+                className="rounded-md border border-border bg-card overflow-hidden flex flex-col"
+              >
+                <div className="bg-muted/30 px-2.5 py-1.5 border-b border-border flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground">
+                    {table.expected_name}
+                  </span>
+                </div>
+                <div className="p-0 flex-1 bg-background">
+                  <table className="w-full text-[11px]">
+                    <tbody className="divide-y divide-border/40">
+                      {table.combinedConstraints.map((c, cIdx) => (
+                        <tr
+                          key={cIdx}
+                          className="hover:bg-muted/10 transition-colors"
+                        >
+                          <td className="py-1.5 px-2.5 align-top w-20 text-muted-foreground font-semibold whitespace-nowrap">
+                            {c.typeLabel}
+                          </td>
+                          <td className="py-1.5 px-2.5 align-top font-mono text-foreground break-words">
+                            {c.content}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

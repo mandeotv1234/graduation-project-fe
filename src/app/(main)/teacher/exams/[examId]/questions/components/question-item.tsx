@@ -45,7 +45,6 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
 import {
   generateCreateTableQuestionFromSchema,
   sanitizeSchemaTables
@@ -276,7 +275,8 @@ export function QuestionItem({
     const generated = generateCreateTableQuestionFromSchema(
       availableSchemaTables,
       editCreateTableSelections,
-      { includeForeignKeys: editCreateTableIncludeFk }
+      { includeForeignKeys: editCreateTableIncludeFk },
+      specification
     )
     if (!generated.content || !generated.correctQuery) {
       toast.error('Không thể sinh câu hỏi từ schema hiện tại')
@@ -703,14 +703,6 @@ export function QuestionItem({
                   <Code2 className="h-4 w-4 text-sub-primary" /> Đáp án
                 </span>
               </label>
-              {editForm.questionType === 'CREATE_TABLE' && (
-                <CreateTableQueryFromSpec
-                  specification={specification}
-                  onApply={(sql) =>
-                    setEditForm((prev) => ({ ...prev, correctQuery: sql }))
-                  }
-                />
-              )}
               {editForm.questionType === 'INSERT_DATA' && (
                 <InsertQueryFromSpec
                   specification={specification}

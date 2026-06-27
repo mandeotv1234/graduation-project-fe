@@ -26,6 +26,9 @@ interface GradeResult {
   earnedPoints: number
   allPassed: boolean
   details: GradeDetail[]
+  blackboxScore?: number | null
+  whiteboxDeduction?: number | null
+  finalScore?: number | null
 }
 
 interface RubricTestGraderProps {
@@ -76,8 +79,7 @@ export function RubricTestGrader({
       } else {
         toast.error(response.message || 'Lỗi khi chấm thử')
       }
-    } catch (err) {
-      console.error('Test grade failed:', err)
+    } catch {
       toast.error('Lỗi kết nối. Vui lòng thử lại.')
     } finally {
       setIsGrading(false)
@@ -104,6 +106,24 @@ export function RubricTestGrader({
 
   const scorePercent = result
     ? (result.earnedPoints / result.totalPoints) * 100
+    : 0
+  const whiteboxDetails =
+    result?.details.filter((detail) =>
+      detail.message.startsWith('[Whitebox]')
+    ) ?? []
+  const blackboxDetails =
+    result?.details.filter(
+      (detail) => !detail.message.startsWith('[Whitebox]')
+    ) ?? []
+  const whiteboxDeduction =
+    result?.whiteboxDeduction ??
+    whiteboxDetails.reduce(
+      (total, detail) => total + Math.abs(Math.min(0, detail.points)),
+      0
+    )
+  const blackboxScore = result
+    ? (result.blackboxScore ??
+      Math.min(result.totalPoints, result.earnedPoints + whiteboxDeduction))
     : 0
 
   return (
@@ -159,7 +179,7 @@ export function RubricTestGrader({
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold text-foreground">
-                Kết quả chấm điểm CREATE TABLE
+                Điểm cuối dự kiến
               </span>
               <span
                 className={`text-2xl font-extrabold ${scorePercent >= 90 ? 'text-emerald-600 dark:text-emerald-400' : scorePercent >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}
@@ -174,23 +194,28 @@ export function RubricTestGrader({
                 style={{ width: `${Math.min(100, scorePercent)}%` }}
               />
             </div>
+            {whiteboxDetails.length > 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Black-box {blackboxScore.toFixed(2)} − White-box{' '}
+                {whiteboxDeduction.toFixed(2)}
+              </p>
+            )}
           </div>
 
-          {/* Detail breakdown */}
           <div className="rounded-lg border border-border overflow-hidden bg-card">
             <div className="flex items-center gap-2 bg-muted/30 px-4 py-2.5 border-b border-border">
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Chi tiết vết chấm từng đối tượng
+                Black-box: cấu trúc bảng
               </span>
               <Badge
                 variant="secondary"
                 className="rounded-full px-2.5 py-0.5 text-xs text-muted-foreground bg-muted font-semibold"
               >
-                {result.details.length}
+                {blackboxDetails.length}
               </Badge>
             </div>
             <div className="divide-y divide-border max-h-[300px] overflow-y-auto">
-              {result.details.map((detail, idx) => (
+              {blackboxDetails.map((detail, idx) => (
                 <div
                   key={idx}
                   className="flex items-start gap-2 px-4 py-2.5 text-xs hover:bg-muted/20 transition-colors"
@@ -217,6 +242,47 @@ export function RubricTestGrader({
               ))}
             </div>
           </div>
+
+          {whiteboxDetails.length > 0 && (
+            <div className="overflow-hidden rounded-lg border border-violet-200 bg-card dark:border-violet-900/40">
+              <div className="flex items-center justify-between border-b border-border bg-violet-50/60 px-4 py-2.5 dark:bg-violet-950/20">
+                <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  White-box: phương pháp viết DDL
+                </span>
+                <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
+                  −{whiteboxDeduction.toFixed(2)}đ
+                </span>
+              </div>
+              <div className="max-h-[300px] divide-y divide-border overflow-y-auto">
+                {whiteboxDetails.map((detail, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2 px-4 py-2.5 text-xs"
+                  >
+                    {detail.type === 'success' ? (
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                    ) : detail.type === 'error' ? (
+                      <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
+                    ) : (
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    )}
+                    <span className="flex-1 wrap-break-word text-foreground">
+                      {detail.message.replace(/^\[Whitebox\]\s*/, '')}
+                    </span>
+                    <span
+                      className={`shrink-0 font-mono font-bold ${
+                        detail.points < 0
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      {detail.points < 0 ? detail.points.toFixed(2) : '0'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

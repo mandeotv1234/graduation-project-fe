@@ -200,6 +200,41 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
     ]
   },
 
+  // ---- CREATE_TABLE presets ----
+  {
+    id: 'create-table-basic-ddl',
+    name: 'Kiểm tra DDL cơ bản',
+    description:
+      'Bắt buộc PRIMARY KEY mỗi bảng, cấm kiểu dữ liệu deprecated, SELECT INTO và WITH NOCHECK.',
+    questionType: 'CREATE_TABLE',
+    rules: [
+      {
+        ruleId: 'REQUIRED_PK',
+        severity: DEDUCT,
+        penaltyValue: 15,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_DEPRECATED_TYPE',
+        severity: DEDUCT,
+        penaltyValue: 5,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_SELECT_INTO',
+        severity: DEDUCT,
+        penaltyValue: 30,
+        penaltyUnit: PCT
+      },
+      {
+        ruleId: 'FORBIDDEN_NOCHECK',
+        severity: DEDUCT,
+        penaltyValue: 20,
+        penaltyUnit: PCT
+      }
+    ]
+  },
+
   // ---- STORED_PROCEDURE presets ----
   {
     id: 'sp-basic-quality',

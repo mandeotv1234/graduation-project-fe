@@ -190,6 +190,7 @@ export async function testGradeCreateTable(data: {
     blackboxScore?: number | null
     whiteboxDeduction?: number | null
     details: { type: string; message: string; points: number }[]
+    finalScore?: number | null
   }>
 > {
   return apiClient.post(ENDPOINTS.EXAM_TEST_GRADE, data)
