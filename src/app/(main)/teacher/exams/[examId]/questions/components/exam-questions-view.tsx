@@ -197,7 +197,7 @@ export function ExamQuestionsView({
     []
   )
 
-  // White-box step visibility is catalog-driven: a question type gets a White-box wizard step only
+  // Writing-rule step visibility is catalog-driven: a question type gets an authoring-rule wizard step only
   // when the backend catalog exposes at least one rule for it (v1 → SELECT only). Adding evaluators
   // for another type later makes its step appear automatically, with no frontend change.
   const [whiteboxSupportedByType, setWhiteboxSupportedByType] = useState<
@@ -960,8 +960,7 @@ export function ExamQuestionsView({
                   'STORED_PROCEDURE',
                   'TRIGGER'
                 ].includes(normalizedQuestionType)
-                // Catalog-driven: a type with white-box rules gets an extra White-box step, and its
-                // grading-rules step is renamed Black-box to pair with it. v1 → SELECT only.
+                // Catalog-driven: a type with white-box rules gets an extra writing-rule step.
                 const whiteboxSupported =
                   whiteboxSupportedByType[normalizedQuestionType] === true
                 const finalStep = whiteboxSupported ? 5 : 4
@@ -974,8 +973,8 @@ export function ExamQuestionsView({
                     ? [
                         { step: 1, label: 'Nội dung & đáp án' },
                         { step: 2, label: 'Cấu hình kỳ vọng' },
-                        { step: 3, label: 'Black-box' },
-                        { step: 4, label: 'White-box' },
+                        { step: 3, label: 'Kiểm tra kết quả' },
+                        { step: 4, label: 'Quy tắc cách viết' },
                         { step: 5, label: 'Hoàn tất' }
                       ]
                     : [
@@ -1571,7 +1570,7 @@ export function ExamQuestionsView({
                             {step === 2
                               ? 'Bước 2: Cấu hình kỳ vọng'
                               : whiteboxSupported
-                                ? 'Bước 3: Black-box — chấm theo kết quả'
+                                ? 'Bước 3: Kiểm tra kết quả'
                                 : 'Bước 3: Thiết lập quy tắc chấm điểm'}
                           </h4>
                           {q.questionType === 'CREATE_TABLE' && (
