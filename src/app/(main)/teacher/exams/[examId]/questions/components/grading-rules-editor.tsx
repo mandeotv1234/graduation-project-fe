@@ -86,7 +86,14 @@ const CREATE_TARGET_OPTIONS: Array<{
   ].includes(option.value)
 )
 
-const SELECT_TARGET_OPTIONS = ALL_TARGET_OPTIONS
+// Result-set grading only sees columns, rows, and cells — drop the DDL/structural
+// targets (TABLE, DATA_TYPE, PRIMARY_KEY, FOREIGN_KEY, CONSTRAINT_LOCAL) that the
+// SELECT comparator never emits, so teachers cannot pick a silent no-op rule.
+const SELECT_TARGET_OPTIONS = ALL_TARGET_OPTIONS.filter((option) =>
+  ['COLUMN', 'COLUMN_ORDER', 'ROW', 'CELL_VALUE', 'ROW_ORDER'].includes(
+    option.value
+  )
+)
 
 const SELECT_CONDITION_OPTIONS: Partial<
   Record<
@@ -102,8 +109,7 @@ const SELECT_CONDITION_OPTIONS: Partial<
   COLUMN: [
     { value: 'IS_MISSING', label: 'Bị thiếu' },
     { value: 'IS_EXTRA', label: 'Bị dư thừa' },
-    { value: 'NOT_EQUAL', label: 'Không khớp đáp án' },
-    { value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }
+    { value: 'NOT_EQUAL', label: 'Không khớp đáp án' }
   ],
   DATA_TYPE: [
     { value: 'TYPE_MISMATCH', label: 'Sai kiểu dữ liệu' },
@@ -132,9 +138,7 @@ const SELECT_CONDITION_OPTIONS: Partial<
   ],
   CELL_VALUE: [
     { value: 'NOT_EQUAL', label: 'Sai giá trị' },
-    { value: 'IS_NULL', label: 'Giá trị rỗng' },
-    { value: 'TYPE_MISMATCH', label: 'Sai kiểu dữ liệu' },
-    { value: 'LENGTH_MISMATCH', label: 'Sai độ dài' }
+    { value: 'IS_NULL', label: 'Giá trị rỗng' }
   ],
   ROW_ORDER: [{ value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }],
   // White-box QUERY rules are configured via the dedicated white-box card, not this modal.
