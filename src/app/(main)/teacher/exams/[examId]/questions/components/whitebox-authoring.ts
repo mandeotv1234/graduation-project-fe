@@ -157,6 +157,33 @@ export interface WhiteboxConflict {
   labelB: string
 }
 
+export function normalizeWhiteboxRulePenalty(
+  rule: WhiteboxRule,
+  item?: WhiteboxCatalogItem | null
+): WhiteboxRule {
+  if (rule.severity === 'WARNING_ONLY') {
+    return {
+      ...rule,
+      penalty_value: 0,
+      penalty_unit: 'ABSOLUTE'
+    }
+  }
+
+  const currentPenalty = Number(rule.penalty_value)
+  const defaultPenalty = Number(item?.defaultPenaltyValue)
+  return {
+    ...rule,
+    penalty_value:
+      Number.isFinite(currentPenalty) && currentPenalty > 0
+        ? currentPenalty
+        : Number.isFinite(defaultPenalty) && defaultPenalty > 0
+          ? defaultPenalty
+          : 0.25,
+    penalty_unit:
+      rule.penalty_unit ?? item?.defaultPenaltyUnit ?? 'PERCENTAGE_OF_QUESTION'
+  }
+}
+
 // Detect contradictory configured rules from catalog conflictsWith metadata, plus the param-aware
 // MAX_JOIN_COUNT=0 vs REQUIRED_JOIN case the static metadata cannot express. Warn only — never mutate.
 export function detectConflicts(

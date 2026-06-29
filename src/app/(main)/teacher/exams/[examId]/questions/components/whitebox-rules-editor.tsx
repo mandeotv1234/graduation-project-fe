@@ -48,7 +48,11 @@ import {
 import { cn } from '@/lib/utils'
 
 import { WhiteboxAddRuleModal } from './whitebox-add-rule-modal'
-import { defaultRuleFromCatalog, detectConflicts } from './whitebox-authoring'
+import {
+  defaultRuleFromCatalog,
+  detectConflicts,
+  normalizeWhiteboxRulePenalty
+} from './whitebox-authoring'
 import { SystemPresetList } from './system-preset-list'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { loadWhiteboxCatalogCached } from './whitebox-catalog-client'
@@ -176,6 +180,11 @@ export function WhiteboxRulesEditor({
     }
   }
 
+  const normalizeRules = (inputRules: WhiteboxRule[]) =>
+    inputRules.map((rule) =>
+      normalizeWhiteboxRulePenalty(rule, catalogById.get(rule.rule_id))
+    )
+
   const handleSavePreset = async () => {
     if (!newPresetName.trim()) {
       toast.error('Vui lòng nhập tên mẫu')
@@ -190,7 +199,7 @@ export function WhiteboxRulesEditor({
       await createRulePreset({
         name: newPresetName.trim(),
         questionType,
-        rulesJson: JSON.stringify(rules),
+        rulesJson: JSON.stringify(normalizeRules(rules)),
         kind: 'WHITEBOX'
       })
       toast.success('Đã lưu mẫu quy tắc')
@@ -218,7 +227,7 @@ export function WhiteboxRulesEditor({
     try {
       await updateRulePreset(editingPreset.id, {
         name: newPresetName.trim(),
-        rulesJson: JSON.stringify(rules)
+        rulesJson: JSON.stringify(normalizeRules(rules))
       })
       toast.success('Đã cập nhật mẫu quy tắc')
       setEditingPreset(null)
@@ -234,7 +243,7 @@ export function WhiteboxRulesEditor({
   const handleApplySavedPreset = (preset: RulePreset) => {
     try {
       const parsed = JSON.parse(preset.rulesJson) as WhiteboxRule[]
-      onChange(parsed, settings)
+      onChange(normalizeRules(parsed), settings)
       setEditingPreset(null)
       toast.success(`Đã áp dụng mẫu: ${preset.name}`)
       setPresetOpen(false)
@@ -248,7 +257,7 @@ export function WhiteboxRulesEditor({
   const handleEditSavedPreset = (preset: RulePreset) => {
     try {
       const parsed = JSON.parse(preset.rulesJson) as WhiteboxRule[]
-      onChange(parsed, settings)
+      onChange(normalizeRules(parsed), settings)
       setEditingPreset({ id: preset.id, name: preset.name })
       setNewPresetName(preset.name)
       setPresetOpen(false)
@@ -277,7 +286,13 @@ export function WhiteboxRulesEditor({
 
   // Append a fully-configured rule from the modal (rule_id stays the persisted identity).
   const appendRule = (rule: WhiteboxRule) => {
-    onChange([...rules, rule], settings)
+    onChange(
+      [
+        ...rules,
+        normalizeWhiteboxRulePenalty(rule, catalogById.get(rule.rule_id))
+      ],
+      settings
+    )
   }
 
   // Apply a preset bundle: resolve each rule_id against the backend catalog, then override the
@@ -288,15 +303,20 @@ export function WhiteboxRulesEditor({
       const item = catalogById.get(presetRule.ruleId)
       if (!item) continue
       const base = defaultRuleFromCatalog(item)
-      next.push({
-        ...base,
-        severity: presetRule.severity ?? base.severity,
-        penalty_value: presetRule.penaltyValue ?? base.penalty_value,
-        penalty_unit: presetRule.penaltyUnit ?? base.penalty_unit,
-        params: presetRule.params
-          ? { ...base.params, ...presetRule.params }
-          : base.params
-      })
+      next.push(
+        normalizeWhiteboxRulePenalty(
+          {
+            ...base,
+            severity: presetRule.severity ?? base.severity,
+            penalty_value: presetRule.penaltyValue ?? base.penalty_value,
+            penalty_unit: presetRule.penaltyUnit ?? base.penalty_unit,
+            params: presetRule.params
+              ? { ...base.params, ...presetRule.params }
+              : base.params
+          },
+          item
+        )
+      )
     }
     onChange(next, settings)
     setEditingPreset(null)
@@ -306,7 +326,14 @@ export function WhiteboxRulesEditor({
 
   const updateRule = (ruleId: string, patch: Partial<WhiteboxRule>) => {
     onChange(
-      rules.map((r) => (r.rule_id === ruleId ? { ...r, ...patch } : r)),
+      rules.map((r) =>
+        r.rule_id === ruleId
+          ? normalizeWhiteboxRulePenalty(
+              { ...r, ...patch },
+              catalogById.get(ruleId)
+            )
+          : r
+      ),
       settings
     )
   }
