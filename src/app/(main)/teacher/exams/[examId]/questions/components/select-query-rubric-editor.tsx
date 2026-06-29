@@ -23,6 +23,7 @@ import {
   GradingRubric,
   InsertDataGradingRule,
   SelectQueryGradingPayload,
+  SelectMutationType,
   SelectTestCase,
   WhiteboxRule,
   WhiteboxSettings
@@ -34,6 +35,21 @@ import { TestCaseTabs } from './test-case-tabs'
 import { AiRubricRefinementPanel } from './ai-rubric-refinement-panel'
 
 const MIN_SELECT_TEST_CASES = 1
+
+const SELECT_MUTATION_TYPE_OPTIONS: Array<{
+  value: SelectMutationType
+  label: string
+}> = [
+  { value: 'HAPPY_PATH', label: 'Logic chính' },
+  { value: 'MISSING_JOIN_CONDITION', label: 'Thiếu điều kiện JOIN' },
+  { value: 'WRONG_JOIN_TYPE', label: 'Sai loại JOIN' },
+  { value: 'MISSING_WHERE_FILTER', label: 'Thiếu điều kiện WHERE' },
+  { value: 'STRING_MATCHING', label: 'Điều kiện chuỗi sai' },
+  { value: 'NULL_HANDLING', label: 'Xử lý NULL sai' },
+  { value: 'WRONG_AGGREGATE', label: 'Hàm tổng hợp sai' },
+  { value: 'MISSING_GROUP_BY', label: 'Thiếu GROUP BY' },
+  { value: 'WRONG_HAVING_VS_WHERE', label: 'Nhầm HAVING/WHERE' }
+]
 
 interface SelectQueryRubricEditorProps {
   examId: number
@@ -55,6 +71,7 @@ function createDefaultCase(index: number): SelectTestCase {
   return {
     case_id: `TC_${String(index + 1).padStart(2, '0')}`,
     case_name: `Kich ban ${index + 1}`,
+    mutation_type: 'HAPPY_PATH',
     penalty_value: 1,
     setup_custom_script: '',
     expected_result: {
@@ -83,8 +100,10 @@ function normalizeCase(tc: SelectTestCase, idx: number): SelectTestCase {
   })
 
   return {
+    ...tc,
     case_id: tc.case_id || `TC_${String(idx + 1).padStart(2, '0')}`,
     case_name: tc.case_name || `Kich ban ${idx + 1}`,
+    mutation_type: typeof tc.mutation_type === 'string' ? tc.mutation_type : '',
     penalty_value:
       typeof tc.penalty_value === 'number' ? tc.penalty_value : 1.0,
     setup_custom_script: tc.setup_custom_script || '',
@@ -275,6 +294,7 @@ export function SelectQueryRubricEditor({
         return [
           `- ${testCase.case_id || `TC_${index + 1}`}`,
           `name=${testCase.case_name || 'Unnamed case'}`,
+          `mutation_type=${testCase.mutation_type || 'unclassified'}`,
           `penalty_value=${testCase.penalty_value}`,
           `columns=[${columns.join(', ') || 'none'}]`,
           `rows=${testCase.expected_result.rows.length}`
@@ -534,7 +554,7 @@ export function SelectQueryRubricEditor({
                 {/* Accordion body */}
                 {expandedCases[idx] !== false && (
                   <div className="p-6 space-y-6 bg-surface-container-lowest">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-on-surface-variant block">
                           Mã test case
@@ -564,6 +584,30 @@ export function SelectQueryRubricEditor({
                           placeholder="Tên kịch bản"
                           className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
                         />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-on-surface-variant block">
+                          Loại lỗi mutation
+                        </label>
+                        <select
+                          value={tc.mutation_type || ''}
+                          onChange={(e) => {
+                            const next = [...testCases]
+                            next[idx] = {
+                              ...tc,
+                              mutation_type: e.target.value
+                            }
+                            setTestCases(next)
+                          }}
+                          className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
+                        >
+                          <option value="">Chưa phân loại</option>
+                          {SELECT_MUTATION_TYPE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-on-surface-variant block">

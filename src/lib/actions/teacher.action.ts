@@ -32,8 +32,52 @@ import {
   ExamStatistics,
   ExamMutationAnalytics,
   TeacherSqlExecutionResult,
-  BannedStudentInfo
+  BannedStudentInfo,
+  MoodleSqlImportPreviewResponse,
+  MoodleSqlImportConfirmResponse
 } from '@/lib/types'
+import { getCookie } from '@/lib/utils'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
+
+async function postMultipart<T>(
+  endpoint: string,
+  formData: FormData
+): Promise<ApiResponse<T>> {
+  try {
+    const accessToken = await getCookie('accessToken')
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+      },
+      credentials: 'include',
+      cache: 'no-store',
+      body: formData
+    })
+
+    const text = await response.text()
+    const parsed = text
+      ? (JSON.parse(text) as ApiResponse<T>)
+      : ({ code: String(response.status), message: 'OK' } as ApiResponse<T>)
+
+    if (!response.ok) {
+      return {
+        code: parsed.code || String(response.status),
+        message: parsed.message || response.statusText || 'Request failed',
+        data: undefined
+      }
+    }
+
+    return parsed
+  } catch (error: unknown) {
+    return {
+      code: 'ERROR',
+      message: error instanceof Error ? error.message : 'Đã có lỗi xảy ra',
+      data: undefined
+    }
+  }
+}
 
 // ===== Classes =====
 
@@ -230,6 +274,26 @@ export async function getTeacherSubmissionDetail(
   return apiClient.get<TeacherExamResultDetail>(
     ENDPOINTS.EXAM_RESULT_DETAIL(examId, resultId),
     { cache: 'no-store' }
+  )
+}
+
+export async function previewMoodleSqlImport(
+  examId: number,
+  formData: FormData
+): Promise<ApiResponse<MoodleSqlImportPreviewResponse>> {
+  return postMultipart<MoodleSqlImportPreviewResponse>(
+    ENDPOINTS.EXAM_MOODLE_SQL_IMPORT_PREVIEW(examId),
+    formData
+  )
+}
+
+export async function confirmMoodleSqlImport(
+  examId: number,
+  formData: FormData
+): Promise<ApiResponse<MoodleSqlImportConfirmResponse>> {
+  return postMultipart<MoodleSqlImportConfirmResponse>(
+    ENDPOINTS.EXAM_MOODLE_SQL_IMPORT_CONFIRM(examId),
+    formData
   )
 }
 

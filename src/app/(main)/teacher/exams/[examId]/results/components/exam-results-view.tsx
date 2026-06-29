@@ -13,6 +13,7 @@ import {
   Download,
   Filter,
   Users,
+  FileText,
   RefreshCw,
   BarChart2,
   Loader2,
@@ -352,7 +353,9 @@ export function ExamResultsView({
   const uniqueStudentsCount = new Set(results.map((r) => r.studentId)).size
   const gradedResults = results.filter((r) => isScoredStatus(r.status))
   const stats = {
-    totalCount: initialStats?.totalSubmissions ?? uniqueStudentsCount,
+    totalSubmissions: initialStats?.totalSubmissions ?? results.length,
+    totalSubmittedStudents:
+      initialStats?.totalSubmittedStudents ?? uniqueStudentsCount,
     passed: initialStats
       ? Math.round(
           (initialStats.totalSubmissions * initialStats.passRate) / 100
@@ -599,11 +602,20 @@ export function ExamResultsView({
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
               <div className={`${styles.iconWrapper} ${styles.blue}`}>
+                <FileText />
+              </div>
+              <div className={styles.statInfo}>
+                <p className={styles.label}>Số bài đã nộp</p>
+                <h2 className={styles.value}>{stats.totalSubmissions}</h2>
+              </div>
+            </div>
+            <div className={styles.statCard}>
+              <div className={`${styles.iconWrapper} ${styles.purple}`}>
                 <Users />
               </div>
               <div className={styles.statInfo}>
                 <p className={styles.label}>Số học sinh đã nộp</p>
-                <h2 className={styles.value}>{stats.totalCount}</h2>
+                <h2 className={styles.value}>{stats.totalSubmittedStudents}</h2>
               </div>
             </div>
             <div className={styles.statCard}>

@@ -28,6 +28,8 @@ export {
   updateTeacherExamSettings,
   getTeacherExamTemplateVersions,
   getExamResults,
+  previewMoodleSqlImport,
+  confirmMoodleSqlImport,
   getExamMutationAnalytics,
   getExamStatistics,
   getTeacherSubmissionDetail,

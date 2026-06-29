@@ -334,6 +334,7 @@ export interface SuspiciousStudent {
 
 export interface ExamStatistics {
   totalSubmissions: number
+  totalSubmittedStudents: number
   averageScore: number
   maxScore: number
   minScore: number
@@ -804,9 +805,21 @@ export interface SelectExpectedResult {
   rows: Array<Array<string | number | boolean | null>>
 }
 
+export type SelectMutationType =
+  | 'HAPPY_PATH'
+  | 'MISSING_JOIN_CONDITION'
+  | 'WRONG_JOIN_TYPE'
+  | 'MISSING_WHERE_FILTER'
+  | 'STRING_MATCHING'
+  | 'NULL_HANDLING'
+  | 'WRONG_AGGREGATE'
+  | 'MISSING_GROUP_BY'
+  | 'WRONG_HAVING_VS_WHERE'
+
 export interface SelectTestCase {
   case_id: string
   case_name: string
+  mutation_type?: SelectMutationType | string
   penalty_value: number
   setup_custom_script?: string
   expected_result: SelectExpectedResult

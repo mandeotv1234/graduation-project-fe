@@ -1,0 +1,38 @@
+.fileInput {
+  display: none;
+}
+
+.dropzone {
+  display: flex;
+  min-height: 8rem;
+  cursor: pointer;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border: 1px dashed hsl(var(--border));
+  border-radius: 0.5rem;
+  background: hsl(var(--muted) / 0.35);
+  padding: 1.25rem;
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: hsl(var(--primary) / 0.55);
+    background: hsl(var(--primary) / 0.05);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.08);
+  }
+}
+
+.codeSample {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.35);
+  padding: 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
