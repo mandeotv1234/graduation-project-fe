@@ -47,9 +47,12 @@ interface CreateTableTreeRubricProps {
   rules: InsertDataGradingRule[]
   onChange: (rules: InsertDataGradingRule[]) => void
   headerAction?: React.ReactNode
+  // Atomic-rule catalog to render. Defaults to the CREATE TABLE taxonomy; other question types
+  // (e.g. SELECT) pass their own catalog to reuse the identical tree UI.
+  config?: GroupConfig[]
 }
 
-type RuleNodeConfig = {
+export type RuleNodeConfig = {
   id: string
   label: string
   microcopy?: string
@@ -60,7 +63,7 @@ type RuleNodeConfig = {
   isOptional?: boolean
 }
 
-type GroupConfig = {
+export type GroupConfig = {
   id: string
   label: string
   nodes: RuleNodeConfig[]
@@ -298,7 +301,8 @@ const TREE_CONFIG: GroupConfig[] = [
 export function CreateTableTreeRubric({
   rules,
   onChange,
-  headerAction
+  headerAction,
+  config = TREE_CONFIG
 }: CreateTableTreeRubricProps) {
   const rulesMap = useMemo(() => {
     const map = new Map<string, InsertDataGradingRule>()
@@ -316,7 +320,7 @@ export function CreateTableTreeRubric({
 
   const hiddenGroupNodesMap = useMemo(() => {
     const map = new Map<string, RuleNodeConfig[]>()
-    TREE_CONFIG.forEach((group) => {
+    config.forEach((group) => {
       const hiddenNodes = group.nodes.filter((node) => {
         const rule = rulesMap.get(`${node.target}|${node.condition}`)
         const isIgnored =
@@ -332,7 +336,7 @@ export function CreateTableTreeRubric({
   }, [rulesMap, localIgnored])
 
   const visibleGroups = useMemo(() => {
-    return TREE_CONFIG.filter((group) => {
+    return config.filter((group) => {
       const hiddenCount = hiddenGroupNodesMap.get(group.id)?.length || 0
       const totalCount = group.nodes.length
       return hiddenCount < totalCount
@@ -340,7 +344,7 @@ export function CreateTableTreeRubric({
   }, [hiddenGroupNodesMap])
 
   const completelyHiddenGroups = useMemo(() => {
-    return TREE_CONFIG.filter((group) => {
+    return config.filter((group) => {
       const hiddenCount = hiddenGroupNodesMap.get(group.id)?.length || 0
       const totalCount = group.nodes.length
       return hiddenCount === totalCount
@@ -391,7 +395,7 @@ export function CreateTableTreeRubric({
 
     // Nếu hành động là IGNORE, tìm các node con phụ thuộc (isChild: true) và ignore chúng
     if (action === 'IGNORE') {
-      for (const group of TREE_CONFIG) {
+      for (const group of config) {
         const parentIdx = group.nodes.findIndex(
           (n) => n.target === target && n.condition === condition && !n.isChild
         )
