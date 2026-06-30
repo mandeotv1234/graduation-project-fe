@@ -20,12 +20,14 @@ import {
 import {
   normalizeWhiteboxRulePenalty,
   POLICY_DISPLAY_LABEL,
-  requiredParamsSatisfied
+  requiredParamsSatisfied,
+  WhiteboxDisplayRule
 } from './whitebox-authoring'
 
 interface WhiteboxRuleRowProps {
   item: WhiteboxCatalogItem
   rule: WhiteboxRule
+  displayRule?: WhiteboxDisplayRule | null
   onUpdate: (ruleId: string, patch: Partial<WhiteboxRule>) => void
   onRemove: (ruleId: string) => void
 }
@@ -33,6 +35,7 @@ interface WhiteboxRuleRowProps {
 export function WhiteboxRuleRow({
   item,
   rule,
+  displayRule,
   onUpdate,
   onRemove
 }: WhiteboxRuleRowProps) {
@@ -40,7 +43,9 @@ export function WhiteboxRuleRow({
   const paramsSatisfied = requiredParamsSatisfied(item, rule.params ?? {})
 
   const setParam = (name: string, value: unknown) => {
-    onUpdate(item.ruleId, { params: { ...(rule.params ?? {}), [name]: value } })
+    onUpdate(rule.rule_id, {
+      params: { ...(rule.params ?? {}), [name]: value }
+    })
   }
 
   const stringListValue = (name: string): string => {
@@ -67,15 +72,47 @@ export function WhiteboxRuleRow({
         <span className="flex-1" title={item.description}>
           <span className="block text-sm">{item.featureLabel}</span>
           <span className="block font-mono text-[10px] text-muted-foreground">
-            {item.ruleId}
+            {rule.rule_id}
           </span>
         </span>
+
+        {displayRule && displayRule.variants.length > 1 && (
+          <Select
+            value={rule.rule_id}
+            onValueChange={(nextRuleId) => {
+              const nextVariant = displayRule.variants.find(
+                (variant) => variant.item.ruleId === nextRuleId
+              )
+              if (!nextVariant) return
+              onUpdate(rule.rule_id, {
+                rule_id: nextVariant.item.ruleId,
+                type: nextVariant.item.type,
+                description: nextVariant.item.label,
+                params: {}
+              })
+            }}
+          >
+            <SelectTrigger className="h-8 w-[170px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {displayRule.variants.map((variant) => (
+                <SelectItem
+                  key={variant.item.ruleId}
+                  value={variant.item.ruleId}
+                >
+                  {variant.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <Select
           value={rule.severity}
           onValueChange={(v) =>
             onUpdate(
-              item.ruleId,
+              rule.rule_id,
               normalizeWhiteboxRulePenalty(
                 { ...rule, severity: v as WhiteboxSeverity },
                 item
@@ -101,7 +138,7 @@ export function WhiteboxRuleRow({
                 step={0.25}
                 value={rule.penalty_value ?? 0}
                 onChange={(e) =>
-                  onUpdate(item.ruleId, {
+                  onUpdate(rule.rule_id, {
                     penalty_value: Number(e.target.value)
                   })
                 }
@@ -111,7 +148,7 @@ export function WhiteboxRuleRow({
             <Select
               value={rule.penalty_unit}
               onValueChange={(v) =>
-                onUpdate(item.ruleId, {
+                onUpdate(rule.rule_id, {
                   penalty_unit: v as WhiteboxPenaltyUnit
                 })
               }

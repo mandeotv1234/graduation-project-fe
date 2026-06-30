@@ -52,6 +52,7 @@ import { WhiteboxAddRuleModal } from './whitebox-add-rule-modal'
 import {
   defaultRuleFromCatalog,
   detectConflicts,
+  findWhiteboxDisplayRuleByRuleId,
   normalizeWhiteboxRulePenalty,
   isCustomRegexRule
 } from './whitebox-authoring'
@@ -159,6 +160,20 @@ export function WhiteboxRulesEditor({
     () => getWhiteboxPresets(questionType),
     [questionType]
   )
+
+  const displayRuleByRuleId = useMemo(() => {
+    const map = new Map<
+      string,
+      ReturnType<typeof findWhiteboxDisplayRuleByRuleId>
+    >()
+    catalog.forEach((item) => {
+      map.set(
+        item.ruleId,
+        findWhiteboxDisplayRuleByRuleId(catalog, item.ruleId)
+      )
+    })
+    return map
+  }, [catalog])
 
   const loadSavedPresets = async () => {
     setIsLoadingPresets(true)
@@ -317,12 +332,16 @@ export function WhiteboxRulesEditor({
   }
 
   const updateRule = (ruleId: string, patch: Partial<WhiteboxRule>) => {
+    const nextRuleId =
+      typeof patch.rule_id === 'string' && patch.rule_id.length > 0
+        ? patch.rule_id
+        : ruleId
     onChange(
       rules.map((r) =>
         r.rule_id === ruleId
           ? normalizeWhiteboxRulePenalty(
               { ...r, ...patch },
-              catalogById.get(ruleId)
+              catalogById.get(nextRuleId)
             )
           : r
       ),
@@ -715,6 +734,7 @@ export function WhiteboxRulesEditor({
                   key={rule.rule_id}
                   item={item}
                   rule={rule}
+                  displayRule={displayRuleByRuleId.get(rule.rule_id) ?? null}
                   onUpdate={updateRule}
                   onRemove={removeRule}
                 />
