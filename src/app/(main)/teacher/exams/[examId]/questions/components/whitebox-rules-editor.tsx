@@ -47,11 +47,13 @@ import {
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
+import { CustomRegexRuleRow } from './custom-regex-rule-row'
 import { WhiteboxAddRuleModal } from './whitebox-add-rule-modal'
 import {
   defaultRuleFromCatalog,
   detectConflicts,
-  normalizeWhiteboxRulePenalty
+  normalizeWhiteboxRulePenalty,
+  isCustomRegexRule
 } from './whitebox-authoring'
 import { SystemPresetList } from './system-preset-list'
 import { TeacherSqlEditor } from './teacher-sql-editor'
@@ -599,6 +601,7 @@ export function WhiteboxRulesEditor({
       <WhiteboxAddRuleModal
         open={addOpen}
         onOpenChange={setAddOpen}
+        questionType={questionType}
         catalog={catalog}
         rules={rules}
         catalogById={catalogById}
@@ -693,8 +696,18 @@ export function WhiteboxRulesEditor({
       {!loadingCatalog &&
         !catalogError &&
         (rules.length > 0 ? (
-          <div className="space-y-2">
+          <div className="divide-y divide-border/60">
             {rules.map((rule) => {
+              if (isCustomRegexRule(rule.rule_id)) {
+                return (
+                  <CustomRegexRuleRow
+                    key={rule.rule_id}
+                    rule={rule}
+                    onUpdate={updateRule}
+                    onRemove={removeRule}
+                  />
+                )
+              }
               const item = catalogById.get(rule.rule_id)
               if (!item) return null
               return (

@@ -19,6 +19,44 @@ export const POLICY_BADGE_CLASS: Record<WhiteboxPolicy, string> = {
     'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
 }
 
+export const POLICY_DISPLAY_LABEL: Record<WhiteboxPolicy, string> = {
+  FORBID: 'Cấm',
+  FORBID_ANY: 'Cấm',
+  REQUIRE: 'Bắt buộc',
+  REQUIRE_ANY: 'Bắt buộc',
+  REQUIRE_ALL: 'Bắt buộc (tất cả)',
+  AT_MOST: 'Tối đa',
+  AT_LEAST: 'Tối thiểu',
+  EXACTLY: 'Chính xác'
+}
+
+export const CUSTOM_REGEX_RULE_PREFIX = 'CUSTOM_REGEX_'
+
+export function isCustomRegexRule(ruleId: string): boolean {
+  return ruleId.startsWith(CUSTOM_REGEX_RULE_PREFIX)
+}
+
+export function defaultCustomRegexRule(): WhiteboxRule {
+  return {
+    rule_id: `${CUSTOM_REGEX_RULE_PREFIX}${Date.now()}_${Math.random()
+      .toString(36)
+      .slice(2, 8)}`,
+    enabled: true,
+    type: 'CUSTOM_REGEX',
+    penalty_value: 0.5,
+    penalty_unit: 'ABSOLUTE',
+    severity: 'DEDUCTION',
+    description: 'Rule regex tùy chỉnh',
+    params: {
+      name: 'Rule regex tùy chỉnh',
+      policy: 'FORBID',
+      pattern: '',
+      case_insensitive: true,
+      message: ''
+    }
+  }
+}
+
 // One SQL feature and the policies the teacher can apply to it (the catalog entries sharing featureId).
 export interface FeatureOption {
   featureId: string
@@ -48,7 +86,7 @@ export function buildFeatureGroups(
     if (configuredIds.has(item.ruleId)) continue
     if (term) {
       const haystack =
-        `${item.featureLabel} ${item.policyLabel} ${item.label} ${item.ruleId}`.toLowerCase()
+        `${item.featureLabel} ${POLICY_DISPLAY_LABEL[item.policy] ?? item.policyLabel} ${item.label} ${item.ruleId}`.toLowerCase()
       if (!haystack.includes(term)) continue
     }
 
@@ -112,8 +150,6 @@ export function policyAction(policy: WhiteboxPolicy): WhiteboxActionKey {
 // (boolean features carrying no match mode). Shown as an informational chip and, when an
 // action maps to >1 policy, used as the operator sub-choice label.
 export const OPERATOR_LABEL: Partial<Record<WhiteboxPolicy, string>> = {
-  FORBID_ANY: 'bất kỳ',
-  REQUIRE_ANY: 'bất kỳ',
   REQUIRE_ALL: 'tất cả',
   AT_MOST: 'tối đa',
   AT_LEAST: 'tối thiểu',
@@ -196,7 +232,9 @@ export function detectConflicts(
 
   const describe = (ruleId: string): string => {
     const item = catalogById.get(ruleId)
-    return item ? `${item.featureLabel} · ${item.policyLabel}` : ruleId
+    return item
+      ? `${item.featureLabel} · ${POLICY_DISPLAY_LABEL[item.policy] ?? item.policyLabel}`
+      : ruleId
   }
 
   for (const rule of rules) {

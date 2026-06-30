@@ -239,19 +239,13 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
   {
     id: 'sp-basic-quality',
     name: 'Kiểm tra cơ bản stored procedure',
-    description: 'Bắt buộc TRY/CATCH, SET NOCOUNT ON và cấm SQL động.',
+    description: 'Bắt buộc TRY/CATCH và cấm SQL động.',
     questionType: 'STORED_PROCEDURE',
     rules: [
       {
         ruleId: 'SP_REQUIRED_TRY_CATCH',
         severity: DEDUCT,
         penaltyValue: 15,
-        penaltyUnit: PCT
-      },
-      {
-        ruleId: 'SP_REQUIRED_SET_NOCOUNT_ON',
-        severity: WARN,
-        penaltyValue: 5,
         penaltyUnit: PCT
       },
       {
@@ -286,8 +280,7 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
   {
     id: 'sp-strict-production',
     name: 'Stored procedure chuẩn production',
-    description:
-      'Đầy đủ: TRY/CATCH, Transaction, SET NOCOUNT ON, cấm CURSOR/DDL/TRUNCATE.',
+    description: 'Đầy đủ: TRY/CATCH, Transaction, cấm CURSOR/DDL/TRUNCATE.',
     questionType: 'STORED_PROCEDURE',
     rules: [
       {
@@ -300,12 +293,6 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
         ruleId: 'SP_REQUIRED_TRANSACTION',
         severity: DEDUCT,
         penaltyValue: 20,
-        penaltyUnit: PCT
-      },
-      {
-        ruleId: 'SP_REQUIRED_SET_NOCOUNT_ON',
-        severity: WARN,
-        penaltyValue: 5,
         penaltyUnit: PCT
       },
       {
@@ -324,12 +311,6 @@ export const WHITEBOX_PRESETS: WhiteboxPreset[] = [
         ruleId: 'SP_FORBIDDEN_TRUNCATE',
         severity: DEDUCT,
         penaltyValue: 15,
-        penaltyUnit: PCT
-      },
-      {
-        ruleId: 'SP_FORBIDDEN_PRINT',
-        severity: WARN,
-        penaltyValue: 5,
         penaltyUnit: PCT
       }
     ]

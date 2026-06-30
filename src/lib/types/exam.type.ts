@@ -835,7 +835,11 @@ export interface SelectQueryGradingPayload {
 
 // === White-box (method) grading — canonical contract ===
 
-export type WhiteboxRuleType = 'FORBIDDEN' | 'REQUIRED' | 'LIMIT'
+export type WhiteboxRuleType =
+  | 'FORBIDDEN'
+  | 'REQUIRED'
+  | 'LIMIT'
+  | 'CUSTOM_REGEX'
 export type WhiteboxSeverity = 'DEDUCTION' | 'WARNING_ONLY'
 export type WhiteboxPenaltyUnit = 'ABSOLUTE' | 'PERCENTAGE_OF_QUESTION'
 export type WhiteboxStatus = 'PASS' | 'FAIL' | 'WARN' | 'UNVERIFIED'

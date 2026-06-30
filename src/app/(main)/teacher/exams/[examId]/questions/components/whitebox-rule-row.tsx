@@ -1,8 +1,7 @@
 'use client'
 
-import { Trash2 } from 'lucide-react'
+import { AlertTriangle, Trash2 } from 'lucide-react'
 
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -18,7 +17,11 @@ import {
   WhiteboxRule,
   WhiteboxSeverity
 } from '@/lib/types'
-import { normalizeWhiteboxRulePenalty } from './whitebox-authoring'
+import {
+  normalizeWhiteboxRulePenalty,
+  POLICY_DISPLAY_LABEL,
+  requiredParamsSatisfied
+} from './whitebox-authoring'
 
 interface WhiteboxRuleRowProps {
   item: WhiteboxCatalogItem
@@ -34,6 +37,7 @@ export function WhiteboxRuleRow({
   onRemove
 }: WhiteboxRuleRowProps) {
   const disabled = rule.enabled === false
+  const paramsSatisfied = requiredParamsSatisfied(item, rule.params ?? {})
 
   const setParam = (name: string, value: unknown) => {
     onUpdate(item.ruleId, { params: { ...(rule.params ?? {}), [name]: value } })
@@ -45,20 +49,8 @@ export function WhiteboxRuleRow({
   }
 
   return (
-    <div
-      className={cn(
-        'rounded-lg border border-border/60 bg-background/60 px-3 py-2',
-        disabled && 'opacity-55'
-      )}
-    >
+    <div className={cn('px-3 py-2', disabled && 'opacity-55')}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Checkbox
-          checked={!disabled}
-          onCheckedChange={(value) =>
-            onUpdate(item.ruleId, { enabled: value === true })
-          }
-          title={disabled ? 'Đang tắt — bật lại' : 'Đang bật — tắt tạm'}
-        />
         <span
           className={cn(
             'h-2 w-2 shrink-0 rounded-full',
@@ -70,7 +62,7 @@ export function WhiteboxRuleRow({
                 ? 'bg-emerald-500'
                 : 'bg-amber-500'
           )}
-          title={item.policyLabel}
+          title={POLICY_DISPLAY_LABEL[item.policy] ?? item.policyLabel}
         />
         <span className="flex-1" title={item.description}>
           <span className="block text-sm">{item.featureLabel}</span>
@@ -145,7 +137,7 @@ export function WhiteboxRuleRow({
       </div>
 
       {item.params.length > 0 && (
-        <div className="mt-2 flex flex-wrap items-center gap-3 pl-7">
+        <div className="mt-2 flex flex-wrap items-center gap-3 pl-5">
           {item.params.map((spec) =>
             spec.type === 'NUMBER' ? (
               <label
@@ -192,6 +184,13 @@ export function WhiteboxRuleRow({
             )
           )}
         </div>
+      )}
+
+      {!paramsSatisfied && (
+        <p className="mt-2 flex items-center gap-1.5 pl-5 text-xs font-medium text-amber-600 dark:text-amber-400">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          Quy tac nay can nhap day du tham so de co hieu luc.
+        </p>
       )}
     </div>
   )
