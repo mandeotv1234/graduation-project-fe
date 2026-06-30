@@ -18,6 +18,7 @@ import {
   WhiteboxRule,
   WhiteboxSeverity
 } from '@/lib/types'
+import { normalizeWhiteboxRulePenalty } from './whitebox-authoring'
 
 interface WhiteboxRuleRowProps {
   item: WhiteboxCatalogItem
@@ -78,40 +79,19 @@ export function WhiteboxRuleRow({
           </span>
         </span>
 
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          Trừ
-          <Input
-            type="number"
-            min={0}
-            step={0.25}
-            value={rule.penalty_value ?? 0}
-            onChange={(e) =>
-              onUpdate(item.ruleId, { penalty_value: Number(e.target.value) })
-            }
-            className="h-8 w-20"
-          />
-        </label>
-        <Select
-          value={rule.penalty_unit}
-          onValueChange={(v) =>
-            onUpdate(item.ruleId, { penalty_unit: v as WhiteboxPenaltyUnit })
-          }
-        >
-          <SelectTrigger className="h-8 w-[100px] text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ABSOLUTE">điểm</SelectItem>
-            <SelectItem value="PERCENTAGE_OF_QUESTION">% câu</SelectItem>
-          </SelectContent>
-        </Select>
         <Select
           value={rule.severity}
           onValueChange={(v) =>
-            onUpdate(item.ruleId, { severity: v as WhiteboxSeverity })
+            onUpdate(
+              item.ruleId,
+              normalizeWhiteboxRulePenalty(
+                { ...rule, severity: v as WhiteboxSeverity },
+                item
+              )
+            )
           }
         >
-          <SelectTrigger className="h-8 w-[120px] text-xs">
+          <SelectTrigger className="h-8 w-[150px] text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -119,6 +99,41 @@ export function WhiteboxRuleRow({
             <SelectItem value="DEDUCTION">Trừ điểm</SelectItem>
           </SelectContent>
         </Select>
+        {rule.severity === 'DEDUCTION' && (
+          <>
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              Trừ
+              <Input
+                type="number"
+                min={0}
+                step={0.25}
+                value={rule.penalty_value ?? 0}
+                onChange={(e) =>
+                  onUpdate(item.ruleId, {
+                    penalty_value: Number(e.target.value)
+                  })
+                }
+                className="h-8 w-20"
+              />
+            </label>
+            <Select
+              value={rule.penalty_unit}
+              onValueChange={(v) =>
+                onUpdate(item.ruleId, {
+                  penalty_unit: v as WhiteboxPenaltyUnit
+                })
+              }
+            >
+              <SelectTrigger className="h-8 w-[100px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ABSOLUTE">điểm</SelectItem>
+                <SelectItem value="PERCENTAGE_OF_QUESTION">% câu</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        )}
         <button
           type="button"
           onClick={() => onRemove(item.ruleId)}

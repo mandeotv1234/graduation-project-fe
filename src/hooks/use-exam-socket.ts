@@ -21,6 +21,11 @@ interface UseExamSocketOptions {
   onKicked?: () => void
 }
 
+interface GradingResultMessage {
+  studentId?: number | string
+  [key: string]: unknown
+}
+
 export function useExamSocket({
   examId,
   studentId,
@@ -128,7 +133,16 @@ export function useExamSocket({
         `/topic/exam/${examId}/grading-result`,
         (message) => {
           try {
-            const payload = JSON.parse(message.body)
+            const payload = JSON.parse(message.body) as GradingResultMessage
+            if (studentId) {
+              const payloadStudentId = Number(payload.studentId)
+              if (
+                !Number.isFinite(payloadStudentId) ||
+                payloadStudentId !== studentId
+              ) {
+                return
+              }
+            }
             onGradingResultRef.current?.(payload)
           } catch {
             console.error('[ExamSocket] Failed to parse grading result')

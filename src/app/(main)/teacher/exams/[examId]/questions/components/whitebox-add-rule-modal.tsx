@@ -38,6 +38,7 @@ import {
   OPERATOR_LABEL,
   policyAction,
   POLICY_BADGE_CLASS,
+  normalizeWhiteboxRulePenalty,
   requiredParamsSatisfied
 } from './whitebox-authoring'
 
@@ -189,8 +190,9 @@ export function WhiteboxAddRuleModal({
 
   const handleAdd = () => {
     if (!draft || !selectedItem) return
+    const normalizedDraft = normalizeWhiteboxRulePenalty(draft, selectedItem)
     onAdd({
-      ...draft,
+      ...normalizedDraft,
       description: (draft.description ?? '').trim() || selectedItem.label
     })
     onOpenChange(false)
@@ -452,51 +454,21 @@ export function WhiteboxAddRuleModal({
                     4. Điểm trừ và mức áp dụng
                   </h5>
                   <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    <label className="flex items-center gap-1.5">
-                      Trừ
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.25}
-                        value={draft.penalty_value ?? 0}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            penalty_value: Number(e.target.value)
-                          })
-                        }
-                        className="h-8 w-24"
-                      />
-                    </label>
-                    <Select
-                      value={draft.penalty_unit}
-                      onValueChange={(v) =>
-                        setDraft({
-                          ...draft,
-                          penalty_unit: v as WhiteboxPenaltyUnit
-                        })
-                      }
-                    >
-                      <SelectTrigger className="h-8 w-[110px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ABSOLUTE">điểm</SelectItem>
-                        <SelectItem value="PERCENTAGE_OF_QUESTION">
-                          % câu
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
                     <Select
                       value={draft.severity}
                       onValueChange={(v) =>
-                        setDraft({
-                          ...draft,
-                          severity: v as WhiteboxSeverity
-                        })
+                        setDraft(
+                          normalizeWhiteboxRulePenalty(
+                            {
+                              ...draft,
+                              severity: v as WhiteboxSeverity
+                            },
+                            selectedItem
+                          )
+                        )
                       }
                     >
-                      <SelectTrigger className="h-8 w-[150px]">
+                      <SelectTrigger className="h-8 w-[160px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -506,6 +478,45 @@ export function WhiteboxAddRuleModal({
                         <SelectItem value="DEDUCTION">Trừ điểm</SelectItem>
                       </SelectContent>
                     </Select>
+                    {draft.severity === 'DEDUCTION' && (
+                      <>
+                        <label className="flex items-center gap-1.5">
+                          Trừ
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.25}
+                            value={draft.penalty_value ?? 0}
+                            onChange={(e) =>
+                              setDraft({
+                                ...draft,
+                                penalty_value: Number(e.target.value)
+                              })
+                            }
+                            className="h-8 w-24"
+                          />
+                        </label>
+                        <Select
+                          value={draft.penalty_unit}
+                          onValueChange={(v) =>
+                            setDraft({
+                              ...draft,
+                              penalty_unit: v as WhiteboxPenaltyUnit
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-[110px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ABSOLUTE">điểm</SelectItem>
+                            <SelectItem value="PERCENTAGE_OF_QUESTION">
+                              % câu
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </>
+                    )}
                   </div>
                 </section>
 

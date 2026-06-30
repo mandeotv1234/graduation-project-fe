@@ -59,6 +59,7 @@ import { cn, formatDateTime, getExamStatus } from '@/lib/utils'
 import { ExamQuestionsView } from '../questions/components/exam-questions-view'
 import { EditExamSectionModal } from './edit-exam-section-modal'
 import { ExportExamPdfModal } from './export-exam-pdf-modal'
+import { MoodleSqlImportDialog } from './moodle-sql-import-dialog/moodle-sql-import-dialog'
 import { TemplateLibraryManagement } from './template-library-management'
 
 type TeacherExamDetailContentProps = {
@@ -350,6 +351,11 @@ export function TeacherExamDetailContent({
     }
   }
 
+  const handleImportedSqlFiles = () => {
+    router.push(`/teacher/exams/${exam.id}/results`)
+    router.refresh()
+  }
+
   const statusMeta = getStatusMeta(
     getExamStatus(displayExam.startTime, displayExam.endTime),
     Boolean(displayExam.isPublished)
@@ -402,6 +408,10 @@ export function TeacherExamDetailContent({
                 Xem kết quả
               </Button>
             </Link>
+            <MoodleSqlImportDialog
+              examId={exam.id}
+              onImported={handleImportedSqlFiles}
+            />
 
             <span className="inline-block" title={exportDisabledReason}>
               <Button

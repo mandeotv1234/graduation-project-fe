@@ -47,7 +47,7 @@
   margin-bottom: 1.5rem;
 
   @media (min-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }
 
@@ -83,6 +83,10 @@
     &.green {
       background: rgba(16, 185, 129, 0.1);
       color: #10b981;
+    }
+    &.purple {
+      background: rgba(139, 92, 246, 0.1);
+      color: #8b5cf6;
     }
     &.orange {
       background: rgba(245, 158, 11, 0.1);

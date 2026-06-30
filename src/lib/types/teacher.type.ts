@@ -346,3 +346,57 @@ export interface TeacherSqlExecutionResult {
   schema: unknown[] | null
   routines: unknown[] | null
 }
+
+// POST /api/exams/{examId}/moodle-sql-import/preview
+export interface MoodleSqlImportAnswerPreview {
+  questionId: number
+  orderIndex: number | null
+  questionType: string | null
+  hasAnswer: boolean
+  sqlLength: number
+  marker: string | null
+}
+
+export interface MoodleSqlImportFilePreview {
+  fileName: string
+  detectedIdentifier: string | null
+  studentId: number | null
+  studentEmail: string | null
+  studentName: string | null
+  valid: boolean
+  answeredQuestions: number
+  missingQuestions: number
+  answers: MoodleSqlImportAnswerPreview[]
+  errors: string[]
+  warnings: string[]
+}
+
+export interface MoodleSqlImportPreviewResponse {
+  examId: number
+  examTitle: string
+  totalFiles: number
+  validFiles: number
+  invalidFiles: number
+  totalQuestions: number
+  readyToImport: boolean
+  files: MoodleSqlImportFilePreview[]
+}
+
+// POST /api/exams/{examId}/moodle-sql-import/confirm
+export interface MoodleSqlImportedFile {
+  fileName: string
+  studentId: number
+  studentEmail: string
+  studentName: string
+  resultId: number
+  attemptNumber: number
+  answeredQuestions: number
+}
+
+export interface MoodleSqlImportConfirmResponse {
+  examId: number
+  importedCount: number
+  queuedCount: number
+  files: MoodleSqlImportedFile[]
+  message: string
+}

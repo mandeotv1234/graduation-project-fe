@@ -102,6 +102,10 @@ export const ENDPOINTS = Object.freeze({
   EXAM_RESULTS: (examId: number) => `/exams/${examId}/results`,
   EXAM_RESULT_DETAIL: (examId: number, resultId: number) =>
     `/exams/${examId}/results/${resultId}`,
+  EXAM_MOODLE_SQL_IMPORT_PREVIEW: (examId: number) =>
+    `/exams/${examId}/moodle-sql-import/preview`,
+  EXAM_MOODLE_SQL_IMPORT_CONFIRM: (examId: number) =>
+    `/exams/${examId}/moodle-sql-import/confirm`,
   EXAM_STATISTICS: (examId: number) => `/exams/${examId}/statistics`,
   EXAM_MUTATION_ANALYTICS: (examId: number) =>
     `/exams/${examId}/mutation-analytics`,
