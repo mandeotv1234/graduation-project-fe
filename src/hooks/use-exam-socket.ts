@@ -134,7 +134,7 @@ export function useExamSocket({
         (message) => {
           try {
             const payload = JSON.parse(message.body) as GradingResultMessage
-            if (studentId) {
+            if (studentId !== undefined) {
               const payloadStudentId = Number(payload.studentId)
               if (
                 !Number.isFinite(payloadStudentId) ||

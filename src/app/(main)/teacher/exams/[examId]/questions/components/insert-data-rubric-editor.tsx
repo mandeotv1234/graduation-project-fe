@@ -456,6 +456,7 @@ export function InsertDataRubricEditor({
 
       {(!isWizardMode || wizardStep === 2) && (
         <AiRubricRefinementPanel
+          examId={examId}
           questionType="INSERT_DATA"
           totalPoints={totalPoints}
           currentRubric={expectedJsonPreview}

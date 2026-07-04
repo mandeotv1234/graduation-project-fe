@@ -429,6 +429,7 @@ export function SelectQueryRubricEditor({
       {(!isWizardMode || wizardStep === 2) && (
         <div className="space-y-4 pt-4">
           <AiRubricRefinementPanel
+            examId={examId}
             questionType="SELECT_QUERY"
             totalPoints={totalPoints}
             currentRubric={currentRubric}

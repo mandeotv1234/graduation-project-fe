@@ -1,16 +1,56 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
-import { executeSql, submitExam } from '@/lib/actions'
+import { executeSql, getMyResultDetail, submitExam } from '@/lib/actions'
 import { useApi } from '@/hooks/use-api'
 import { PATH } from '@/lib/constants'
 import {
   ExamQuestionItem,
   StudentExamDetail,
   ExecuteSqlResponse,
-  SubmitExamResponse
+  SubmitExamResponse,
+  TeacherExamResultDetail
 } from '@/lib/types'
+
+const GRADING_POLL_INTERVAL_MS = 3000
+const GRADING_POLL_TIMEOUT_MS = 5 * 60 * 1000
+
+function mapResultDetailToSubmitResponse(
+  detail: TeacherExamResultDetail,
+  previous: SubmitExamResponse | null,
+  examId: number,
+  resultId: number
+): SubmitExamResponse {
+  return {
+    resultId,
+    examId: previous?.examId ?? detail.examId ?? examId,
+    studentId: detail.studentId,
+    submittedAt: detail.submittedAt,
+    status: detail.status,
+    totalScore: detail.totalScore,
+    maxScore: detail.maxScore,
+    correctCount: detail.correctCount,
+    totalQuestions: detail.totalQuestions,
+    details: detail.questionResults.map((question) => ({
+      questionId: question.questionId,
+      content: question.content,
+      points: question.maxPoints,
+      studentQuery: question.studentQuery ?? ''
+    })),
+    questionResults: detail.questionResults.map((question, index) => ({
+      submissionId: question.submissionId ?? 0,
+      questionId: question.questionId,
+      orderIndex: index + 1,
+      studentQuery: question.studentQuery ?? '',
+      isCorrect: question.isCorrect,
+      scoreEarned: question.scoreEarned,
+      maxPoints: question.maxPoints,
+      errorMessage: question.errorMessage ?? null,
+      executionTimeMs: question.executionTimeMs ?? 0
+    }))
+  }
+}
 
 export function useExamTake(
   exam: StudentExamDetail,
@@ -149,6 +189,80 @@ export function useExamTake(
       isSubmittingRef.current = false
     }
   }, [questions, answers, exam.examId, callApi, isSubmitted])
+
+  useEffect(() => {
+    const resultId = submitResult?.resultId
+    if (!isGrading || isSubmitted || typeof resultId !== 'number') return
+
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const startedAt = Date.now()
+    const pollingResultId = resultId
+
+    function scheduleNextPoll() {
+      timer = setTimeout(pollResult, GRADING_POLL_INTERVAL_MS)
+    }
+
+    async function pollResult() {
+      try {
+        const response = await getMyResultDetail(pollingResultId)
+        if (cancelled) return
+
+        const detail = response.data
+        if (detail?.status === 'COMPLETED') {
+          setSubmitResult((prev) =>
+            mapResultDetailToSubmitResponse(
+              detail,
+              prev,
+              exam.examId,
+              pollingResultId
+            )
+          )
+          setIsGrading(false)
+          setIsSubmitted(true)
+          return
+        }
+
+        if (detail?.status === 'FAILED' || detail?.status === 'SYSTEM_ERROR') {
+          setSubmitResult((prev) =>
+            mapResultDetailToSubmitResponse(
+              detail,
+              prev,
+              exam.examId,
+              pollingResultId
+            )
+          )
+          setIsGrading(false)
+          toast.error(
+            'Chấm bài thất bại. Bạn có thể xem trạng thái trong trang kết quả.'
+          )
+          router.push(PATH.STUDENT_EXAMS)
+          return
+        }
+      } catch (error) {
+        console.warn('[useExamTake] Poll grading result failed:', error)
+      }
+
+      if (Date.now() - startedAt >= GRADING_POLL_TIMEOUT_MS) {
+        toast.info(
+          'Bài đã được nộp và vẫn đang chấm. Bạn có thể theo dõi kết quả trong danh sách bài thi.'
+        )
+        router.push(PATH.STUDENT_EXAMS)
+        return
+      }
+
+      if (!cancelled) {
+        scheduleNextPoll()
+      }
+    }
+
+    scheduleNextPoll()
+
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
+  }, [exam.examId, isGrading, isSubmitted, router, submitResult?.resultId])
 
   const handleBackToExams = useCallback(() => {
     router.push(PATH.STUDENT_EXAMS)

@@ -317,6 +317,7 @@ interface RoutineRubricEditorProps {
 }
 
 export function RoutineRubricEditor({
+  examId,
   questionType = 'FUNCTION',
   totalPoints,
   rubric,
@@ -648,6 +649,7 @@ export function RoutineRubricEditor({
           </div>
 
           <AiRubricRefinementPanel
+            examId={examId}
             questionType={rubricCategory}
             totalPoints={totalPoints}
             currentRubric={currentRubricForAi}

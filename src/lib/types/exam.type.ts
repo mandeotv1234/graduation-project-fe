@@ -650,6 +650,51 @@ export interface RefineRubricTestCasesResponse {
   warnings: string[]
 }
 
+export type RubricAgentStepStatus = 'PASS' | 'WARN' | 'FAIL' | 'SKIPPED'
+export type RubricAgentFindingSeverity = 'INFO' | 'WARNING' | 'ERROR'
+
+export interface RubricAgentStep {
+  tool: string
+  status: RubricAgentStepStatus | string
+  message: string
+}
+
+export interface RubricAgentFinding {
+  severity: RubricAgentFindingSeverity | string
+  code: string
+  message: string
+}
+
+export interface RubricAgentRunRequest {
+  examId?: number
+  correctQuery: string
+  questionContent: string
+  totalPoints: number
+  questionType?: string
+  schemaContext?: string
+  contextQueries?: Array<{
+    questionType?: string
+    content?: string
+    correctQuery: string
+  }>
+  currentRubric: GradingRubric
+  teacherInstruction?: string
+}
+
+export interface RubricAgentRunResponse {
+  rubric: GradingRubric
+  steps: RubricAgentStep[]
+  findings: RubricAgentFinding[]
+  plan: string[]
+  changeSummary: string[]
+  fixes: string[]
+  testCaseChanges: string[]
+  warnings: string[]
+  iterations: number
+  changed: boolean
+  confidence: number
+}
+
 // === INSERT_DATA Grading Types ===
 
 export interface InsertDataGradingSettings {

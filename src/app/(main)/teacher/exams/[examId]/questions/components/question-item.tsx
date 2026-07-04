@@ -944,6 +944,7 @@ export function QuestionItem({
                 onStepChange={setEditWizardStep}
               />
               <RoutineRubricEditor
+                examId={examId}
                 questionType={
                   editForm.questionType === 'STORED_PROCEDURE'
                     ? 'STORED_PROCEDURE'
@@ -988,6 +989,7 @@ export function QuestionItem({
                 onStepChange={setEditWizardStep}
               />
               <TriggerRubricEditor
+                examId={examId}
                 totalPoints={editForm.points}
                 rubric={editForm.rubricData}
                 onChange={(rubric) =>

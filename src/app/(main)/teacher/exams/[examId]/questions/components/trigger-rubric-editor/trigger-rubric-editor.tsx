@@ -152,6 +152,7 @@ function normalizeTriggerPayload(
 }
 
 interface TriggerRubricEditorProps {
+  examId?: number
   totalPoints: number
   rubric: GradingRubric | null
   onChange: (rubric: GradingRubric) => void
@@ -162,6 +163,7 @@ interface TriggerRubricEditorProps {
 }
 
 export function TriggerRubricEditor({
+  examId,
   totalPoints,
   rubric,
   onChange,
@@ -496,6 +498,7 @@ export function TriggerRubricEditor({
           </div>
 
           <AiRubricRefinementPanel
+            examId={examId}
             questionType="TRIGGER"
             totalPoints={totalPoints}
             currentRubric={currentRubricForAi}
