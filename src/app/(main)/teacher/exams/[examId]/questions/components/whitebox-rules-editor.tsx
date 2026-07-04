@@ -1,13 +1,10 @@
-'use client'
+﻿'use client'
 
 import {
   AlertTriangle,
-  CheckCircle2,
   FileText,
-  HelpCircle,
   Loader2,
   Pencil,
-  Play,
   Plus,
   Save,
   Trash2
@@ -28,11 +25,17 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import {
   createRulePreset,
   deleteRulePreset,
   getRulePresets,
-  updateRulePreset,
-  validateWhitebox
+  updateRulePreset
 } from '@/lib/actions'
 import {
   getWhiteboxPresets,
@@ -42,10 +45,8 @@ import {
   RulePreset,
   WhiteboxCatalogItem,
   WhiteboxRule,
-  WhiteboxSettings,
-  WhiteboxValidationResult
+  WhiteboxSettings
 } from '@/lib/types'
-import { cn } from '@/lib/utils'
 
 import { CustomRegexRuleRow } from './custom-regex-rule-row'
 import { WhiteboxAddRuleModal } from './whitebox-add-rule-modal'
@@ -53,11 +54,10 @@ import {
   defaultRuleFromCatalog,
   detectConflicts,
   findWhiteboxDisplayRuleByRuleId,
-  normalizeWhiteboxRulePenalty,
-  isCustomRegexRule
+  isCustomRegexRule,
+  normalizeWhiteboxRulePenalty
 } from './whitebox-authoring'
 import { SystemPresetList } from './system-preset-list'
-import { TeacherSqlEditor } from './teacher-sql-editor'
 import { loadWhiteboxCatalog } from './whitebox-catalog-client'
 import { WhiteboxRuleRow } from './whitebox-rule-row'
 
@@ -67,18 +67,8 @@ interface WhiteboxRulesEditorProps {
   rules: WhiteboxRule[]
   settings: WhiteboxSettings
   onChange: (rules: WhiteboxRule[], settings: WhiteboxSettings) => void
-  // Teacher's model answer; pre-fills the "Chạy thử" box (teacher can tweak before running).
+  // Đáp án mẫu của giáo viên, dùng để điền sẵn khi cần kiểm tra.
   sqlForPreview?: string
-}
-
-const VIOLATION_STYLE: Record<
-  string,
-  { icon: typeof CheckCircle2; cls: string }
-> = {
-  FAIL: { icon: AlertTriangle, cls: 'text-rose-600 dark:text-rose-400' },
-  WARN: { icon: AlertTriangle, cls: 'text-amber-600 dark:text-amber-400' },
-  UNVERIFIED: { icon: HelpCircle, cls: 'text-slate-500 dark:text-slate-400' },
-  PASS: { icon: CheckCircle2, cls: 'text-emerald-600 dark:text-emerald-400' }
 }
 
 export function WhiteboxRulesEditor({
@@ -86,17 +76,12 @@ export function WhiteboxRulesEditor({
   totalPoints,
   rules,
   settings,
-  onChange,
-  sqlForPreview
+  onChange
 }: WhiteboxRulesEditorProps) {
   const [catalog, setCatalog] = useState<WhiteboxCatalogItem[]>([])
   const [catalogError, setCatalogError] = useState<string | null>(null)
   const [loadingCatalog, setLoadingCatalog] = useState(true)
   const [isRefreshingCatalog, setIsRefreshingCatalog] = useState(false)
-  const [validation, setValidation] = useState<WhiteboxValidationResult | null>(
-    null
-  )
-  const [isValidating, setIsValidating] = useState(false)
   // Add-rule modal: feature -> policy -> params -> penalty/severity, appended only on confirm.
   const [addOpen, setAddOpen] = useState(false)
   const [presetOpen, setPresetOpen] = useState(false)
@@ -105,18 +90,12 @@ export function WhiteboxRulesEditor({
   const [isLoadingPresets, setIsLoadingPresets] = useState(false)
   const [isSavingPreset, setIsSavingPreset] = useState(false)
   const [newPresetName, setNewPresetName] = useState('')
-  // When set, the dialog is editing this saved preset: "Cập nhật mẫu" overwrites it instead of creating a new one.
+  // Khi có giá trị, dialog đang sửa mẫu đã lưu: "Cập nhật mẫu" sẽ ghi đè mẫu đó.
   const [editingPreset, setEditingPreset] = useState<{
     id: number
     name: string
   } | null>(null)
-  // The SQL run by "Chạy thử"; pre-filled from the model answer, editable for ad-hoc checks.
-  const [previewSql, setPreviewSql] = useState(sqlForPreview ?? '')
-
-  useEffect(() => {
-    setPreviewSql(sqlForPreview ?? '')
-  }, [sqlForPreview])
-
+  // SQL lấy từ đáp án mẫu, có thể dùng cho các kiểm tra nhanh.
   useEffect(() => {
     let active = true
     setLoadingCatalog(true)
@@ -160,6 +139,31 @@ export function WhiteboxRulesEditor({
     () => getWhiteboxPresets(questionType),
     [questionType]
   )
+
+  const maxQuestionPoints = Math.max(0, Number(totalPoints) || 0)
+  const clampNumber = (value: number, min: number, max: number) =>
+    Math.min(Math.max(value, min), max)
+  const limitMode =
+    settings.max_total_deduction !== null &&
+    settings.max_total_deduction !== undefined
+      ? 'POINT'
+      : 'PERCENT'
+  const pointLimit = clampNumber(
+    settings.max_total_deduction ?? Math.min(1, maxQuestionPoints),
+    0,
+    maxQuestionPoints
+  )
+  const percentLimit = clampNumber(
+    settings.max_total_deduction_pct ?? 100,
+    0,
+    100
+  )
+  const effectivePercentLimit = (totalPoints * percentLimit) / 100
+  const effectiveLimit =
+    limitMode === 'POINT' ? pointLimit : effectivePercentLimit
+  const formattedEffectiveLimit = Number.isFinite(effectiveLimit)
+    ? Number(effectiveLimit.toFixed(2)).toString()
+    : '0'
 
   const displayRuleByRuleId = useMemo(() => {
     const map = new Map<
@@ -360,26 +364,18 @@ export function WhiteboxRulesEditor({
     onChange(rules, { ...settings, ...patch })
   }
 
-  const runValidation = async () => {
-    if (!previewSql.trim()) {
-      toast.warning('Chưa có SQL để chạy thử.')
+  const updateLimitMode = (mode: 'POINT' | 'PERCENT') => {
+    if (mode === 'POINT') {
+      updateSettings({
+        max_total_deduction: pointLimit,
+        max_total_deduction_pct: null
+      })
       return
     }
-    setIsValidating(true)
-    try {
-      const res = await validateWhitebox({
-        questionType,
-        sql: previewSql,
-        whiteboxRules: rules,
-        whiteboxSettings: settings,
-        questionPoints: totalPoints
-      })
-      setValidation(res.data ?? null)
-    } catch {
-      toast.error('Chạy thử quy tắc thất bại.')
-    } finally {
-      setIsValidating(false)
-    }
+    updateSettings({
+      max_total_deduction: null,
+      max_total_deduction_pct: percentLimit
+    })
   }
 
   const handleOpenAddRule = async () => {
@@ -404,10 +400,48 @@ export function WhiteboxRulesEditor({
     }
   }
 
-  const modelAnswerViolations =
-    validation?.violations.filter(
-      (v) => v.status === 'FAIL' || v.status === 'WARN'
-    ) ?? []
+  const updatePointLimit = (value: string) => {
+    updateSettings({
+      max_total_deduction:
+        value === '' ? null : clampNumber(Number(value), 0, maxQuestionPoints),
+      max_total_deduction_pct: null
+    })
+  }
+
+  const updatePercentLimit = (value: string) => {
+    updateSettings({
+      max_total_deduction: null,
+      max_total_deduction_pct:
+        value === '' ? null : clampNumber(Number(value), 0, 100)
+    })
+  }
+
+  useEffect(() => {
+    if (
+      limitMode === 'POINT' &&
+      (settings.max_total_deduction !== pointLimit ||
+        settings.max_total_deduction_pct !== null)
+    ) {
+      onChange(rules, {
+        ...settings,
+        max_total_deduction: pointLimit,
+        max_total_deduction_pct: null
+      })
+      return
+    }
+
+    if (
+      limitMode === 'PERCENT' &&
+      settings.max_total_deduction_pct !== null &&
+      settings.max_total_deduction_pct !== percentLimit
+    ) {
+      onChange(rules, {
+        ...settings,
+        max_total_deduction: null,
+        max_total_deduction_pct: percentLimit
+      })
+    }
+  }, [limitMode, onChange, percentLimit, pointLimit, rules, settings])
 
   return (
     <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-4 dark:border-violet-900/40 dark:bg-violet-950/10">
@@ -629,58 +663,100 @@ export function WhiteboxRulesEditor({
 
       <p className="mb-3 mt-1 text-sm text-muted-foreground">
         Kiểm tra <strong>cách viết</strong> câu truy vấn (JOIN, subquery, GROUP
-        BY…), độc lập với kết quả. Danh mục quy tắc do backend cung cấp. Mặc
-        định chỉ cảnh báo — chuyển sang “Trừ điểm” khi cần.
+        BY...), độc lập với kết quả. Danh mục quy tắc do backend cung cấp. Mặc
+        định chỉ cảnh báo - chuyển sang “Trừ điểm” khi cần.
       </p>
 
-      <div className="mb-3 flex flex-wrap items-center gap-4 rounded-lg bg-background/60 px-3 py-2 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Giới hạn tổng trừ:</span>
-        <label className="flex items-center gap-1.5">
-          Tuyệt đối
-          <Input
-            type="number"
-            min={0}
-            step={0.25}
-            placeholder="∞"
-            value={settings.max_total_deduction ?? ''}
-            onChange={(e) =>
-              updateSettings({
-                max_total_deduction:
-                  e.target.value === '' ? null : Number(e.target.value)
-              })
-            }
-            className="h-8 w-24"
-          />
-          đ
-        </label>
-        <label className="flex items-center gap-1.5">
-          Phần trăm
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            step={1}
-            placeholder="∞"
-            value={settings.max_total_deduction_pct ?? ''}
-            onChange={(e) =>
-              updateSettings({
-                max_total_deduction_pct:
-                  e.target.value === '' ? null : Number(e.target.value)
-              })
-            }
-            className="h-8 w-20"
-          />
-          %
-        </label>
-        <label className="flex items-center gap-2">
-          <Checkbox
-            checked={Boolean(settings.stop_on_first_violation)}
-            onCheckedChange={(v) =>
-              updateSettings({ stop_on_first_violation: v === true })
-            }
-          />
-          Dừng ở vi phạm đầu tiên
-        </label>
+      <div className="mb-3 rounded-lg border border-border/60 bg-background/70 px-3 py-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <h5 className="text-sm font-semibold text-foreground">
+              Whitebox trừ tối đa
+            </h5>
+            <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+              Tổng điểm trừ từ các rule bên dưới sẽ không vượt quá mức này.
+            </p>
+          </div>
+
+          <div className="grid w-full grid-cols-1 gap-3 lg:w-auto lg:grid-cols-[170px_170px_120px_180px] lg:items-center">
+            <Select
+              value={limitMode}
+              onValueChange={(value) =>
+                updateLimitMode(value as 'POINT' | 'PERCENT')
+              }
+            >
+              <SelectTrigger className="h-9 w-full bg-background">
+                <SelectValue placeholder="Chọn kiểu giới hạn" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="POINT">Theo điểm</SelectItem>
+                <SelectItem value="PERCENT">Theo % điểm câu</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="grid grid-cols-[44px_1fr] items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                Tối đa
+              </span>
+              {limitMode === 'POINT' ? (
+                <div className="grid grid-cols-[80px_42px] items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={maxQuestionPoints}
+                    step={0.25}
+                    value={
+                      settings.max_total_deduction === null ||
+                      settings.max_total_deduction === undefined
+                        ? ''
+                        : pointLimit
+                    }
+                    onChange={(e) => updatePointLimit(e.target.value)}
+                    className="h-9 w-20"
+                  />
+                  <span className="text-sm text-muted-foreground">điểm</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-[80px_42px] items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={
+                      settings.max_total_deduction_pct === null ||
+                      settings.max_total_deduction_pct === undefined
+                        ? ''
+                        : percentLimit
+                    }
+                    onChange={(e) => updatePercentLimit(e.target.value)}
+                    className="h-9 w-20"
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+              )}
+            </div>
+
+            <p className="h-9 whitespace-nowrap rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+              Thực tế:{' '}
+              <span className="font-semibold text-foreground">
+                {formattedEffectiveLimit} điểm
+              </span>
+            </p>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={Boolean(settings.stop_on_first_violation)}
+                onCheckedChange={(v) =>
+                  updateSettings({ stop_on_first_violation: v === true })
+                }
+              />
+              <span className="whitespace-nowrap text-sm font-medium text-foreground">
+                Chỉ trừ lỗi đầu tiên
+              </span>
+            </label>
+          </div>
+        </div>
       </div>
 
       {conflicts.length > 0 && (
@@ -703,7 +779,7 @@ export function WhiteboxRulesEditor({
       {loadingCatalog && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Đang tải danh mục quy
-          tắc…
+          tắc...
         </div>
       )}
       {catalogError && (
@@ -715,7 +791,7 @@ export function WhiteboxRulesEditor({
       {!loadingCatalog &&
         !catalogError &&
         (rules.length > 0 ? (
-          <div className="divide-y divide-border/60">
+          <div className="overflow-hidden rounded-lg bg-card divide-y divide-border/60">
             {rules.map((rule) => {
               if (isCustomRegexRule(rule.rule_id)) {
                 return (
@@ -746,85 +822,6 @@ export function WhiteboxRulesEditor({
             Chưa bật quy tắc nào. Bấm “Mẫu quy tắc” hoặc “Thêm quy tắc”.
           </p>
         ))}
-
-      {/* Run the rules against a SQL answer (pre-filled with the model answer) — warns, never blocks. */}
-      <div className="mt-4 space-y-2 rounded-lg border border-border/60 bg-background/60 p-3">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Chạy thử trên đáp án mẫu
-          </label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={runValidation}
-            disabled={isValidating}
-          >
-            {isValidating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )}
-            Chạy thử
-          </Button>
-        </div>
-        <div className="h-56 overflow-hidden rounded-md border border-border bg-sub-background">
-          <TeacherSqlEditor
-            value={previewSql}
-            onChange={(value) => setPreviewSql(value || '')}
-            height="100%"
-          />
-        </div>
-
-        {validation && !validation.sqlParseOk && (
-          <p className="text-xs text-amber-600 dark:text-amber-400">
-            SQL không phân tích được cú pháp — rule phụ thuộc parser không kiểm
-            chứng được (UNVERIFIED).
-          </p>
-        )}
-
-        {validation && (
-          <div className="space-y-2">
-            {modelAnswerViolations.length > 0 ? (
-              <p className="flex items-start gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span>
-                  SQL này vi phạm {modelAnswerViolations.length} quy tắc — nếu
-                  là đáp án mẫu, sinh viên làm giống cũng bị tính vi phạm. Sửa
-                  đáp án mẫu hoặc tắt rule (vẫn cho phép lưu).
-                </span>
-              </p>
-            ) : (
-              <p className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                Không vi phạm quy tắc nào.
-              </p>
-            )}
-            {validation.violations
-              .filter((v) => v.status !== 'PASS')
-              .map((v, idx) => {
-                const style =
-                  VIOLATION_STYLE[v.status] ?? VIOLATION_STYLE.UNVERIFIED
-                const Icon = style.icon
-                return (
-                  <div key={idx} className="flex items-start gap-2 text-xs">
-                    <Icon
-                      className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', style.cls)}
-                    />
-                    <span>
-                      <span className="font-medium">{v.label}</span>
-                      {v.reason ? ` — ${v.reason}` : ''}
-                      {v.deductedPoints > 0
-                        ? ` (−${v.deductedPoints.toFixed(2)}đ)`
-                        : ''}
-                    </span>
-                  </div>
-                )
-              })}
-          </div>
-        )}
-      </div>
     </div>
   )
 }

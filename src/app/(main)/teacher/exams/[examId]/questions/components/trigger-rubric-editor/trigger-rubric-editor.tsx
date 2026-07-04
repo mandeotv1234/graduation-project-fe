@@ -144,7 +144,8 @@ function normalizeTriggerPayload(
       : [],
     whitebox_settings:
       payloadRecord.whitebox_settings &&
-      typeof payloadRecord.whitebox_settings === 'object'
+      typeof payloadRecord.whitebox_settings === 'object' &&
+      !Array.isArray(payloadRecord.whitebox_settings)
         ? (payloadRecord.whitebox_settings as WhiteboxSettings)
         : {}
   }
@@ -461,6 +462,19 @@ export function TriggerRubricEditor({
             </div> */}
           </div>
         </div>
+      )}
+
+      {isRulesStep && (
+        <WhiteboxRulesEditor
+          questionType="TRIGGER"
+          totalPoints={totalPoints}
+          rules={whitebox_rules}
+          settings={whitebox_settings}
+          sqlForPreview={correctQuery}
+          onChange={(nextRules, nextSettings) =>
+            syncRubric(grading_settings, test_cases, nextRules, nextSettings)
+          }
+        />
       )}
 
       {/* Step 2: Test Cases */}
