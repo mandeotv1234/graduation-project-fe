@@ -88,6 +88,8 @@ const EXAM_STATUS_CONFIG = {
   }
 }
 
+const BAN_REASON_MAX_LENGTH = 200
+
 function ExamStatusBadge({ exam }: { exam: ClassExamItem }) {
   const statusKey = !exam.isPublished
     ? 'draft'
@@ -130,7 +132,7 @@ export function ClassDetailView({
       try {
         const res = await banStudent(classDetail.id, {
           studentId: studentToBan.id,
-          reason: banReason.trim()
+          reason: banReason.trim().slice(0, BAN_REASON_MAX_LENGTH)
         })
         if (res.code === 'OK') {
           toast.success(`Đã cấm sinh viên ${studentToBan.fullName}`)
@@ -520,11 +522,17 @@ export function ClassDetailView({
             </label>
             <Textarea
               value={banReason}
-              onChange={(e) => setBanReason(e.target.value)}
+              onChange={(e) =>
+                setBanReason(e.target.value.slice(0, BAN_REASON_MAX_LENGTH))
+              }
               placeholder="Nhập lý do cấm thi..."
               rows={3}
+              maxLength={BAN_REASON_MAX_LENGTH}
               disabled={isBanning}
             />
+            <div className="text-right text-xs text-muted-foreground">
+              {banReason.length}/{BAN_REASON_MAX_LENGTH}
+            </div>
           </div>
           <DialogFooter>
             <Button

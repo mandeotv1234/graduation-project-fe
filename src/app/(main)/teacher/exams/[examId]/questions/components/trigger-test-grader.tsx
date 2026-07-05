@@ -122,12 +122,12 @@ export function TriggerTestGrader({
         {isGrading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Dang cham...
+            Đang chấm...
           </>
         ) : (
           <>
             <Play className="h-4 w-4" />
-            Cham thu cau Trigger
+            Chấm giả lập
           </>
         )}
       </Button>

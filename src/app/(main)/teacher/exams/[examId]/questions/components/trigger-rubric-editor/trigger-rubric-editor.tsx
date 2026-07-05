@@ -21,6 +21,7 @@ import {
   TriggerGradingSettings,
   TriggerTestCase,
   SyntaxErrorAction,
+  VerificationType,
   WhiteboxRule,
   WhiteboxSettings
 } from '@/lib/types'
@@ -33,11 +34,12 @@ function createDefaultTestCase(index: number = 0): TriggerTestCase {
   return {
     case_id: `TC_${paddedIdx}`,
     case_name: `Test case ${index + 1}`,
-    penalty_value: 0.5,
+    score_weight: 1,
     setup_script: '-- Setup dữ liệu trước khi kích hoạt trigger\n',
     invocation_query:
       '-- Câu lệnh kích hoạt trigger (INSERT / UPDATE / DELETE)\n',
-    validation_query: '-- Câu lệnh kiểm tra kết quả sau khi trigger chạy\n'
+    validation_query: '-- Câu lệnh kiểm tra kết quả sau khi trigger chạy\n',
+    verification_type: 'SIDE_EFFECT'
   }
 }
 
@@ -54,6 +56,16 @@ function toBoolean(value: unknown, defaultValue: boolean): boolean {
 
 function toSyntaxErrorAction(value: unknown): SyntaxErrorAction {
   return value === 'PARTIAL' ? 'PARTIAL' : 'FAIL_ALL'
+}
+
+function toOptionalNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function triggerTestCaseWeight(
+  testCase: Pick<TriggerTestCase, 'score_weight' | 'penalty_value'>
+): number {
+  return testCase.score_weight ?? testCase.penalty_value ?? 1
 }
 
 function normalizeTriggerPayload(
@@ -101,13 +113,18 @@ function normalizeTriggerPayload(
 
         const invocationQuery = String(testCase.invocation_query || '')
         const validationQuery = String(testCase.validation_query || '')
+        const scoreWeight =
+          toOptionalNumber(testCase.score_weight) ??
+          toOptionalNumber(testCase.penalty_value) ??
+          1
 
         normalizedTestCases.push({
           case_id: String(testCase.case_id || crypto.randomUUID()),
           case_name: String(testCase.case_name || ''),
-          penalty_value: Number(
-            testCase.penalty_value || testCase.score_weight || 0.5
-          ),
+          score_weight: scoreWeight,
+          verification_type: String(
+            testCase.verification_type || 'SIDE_EFFECT'
+          ) as VerificationType,
           setup_script: String(testCase.setup_script || ''),
           invocation_query: invocationQuery,
           validation_query: validationQuery,
@@ -156,10 +173,7 @@ export function TriggerRubricEditor({
   const [activeTestCaseIndex, setActiveTestCaseIndex] = useState(0)
 
   const { grading_settings, test_cases, whitebox_rules, whitebox_settings } =
-    useMemo(
-      () => normalizeTriggerPayload(rubric?.grading_payload),
-      [rubric]
-    )
+    useMemo(() => normalizeTriggerPayload(rubric?.grading_payload), [rubric])
 
   const syncRubric = useCallback(
     (
@@ -194,7 +208,13 @@ export function TriggerRubricEditor({
       const next = updater(grading_settings)
       syncRubric(next, test_cases, whitebox_rules, whitebox_settings)
     },
-    [grading_settings, test_cases, whitebox_rules, whitebox_settings, syncRubric]
+    [
+      grading_settings,
+      test_cases,
+      whitebox_rules,
+      whitebox_settings,
+      syncRubric
+    ]
   )
 
   const setTestCases = useCallback(
@@ -202,7 +222,13 @@ export function TriggerRubricEditor({
       const next = updater(test_cases)
       syncRubric(grading_settings, next, whitebox_rules, whitebox_settings)
     },
-    [grading_settings, test_cases, whitebox_rules, whitebox_settings, syncRubric]
+    [
+      grading_settings,
+      test_cases,
+      whitebox_rules,
+      whitebox_settings,
+      syncRubric
+    ]
   )
 
   const setWhitebox = useCallback(
@@ -282,10 +308,19 @@ export function TriggerRubricEditor({
       question_category: rubric?.question_category || 'TRIGGER',
       grading_payload: {
         grading_settings,
-        test_cases
+        test_cases,
+        whitebox_rules,
+        whitebox_settings
       }
     }),
-    [grading_settings, rubric?.question_category, test_cases, totalPoints]
+    [
+      grading_settings,
+      rubric?.question_category,
+      test_cases,
+      totalPoints,
+      whitebox_rules,
+      whitebox_settings
+    ]
   )
 
   const handleApplyAiRefinement = useCallback(
@@ -298,7 +333,15 @@ export function TriggerRubricEditor({
         question_category: 'TRIGGER',
         grading_payload: {
           grading_settings: normalized.grading_settings,
-          test_cases: normalized.test_cases
+          test_cases: normalized.test_cases,
+          whitebox_rules:
+            normalized.whitebox_rules.length > 0
+              ? normalized.whitebox_rules
+              : whitebox_rules,
+          whitebox_settings:
+            Object.keys(normalized.whitebox_settings).length > 0
+              ? normalized.whitebox_settings
+              : whitebox_settings
         }
       }
       const nextActiveIndex = activeCaseId
@@ -308,7 +351,14 @@ export function TriggerRubricEditor({
       onChange(normalizedRubric)
       setActiveTestCaseIndex(nextActiveIndex >= 0 ? nextActiveIndex : 0)
     },
-    [activeTestCaseIndex, onChange, test_cases, totalPoints]
+    [
+      activeTestCaseIndex,
+      onChange,
+      test_cases,
+      totalPoints,
+      whitebox_rules,
+      whitebox_settings
+    ]
   )
 
   const isWizardMode = typeof wizardStep === 'number'
@@ -417,9 +467,10 @@ export function TriggerRubricEditor({
       {isTestCasesStep && (
         <div className={styles.testCasesSection}>
           <div className="rounded-md border border-dashed border-outline-variant/50 bg-surface-container-highest/20 px-4 py-3 text-sm text-on-surface-variant">
-            Mỗi test case sai sẽ <strong>trừ đúng số điểm trừ</strong> của test
-            case đó. Quy tắc white-box (nếu có) trừ thêm trên phần điểm còn lại
-            sau test case — giống cơ chế chấm câu SELECT.
+            Mỗi test case có <strong>trọng số tương đối</strong>. Hệ thống sẽ
+            chuẩn hóa tổng trọng số về 1.0 rồi nhân với điểm của câu hỏi. Quy
+            tắc white-box (nếu có) trừ thêm trên phần điểm đạt được sau test
+            case.
           </div>
 
           <div className="flex flex-wrap items-center gap-3 pb-2">
@@ -456,6 +507,7 @@ export function TriggerRubricEditor({
               test_cases[activeTestCaseIndex]?.case_name ||
               test_cases[activeTestCaseIndex]?.case_id
             }
+            disabled={isGenerating}
           />
 
           <div className="flex items-center justify-between">
@@ -556,7 +608,7 @@ export function TriggerRubricEditor({
                           {tc.case_name || `Test case ${idx + 1}`}
                         </span>
                         <span className="text-[11px] ml-3 shrink-0 px-2.5 py-0.5 rounded-full bg-error-container/10 text-error border border-error/20 font-medium">
-                          Điểm trừ: -{tc.penalty_value ?? 0.5}
+                          Trọng số: {triggerTestCaseWeight(tc)}
                         </span>
                       </div>
                       <Button
@@ -569,7 +621,7 @@ export function TriggerRubricEditor({
                       </Button>
                     </div>
                     <div className={styles.testCaseFields}>
-                      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
                         <label className="space-y-1.5">
                           <span className="block text-xs font-semibold text-on-surface-variant">
                             Mã test case
@@ -610,20 +662,20 @@ export function TriggerRubricEditor({
                         </label>
                         <label className="space-y-1.5">
                           <span className="block text-xs font-semibold text-on-surface-variant">
-                            Điểm trừ
+                            Trọng số
                           </span>
                           <input
                             type="number"
                             min={0}
                             step={0.05}
-                            value={tc.penalty_value ?? 0.5}
+                            value={triggerTestCaseWeight(tc)}
                             onChange={(e) =>
                               setTestCases((prev) =>
                                 prev.map((t, i) =>
                                   i === idx
                                     ? {
                                         ...t,
-                                        penalty_value:
+                                        score_weight:
                                           parseFloat(e.target.value) || 0
                                       }
                                     : t
@@ -632,6 +684,38 @@ export function TriggerRubricEditor({
                             }
                             className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
                           />
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="block text-xs font-semibold text-on-surface-variant">
+                            Kiểu kiểm tra
+                          </span>
+                          <select
+                            value={tc.verification_type || 'SIDE_EFFECT'}
+                            onChange={(e) => {
+                              const nextType = e.target
+                                .value as VerificationType
+                              setTestCases((prev) =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? {
+                                        ...t,
+                                        verification_type: nextType,
+                                        ...(nextType === 'EXECUTION_STATUS'
+                                          ? { validation_query: '' }
+                                          : {})
+                                      }
+                                    : t
+                                )
+                              )
+                            }}
+                            className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
+                          >
+                            <option value="SIDE_EFFECT">SIDE_EFFECT</option>
+                            <option value="EXECUTION_STATUS">
+                              EXECUTION_STATUS
+                            </option>
+                            <option value="PRINT_OUTPUT">PRINT_OUTPUT</option>
+                          </select>
                         </label>
                       </div>
                       <div className="space-y-1.5 flex flex-col">
@@ -720,7 +804,6 @@ export function TriggerRubricEditor({
           sqlForPreview={correctQuery}
         />
       )}
-
     </div>
   )
 }

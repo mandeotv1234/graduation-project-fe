@@ -959,6 +959,7 @@ export type VerificationType =
   | 'OUT_PARAMETER'
   | 'RESULT_SET'
   | 'SIDE_EFFECT'
+  | 'EXECUTION_STATUS'
   | 'PRINT_OUTPUT'
 
 export interface RoutineTestCase {
@@ -995,7 +996,9 @@ export interface TriggerGradingSettings {
 export interface TriggerTestCase {
   case_id: string
   case_name: string
-  penalty_value: number
+  score_weight?: number
+  penalty_value?: number
+  verification_type?: VerificationType
   setup_script?: string
   invocation_query: string
   validation_query: string

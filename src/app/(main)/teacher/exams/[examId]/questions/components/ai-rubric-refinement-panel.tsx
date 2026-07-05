@@ -38,6 +38,7 @@ interface AiRubricRefinementPanelProps {
   contextQueries?: ContextQuery[]
   activeTargetId?: string
   activeTargetLabel?: string
+  disabled?: boolean
   className?: string
 }
 
@@ -79,6 +80,7 @@ export function AiRubricRefinementPanel({
   contextQueries = [],
   activeTargetId,
   activeTargetLabel,
+  disabled = false,
   className = ''
 }: AiRubricRefinementPanelProps) {
   const [mode, setMode] = useState<RubricRefinementMode>(
@@ -105,6 +107,9 @@ export function AiRubricRefinementPanel({
   }, [mode])
 
   const handleSubmit = async () => {
+    if (disabled) {
+      return
+    }
     if (!instruction.trim()) {
       toast.error('Nhập prompt để AI biết cần sửa gì')
       return
@@ -155,6 +160,7 @@ export function AiRubricRefinementPanel({
   }
 
   const handleApply = () => {
+    if (disabled) return
     if (!pending?.rubric) return
     onApply(pending.rubric)
     setPending(null)
@@ -190,18 +196,19 @@ export function AiRubricRefinementPanel({
 
       <div className="mb-3 flex flex-wrap gap-2">
         {MODES.map((item) => {
-          const disabled = item.value === 'EDIT_TEST_CASE' && !activeTargetId
+          const modeDisabled =
+            disabled || (item.value === 'EDIT_TEST_CASE' && !activeTargetId)
           return (
             <button
               key={item.value}
               type="button"
-              disabled={disabled}
+              disabled={modeDisabled}
               onClick={() => setMode(item.value)}
               className={`rounded-md border px-3 py-2 text-left text-xs transition-colors ${
                 mode === item.value
                   ? 'border-primary bg-primary text-primary-foreground'
                   : 'border-border bg-background text-foreground hover:bg-muted'
-              } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+              } ${modeDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
               title={item.description}
             >
               <span className="block font-semibold">{item.label}</span>
@@ -215,6 +222,7 @@ export function AiRubricRefinementPanel({
           value={instruction}
           onChange={(event) => setInstruction(event.target.value)}
           placeholder={placeholder}
+          disabled={disabled}
           className="min-h-24 resize-y bg-background text-sm"
         />
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -227,7 +235,7 @@ export function AiRubricRefinementPanel({
             type="button"
             size="sm"
             onClick={handleSubmit}
-            disabled={isRefining}
+            disabled={disabled || isRefining}
             className="gap-2"
           >
             {isRefining ? (
@@ -252,6 +260,7 @@ export function AiRubricRefinementPanel({
                 variant="ghost"
                 size="sm"
                 onClick={() => setPending(null)}
+                disabled={disabled}
                 className="gap-1"
               >
                 <X className="h-4 w-4" />
@@ -261,6 +270,7 @@ export function AiRubricRefinementPanel({
                 type="button"
                 size="sm"
                 onClick={handleApply}
+                disabled={disabled}
                 className="gap-1"
               >
                 <Check className="h-4 w-4" />
