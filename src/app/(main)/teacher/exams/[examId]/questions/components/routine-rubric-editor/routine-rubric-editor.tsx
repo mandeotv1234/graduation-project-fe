@@ -331,7 +331,6 @@ export function RoutineRubricEditor({
   const [issueCaseKeys, setIssueCaseKeys] = useState<Set<string>>(new Set())
   const [issueDetails, setIssueDetails] = useState<GeneratedRubricIssue[]>([])
   const hasInitializedDefaultCaseRef = useRef(false)
-  const editorRootRef = useRef<HTMLDivElement | null>(null)
 
   const rubricCategory =
     questionType === 'STORED_PROCEDURE' ? 'STORED_PROCEDURE' : 'FUNCTION'
@@ -531,14 +530,6 @@ export function RoutineRubricEditor({
   const isWhiteboxStep = !isWizardMode || wizardStep === 4
 
   useEffect(() => {
-    if (!isWizardMode) return
-    editorRootRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
-    })
-  }, [isWizardMode, wizardStep])
-
-  useEffect(() => {
     if (!isWizardMode || wizardStep !== 2) return
     if (test_cases.length > 0) return
     if (hasInitializedDefaultCaseRef.current) return
@@ -631,7 +622,7 @@ export function RoutineRubricEditor({
   )
 
   return (
-    <div ref={editorRootRef} className={styles.editor}>
+    <div className={styles.editor}>
       {/* Step 2: Test Cases */}
       {isTestCasesStep && (
         <div className={styles.testCasesSection}>

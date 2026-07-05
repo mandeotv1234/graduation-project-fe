@@ -870,7 +870,8 @@ export function QuestionItem({
                   { step: 1, label: '1. Nội dung' },
                   { step: 2, label: '2. Test cases' },
                   { step: 3, label: '3. Rubric' },
-                  { step: 4, label: '4. Kiểm thử' }
+                  { step: 4, label: '4. Quy tắc cách viết' },
+                  { step: 5, label: '5. Kiểm thử' }
                 ].map((item) => (
                   <button
                     key={item.step}
@@ -903,7 +904,7 @@ export function QuestionItem({
                 wizardStep={editWizardStep}
               />
 
-              {editWizardStep === 4 && (
+              {editWizardStep === 5 && (
                 <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
                   <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
                     <Play className="h-4 w-4" /> Kiểm thử rubric

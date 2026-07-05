@@ -464,19 +464,6 @@ export function TriggerRubricEditor({
         </div>
       )}
 
-      {isRulesStep && (
-        <WhiteboxRulesEditor
-          questionType="TRIGGER"
-          totalPoints={totalPoints}
-          rules={whitebox_rules}
-          settings={whitebox_settings}
-          sqlForPreview={correctQuery}
-          onChange={(nextRules, nextSettings) =>
-            syncRubric(grading_settings, test_cases, nextRules, nextSettings)
-          }
-        />
-      )}
-
       {/* Step 2: Test Cases */}
       {isTestCasesStep && (
         <div className={styles.testCasesSection}>

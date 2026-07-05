@@ -970,6 +970,9 @@ export function ExamQuestionsView({
                 const whiteboxSupported =
                   whiteboxSupportedByType[normalizedQuestionType] === true ||
                   WHITEBOX_FE_FORCED_TYPES.has(normalizedQuestionType)
+                const isRoutineQuestion =
+                  normalizedQuestionType === 'FUNCTION' ||
+                  normalizedQuestionType === 'STORED_PROCEDURE'
                 // TRIGGER skips the old step-3 metadata/rules step — its wizard is
                 // 4 steps: 1 (content) → 2 (test cases) → 3 (whitebox) → 4 (done).
                 const finalStep =
@@ -993,8 +996,18 @@ export function ExamQuestionsView({
                     : whiteboxSupported
                       ? [
                           { step: 1, label: 'Nội dung & đáp án' },
-                          { step: 2, label: 'Cấu hình kỳ vọng' },
-                          { step: 3, label: 'Kiểm tra kết quả' },
+                          {
+                            step: 2,
+                            label: isRoutineQuestion
+                              ? 'Test cases'
+                              : 'Cấu hình kỳ vọng'
+                          },
+                          {
+                            step: 3,
+                            label: isRoutineQuestion
+                              ? 'Rubric chấm điểm'
+                              : 'Kiểm tra kết quả'
+                          },
                           { step: 4, label: 'Quy tắc cách viết' },
                           { step: 5, label: 'Hoàn tất' }
                         ]
@@ -1589,12 +1602,16 @@ export function ExamQuestionsView({
                           <h4 className="flex items-center gap-2 text-sm font-bold text-sub-primary">
                             <Sparkles className="h-4 w-4" />
                             {step === 2
-                              ? 'Bước 2: Cấu hình kỳ vọng'
+                              ? isRoutineQuestion
+                                ? 'Bước 2: Test cases'
+                                : 'Bước 2: Cấu hình kỳ vọng'
                               : normalizedQuestionType === 'TRIGGER'
                                 ? 'Bước 3: Quy tắc cách viết'
-                                : whiteboxSupported
-                                  ? 'Bước 3: Kiểm tra kết quả'
-                                  : 'Bước 3: Thiết lập quy tắc chấm điểm'}
+                                : isRoutineQuestion
+                                  ? 'Bước 3: Rubric chấm điểm'
+                                  : whiteboxSupported
+                                    ? 'Bước 3: Kiểm tra kết quả'
+                                    : 'Bước 3: Thiết lập quy tắc chấm điểm'}
                           </h4>
                           {q.questionType === 'CREATE_TABLE' && (
                             <CreateTableRubricEditor
