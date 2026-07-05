@@ -74,7 +74,7 @@ import { RubricTestGrader } from './rubric-test-grader'
 import { SelectQueryTestGrader } from './select-query-test-grader'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 import { PdfUploadDialog } from './pdf-upload-dialog/pdf-upload-dialog'
-import { loadWhiteboxCatalogCached } from './whitebox-catalog-client'
+import { loadWhiteboxCatalog } from './whitebox-catalog-client'
 
 const QUESTION_TYPES = [
   { value: 'CREATE_TABLE', label: 'CREATE TABLE' },
@@ -204,8 +204,8 @@ export function ExamQuestionsView({
   )
 
   // Writing-rule step visibility is catalog-driven: a question type gets an authoring-rule wizard step only
-  // when the backend catalog exposes at least one rule for it (v1 → SELECT only). Adding evaluators
-  // for another type later makes its step appear automatically, with no frontend change.
+  // when the backend catalog exposes at least one rule for it. Adding evaluators for another type
+  // later makes its step appear automatically, with no frontend change.
   const [whiteboxSupportedByType, setWhiteboxSupportedByType] = useState<
     Record<string, boolean>
   >({})
@@ -217,7 +217,7 @@ export function ExamQuestionsView({
       return
     }
     let active = true
-    loadWhiteboxCatalogCached(addingQuestionType)
+    loadWhiteboxCatalog(addingQuestionType)
       .then((res) => {
         if (active) {
           setWhiteboxSupportedByType((prev) => ({
