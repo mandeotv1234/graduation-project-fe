@@ -55,7 +55,7 @@ import {
 } from './whitebox-authoring'
 import { SystemPresetList } from './system-preset-list'
 import { TeacherSqlEditor } from './teacher-sql-editor'
-import { loadWhiteboxCatalogCached } from './whitebox-catalog-client'
+import { loadWhiteboxCatalog } from './whitebox-catalog-client'
 import { WhiteboxRuleRow } from './whitebox-rule-row'
 
 interface WhiteboxRulesEditorProps {
@@ -89,6 +89,7 @@ export function WhiteboxRulesEditor({
   const [catalog, setCatalog] = useState<WhiteboxCatalogItem[]>([])
   const [catalogError, setCatalogError] = useState<string | null>(null)
   const [loadingCatalog, setLoadingCatalog] = useState(true)
+  const [isRefreshingCatalog, setIsRefreshingCatalog] = useState(false)
   const [validation, setValidation] = useState<WhiteboxValidationResult | null>(
     null
   )
@@ -116,7 +117,7 @@ export function WhiteboxRulesEditor({
   useEffect(() => {
     let active = true
     setLoadingCatalog(true)
-    loadWhiteboxCatalogCached(questionType)
+    loadWhiteboxCatalog(questionType)
       .then((res) => {
         if (!active) return
         if (!Array.isArray(res.data)) {
@@ -145,17 +146,6 @@ export function WhiteboxRulesEditor({
     catalog.forEach((item) => map.set(item.ruleId, item))
     return map
   }, [catalog])
-
-  const configuredIds = useMemo(
-    () => new Set(rules.map((r) => r.rule_id)),
-    [rules]
-  )
-
-  // Catalog rules not yet configured — gates the "Thêm quy tắc" button.
-  const availableCount = useMemo(
-    () => catalog.filter((item) => !configuredIds.has(item.ruleId)).length,
-    [catalog, configuredIds]
-  )
 
   // Contradictory configured rules (catalog conflictsWith + MAX_JOIN_COUNT=0 vs REQUIRED_JOIN). Warn only.
   const conflicts = useMemo(
@@ -371,6 +361,28 @@ export function WhiteboxRulesEditor({
     }
   }
 
+  const handleOpenAddRule = async () => {
+    setIsRefreshingCatalog(true)
+    try {
+      const res = await loadWhiteboxCatalog(questionType)
+      if (!Array.isArray(res.data)) {
+        setCatalog([])
+        setCatalogError(
+          res.message || 'Không tải được danh mục quy tắc cách viết.'
+        )
+        toast.error('Không tải được danh mục quy tắc cách viết.')
+        return
+      }
+      setCatalog(res.data)
+      setCatalogError(null)
+      setAddOpen(true)
+    } catch {
+      toast.error('Không tải được danh mục quy tắc cách viết.')
+    } finally {
+      setIsRefreshingCatalog(false)
+    }
+  }
+
   const modelAnswerViolations =
     validation?.violations.filter(
       (v) => v.status === 'FAIL' || v.status === 'WARN'
@@ -570,11 +582,15 @@ export function WhiteboxRulesEditor({
               variant="outline"
               size="sm"
               className="h-9 whitespace-nowrap px-4 text-sm"
-              disabled={availableCount === 0}
-              onClick={() => setAddOpen(true)}
+              disabled={isRefreshingCatalog}
+              onClick={handleOpenAddRule}
             >
-              <Plus className="mr-1.5 h-4 w-4" />
-              Thêm quy tắc
+              {isRefreshingCatalog ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-1.5 h-4 w-4" />
+              )}
+              {isRefreshingCatalog ? 'Đang tải...' : 'Thêm quy tắc'}
             </Button>
           </div>
         )}

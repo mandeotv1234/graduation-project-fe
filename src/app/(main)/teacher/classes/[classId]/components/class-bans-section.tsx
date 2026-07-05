@@ -107,15 +107,26 @@ export function ClassBansSection({ classId, bans }: ClassBansSectionProps) {
                       {ban.email}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground max-w-[200px]">
-                    {ban.reason ?? (
+                  <td className="max-w-[220px] px-4 py-3 text-muted-foreground">
+                    {ban.reason?.trim() ? (
+                      <span
+                        className="line-clamp-2 break-words"
+                        title={ban.reason}
+                      >
+                        {ban.reason}
+                      </span>
+                    ) : (
                       <span className="italic text-muted-foreground/60">
                         Không có lý do
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {ban.bannedBy}
+                    {ban.bannedByName || ban.bannedBy || (
+                      <span className="italic text-muted-foreground/60">
+                        Không rõ
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                     {formatDateTime(ban.bannedAt)}

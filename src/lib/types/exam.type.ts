@@ -959,6 +959,7 @@ export type VerificationType =
   | 'OUT_PARAMETER'
   | 'RESULT_SET'
   | 'SIDE_EFFECT'
+  | 'EXECUTION_STATUS'
   | 'PRINT_OUTPUT'
 
 export interface RoutineTestCase {
@@ -995,31 +996,20 @@ export interface TriggerGradingSettings {
 export interface TriggerTestCase {
   case_id: string
   case_name: string
-  penalty_value: number
+  score_weight?: number
+  penalty_value?: number
+  verification_type?: VerificationType
   setup_script?: string
   invocation_query: string
   validation_query: string
   description?: string
 }
 
-export interface TriggerRubricTrigger {
-  expected_name: string
-  existence_points: number
-  table_points: number
-  event_points: number
-  timing_points: number
-  expected_table_name: string
-  is_insert: boolean
-  is_update: boolean
-  is_delete: boolean
-  is_after: boolean
-  missing_penalty_action: MissingPenaltyAction
-}
-
 export interface TriggerGradingPayload {
   grading_settings: TriggerGradingSettings
-  triggers: TriggerRubricTrigger[]
   test_cases?: TriggerTestCase[]
+  whitebox_rules?: WhiteboxRule[]
+  whitebox_settings?: WhiteboxSettings
 }
 
 export interface SaveExamSpecificationRequest {

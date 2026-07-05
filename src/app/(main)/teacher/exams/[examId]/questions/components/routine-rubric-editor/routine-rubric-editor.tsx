@@ -921,6 +921,9 @@ export function RoutineRubricEditor({
                               </option>
                               <option value="RESULT_SET">RESULT_SET</option>
                               <option value="SIDE_EFFECT">SIDE_EFFECT</option>
+                              <option value="EXECUTION_STATUS">
+                                EXECUTION_STATUS
+                              </option>
                               <option value="PRINT_OUTPUT">PRINT_OUTPUT</option>
                             </select>
                           </label>

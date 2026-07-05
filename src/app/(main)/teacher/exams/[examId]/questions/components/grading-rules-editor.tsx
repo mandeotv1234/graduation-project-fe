@@ -44,7 +44,6 @@ import {
   RulePreset
 } from '@/lib/types'
 import { SystemPresetList } from './system-preset-list'
-import { CreateTableTreeRubric } from './create-table-tree-rubric'
 
 export type RuleQuestionType = 'CREATE_TABLE' | 'SELECT_QUERY' | 'INSERT_DATA'
 
@@ -69,12 +68,7 @@ const ALL_TARGET_OPTIONS: Array<{ value: GradingRuleTarget; label: string }> = [
   { value: 'COLUMN_ORDER', label: 'Thứ tự cột' },
   { value: 'ROW', label: 'Dòng dữ liệu' },
   { value: 'CELL_VALUE', label: 'Giá trị trong ô' },
-  { value: 'ROW_ORDER', label: 'Thứ tự dòng' },
-  { value: 'NULLABILITY', label: 'Ràng buộc NULL' },
-  { value: 'IDENTITY', label: 'Thuộc tính IDENTITY' },
-  { value: 'UNIQUE', label: 'Ràng buộc UNIQUE' },
-  { value: 'CHECK', label: 'Ràng buộc CHECK' },
-  { value: 'DEFAULT', label: 'Giá trị DEFAULT' }
+  { value: 'ROW_ORDER', label: 'Thứ tự dòng' }
 ]
 
 const CREATE_TARGET_OPTIONS: Array<{
@@ -88,12 +82,7 @@ const CREATE_TARGET_OPTIONS: Array<{
     'PRIMARY_KEY',
     'FOREIGN_KEY',
     'CONSTRAINT_LOCAL',
-    'COLUMN_ORDER',
-    'NULLABILITY',
-    'IDENTITY',
-    'UNIQUE',
-    'CHECK',
-    'DEFAULT'
+    'COLUMN_ORDER'
   ].includes(option.value)
 )
 
@@ -169,21 +158,17 @@ const CREATE_CONDITION_OPTIONS: Partial<
     { value: 'NOT_EQUAL', label: 'Không khớp đáp án' }
   ],
   DATA_TYPE: [
-    { value: 'FAMILY_MISMATCH', label: 'Khác họ kiểu dữ liệu' },
-    { value: 'SIZE_MISMATCH', label: 'Cùng họ nhưng sai kích thước' },
     { value: 'TYPE_MISMATCH', label: 'Sai kiểu dữ liệu' },
     { value: 'LENGTH_MISMATCH', label: 'Sai độ dài' }
   ],
   PRIMARY_KEY: [
     { value: 'IS_MISSING', label: 'Bị thiếu' },
     { value: 'IS_EXTRA', label: 'Bị dư thừa' },
-    { value: 'MISMATCH', label: 'Sai cấu trúc khóa' },
     { value: 'NOT_EQUAL', label: 'Không khớp đáp án' }
   ],
   FOREIGN_KEY: [
     { value: 'IS_MISSING', label: 'Bị thiếu' },
     { value: 'IS_EXTRA', label: 'Bị dư thừa' },
-    { value: 'MISMATCH', label: 'Sai cấu trúc khóa' },
     { value: 'REFERENCE_ERROR', label: 'Sai tham chiếu' }
   ],
   CONSTRAINT_LOCAL: [
@@ -191,23 +176,7 @@ const CREATE_CONDITION_OPTIONS: Partial<
     { value: 'IS_EXTRA', label: 'Bị dư thừa' },
     { value: 'NOT_EQUAL', label: 'Không khớp đáp án' }
   ],
-  COLUMN_ORDER: [{ value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }],
-  NULLABILITY: [{ value: 'NOT_EQUAL', label: 'Không khớp đáp án' }],
-  IDENTITY: [{ value: 'NOT_EQUAL', label: 'Không khớp đáp án' }],
-  UNIQUE: [
-    { value: 'IS_MISSING', label: 'Bị thiếu' },
-    { value: 'IS_EXTRA', label: 'Bị dư thừa' }
-  ],
-  CHECK: [
-    { value: 'IS_MISSING', label: 'Bị thiếu' },
-    { value: 'IS_EXTRA', label: 'Bị dư thừa' },
-    { value: 'EXPRESSION_MISMATCH', label: 'Sai biểu thức CHECK' }
-  ],
-  DEFAULT: [
-    { value: 'IS_MISSING', label: 'Bị thiếu' },
-    { value: 'IS_EXTRA', label: 'Bị dư thừa' },
-    { value: 'VALUE_MISMATCH', label: 'Sai giá trị DEFAULT' }
-  ]
+  COLUMN_ORDER: [{ value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }]
 }
 
 const SELECT_MODIFIER_OPTIONS: Partial<
@@ -819,7 +788,7 @@ export function GradingRulesEditor({
       const res = await getRulePresets(questionType, 'BLACKBOX')
       if (res.data) setPresets(res.data)
     } catch {
-      // // console.error(e)
+      // console.error(e)
     } finally {
       setIsLoadingPresets(false)
     }
@@ -1192,8 +1161,8 @@ export function GradingRulesEditor({
       setRuleDraft(draftWithFriendlyName)
       setSpecialMode(isDescriptionOnlySpecialRule(draftWithFriendlyName))
       toast.success('AI đã điền nháp 1 quy tắc, kiểm tra lại rồi bấm Lưu.')
-    } catch {
-      // console.error('AI generate rule draft failed:', error)
+    } catch (error) {
+      console.error('AI generate rule draft failed:', error)
       toast.error('Lỗi khi gọi AI. Vui lòng thử lại.')
     } finally {
       setIsGeneratingByAi(false)
@@ -1328,8 +1297,8 @@ export function GradingRulesEditor({
       onChange([...normalizedRules, ...nextRules])
       setIsModalOpen(false)
       toast.success(`AI đã thêm ${nextRules.length} quy tắc vào danh sách.`)
-    } catch {
-      // console.error('AI generate multiple rules failed:', error)
+    } catch (error) {
+      console.error('AI generate multiple rules failed:', error)
       toast.error('Lỗi khi gọi AI. Vui lòng thử lại.')
     } finally {
       setIsGeneratingMultipleByAi(false)
@@ -1338,130 +1307,107 @@ export function GradingRulesEditor({
 
   return (
     <div className="rounded-lg bg-card space-y-4">
-      {questionType === 'CREATE_TABLE' && (
-        <CreateTableTreeRubric
-          rules={normalizedRules}
-          onChange={onChange}
-          headerAction={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                loadPresets()
-                setIsPresetModalOpen(true)
-              }}
-              className="h-9 px-4 text-sm whitespace-nowrap bg-background"
-            >
-              <FileText className="h-4 w-4 mr-1.5" />
-              Mẫu quy tắc
-            </Button>
-          }
-        />
-      )}
-
-      {questionType !== 'CREATE_TABLE' && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
-              Quy tắc chấm điểm nâng cao
-              <Badge
-                variant="secondary"
-                className="rounded-full px-2.5 py-0.5 text-xs"
-              >
-                {normalizedRules.length}
-              </Badge>
-            </h4>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  loadPresets()
-                  setIsPresetModalOpen(true)
-                }}
-                className="h-9 px-4 text-sm font-semibold whitespace-nowrap"
-              >
-                Mẫu quy tắc
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={openAddModal}
-                className="h-9 px-4 text-sm whitespace-nowrap"
-              >
-                <Plus className="h-4 w-4 mr-1.5" />
-                Thêm quy tắc
-              </Button>
-            </div>
-          </div>
-
-          {normalizedRules.length === 0 && (
-            <div className="rounded-md border border-dashed border-border bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
-              Chưa có quy tắc nâng cao. Bạn có thể thêm thủ công hoặc dùng AI
-              trong modal.
-            </div>
-          )}
-
-          <div
-            className={`space-y-3 ${shouldScrollRules ? 'max-h-[30rem] overflow-y-auto pr-1' : ''}`}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+          Quy tắc chấm điểm nâng cao
+          <Badge
+            variant="secondary"
+            className="rounded-full px-2.5 py-0.5 text-xs"
           >
-            {normalizedRules.map((rule, idx) => {
-              const title = isDescriptionOnlySpecialRule(rule)
-                ? `Rule đặc biệt #${idx + 1}`
-                : rule.rule_name || buildRuleName(idx)
+            {normalizedRules.length}
+          </Badge>
+        </h4>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              loadPresets()
+              setIsPresetModalOpen(true)
+            }}
+            className="h-9 px-4 text-sm whitespace-nowrap"
+          >
+            <FileText className="h-4 w-4 mr-1.5" />
+            Mẫu quy tắc
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={openAddModal}
+            className="h-9 px-4 text-sm whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Thêm quy tắc
+          </Button>
+        </div>
+      </div>
 
-              return (
-                <div
-                  key={`${rule.rule_name || 'special'}-${idx}`}
-                  className="rounded-md border border-border bg-sub-background p-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-sub-primary">
-                        {title}
-                      </p>
-                      <p className="text-sm text-foreground leading-relaxed">
-                        {buildRuleSummary(rule, questionType)}
-                      </p>
-                      {!isDescriptionOnlySpecialRule(rule) && (
-                        <p className="text-xs text-muted-foreground">
-                          Hành động: {getActionLabel(rule.action)}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-2.5"
-                        onClick={() => openEditModal(idx)}
-                      >
-                        <Pencil className="h-3.5 w-3.5 mr-1" />
-                        Sửa
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2.5 text-destructive hover:text-destructive"
-                        onClick={() => removeRuleAt(idx)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 mr-1" />
-                        Xóa
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </>
+      {normalizedRules.length === 0 && (
+        <div className="rounded-md border border-dashed border-border bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
+          Chưa có quy tắc nâng cao. Bạn có thể thêm thủ công hoặc dùng AI trong
+          modal.
+        </div>
       )}
+
+      <div
+        className={`space-y-3 ${
+          shouldScrollRules ? 'max-h-[30rem] overflow-y-auto pr-1' : ''
+        }`}
+      >
+        {normalizedRules.map((rule, idx) => {
+          const title = isDescriptionOnlySpecialRule(rule)
+            ? `Rule đặc biệt #${idx + 1}`
+            : rule.rule_name || buildRuleName(idx)
+
+          return (
+            <div
+              key={`${rule.rule_name || 'special'}-${idx}`}
+              className="rounded-md border border-border bg-sub-background p-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-sub-primary">
+                    {title}
+                  </p>
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {buildRuleSummary(rule, questionType)}
+                  </p>
+                  {!isDescriptionOnlySpecialRule(rule) && (
+                    <p className="text-xs text-muted-foreground">
+                      Hành động: {getActionLabel(rule.action)}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2.5"
+                    onClick={() => openEditModal(idx)}
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    Sửa
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2.5 text-destructive hover:text-destructive"
+                    onClick={() => removeRuleAt(idx)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Xóa
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[calc(100dvh-2rem)] overflow-hidden p-0 gap-0 flex flex-col">

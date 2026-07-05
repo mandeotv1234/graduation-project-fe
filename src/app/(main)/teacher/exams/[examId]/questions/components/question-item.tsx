@@ -929,7 +929,7 @@ export function QuestionItem({
                 {[
                   { step: 1, label: '1. Nội dung' },
                   { step: 2, label: '2. Test cases' },
-                  { step: 3, label: '3. Rubric' },
+                  { step: 3, label: '3. Quy tắc cách viết' },
                   { step: 4, label: '4. Kiểm thử' }
                 ].map((item) => (
                   <button

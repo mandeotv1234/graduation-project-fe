@@ -27,7 +27,8 @@ export interface BannedStudentInfo {
   fullName: string
   bannedAt: string
   reason: string | null
-  bannedBy: string
+  bannedByName: string
+  bannedBy?: string
 }
 
 // ===== Class Types =====

@@ -6,13 +6,10 @@ import {
   Trash2,
   Zap,
   Settings2,
-  ChevronDown,
   ChevronRight,
   ChevronLeft,
   Sparkles,
-  Equal,
-  Loader2,
-  MousePointerClick
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -22,38 +19,27 @@ import styles from '@/app/(main)/teacher/exams/[examId]/questions/components/tri
 import {
   GradingRubric,
   TriggerGradingSettings,
-  TriggerRubricTrigger,
   TriggerTestCase,
   SyntaxErrorAction,
-  MissingPenaltyAction
+  VerificationType,
+  WhiteboxRule,
+  WhiteboxSettings
 } from '@/lib/types'
 import { TeacherSqlEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/teacher-sql-editor'
 import { AiRubricRefinementPanel } from '@/app/(main)/teacher/exams/[examId]/questions/components/ai-rubric-refinement-panel'
+import { WhiteboxRulesEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/whitebox-rules-editor'
 
-function createDefaultTrigger(): TriggerRubricTrigger {
+function createDefaultTestCase(index: number = 0): TriggerTestCase {
+  const paddedIdx = String(index + 1).padStart(2, '0')
   return {
-    expected_name: '',
-    existence_points: 0.3,
-    table_points: 0.2,
-    event_points: 0.3,
-    timing_points: 0.2,
-    expected_table_name: '',
-    is_insert: false,
-    is_update: true,
-    is_delete: false,
-    is_after: true,
-    missing_penalty_action: 'SKIP_TRIGGER'
-  }
-}
-
-function createDefaultTestCase(): TriggerTestCase {
-  return {
-    case_id: crypto.randomUUID(),
-    case_name: '',
-    penalty_value: 0.5,
-    setup_script: '',
-    invocation_query: '',
-    validation_query: ''
+    case_id: `TC_${paddedIdx}`,
+    case_name: `Test case ${index + 1}`,
+    score_weight: 1,
+    setup_script: '-- Setup dữ liệu trước khi kích hoạt trigger\n',
+    invocation_query:
+      '-- Câu lệnh kích hoạt trigger (INSERT / UPDATE / DELETE)\n',
+    validation_query: '-- Câu lệnh kiểm tra kết quả sau khi trigger chạy\n',
+    verification_type: 'SIDE_EFFECT'
   }
 }
 
@@ -72,12 +58,23 @@ function toSyntaxErrorAction(value: unknown): SyntaxErrorAction {
   return value === 'PARTIAL' ? 'PARTIAL' : 'FAIL_ALL'
 }
 
+function toOptionalNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function triggerTestCaseWeight(
+  testCase: Pick<TriggerTestCase, 'score_weight' | 'penalty_value'>
+): number {
+  return testCase.score_weight ?? testCase.penalty_value ?? 1
+}
+
 function normalizeTriggerPayload(
   payload: GradingRubric['grading_payload'] | undefined
 ): {
   grading_settings: TriggerGradingSettings
-  triggers: TriggerRubricTrigger[]
   test_cases: TriggerTestCase[]
+  whitebox_rules: WhiteboxRule[]
+  whitebox_settings: WhiteboxSettings
 } {
   const defaultSettings: TriggerGradingSettings = {
     syntax_error_action: 'FAIL_ALL',
@@ -88,8 +85,9 @@ function normalizeTriggerPayload(
   if (!payload || typeof payload !== 'object') {
     return {
       grading_settings: defaultSettings,
-      triggers: [],
-      test_cases: []
+      test_cases: [],
+      whitebox_rules: [],
+      whitebox_settings: {}
     }
   }
 
@@ -106,35 +104,6 @@ function normalizeTriggerPayload(
     positive_only_scoring: toBoolean(rawSettings.positive_only_scoring, false)
   }
 
-  // Normalize triggers
-  const normalizedTriggers: TriggerRubricTrigger[] = []
-  if (Array.isArray(payloadRecord.triggers)) {
-    for (const t of payloadRecord.triggers) {
-      if (t && typeof t === 'object') {
-        const trigger = t as Record<string, unknown>
-        normalizedTriggers.push({
-          expected_name: String(trigger.expected_name || ''),
-          existence_points: Number(trigger.existence_points || 0),
-          table_points: Number(trigger.table_points || 0),
-          event_points: Number(trigger.event_points || 0),
-          timing_points: Number(trigger.timing_points || 0),
-          expected_table_name: String(trigger.expected_table_name || ''),
-          is_insert: toBoolean(trigger.is_insert, false),
-          is_update: toBoolean(trigger.is_update, false),
-          is_delete: toBoolean(trigger.is_delete, false),
-          is_after: toBoolean(trigger.is_after, true),
-          missing_penalty_action:
-            trigger.missing_penalty_action === 'SKIP_TRIGGER' ||
-            trigger.missing_penalty_action === 'ZERO_POINTS' ||
-            trigger.missing_penalty_action === 'SKIP_TABLE' ||
-            trigger.missing_penalty_action === 'SKIP_ROUTINE'
-              ? (trigger.missing_penalty_action as MissingPenaltyAction)
-              : 'SKIP_TRIGGER'
-        })
-      }
-    }
-  }
-
   // Normalize test_cases
   const normalizedTestCases: TriggerTestCase[] = []
   if (Array.isArray(payloadRecord.test_cases)) {
@@ -144,13 +113,18 @@ function normalizeTriggerPayload(
 
         const invocationQuery = String(testCase.invocation_query || '')
         const validationQuery = String(testCase.validation_query || '')
+        const scoreWeight =
+          toOptionalNumber(testCase.score_weight) ??
+          toOptionalNumber(testCase.penalty_value) ??
+          1
 
         normalizedTestCases.push({
           case_id: String(testCase.case_id || crypto.randomUUID()),
           case_name: String(testCase.case_name || ''),
-          penalty_value: Number(
-            testCase.penalty_value || testCase.score_weight || 0.5
-          ),
+          score_weight: scoreWeight,
+          verification_type: String(
+            testCase.verification_type || 'SIDE_EFFECT'
+          ) as VerificationType,
           setup_script: String(testCase.setup_script || ''),
           invocation_query: invocationQuery,
           validation_query: validationQuery,
@@ -164,8 +138,15 @@ function normalizeTriggerPayload(
 
   return {
     grading_settings: settings,
-    triggers: normalizedTriggers,
-    test_cases: normalizedTestCases
+    test_cases: normalizedTestCases,
+    whitebox_rules: Array.isArray(payloadRecord.whitebox_rules)
+      ? (payloadRecord.whitebox_rules as WhiteboxRule[])
+      : [],
+    whitebox_settings:
+      payloadRecord.whitebox_settings &&
+      typeof payloadRecord.whitebox_settings === 'object'
+        ? (payloadRecord.whitebox_settings as WhiteboxSettings)
+        : {}
   }
 }
 
@@ -188,90 +169,77 @@ export function TriggerRubricEditor({
   schemaContext,
   wizardStep
 }: TriggerRubricEditorProps) {
-  const [expandedTriggers, setExpandedTriggers] = useState<Set<number>>(
-    new Set([0])
-  )
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeTestCaseIndex, setActiveTestCaseIndex] = useState(0)
 
-  const { grading_settings, triggers, test_cases } = useMemo(
-    () => normalizeTriggerPayload(rubric?.grading_payload),
-    [rubric]
-  )
+  const { grading_settings, test_cases, whitebox_rules, whitebox_settings } =
+    useMemo(() => normalizeTriggerPayload(rubric?.grading_payload), [rubric])
 
   const syncRubric = useCallback(
     (
       nextSettings: TriggerGradingSettings,
-      nextTriggers: TriggerRubricTrigger[],
-      nextTestCases: TriggerTestCase[]
+      nextTestCases: TriggerTestCase[] = test_cases,
+      nextWhiteboxRules: WhiteboxRule[] = whitebox_rules,
+      nextWhiteboxSettings: WhiteboxSettings = whitebox_settings
     ) => {
       onChange({
         total_points: totalPoints,
         question_category: rubric?.question_category || 'TRIGGER',
         grading_payload: {
           grading_settings: nextSettings,
-          triggers: nextTriggers,
-          test_cases: nextTestCases
+          test_cases: nextTestCases,
+          whitebox_rules: nextWhiteboxRules,
+          whitebox_settings: nextWhiteboxSettings
         }
       })
     },
-    [onChange, totalPoints, rubric?.question_category]
+    [
+      onChange,
+      totalPoints,
+      rubric?.question_category,
+      test_cases,
+      whitebox_rules,
+      whitebox_settings
+    ]
   )
 
   const setSettings = useCallback(
     (updater: (prev: TriggerGradingSettings) => TriggerGradingSettings) => {
       const next = updater(grading_settings)
-      syncRubric(next, triggers, test_cases)
+      syncRubric(next, test_cases, whitebox_rules, whitebox_settings)
     },
-    [grading_settings, triggers, test_cases, syncRubric]
-  )
-
-  const setTriggers = useCallback(
-    (updater: (prev: TriggerRubricTrigger[]) => TriggerRubricTrigger[]) => {
-      const next = updater(triggers)
-      syncRubric(grading_settings, next, test_cases)
-    },
-    [grading_settings, triggers, test_cases, syncRubric]
+    [
+      grading_settings,
+      test_cases,
+      whitebox_rules,
+      whitebox_settings,
+      syncRubric
+    ]
   )
 
   const setTestCases = useCallback(
     (updater: (prev: TriggerTestCase[]) => TriggerTestCase[]) => {
       const next = updater(test_cases)
-      syncRubric(grading_settings, triggers, next)
+      syncRubric(grading_settings, next, whitebox_rules, whitebox_settings)
     },
-    [grading_settings, triggers, test_cases, syncRubric]
+    [
+      grading_settings,
+      test_cases,
+      whitebox_rules,
+      whitebox_settings,
+      syncRubric
+    ]
   )
 
-  const toggleTrigger = useCallback((idx: number) => {
-    setExpandedTriggers((prev) => {
-      const next = new Set(prev)
-      if (next.has(idx)) {
-        next.delete(idx)
-      } else {
-        next.add(idx)
-      }
-      return next
-    })
-  }, [])
-
-  const handleAddTrigger = useCallback(() => {
-    setTriggers((prev) => [...prev, createDefaultTrigger()])
-    setExpandedTriggers((prev) => new Set([...prev, triggers.length]))
-  }, [setTriggers, triggers.length])
-
-  const handleRemoveTrigger = useCallback(
-    (idx: number) => {
-      if (triggers.length === 1) {
-        toast.error('Phải có ít nhất 1 trigger trong rubric')
-        return
-      }
-      setTriggers((prev) => prev.filter((_, i) => i !== idx))
+  const setWhitebox = useCallback(
+    (nextRules: WhiteboxRule[], nextSettings: WhiteboxSettings) => {
+      syncRubric(grading_settings, test_cases, nextRules, nextSettings)
     },
-    [setTriggers, triggers.length]
+    [grading_settings, test_cases, syncRubric]
   )
 
   const handleAddTestCase = useCallback(() => {
-    setTestCases((prev) => [...prev, createDefaultTestCase()])
+    setTestCases((prev) => [...prev, createDefaultTestCase(prev.length)])
     setActiveTestCaseIndex(test_cases.length)
   }, [setTestCases, test_cases.length])
 
@@ -315,8 +283,9 @@ export function TriggerRubricEditor({
           ...parsedRubric,
           grading_payload: {
             grading_settings: normalized.grading_settings,
-            triggers: normalized.triggers,
-            test_cases: normalized.test_cases
+            test_cases: normalized.test_cases,
+            whitebox_rules: normalized.whitebox_rules,
+            whitebox_settings: normalized.whitebox_settings
           }
         }
 
@@ -339,8 +308,9 @@ export function TriggerRubricEditor({
       question_category: rubric?.question_category || 'TRIGGER',
       grading_payload: {
         grading_settings,
-        triggers,
-        test_cases
+        test_cases,
+        whitebox_rules,
+        whitebox_settings
       }
     }),
     [
@@ -348,7 +318,8 @@ export function TriggerRubricEditor({
       rubric?.question_category,
       test_cases,
       totalPoints,
-      triggers
+      whitebox_rules,
+      whitebox_settings
     ]
   )
 
@@ -362,8 +333,15 @@ export function TriggerRubricEditor({
         question_category: 'TRIGGER',
         grading_payload: {
           grading_settings: normalized.grading_settings,
-          triggers: normalized.triggers,
-          test_cases: normalized.test_cases
+          test_cases: normalized.test_cases,
+          whitebox_rules:
+            normalized.whitebox_rules.length > 0
+              ? normalized.whitebox_rules
+              : whitebox_rules,
+          whitebox_settings:
+            Object.keys(normalized.whitebox_settings).length > 0
+              ? normalized.whitebox_settings
+              : whitebox_settings
         }
       }
       const nextActiveIndex = activeCaseId
@@ -373,12 +351,21 @@ export function TriggerRubricEditor({
       onChange(normalizedRubric)
       setActiveTestCaseIndex(nextActiveIndex >= 0 ? nextActiveIndex : 0)
     },
-    [activeTestCaseIndex, onChange, test_cases, totalPoints]
+    [
+      activeTestCaseIndex,
+      onChange,
+      test_cases,
+      totalPoints,
+      whitebox_rules,
+      whitebox_settings
+    ]
   )
 
   const isWizardMode = typeof wizardStep === 'number'
   const isTestCasesStep = !isWizardMode || wizardStep === 2
   const isRulesStep = !isWizardMode || wizardStep === 3
+  // White-box step (step 3 in the 4-step trigger wizard, or always in edit mode)
+  const isWhiteboxStep = !isWizardMode || wizardStep === 3
 
   useEffect(() => {
     if (test_cases.length === 0) {
@@ -394,11 +381,9 @@ export function TriggerRubricEditor({
     if (!isWizardMode || wizardStep !== 2) return
     if (test_cases.length > 0) return
 
-    setTestCases(() => [createDefaultTestCase()])
+    setTestCases(() => [createDefaultTestCase(0)])
     setActiveTestCaseIndex(0)
   }, [isWizardMode, wizardStep, test_cases.length, setTestCases])
-
-  const isEmpty = triggers.length === 0
 
   return (
     <div className={styles.editor}>
@@ -424,7 +409,7 @@ export function TriggerRubricEditor({
               <span className={styles.labelText}>Chỉ cộng điểm, không trừ</span>
               <span
                 className="text-xs text-muted-foreground"
-                title="Khi BẬT: Chỉ cộng điểm cho các tiêu chí đúng, không trừ điểm cho tiêu chí sai. Khi TẮT: Trừ điểm cho mỗi tiêu chí sai (bảng sai, event sai, timing sai, test case fail)."
+                title="Khi BẬT: Chỉ cộng điểm cho tiêu chí đúng, không trừ điểm. Khi TẮT: Trừ điểm cho mỗi test case fail và mỗi vi phạm quy tắc white-box."
               >
                 i
               </span>
@@ -481,6 +466,13 @@ export function TriggerRubricEditor({
       {/* Step 2: Test Cases */}
       {isTestCasesStep && (
         <div className={styles.testCasesSection}>
+          <div className="rounded-md border border-dashed border-outline-variant/50 bg-surface-container-highest/20 px-4 py-3 text-sm text-on-surface-variant">
+            Mỗi test case có <strong>trọng số tương đối</strong>. Hệ thống sẽ
+            chuẩn hóa tổng trọng số về 1.0 rồi nhân với điểm của câu hỏi. Quy
+            tắc white-box (nếu có) trừ thêm trên phần điểm đạt được sau test
+            case.
+          </div>
+
           <div className="flex flex-wrap items-center gap-3 pb-2">
             <Button
               type="button"
@@ -515,6 +507,7 @@ export function TriggerRubricEditor({
               test_cases[activeTestCaseIndex]?.case_name ||
               test_cases[activeTestCaseIndex]?.case_id
             }
+            disabled={isGenerating}
           />
 
           <div className="flex items-center justify-between">
@@ -548,7 +541,6 @@ export function TriggerRubricEditor({
               </Button>
             </div>
           </div>
-
           {test_cases.length === 0 && (
             <div className={styles.emptyState}>
               <Zap className={styles.emptyIcon} />
@@ -615,6 +607,9 @@ export function TriggerRubricEditor({
                         <span className="truncate text-sm font-semibold text-on-surface">
                           {tc.case_name || `Test case ${idx + 1}`}
                         </span>
+                        <span className="text-[11px] ml-3 shrink-0 px-2.5 py-0.5 rounded-full bg-error-container/10 text-error border border-error/20 font-medium">
+                          Trọng số: {triggerTestCaseWeight(tc)}
+                        </span>
                       </div>
                       <Button
                         variant="ghost"
@@ -626,7 +621,7 @@ export function TriggerRubricEditor({
                       </Button>
                     </div>
                     <div className={styles.testCaseFields}>
-                      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
                         <label className="space-y-1.5">
                           <span className="block text-xs font-semibold text-on-surface-variant">
                             Mã test case
@@ -667,20 +662,20 @@ export function TriggerRubricEditor({
                         </label>
                         <label className="space-y-1.5">
                           <span className="block text-xs font-semibold text-on-surface-variant">
-                            Điểm
+                            Trọng số
                           </span>
                           <input
                             type="number"
                             min={0}
                             step={0.05}
-                            value={tc.penalty_value ?? 0.5}
+                            value={triggerTestCaseWeight(tc)}
                             onChange={(e) =>
                               setTestCases((prev) =>
                                 prev.map((t, i) =>
                                   i === idx
                                     ? {
                                         ...t,
-                                        penalty_value:
+                                        score_weight:
                                           parseFloat(e.target.value) || 0
                                       }
                                     : t
@@ -689,6 +684,38 @@ export function TriggerRubricEditor({
                             }
                             className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
                           />
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="block text-xs font-semibold text-on-surface-variant">
+                            Kiểu kiểm tra
+                          </span>
+                          <select
+                            value={tc.verification_type || 'SIDE_EFFECT'}
+                            onChange={(e) => {
+                              const nextType = e.target
+                                .value as VerificationType
+                              setTestCases((prev) =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? {
+                                        ...t,
+                                        verification_type: nextType,
+                                        ...(nextType === 'EXECUTION_STATUS'
+                                          ? { validation_query: '' }
+                                          : {})
+                                      }
+                                    : t
+                                )
+                              )
+                            }}
+                            className="flex h-10 w-full rounded-lg border border-outline-variant/40 bg-surface-container-highest/20 px-3 py-1 text-sm transition-all focus-visible:outline-none hover:border-outline focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary text-on-surface font-medium"
+                          >
+                            <option value="SIDE_EFFECT">SIDE_EFFECT</option>
+                            <option value="EXECUTION_STATUS">
+                              EXECUTION_STATUS
+                            </option>
+                            <option value="PRINT_OUTPUT">PRINT_OUTPUT</option>
+                          </select>
                         </label>
                       </div>
                       <div className="space-y-1.5 flex flex-col">
@@ -766,346 +793,16 @@ export function TriggerRubricEditor({
         </div>
       )}
 
-      {/* Empty state */}
-      {isRulesStep && isEmpty && (
-        <div className={styles.emptyState}>
-          <Zap className={styles.emptyIcon} />
-          <h4 className={styles.emptyTitle}>Chưa có cấu hình rubric TRIGGER</h4>
-          <p className={styles.emptyDescription}>
-            Thêm cấu hình chấm điểm cho từng trigger hoặc tạo tự động bằng AI
-          </p>
-          <div className={styles.emptyActions}>
-            <Button variant="outline" size="sm" onClick={handleAddTrigger}>
-              <Plus className={styles.iconSm} />
-              Thêm trigger
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Trigger list */}
-      {isRulesStep && !isEmpty && (
-        <div className={styles.triggerList}>
-          {triggers.map((trigger, triggerIdx) => {
-            const isExpanded = expandedTriggers.has(triggerIdx)
-
-            return (
-              <div key={triggerIdx} className={styles.triggerCard}>
-                {/* Trigger header */}
-                <div
-                  className={styles.triggerHeader}
-                  onClick={() => toggleTrigger(triggerIdx)}
-                >
-                  <div className={styles.triggerHeaderLeft}>
-                    {isExpanded ? (
-                      <ChevronDown className={styles.chevronIcon} />
-                    ) : (
-                      <ChevronRight className={styles.chevronIcon} />
-                    )}
-                    <Zap className={styles.triggerIcon} />
-                    <span className={styles.triggerName}>
-                      {trigger.expected_name || `Trigger ${triggerIdx + 1}`}
-                    </span>
-                    <span className={styles.triggerSubText}>
-                      trên {trigger.expected_table_name || '...'}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleRemoveTrigger(triggerIdx)
-                    }}
-                    className={styles.removeButton}
-                  >
-                    <Trash2 className={styles.removeIcon} />
-                  </button>
-                </div>
-
-                {/* Trigger details */}
-                {isExpanded && (
-                  <div className={styles.triggerDetails}>
-                    {/* Trigger name and table */}
-                    <div className={styles.twoColumns}>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>Tên trigger</label>
-                        <input
-                          type="text"
-                          value={trigger.expected_name || ''}
-                          onChange={(e) =>
-                            setTriggers((prev) => {
-                              const next = [...prev]
-                              next[triggerIdx] = {
-                                ...next[triggerIdx],
-                                expected_name: e.target.value
-                              }
-                              return next
-                            })
-                          }
-                          placeholder="VD: trg_AuditEmployee"
-                          className={styles.fieldInput}
-                        />
-                      </div>
-
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>
-                          Bảng gắn trigger
-                        </label>
-                        <input
-                          type="text"
-                          value={trigger.expected_table_name || ''}
-                          onChange={(e) =>
-                            setTriggers((prev) => {
-                              const next = [...prev]
-                              next[triggerIdx] = {
-                                ...next[triggerIdx],
-                                expected_table_name: e.target.value
-                              }
-                              return next
-                            })
-                          }
-                          placeholder="VD: Employees"
-                          className={styles.fieldInput}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Events */}
-                    <div className={styles.eventsSection}>
-                      <label className={styles.eventsLabel}>
-                        <MousePointerClick className={styles.eventsIcon} />
-                        Sự kiện kích hoạt (Events)
-                      </label>
-                      <div className={styles.eventOptions}>
-                        <label className={styles.eventOption}>
-                          <input
-                            type="checkbox"
-                            checked={trigger.is_insert}
-                            onChange={(e) =>
-                              setTriggers((prev) => {
-                                const next = [...prev]
-                                next[triggerIdx] = {
-                                  ...next[triggerIdx],
-                                  is_insert: e.target.checked
-                                }
-                                return next
-                              })
-                            }
-                            className={styles.eventCheckbox}
-                          />
-                          <span className={styles.eventText}>INSERT</span>
-                        </label>
-                        <label className={styles.eventOption}>
-                          <input
-                            type="checkbox"
-                            checked={trigger.is_update}
-                            onChange={(e) =>
-                              setTriggers((prev) => {
-                                const next = [...prev]
-                                next[triggerIdx] = {
-                                  ...next[triggerIdx],
-                                  is_update: e.target.checked
-                                }
-                                return next
-                              })
-                            }
-                            className={styles.eventCheckbox}
-                          />
-                          <span className={styles.eventText}>UPDATE</span>
-                        </label>
-                        <label className={styles.eventOption}>
-                          <input
-                            type="checkbox"
-                            checked={trigger.is_delete}
-                            onChange={(e) =>
-                              setTriggers((prev) => {
-                                const next = [...prev]
-                                next[triggerIdx] = {
-                                  ...next[triggerIdx],
-                                  is_delete: e.target.checked
-                                }
-                                return next
-                              })
-                            }
-                            className={styles.eventCheckbox}
-                          />
-                          <span className={styles.eventText}>DELETE</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Timing */}
-                    <div className={styles.timingSection}>
-                      <label className={styles.timingLabel}>
-                        Thời điểm kích hoạt (Timing)
-                      </label>
-                      <div className={styles.timingOptions}>
-                        <label className={styles.timingOption}>
-                          <input
-                            type="radio"
-                            name={`timing-${triggerIdx}`}
-                            checked={trigger.is_after}
-                            onChange={() =>
-                              setTriggers((prev) => {
-                                const next = [...prev]
-                                next[triggerIdx] = {
-                                  ...next[triggerIdx],
-                                  is_after: true
-                                }
-                                return next
-                              })
-                            }
-                            className={styles.timingRadio}
-                          />
-                          <span className={styles.eventText}>AFTER</span>
-                        </label>
-                        <label className={styles.timingOption}>
-                          <input
-                            type="radio"
-                            name={`timing-${triggerIdx}`}
-                            checked={!trigger.is_after}
-                            onChange={() =>
-                              setTriggers((prev) => {
-                                const next = [...prev]
-                                next[triggerIdx] = {
-                                  ...next[triggerIdx],
-                                  is_after: false
-                                }
-                                return next
-                              })
-                            }
-                            className={styles.timingRadio}
-                          />
-                          <span className={styles.eventText}>INSTEAD OF</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Points */}
-                    <div className={styles.twoColumns}>
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>
-                          Điểm tồn tại trigger
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.05}
-                          value={trigger.existence_points ?? 0}
-                          onChange={(e) =>
-                            setTriggers((prev) => {
-                              const next = [...prev]
-                              next[triggerIdx] = {
-                                ...next[triggerIdx],
-                                existence_points:
-                                  parseFloat(e.target.value) || 0
-                              }
-                              return next
-                            })
-                          }
-                          className={styles.fieldInput}
-                        />
-                      </div>
-
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>
-                          Điểm đúng bảng
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.05}
-                          value={trigger.table_points ?? 0}
-                          onChange={(e) =>
-                            setTriggers((prev) => {
-                              const next = [...prev]
-                              next[triggerIdx] = {
-                                ...next[triggerIdx],
-                                table_points: parseFloat(e.target.value) || 0
-                              }
-                              return next
-                            })
-                          }
-                          className={styles.fieldInput}
-                        />
-                      </div>
-
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>
-                          Điểm đúng sự kiện
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.05}
-                          value={trigger.event_points ?? 0}
-                          onChange={(e) =>
-                            setTriggers((prev) => {
-                              const next = [...prev]
-                              next[triggerIdx] = {
-                                ...next[triggerIdx],
-                                event_points: parseFloat(e.target.value) || 0
-                              }
-                              return next
-                            })
-                          }
-                          className={styles.fieldInput}
-                        />
-                      </div>
-
-                      <div className={styles.field}>
-                        <label className={styles.fieldLabel}>
-                          Điểm đúng timing
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.05}
-                          value={trigger.timing_points ?? 0}
-                          onChange={(e) =>
-                            setTriggers((prev) => {
-                              const next = [...prev]
-                              next[triggerIdx] = {
-                                ...next[triggerIdx],
-                                timing_points: parseFloat(e.target.value) || 0
-                              }
-                              return next
-                            })
-                          }
-                          className={styles.fieldInput}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Points summary */}
-      {isRulesStep && !isEmpty && (
-        <div className={styles.summary}>
-          <div className={styles.summaryLeft}>
-            <Equal className={styles.summaryIcon} />
-            <span className={styles.summaryText}>Tổng điểm rubric:</span>
-          </div>
-          <span className={styles.summaryValue}>
-            {(triggers || [])
-              .reduce(
-                (sum, t) =>
-                  sum +
-                  (t.existence_points || 0) +
-                  (t.table_points || 0) +
-                  (t.event_points || 0) +
-                  (t.timing_points || 0),
-                0
-              )
-              .toFixed(2)}{' '}
-            / {totalPoints}
-          </span>
-        </div>
+      {/* Step 4: White-box rules — chấm phương pháp */}
+      {isWhiteboxStep && (
+        <WhiteboxRulesEditor
+          questionType="TRIGGER"
+          totalPoints={totalPoints}
+          rules={whitebox_rules}
+          settings={whitebox_settings}
+          onChange={setWhitebox}
+          sqlForPreview={correctQuery}
+        />
       )}
     </div>
   )
