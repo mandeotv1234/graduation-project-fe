@@ -61,6 +61,12 @@ export function CustomRegexRuleRow({
       ? Math.min(Math.max(value, 0), 100)
       : Math.max(value, 0)
 
+  const parsePenaltyValue = (value: string, fallback = 0) => {
+    if (value.trim() === '') return 0
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
+
   return (
     <div className="px-4 py-3 transition-colors hover:bg-muted/35">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
@@ -130,7 +136,12 @@ export function CustomRegexRuleRow({
                 value={rule.penalty_value ?? 0}
                 onChange={(event) =>
                   onUpdate(rule.rule_id, {
-                    penalty_value: clampPenaltyValue(Number(event.target.value))
+                    penalty_value: clampPenaltyValue(
+                      parsePenaltyValue(
+                        event.target.value,
+                        rule.penalty_value ?? 0
+                      )
+                    )
                   })
                 }
                 className="h-8 w-16 rounded-none border-0 text-center shadow-none focus-visible:ring-0"
@@ -141,7 +152,7 @@ export function CustomRegexRuleRow({
                   onUpdate(rule.rule_id, {
                     penalty_unit: value as WhiteboxPenaltyUnit,
                     penalty_value: clampPenaltyValue(
-                      Number(rule.penalty_value ?? 0),
+                      parsePenaltyValue(String(rule.penalty_value ?? 0)),
                       value as WhiteboxPenaltyUnit
                     )
                   })

@@ -164,7 +164,7 @@ export interface FeatureActionGroup {
   options: WhiteboxCatalogItem[]
 }
 
-// Group a feature's available policies into Action/Type families (Cáº¥m / Báº¯t buá»™c / Giá»›i háº¡n),
+// Group a feature's available policies into Action/Type families (Cấm / Bắt buộc / Giới hạn),
 // preserving backend order. Drives the generic action picker so concrete rule labels stay hidden.
 export function buildFeatureActions(
   feature: FeatureOption
@@ -402,7 +402,7 @@ export function normalizeWhiteboxRulePenalty(
 }
 
 // Detect contradictory configured rules from catalog conflictsWith metadata, plus the param-aware
-// MAX_JOIN_COUNT=0 vs REQUIRED_JOIN case the static metadata cannot express. Warn only â€” never mutate.
+// MAX_JOIN_COUNT=0 vs REQUIRED_JOIN case the static metadata cannot express. Warn only - never mutate.
 export function detectConflicts(
   rules: WhiteboxRule[],
   catalogById: Map<string, WhiteboxCatalogItem>
@@ -414,7 +414,7 @@ export function detectConflicts(
   const describe = (ruleId: string): string => {
     const item = catalogById.get(ruleId)
     return item
-      ? `${item.featureLabel} Â· ${POLICY_DISPLAY_LABEL[item.policy] ?? item.policyLabel}`
+      ? `${item.featureLabel} · ${POLICY_DISPLAY_LABEL[item.policy] ?? item.policyLabel}`
       : ruleId
   }
 
@@ -483,7 +483,7 @@ export const GROUP_LABELS: Record<string, string> = {
 }
 
 // Build the stored WhiteboxRule from a catalog entry using its suggested severity/penalty/params.
-// Stable rule_id contract â€” same shape the direct catalog add produced.
+// Stable rule_id contract - same shape the direct catalog add produced.
 export function defaultRuleFromCatalog(
   item: WhiteboxCatalogItem
 ): WhiteboxRule {

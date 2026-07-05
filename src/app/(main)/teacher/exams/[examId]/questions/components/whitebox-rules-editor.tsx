@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import {
   AlertTriangle,
@@ -143,6 +143,11 @@ export function WhiteboxRulesEditor({
   const maxQuestionPoints = Math.max(0, Number(totalPoints) || 0)
   const clampNumber = (value: number, min: number, max: number) =>
     Math.min(Math.max(value, min), max)
+  const parseFiniteNumber = (value: string): number | null => {
+    if (value.trim() === '') return null
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
   const limitMode =
     settings.max_total_deduction !== null &&
     settings.max_total_deduction !== undefined
@@ -401,18 +406,20 @@ export function WhiteboxRulesEditor({
   }
 
   const updatePointLimit = (value: string) => {
+    const parsed = parseFiniteNumber(value)
     updateSettings({
       max_total_deduction:
-        value === '' ? null : clampNumber(Number(value), 0, maxQuestionPoints),
+        parsed === null ? null : clampNumber(parsed, 0, maxQuestionPoints),
       max_total_deduction_pct: null
     })
   }
 
   const updatePercentLimit = (value: string) => {
+    const parsed = parseFiniteNumber(value)
     updateSettings({
       max_total_deduction: null,
       max_total_deduction_pct:
-        value === '' ? null : clampNumber(Number(value), 0, 100)
+        parsed === null ? null : clampNumber(parsed, 0, 100)
     })
   }
 

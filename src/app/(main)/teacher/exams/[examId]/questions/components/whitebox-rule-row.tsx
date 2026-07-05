@@ -101,6 +101,12 @@ export function WhiteboxRuleRow({
       ? Math.min(Math.max(value, 0), 100)
       : Math.max(value, 0)
 
+  const parsePenaltyValue = (value: string, fallback = 0) => {
+    if (value.trim() === '') return 0
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
+
   const stringListValue = (name: string): string => {
     const raw = rule.params?.[name]
     return Array.isArray(raw) ? (raw as string[]).join(',') : ''
@@ -210,7 +216,9 @@ export function WhiteboxRuleRow({
                 value={rule.penalty_value ?? 0}
                 onChange={(e) =>
                   onUpdate(rule.rule_id, {
-                    penalty_value: clampPenaltyValue(Number(e.target.value))
+                    penalty_value: clampPenaltyValue(
+                      parsePenaltyValue(e.target.value, rule.penalty_value ?? 0)
+                    )
                   })
                 }
                 className="h-8 w-16 rounded-none border-0 text-center shadow-none focus-visible:ring-0"
@@ -221,7 +229,7 @@ export function WhiteboxRuleRow({
                   onUpdate(rule.rule_id, {
                     penalty_unit: v as WhiteboxPenaltyUnit,
                     penalty_value: clampPenaltyValue(
-                      Number(rule.penalty_value ?? 0),
+                      parsePenaltyValue(String(rule.penalty_value ?? 0)),
                       v as WhiteboxPenaltyUnit
                     )
                   })
@@ -240,7 +248,7 @@ export function WhiteboxRuleRow({
 
           <button
             type="button"
-            onClick={() => onRemove(item.ruleId)}
+            onClick={() => onRemove(rule.rule_id)}
             className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
             title="Xóa quy tắc"
           >

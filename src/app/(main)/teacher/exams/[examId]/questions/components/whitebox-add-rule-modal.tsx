@@ -101,6 +101,7 @@ export function WhiteboxAddRuleModal({
   const [customTestResult, setCustomTestResult] = useState<{
     ok: boolean
     message: string
+    match?: string
   } | null>(null)
 
   useEffect(() => {
@@ -255,11 +256,13 @@ export function WhiteboxAddRuleModal({
     }
 
     const regex = new RegExp(customPattern, 'i')
-    const matched = regex.test(customSampleSql)
+    const match = regex.exec(customSampleSql)
+    const matched = Boolean(match)
     const violated = customPolicyValue === 'FORBID' ? matched : !matched
 
     setCustomTestResult({
       ok: !violated,
+      match: match?.[0],
       message: matched
         ? customPolicyValue === 'FORBID'
           ? 'SQL mẫu khớp regex. Với rule Cấm, đây là vi phạm.'
@@ -615,7 +618,7 @@ function CustomRegexBuilder({
   customMessage: string
   customSampleSql: string
   customRegexError: string | null
-  customTestResult: { ok: boolean; message: string } | null
+  customTestResult: { ok: boolean; message: string; match?: string } | null
   onNameChange: (value: string) => void
   onPolicyChange: (value: CustomRegexPolicy) => void
   onPatternChange: (value: string) => void
@@ -655,7 +658,7 @@ function CustomRegexBuilder({
 
             <Field
               label="Regex"
-              hint="SQL được so bằng regex không phân biệt hoa thường"
+              hint={String.raw`Nhập regex trực tiếp, ví dụ \bselect\b\s*\*`}
             >
               <div className="overflow-hidden rounded-md border border-slate-300 bg-white transition-colors focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:focus-within:border-slate-600 dark:focus-within:ring-slate-800">
                 <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/80">
@@ -669,7 +672,7 @@ function CustomRegexBuilder({
                 <Textarea
                   value={customPattern}
                   onChange={(event) => onPatternChange(event.target.value)}
-                  placeholder="\\bSELECT\\s*\\*"
+                  placeholder={String.raw`\bselect\b\s*\*`}
                   className="min-h-[96px] resize-y rounded-none border-0 bg-transparent p-3 font-mono text-sm leading-relaxed shadow-none placeholder:text-slate-400 focus-visible:ring-0"
                 />
               </div>
@@ -707,10 +710,20 @@ function CustomRegexBuilder({
                 />
               </div>
               {customTestResult && (
-                <ValidationMessage
-                  ok={customTestResult.ok}
-                  message={customTestResult.message}
-                />
+                <div className="space-y-2">
+                  <ValidationMessage
+                    ok={customTestResult.ok}
+                    message={customTestResult.message}
+                  />
+                  {customTestResult.match && (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                      Đoạn khớp:{' '}
+                      <code className="font-mono font-semibold">
+                        {customTestResult.match}
+                      </code>
+                    </div>
+                  )}
+                </div>
               )}
             </Field>
           </BuilderPanel>
