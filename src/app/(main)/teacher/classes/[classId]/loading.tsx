@@ -2,100 +2,111 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function Loading() {
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-5 w-72 mt-1" />
+    <div className="space-y-5 animate-in fade-in duration-500">
+      <section className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="mb-3 flex gap-2">
+              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-6 w-28 rounded-full" />
+            </div>
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="mt-3 h-5 w-72" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 w-28 rounded-md" />
+            <Skeleton className="h-10 w-32 rounded-md" />
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-28 rounded-md" />
-          <Skeleton className="h-10 w-32 rounded-md" />
-        </div>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            className="rounded-xs bg-surface-container-low border-b-2 border-primary/10 bg-card p-5"
-          >
-            <div className="flex items-center gap-3">
+        <div className="grid border-t border-border bg-muted/20 sm:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-4">
               <Skeleton className="h-10 w-10 rounded-lg" />
               <div>
-                <Skeleton className="h-8 w-12" />
-                <Skeleton className="h-4 w-20 mt-1" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Teachers Section */}
-      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <Skeleton className="h-6 w-32" />
-        <div className="flex flex-wrap gap-2">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-8 w-32 rounded-full" />
-          ))}
-        </div>
-      </div>
-
-      {/* Exams Section */}
-      <section className="space-y-4">
-        <Skeleton className="h-6 w-32" />
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="group flex items-center gap-2 relative overflow-hidden rounded-xs border bg-card p-6 bg-surface-container-low border-b-2 border-primary/10"
-            >
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-5 w-48" />
-                  <Skeleton className="h-5 w-20 rounded-full" />
-                </div>
-                <div className="flex flex-wrap gap-4">
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-4 w-24" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Skeleton className="h-10 w-10 rounded-lg" />
-                <Skeleton className="h-10 w-10 rounded-lg" />
+                <Skeleton className="h-7 w-12" />
+                <Skeleton className="mt-1 h-4 w-20" />
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Students Section */}
-      <section className="space-y-4">
-        <Skeleton className="h-6 w-32" />
-        <div className="overflow-hidden rounded-xs bg-card border border-border">
-          <div className="flex border-b border-border bg-muted/50 px-4 py-3 gap-4">
-            <Skeleton className="h-4 w-12" />
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <div className="divide-y divide-border/50">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center px-4 py-3 gap-4">
-                <Skeleton className="h-4 w-8" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </div>
-            ))}
-          </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(340px,0.8fr)]">
+        <div className="min-w-0 space-y-5">
+          {/* Exams Section */}
+          <section className="overflow-hidden rounded-lg border border-border bg-card">
+            <div className="border-b border-border p-4">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="mt-2 h-4 w-64" />
+            </div>
+            <div className="divide-y divide-border">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-4">
+                  <Skeleton className="h-11 w-11 rounded-lg" />
+                  <div className="min-w-0 flex-1">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="mt-2 h-4 w-64" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-9 w-9 rounded-lg" />
+                    <Skeleton className="h-9 w-9 rounded-lg" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Students Section */}
+          <section className="overflow-hidden rounded-lg border border-border bg-card">
+            <div className="border-b border-border p-4">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="mt-2 h-4 w-72" />
+            </div>
+            <div className="divide-y divide-border/50">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4">
+                  <Skeleton className="h-4 w-8" />
+                  <Skeleton className="h-9 w-9 rounded-lg" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="mt-2 h-3 w-52" />
+                  </div>
+                  <Skeleton className="h-9 w-20 rounded-md" />
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-9 w-16 rounded-md" />
-          <Skeleton className="h-9 w-16 rounded-md" />
-        </div>
-      </section>
+
+        <aside className="min-w-0 space-y-5">
+          <section className="overflow-hidden rounded-lg border border-border bg-card">
+            <div className="border-b border-border p-4">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="mt-2 h-4 w-full" />
+            </div>
+            <div className="divide-y divide-border">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="p-4">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="mt-2 h-3 w-56" />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-lg border border-border bg-card">
+            <div className="border-b border-border p-4">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="mt-2 h-4 w-full" />
+            </div>
+            <div className="m-4 rounded-lg border border-dashed border-border py-10">
+              <Skeleton className="mx-auto h-8 w-8 rounded-full" />
+              <Skeleton className="mx-auto mt-3 h-4 w-40" />
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   )
 }

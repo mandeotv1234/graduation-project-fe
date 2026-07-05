@@ -2,13 +2,16 @@
 
 import {
   AlertCircle,
+  ArrowLeft,
+  BookOpenCheck,
   Download,
   Loader2,
   Plus,
   Save,
   Search,
   Trash2,
-  Upload
+  Upload,
+  Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Papa from 'papaparse'
@@ -433,6 +436,13 @@ export function EditClassPage({
   const isAllSelected =
     filteredStudents.length > 0 &&
     filteredStudents.every((s) => selectedIndices.includes(s.originalIndex))
+  const validStudentCount = students.filter(
+    (student) => student.studentId.trim() && student.fullName.trim()
+  ).length
+  const duplicateStudentCount = Object.values(mssvCounts).reduce(
+    (total, count) => total + (count > 1 ? count : 0),
+    0
+  )
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -458,26 +468,83 @@ export function EditClassPage({
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            {classId ? 'Chỉnh sửa lớp học' : 'Tạo lớp học'}
-          </h1>
-          <p className="text-muted-foreground">
-            {classId
-              ? 'Cập nhật thông tin lớp và danh sách sinh viên'
-              : 'Thêm lớp học mới và nhập sinh viên'}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="mt-0.5 shrink-0 text-muted-foreground"
+              onClick={() => router.back()}
+              aria-label="Quay lại"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-0">
+              <Badge variant="secondary" className="mb-3 rounded-full">
+                {classId ? 'Chỉnh sửa lớp' : 'Tạo lớp mới'}
+              </Badge>
+              <h1 className="truncate text-3xl font-bold tracking-tight text-foreground">
+                {classId ? classCode || 'Chỉnh sửa lớp học' : 'Tạo lớp học'}
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {classId
+                  ? 'Cập nhật thông tin lớp và danh sách sinh viên trong một màn hình.'
+                  : 'Thiết lập thông tin lớp và nhập danh sách sinh viên ban đầu.'}
+              </p>
+            </div>
+          </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="space-y-5">
-          <h2 className="text-lg font-semibold text-foreground">
-            Thông tin lớp học
-          </h2>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-3 gap-2 sm:min-w-[360px]">
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Tổng SV
+              </p>
+              <p className="mt-1 text-xl font-bold text-foreground">
+                {students.length}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Hợp lệ
+              </p>
+              <p className="mt-1 text-xl font-bold text-foreground">
+                {validStudentCount}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Trùng
+              </p>
+              <p
+                className={`mt-1 text-xl font-bold ${
+                  duplicateStudentCount > 0
+                    ? 'text-destructive'
+                    : 'text-foreground'
+                }`}
+              >
+                {duplicateStudentCount}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <section className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="border-b border-border p-4">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <BookOpenCheck className="h-5 w-5 text-primary" />
+              Thông tin lớp học
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Mã lớp và học kỳ sẽ hiển thị cho giáo viên trong trang quản lý.
+            </p>
+          </div>
+
+          <div className="grid gap-4 p-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Mã lớp <span className="text-destructive">*</span>
@@ -510,30 +577,32 @@ export function EditClassPage({
               />
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="space-y-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <section className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <Users className="h-5 w-5 text-primary" />
                 Danh sách sinh viên
-                <Badge
-                  variant="secondary"
-                  className="ml-2 px-2 py-1 text-xs font-medium"
-                >
+                <Badge variant="secondary" className="rounded-full">
                   {students.length}
                 </Badge>
               </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tìm kiếm, thêm nhanh hoặc nhập danh sách từ file Excel/CSV.
+              </p>
             </div>
-            <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-2 flex-wrap pb-2 sm:pb-0">
-              <div className="relative mr-auto sm:mr-0 shrink-0">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+
+            <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
+              <div className="relative min-w-[220px] flex-1 lg:flex-none">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Tìm MSSV, tên..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-9 w-[160px] lg:w-[220px] rounded-md border border-border bg-background pl-9 pr-3 text-sm focus:border-outline focus:outline-none focus:ring-0 transition-colors"
+                  className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm transition-colors focus:border-outline focus:outline-none focus:ring-0 lg:w-[240px]"
                 />
               </div>
               {selectedIndices.length > 0 && (
@@ -542,7 +611,7 @@ export function EditClassPage({
                   variant="destructive"
                   size="sm"
                   onClick={handleBulkDelete}
-                  className="gap-1.5 shrink-0 bg-red-500 hover:bg-red-300 dark:bg-red-600 dark:hover:bg-red-300"
+                  className="shrink-0 gap-1.5"
                 >
                   <Trash2 className="h-4 w-4" />
                   Xóa ({selectedIndices.length})
@@ -555,28 +624,28 @@ export function EditClassPage({
                 className="hidden"
                 onChange={handleFileUpload}
               />
-              <div className="relative group">
+              <div className="group relative">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="gap-1.5 cursor-pointer"
+                  className="cursor-pointer gap-1.5"
                 >
                   <Upload className="h-4 w-4" />
-                  Nhập từ file
+                  Nhập file
                 </Button>
-                <div className="absolute left-0 top-full pt-1 hidden group-hover:block z-50">
-                  <div className="flex flex-col w-full min-w-[max-content] bg-surface-container-lowest border border-border rounded-md shadow-lg overflow-hidden">
+                <div className="absolute left-0 top-full z-50 hidden pt-1 group-hover:block">
+                  <div className="flex w-full min-w-[max-content] flex-col overflow-hidden rounded-md border border-border bg-surface-container-lowest shadow-lg">
                     <label
                       htmlFor="file-upload"
-                      className="flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-surface-variant cursor-pointer text-on-surface transition-colors"
+                      className="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-variant"
                     >
                       <Upload className="h-4 w-4 shrink-0" />
                       Tải file lên
                     </label>
                     <div
                       onClick={handleDownloadTemplate}
-                      className="flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-surface-variant cursor-pointer border-t border-border text-on-surface transition-colors"
+                      className="flex cursor-pointer items-center gap-2 border-t border-border px-3 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-variant"
                     >
                       <Download className="h-4 w-4 shrink-0" />
                       Tải file mẫu
@@ -597,12 +666,12 @@ export function EditClassPage({
             </div>
           </div>
 
-          <div className="overflow-y-auto scrollbar-thin border border-border bg-surface-container-lowest rounded-md">
-            <Table>
-              <TableHeader className="bg-surface-container-high">
-                <TableRow className="border-b-0">
-                  <TableHead className="w-[80px] text-center font-semibold text-on-surface-variant border-none align-middle px-0 group">
-                    <div className="flex h-full w-full items-center justify-center">
+          <div className="overflow-x-auto">
+            <Table className="min-w-[720px]">
+              <TableHeader className="bg-muted/40">
+                <TableRow className="border-border">
+                  <TableHead className="w-[76px] px-0 text-center font-semibold text-muted-foreground">
+                    <div className="group flex h-full w-full items-center justify-center">
                       <span
                         className={
                           isAllSelected ? 'hidden' : 'group-hover:hidden'
@@ -624,18 +693,18 @@ export function EditClassPage({
                       </div>
                     </div>
                   </TableHead>
-                  <TableHead className="font-semibold text-on-surface-variant border-none">
+                  <TableHead className="font-semibold text-muted-foreground">
                     MSSV
                   </TableHead>
-                  <TableHead className="font-semibold text-on-surface-variant border-none">
+                  <TableHead className="font-semibold text-muted-foreground">
                     Họ và tên
                   </TableHead>
-                  <TableHead className="w-[80px] text-center font-semibold text-on-surface-variant border-none">
+                  <TableHead className="w-[90px] text-right font-semibold text-muted-foreground">
                     Thao tác
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="border-none">
+              <TableBody>
                 {filteredStudents.length > 0 ? (
                   filteredStudents.map((student, localIndex) => {
                     const mssv = student.studentId.trim()
@@ -646,10 +715,14 @@ export function EditClassPage({
                       <TableRow
                         key={`student-row-${oIdx}`}
                         id={`student-row-${oIdx}`}
-                        className={`${isDuplicate ? 'bg-red-400 dark:bg-red-500 hover:bg-red-300 dark:hover:bg-red-400 opacity-90 border-none' : 'odd:bg-surface-container-lowest even:bg-surface-container-sub-low odd:hover:bg-surface-container-lowest even:hover:bg-surface-container-sub-low border-none transition-colors'}`}
+                        className={
+                          isDuplicate
+                            ? 'border-border bg-destructive/10 hover:bg-destructive/15'
+                            : 'border-border/60 hover:bg-muted/30'
+                        }
                       >
-                        <TableCell className="text-center align-middle font-normal text-sm text-on-surface-variant border-none px-0 group">
-                          <div className="flex h-full w-full items-center justify-center">
+                        <TableCell className="px-0 text-center align-middle text-sm text-muted-foreground">
+                          <div className="group flex h-full w-full items-center justify-center">
                             <span
                               className={
                                 selectedIndices.includes(oIdx)
@@ -676,8 +749,8 @@ export function EditClassPage({
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="align-middle border-none">
-                          <div className="flex items-center gap-2 pr-2">
+                        <TableCell className="align-middle">
+                          <div className="flex items-center gap-2">
                             <input
                               type="text"
                               value={student.studentId}
@@ -689,23 +762,23 @@ export function EditClassPage({
                                 updateStudent(oIdx, 'studentId', onlyNumbers)
                               }}
                               placeholder="MSSV (VD: 22120201)"
-                              className={`w-full bg-transparent border border-transparent focus:border-outline focus:outline-none focus:ring-0 px-3 py-2 -ml-3 rounded-md text-sm transition-colors text-on-surface-variant ${
+                              className={`h-9 w-full rounded-md border border-transparent bg-background/60 px-3 text-sm text-foreground transition-colors focus:border-outline focus:outline-none focus:ring-0 ${
                                 isDuplicate
-                                  ? 'text-on-error-container font-semibold'
+                                  ? 'font-semibold text-destructive'
                                   : ''
                               }`}
                             />
                             {isDuplicate && (
                               <span
                                 title="Mã số sinh viên này đang bị trùng lặp"
-                                className="flex items-center shrink-0 cursor-help"
+                                className="flex shrink-0 cursor-help items-center"
                               >
-                                <AlertCircle className="h-4 w-4 text-error" />
+                                <AlertCircle className="h-4 w-4 text-destructive" />
                               </span>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="align-middle border-none">
+                        <TableCell className="align-middle">
                           <input
                             type="text"
                             value={student.fullName}
@@ -713,16 +786,16 @@ export function EditClassPage({
                               updateStudent(oIdx, 'fullName', e.target.value)
                             }
                             placeholder="Họ và tên"
-                            className="w-full bg-transparent border border-transparent focus:border-outline focus:outline-none focus:ring-0 px-3 py-2 -ml-3 rounded-md text-sm text-on-surface transition-colors"
+                            className="h-9 w-full rounded-md border border-transparent bg-background/60 px-3 text-sm text-foreground transition-colors focus:border-outline focus:outline-none focus:ring-0"
                           />
                         </TableCell>
-                        <TableCell className="text-center align-middle border-none">
+                        <TableCell className="text-right align-middle">
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
                             onClick={() => removeStudent(oIdx)}
-                            className="h-8 w-8 text-outline hover:text-error transition-colors"
+                            className="h-8 w-8 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                             disabled={students.length <= 1}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -735,7 +808,7 @@ export function EditClassPage({
                   <TableRow>
                     <TableCell
                       colSpan={4}
-                      className="h-24 text-center text-muted-foreground border-none"
+                      className="h-28 text-center text-muted-foreground"
                     >
                       Không tìm thấy sinh viên nào phù hợp
                     </TableCell>
@@ -744,9 +817,9 @@ export function EditClassPage({
               </TableBody>
             </Table>
           </div>
-        </div>
+        </section>
 
-        <div className="sticky bottom-0 z-10 flex justify-end gap-3 mt-4 py-4 -mx-4 px-4 sm:-mx-8 sm:px-8">
+        <div className="sticky bottom-0 z-10 flex justify-end gap-3 rounded-lg border border-border bg-card/95 p-3 shadow-sm backdrop-blur">
           <Button
             type="button"
             variant="outline"

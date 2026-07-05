@@ -48,104 +48,78 @@ export function ClassBansSection({ classId, bans }: ClassBansSectionProps) {
   }
 
   return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="flex items-center gap-2 text-xl font-semibold text-foreground">
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="border-b border-border p-4">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
           <Ban className="h-5 w-5 text-destructive" />
           Sinh viên bị cấm thi
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Các sinh viên trong danh sách này sẽ không thể bắt đầu phiên thi trong
-          lớp này.
+          Sinh viên bị cấm sẽ không thể bắt đầu phiên thi.
         </p>
       </div>
 
       {bans.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border py-10 text-center">
+        <div className="m-4 rounded-lg border border-dashed border-border py-10 text-center">
           <Ban className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <p className="mt-2 text-sm text-muted-foreground">
             Chưa có sinh viên nào bị cấm
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xs bg-card border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Họ tên
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Email
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Lý do
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Người cấm
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Thời gian cấm
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {bans.map((ban) => (
-                <tr
-                  key={ban.id}
-                  className="border-b border-border/50 transition-colors hover:bg-muted/30"
-                >
-                  <td className="px-4 py-3 font-medium text-foreground">
+        <div className="divide-y divide-border">
+          {bans.map((ban) => (
+            <div key={ban.id} className="space-y-3 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-foreground">
                     {ban.fullName}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5" />
-                      {ban.email}
-                    </span>
-                  </td>
-                  <td className="max-w-[220px] px-4 py-3 text-muted-foreground">
-                    {ban.reason?.trim() ? (
-                      <span
-                        className="line-clamp-2 break-words"
-                        title={ban.reason}
-                      >
-                        {ban.reason}
-                      </span>
-                    ) : (
-                      <span className="italic text-muted-foreground/60">
-                        Không có lý do
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {ban.bannedByName || ban.bannedBy || (
-                      <span className="italic text-muted-foreground/60">
-                        Không rõ
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                    {formatDateTime(ban.bannedAt)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => setBanToRemove(ban)}
-                      disabled={isLoading}
-                    >
-                      Bỏ cấm
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </p>
+                  <span className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{ban.email}</span>
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1.5 border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setBanToRemove(ban)}
+                  disabled={isLoading}
+                >
+                  Bỏ cấm
+                </Button>
+              </div>
+
+              <div className="rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Lý do
+                </p>
+                {ban.reason?.trim() ? (
+                  <p
+                    className="mt-1 line-clamp-3 break-words"
+                    title={ban.reason}
+                  >
+                    {ban.reason}
+                  </p>
+                ) : (
+                  <p className="mt-1 italic text-muted-foreground/60">
+                    Không có lý do
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span>
+                  Người cấm:{' '}
+                  {ban.bannedByName || ban.bannedBy || (
+                    <span className="italic">Không rõ</span>
+                  )}
+                </span>
+                <span>{formatDateTime(ban.bannedAt)}</span>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

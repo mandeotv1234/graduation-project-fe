@@ -117,21 +117,21 @@ export function ClassTeachersSection({
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-semibold text-foreground">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
             Giáo viên phụ trách
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Tất cả giáo viên trong danh sách này đều có quyền thao tác với lớp
-            và bài thi. Chỉ người tạo lớp mới có quyền gỡ giáo viên ra khỏi lớp.
+            Quản lý quyền thao tác với lớp và bài thi.
           </p>
         </div>
         <Button
           type="button"
           variant="outline"
-          className="shrink-0 gap-2"
+          size="sm"
+          className="w-fit shrink-0 gap-2"
           onClick={() => setIsAddTeacherModalOpen(true)}
         >
           <UserPlus className="h-4 w-4" />
@@ -192,14 +192,14 @@ export function ClassTeachersSection({
         </DialogContent>
       </Dialog>
 
-      <div className="space-y-3">
+      <div className="divide-y divide-border">
         {sortedTeachers.map((teacher) => {
           const canRemove = isCreator && !teacher.isCreator
 
           return (
             <div
               key={teacher.id}
-              className="flex flex-col gap-4 rounded-xs bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between"
             >
               <div className="min-w-0 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -209,7 +209,7 @@ export function ClassTeachersSection({
                   {teacher.isCreator && (
                     <Badge className="gap-1 bg-amber-500 text-white hover:bg-amber-500">
                       <Shield className="h-3 w-3" />
-                      Creator
+                      Người tạo
                     </Badge>
                   )}
                   {teacher.id === currentTeacherId && (
@@ -229,7 +229,7 @@ export function ClassTeachersSection({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2 border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  className="w-fit gap-2 border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => setTeacherToRemove(teacher)}
                   disabled={isLoading}
                 >
