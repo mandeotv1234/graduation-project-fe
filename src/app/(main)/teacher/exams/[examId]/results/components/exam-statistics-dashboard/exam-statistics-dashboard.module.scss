@@ -1,673 +1,1182 @@
 .dashboard {
+  --metric-blue: #2563eb;
+  --metric-teal: #0f766e;
+  --metric-green: #16a34a;
+  --metric-orange: #d97706;
+  --metric-red: #dc2626;
+  --metric-indigo: #4f46e5;
+  --metric-weak: #dc2626;
+  --metric-average: #d97706;
+  --metric-good: #0f766e;
+  --metric-excellent: #2563eb;
+  --donut-pass: #16a34a;
+  --donut-track: color-mix(
+    in srgb,
+    var(--color-muted) 70%,
+    var(--color-border) 30%
+  );
+
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
-/* ===== KPI Cards ===== */
+.overviewHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+
+  h2 {
+    margin: 0.15rem 0 0;
+    color: var(--color-foreground);
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0.25rem 0 0;
+    color: var(--color-muted-foreground);
+    font-size: 0.82rem;
+  }
+}
+
+.eyebrow {
+  color: var(--color-muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.headerMetric {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  gap: 0.1rem 0.35rem;
+  text-align: right;
+
+  span {
+    color: var(--color-muted-foreground);
+    font-size: 0.72rem;
+  }
+
+  span:first-child {
+    grid-column: 1 / -1;
+  }
+
+  strong {
+    font-size: 2rem;
+    line-height: 1;
+  }
+}
+
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
-@media (max-width: 1200px) {
-  .kpiGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-@media (max-width: 768px) {
-  .kpiGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.kpiCard,
+.chartCard,
+.tableSection,
+.insightItem {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
 }
 
 .kpiCard {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0.625rem;
-  padding: 0.875rem 1rem;
+  min-width: 0;
+  min-height: 7.25rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-  min-height: 0;
+  padding: 0.875rem;
+}
 
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+.kpiIcon,
+.sectionIcon,
+.insightIcon,
+.typeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
   }
 }
 
 .kpiIcon {
   width: 2.25rem;
   height: 2.25rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  svg {
-    width: 1.1rem;
-    height: 1.1rem;
-  }
 }
 
-.kpiIconBlue {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-}
-.kpiIconGreen {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-}
-.kpiIconOrange {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-}
-.kpiIconRed {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-.kpiIconPurple {
-  background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
-}
-
-.kpiInfo {
+.kpiContent {
   display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
   min-width: 0;
-  overflow: hidden;
+  flex-direction: column;
+  gap: 0.18rem;
 }
 
 .kpiLabel {
-  font-size: 0.68rem;
   color: var(--color-muted-foreground);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 0.68rem;
+  font-weight: 650;
 }
 
 .kpiValue {
+  color: var(--color-foreground);
   font-size: 1.35rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--color-foreground);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  font-weight: 760;
+  line-height: 1.1;
 }
 
-.kpiSub {
-  font-size: 0.62rem;
+.kpiDetail {
   color: var(--color-muted-foreground);
-  line-height: 1.3;
-}
-
-/* KPI value color coding */
-.kpiValueRed { color: #ef4444; }
-.kpiValueYellow { color: #f59e0b; }
-.kpiValueGreen { color: #22c55e; }
-
-/* Pulse animation for suspicious count */
-@keyframes pulseRed {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
-  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-}
-.kpiCardPulse {
-  border-color: rgba(239, 68, 68, 0.3);
-  animation: pulseRed 2.5s ease-in-out infinite;
-}
-
-/* ===== Mini Donut ===== */
-.miniDonut {
-  flex-shrink: 0;
-}
-
-/* ===== Chart Section ===== */
-.chartsGrid {
-  display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 1.25rem;
-}
-
-@media (max-width: 900px) {
-  .chartsGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.chartCard {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
-}
-
-.chartTitle {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-foreground);
-  margin-bottom: 0.25rem;
-}
-
-.chartSubtitle {
-  font-size: 0.72rem;
-  color: var(--color-muted-foreground);
-  margin-bottom: 1rem;
-}
-
-/* ===== Vertical Histogram ===== */
-.histogramContainer {
-  position: relative;
-  padding: 0 0.25rem;
-}
-
-.histogram {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.35rem;
-  height: 180px;
-  padding-bottom: 2rem;
-  position: relative;
-}
-
-.histogramCol {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100%;
-  justify-content: flex-end;
-  position: relative;
-}
-
-.histogramBar {
-  width: 100%;
-  border-radius: 0.25rem 0.25rem 0 0;
-  transition: height 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              opacity 0.3s ease;
-  min-height: 0;
-  position: relative;
-  cursor: pointer;
-
-  &:hover {
-    opacity: 0.85;
-    transform: scaleY(1.02);
-    transform-origin: bottom;
-  }
-}
-
-.histogramBarCount {
-  position: absolute;
-  top: -1.2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--color-foreground);
-  white-space: nowrap;
-}
-
-.histogramLabel {
-  font-size: 0.62rem;
-  color: var(--color-muted-foreground);
-  position: absolute;
-  bottom: -1.5rem;
-  white-space: nowrap;
-  font-weight: 500;
-}
-
-/* Pass threshold line */
-.thresholdLine {
-  position: absolute;
-  top: 0;
-  bottom: 2rem;
-  width: 2px;
-  background: repeating-linear-gradient(
-    to bottom,
-    #ef4444 0,
-    #ef4444 4px,
-    transparent 4px,
-    transparent 8px
-  );
-  z-index: 2;
-  pointer-events: none;
-}
-
-.thresholdLabel {
-  position: absolute;
-  top: -1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: #ef4444;
-  white-space: nowrap;
-  background: rgba(239, 68, 68, 0.1);
-  padding: 0.1rem 0.35rem;
-  border-radius: 0.25rem;
-}
-
-/* Histogram tooltip */
-.histogramTooltip {
-  position: absolute;
-  bottom: calc(100% + 0.5rem);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--color-foreground);
-  color: var(--color-background);
   font-size: 0.68rem;
-  padding: 0.3rem 0.5rem;
-  border-radius: 0.35rem;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  font-weight: 500;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 4px solid transparent;
-    border-top-color: var(--color-foreground);
-  }
+  line-height: 1.35;
 }
 
-.histogramCol:hover .histogramTooltip {
-  opacity: 1;
+.iconBlue {
+  background: color-mix(in srgb, var(--metric-blue) 13%, transparent);
+  color: var(--metric-blue);
 }
 
-/* ===== Horizontal Skill Bar (full-width) ===== */
-.skillSection {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
+.iconTeal {
+  background: color-mix(in srgb, var(--metric-teal) 13%, transparent);
+  color: var(--metric-teal);
 }
 
-.skillChart {
-  display: flex;
-  flex-direction: column;
+.iconGreen {
+  background: color-mix(in srgb, var(--metric-green) 13%, transparent);
+  color: var(--metric-green);
+}
+
+.iconOrange {
+  background: color-mix(in srgb, var(--metric-orange) 14%, transparent);
+  color: var(--metric-orange);
+}
+
+.iconRed {
+  background: color-mix(in srgb, var(--metric-red) 13%, transparent);
+  color: var(--metric-red);
+}
+
+.iconIndigo {
+  background: color-mix(in srgb, var(--metric-indigo) 13%, transparent);
+  color: var(--metric-indigo);
+}
+
+.toneWeak {
+  color: var(--metric-weak);
+}
+
+.toneAverage {
+  color: var(--metric-average);
+}
+
+.toneGood {
+  color: var(--metric-good);
+}
+
+.toneExcellent {
+  color: var(--metric-excellent);
+}
+
+.scoreGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.85fr);
   gap: 1rem;
 }
 
-.skillRow {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  background: var(--color-muted);
-  transition: background 0.2s ease;
-
-  &:hover {
-    background: color-mix(in srgb, var(--color-muted) 80%, var(--color-foreground) 3%);
-  }
+.analysisGrid,
+.questionFocusGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
 }
 
-.skillMeta {
+.chartCard {
+  min-width: 0;
+  padding: 1rem;
+}
+
+.sectionHeader,
+.tableSectionHeader {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.skillName {
-  font-size: 0.78rem;
-  font-weight: 600;
+.tableSectionHeader {
+  margin-bottom: 0;
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sectionTitleBlock {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.sectionIcon {
+  width: 2rem;
+  height: 2rem;
+  background: var(--color-muted);
   color: var(--color-foreground);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
 }
 
-.skillNameIcon {
+.sectionTitle {
+  margin: 0;
+  color: var(--color-foreground);
   font-size: 0.9rem;
+  font-weight: 700;
 }
 
-.skillRight {
+.sectionSubtitle {
+  margin: 0.18rem 0 0;
+  color: var(--color-muted-foreground);
+  font-size: 0.72rem;
+}
+
+.sectionAside {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 0.5rem;
 }
 
-.skillAccuracy {
-  font-size: 0.78rem;
-  font-weight: 700;
+.histogram {
+  padding-top: 0.75rem;
 }
 
-.skillDetail {
-  font-size: 0.65rem;
-  color: var(--color-muted-foreground);
-  font-weight: 400;
+.histogramPlot {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(28px, 1fr));
+  align-items: end;
+  gap: 0.4rem;
+  height: 230px;
+  padding: 1.5rem 0.25rem 2.1rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.skillBadge {
-  font-size: 0.6rem;
-  font-weight: 700;
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+.histogramColumn {
+  position: relative;
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: center;
 }
 
-.questionTypeBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.7rem;
-  font-weight: 500;
-  padding: 0.2rem 0.5rem;
-  border-radius: 0.35rem;
-  background: var(--color-muted);
+.histogramBar {
+  width: 100%;
+  max-width: 3rem;
+  height: var(--bar-height);
+  min-height: 0;
+  border-radius: 6px 6px 0 0;
+  background: var(--bar-color);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.histogramColumn:hover .histogramBar {
+  opacity: 0.82;
+  transform: translateY(-2px);
+}
+
+.histogramCount {
+  position: absolute;
+  top: -1.2rem;
   color: var(--color-foreground);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.histogramLabel {
+  position: absolute;
+  bottom: -1.45rem;
+  color: var(--color-muted-foreground);
+  font-size: 0.65rem;
+  font-weight: 650;
   white-space: nowrap;
 }
-.skillBadgeExcellent {
-  background: rgba(34, 197, 94, 0.12);
-  color: #22c55e;
-}
-.skillBadgeGood {
-  background: rgba(59, 130, 246, 0.12);
-  color: #3b82f6;
-}
-.skillBadgeAverage {
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
-}
-.skillBadgeWeak {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-}
 
-.skillTrackWrapper {
-  position: relative;
-  height: 0.6rem;
-}
-
-.skillTrack {
-  height: 100%;
-  background: color-mix(in srgb, var(--color-muted) 60%, var(--color-border) 40%);
-  border-radius: 999px;
-  overflow: hidden;
-  position: relative;
-}
-
-.skillFill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-/* Benchmark threshold line on skill bar */
-.skillBenchmark {
+.histogramTooltip {
   position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 2px;
+  bottom: calc(100% + 0.55rem);
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  min-width: 4.25rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
   background: var(--color-foreground);
-  opacity: 0.25;
+  color: var(--color-background);
+  font-size: 0.68rem;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(4px);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+
+  span {
+    opacity: 0.78;
+  }
+}
+
+.histogramColumn:hover .histogramTooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.thresholdLine {
+  position: absolute;
+  top: 1.3rem;
+  bottom: 2.1rem;
+  left: var(--threshold-left);
   z-index: 1;
-  border-radius: 1px;
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--metric-red) 0,
+    var(--metric-red) 5px,
+    transparent 5px,
+    transparent 9px
+  );
+  pointer-events: none;
+
+  span {
+    position: absolute;
+    top: -1.25rem;
+    left: 50%;
+    padding: 0.08rem 0.35rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--metric-red) 12%, var(--color-card));
+    color: var(--metric-red);
+    font-size: 0.62rem;
+    font-weight: 750;
+    transform: translateX(-50%);
+  }
 }
 
-.empty {
+.donutBlock {
+  position: relative;
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.donutSvg {
+  grid-row: span 2;
+  transform: rotate(0deg);
+}
+
+.donutCenter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: 148px;
+  height: 148px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.donutValue {
+  color: var(--color-foreground);
+  font-size: 1.45rem;
+  font-weight: 780;
+}
+
+.donutLabel {
   color: var(--color-muted-foreground);
-  font-size: 0.8rem;
-  text-align: center;
-  padding: 1.5rem 0;
+  font-size: 0.72rem;
+  font-weight: 650;
 }
 
-/* ===== Radar Chart (SVG) ===== */
-.radarWrapper {
+.donutLegend {
   display: flex;
   flex-direction: column;
+  gap: 0.45rem;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--color-foreground);
+    font-size: 0.8rem;
+    font-weight: 650;
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  span:first-child svg {
+    color: var(--metric-green);
+  }
+
+  span:last-child svg {
+    color: var(--metric-red);
+  }
+}
+
+.scoreBands {
+  margin-top: 1rem;
+}
+
+.bandTrack {
+  display: flex;
+  height: 0.75rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-muted);
+}
+
+.bandSegment {
+  width: var(--band-width);
+  min-width: 0;
+}
+
+.bandWeak,
+.bandAverage,
+.bandStrong {
+  background: currentColor;
+}
+
+.bandWeak {
+  color: var(--metric-red);
+}
+
+.bandAverage {
+  color: var(--metric-orange);
+}
+
+.bandStrong {
+  color: var(--metric-green);
+}
+
+.bandLegend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.bandLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+
+  div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  span {
+    color: var(--color-muted-foreground);
+    font-size: 0.65rem;
+  }
+
+  strong {
+    color: var(--color-foreground);
+    font-size: 0.82rem;
+  }
+}
+
+.bandDot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.radarLayout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.92fr) minmax(160px, 0.7fr);
   align-items: center;
   gap: 0.75rem;
 }
 
 .radarSvg {
   width: 100%;
-  max-width: 280px;
+  max-width: 290px;
+  justify-self: center;
 }
 
-.radarLegend {
+.radarGrid {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.radarAxis {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.radarArea {
+  fill: color-mix(in srgb, var(--metric-indigo) 22%, transparent);
+  stroke: var(--metric-indigo);
+  stroke-width: 2;
+}
+
+.radarPoint {
+  fill: var(--metric-indigo);
+  stroke: var(--color-card);
+  stroke-width: 2;
+}
+
+.radarLabel {
+  fill: var(--color-muted-foreground);
+  font-size: 0.55rem;
+  font-weight: 700;
+}
+
+.radarSummary {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
-}
+  flex-direction: column;
+  gap: 0.42rem;
 
-.radarLegendItem {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.68rem;
-  color: var(--color-muted-foreground);
-}
-
-.radarLegendDot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: #6366f1;
-  flex-shrink: 0;
-}
-
-/* Radar fade in animation */
-@keyframes radarFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.85);
+  span {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--color-muted-foreground);
+    font-size: 0.72rem;
   }
-  to {
-    opacity: 1;
-    transform: scale(1);
+
+  strong {
+    color: var(--color-foreground);
   }
 }
 
-.radarSvg {
-  animation: radarFadeIn 0.8s ease-out;
-}
-
-/* ===== Suspicious Table ===== */
-.tableSection {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  overflow: hidden;
-}
-
-.tableSectionHeader {
+.typeRows {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-border);
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.tableSectionTitle {
-  font-size: 0.85rem;
-  font-weight: 600;
+.typeRow {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.75fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.typeMain {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.typeIcon {
+  width: 2rem;
+  height: 2rem;
+  background: var(--color-muted);
   color: var(--color-foreground);
 }
 
-.tableSectionBadge {
-  font-size: 0.7rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-  font-weight: 600;
+.typeName,
+.typeDetail {
+  display: block;
 }
 
-.suspiciousTable {
+.typeName {
+  color: var(--color-foreground);
+  font-size: 0.8rem;
+  font-weight: 720;
+}
+
+.typeDetail {
+  color: var(--color-muted-foreground);
+  font-size: 0.68rem;
+}
+
+.typeChart {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.typeStack {
+  display: flex;
+  height: 0.75rem;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-muted);
+}
+
+.typeStackCorrect,
+.typeStackWrong {
+  width: var(--stack-width);
+}
+
+.typeStackCorrect {
+  background: var(--metric-green);
+}
+
+.typeStackWrong {
+  background: color-mix(in srgb, var(--metric-red) 72%, var(--color-card));
+}
+
+.typeNumbers {
+  display: flex;
+  width: 6.5rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+  font-size: 0.68rem;
+
+  strong {
+    font-size: 0.8rem;
+  }
+
+  span {
+    color: var(--color-muted-foreground);
+  }
+}
+
+.insightGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.insightItem {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+
+  > div {
+    min-width: 0;
+  }
+
+  strong,
+  > div > span {
+    display: block;
+    min-width: 0;
+  }
+
+  strong {
+    overflow: hidden;
+    color: var(--color-foreground);
+    font-size: 0.84rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.insightIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  line-height: 0;
+
+  svg {
+    display: block;
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+}
+
+.insightLabel {
+  color: var(--color-muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 650;
+}
+
+.hardQuestionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.hardQuestionItem {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.rankBadge,
+.questionIndex,
+.rowIndex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--color-muted);
+  color: var(--color-foreground);
+  font-size: 0.72rem;
+  font-weight: 760;
+}
+
+.rankBadge {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.questionIndex,
+.rowIndex {
+  width: 1.65rem;
+  height: 1.65rem;
+}
+
+.hardQuestionBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.hardQuestionTop,
+.hardQuestionBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.hardQuestionTop {
+  color: var(--color-foreground);
+  font-size: 0.78rem;
+  font-weight: 720;
+}
+
+.hardQuestionBottom {
+  margin-top: 0.35rem;
+  color: var(--color-muted-foreground);
+  font-size: 0.68rem;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  svg {
+    width: 0.8rem;
+    height: 0.8rem;
+  }
+}
+
+.dotSeparator {
+  margin: 0 0.35rem;
+  color: var(--color-muted-foreground);
+}
+
+.progressTrack {
+  position: relative;
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--color-muted) 70%,
+    var(--color-border) 30%
+  );
+}
+
+.progressFill {
+  display: block;
+  width: var(--progress-width);
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+}
+
+.hardQuestionBody .progressTrack {
+  margin-top: 0.45rem;
+}
+
+.paceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  div {
+    padding: 0.8rem;
+    border-radius: 8px;
+    background: var(--color-muted);
+  }
+
+  span,
+  strong {
+    display: block;
+  }
+
+  span {
+    color: var(--color-muted-foreground);
+    font-size: 0.68rem;
+    font-weight: 650;
+  }
+
+  strong {
+    margin-top: 0.25rem;
+    color: var(--color-foreground);
+    font-size: 1.15rem;
+  }
+}
+
+.tableSection {
+  overflow: hidden;
+}
+
+.tableSection > .sectionHeader {
+  margin-bottom: 0;
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.segmentControl {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-muted);
+
+  button {
+    min-width: 4.5rem;
+    border: 0;
+    border-right: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-muted-foreground);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 680;
+    padding: 0.42rem 0.65rem;
+
+    &:last-child {
+      border-right: 0;
+    }
+  }
+}
+
+.activeSegment {
+  background: var(--color-card) !important;
+  color: var(--color-foreground) !important;
+}
+
+.sortButton,
+.expandButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 680;
+  padding: 0.45rem 0.65rem;
+
+  svg {
+    width: 0.85rem;
+    height: 0.85rem;
+  }
+}
+
+.expandButton {
   width: 100%;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.dataTable {
+  width: 100%;
+  min-width: 760px;
   border-collapse: collapse;
 
-  th {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: var(--color-muted-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 0.6rem 1.25rem;
-    text-align: left;
+  th,
+  td {
     border-bottom: 1px solid var(--color-border);
-    cursor: pointer;
+    padding: 0.7rem 1rem;
+    vertical-align: middle;
+    text-align: left;
+  }
 
-    &:hover {
-      color: var(--color-foreground);
-    }
+  th {
+    color: var(--color-muted-foreground);
+    font-size: 0.68rem;
+    font-weight: 760;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
   }
 
   td {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.8rem;
-    border-bottom: 1px solid var(--color-border);
     color: var(--color-foreground);
+    font-size: 0.78rem;
   }
 
-  tr:last-child td { border-bottom: none; }
+  tbody tr:hover {
+    background: color-mix(in srgb, var(--color-muted) 72%, transparent);
+  }
 
-  tbody tr {
-    transition: background 0.15s ease;
-    cursor: pointer;
-
-    &:hover {
-      background: var(--color-muted);
-    }
+  tr:last-child td {
+    border-bottom: 0;
   }
 }
 
-.studentCellInTable {
+.questionContentCell {
+  width: 40%;
+  min-width: 18rem;
+}
+
+.questionContent {
+  display: -webkit-box;
+  max-width: 38rem;
+  overflow: hidden;
+  color: var(--color-foreground);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  p {
+    margin: 0;
+  }
+}
+
+.questionTypeBadge,
+.statusBadge,
+.countPair,
+.violationBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.questionTypeBadge,
+.statusBadge {
+  border-radius: 999px;
+  background: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 720;
+  padding: 0.22rem 0.5rem;
+
+  svg {
+    width: 0.78rem;
+    height: 0.78rem;
+  }
+}
+
+.statusBadge {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.accuracyCell {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1fr) 3.4rem;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.countPair {
+  gap: 0.25rem;
+
+  span {
+    color: var(--color-muted-foreground);
+  }
+}
+
+.studentCell {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 0.6rem;
 }
 
 .studentAvatar {
+  display: inline-flex;
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #818cf8);
-  color: #fff;
-  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 700;
   flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--color-muted);
+  color: var(--color-foreground);
+  font-size: 0.72rem;
+  font-weight: 760;
+}
+
+.emailCell {
+  color: var(--color-muted-foreground) !important;
 }
 
 .violationBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
+  color: var(--metric-red);
+  font-weight: 760;
+
+  svg {
+    width: 0.82rem;
+    height: 0.82rem;
+  }
 }
 
-.levelBadge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-}
-.levelHigh {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-}
-.levelMedium {
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
-}
-.levelLow {
-  background: rgba(59, 130, 246, 0.12);
-  color: #3b82f6;
-}
-
-.emptyTableMsg {
-  padding: 2rem;
-  text-align: center;
+.emptyTableMsg,
+.emptyState,
+.noDataState {
   color: var(--color-muted-foreground);
   font-size: 0.82rem;
 }
 
-/* ===== Insight Box ===== */
-.insightBox {
-  background: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
+.emptyTableMsg {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    color: var(--metric-green);
+  }
 }
 
-.insightIcon {
-  width: 1.1rem;
-  height: 1.1rem;
-  color: #ef4444;
-  margin-top: 0.1rem;
-  flex-shrink: 0;
-}
-
-.insightTitle {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #ef4444;
-  margin-bottom: 0.2rem;
-}
-
-.insightText {
-  font-size: 0.78rem;
-  color: var(--color-foreground);
+.emptyState {
+  margin: 0;
+  padding: 1.5rem 0;
+  text-align: center;
 }
 
 .noDataState {
   display: flex;
+  min-height: 14rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  padding: 3rem 2rem;
-  color: var(--color-muted-foreground);
-  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
 
   svg {
-    opacity: 0.4;
+    width: 2.25rem;
+    height: 2.25rem;
+    opacity: 0.42;
   }
 
   p {
-    font-size: 0.85rem;
-    max-width: 280px;
+    margin: 0;
   }
 }
 
-.loading {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+@media (max-width: 1280px) {
+  .kpiGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .scoreGrid,
+  .analysisGrid,
+  .questionFocusGrid {
+    grid-template-columns: 1fr;
+  }
 }
-.loadingCard {
-  height: 120px;
-  background: var(--color-muted);
-  border-radius: 0.75rem;
-  animation: pulse 1.5s ease-in-out infinite;
+
+@media (max-width: 900px) {
+  .overviewHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .headerMetric {
+    text-align: left;
+  }
+
+  .radarLayout,
+  .donutBlock,
+  .typeRow {
+    grid-template-columns: 1fr;
+  }
+
+  .donutCenter {
+    left: 0;
+  }
+
+  .insightGrid {
+    grid-template-columns: 1fr;
+  }
 }
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+@media (max-width: 700px) {
+  .kpiGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .histogramPlot {
+    gap: 0.22rem;
+    overflow-x: auto;
+  }
+
+  .histogramBar {
+    min-width: 1.5rem;
+  }
+
+  .bandLegend,
+  .paceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionHeader,
+  .tableSectionHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sectionAside,
+  .segmentControl {
+    width: 100%;
+  }
+
+  .segmentControl button {
+    flex: 1;
+    min-width: 0;
+  }
 }
