@@ -20,7 +20,8 @@ import {
   createRulePreset,
   deleteRulePreset,
   getRulePresets,
-  updateRulePreset
+  updateRulePreset,
+  validateWhitebox
 } from '@/lib/actions'
 import { Button } from '@/components/ui/button'
 import {
@@ -53,6 +54,16 @@ interface CustomRuleLibraryItem {
   presetId: number
   presetName: string
   rule: WhiteboxRule
+}
+
+type CustomRegexTestResult = {
+  ok: boolean
+  message: string
+  match?: string
+}
+
+type CustomRegexValidationResult = CustomRegexTestResult & {
+  valid: boolean
 }
 
 interface WhiteboxAddRuleModalProps {
@@ -98,11 +109,9 @@ export function WhiteboxAddRuleModal({
   const [customPattern, setCustomPattern] = useState('')
   const [customMessage, setCustomMessage] = useState('')
   const [customSampleSql, setCustomSampleSql] = useState('')
-  const [customTestResult, setCustomTestResult] = useState<{
-    ok: boolean
-    message: string
-    match?: string
-  } | null>(null)
+  const [customTestResult, setCustomTestResult] =
+    useState<CustomRegexTestResult | null>(null)
+  const [testingCustomRule, setTestingCustomRule] = useState(false)
 
   useEffect(() => {
     if (!open) {
@@ -173,13 +182,7 @@ export function WhiteboxAddRuleModal({
     if (customPattern.length > 500) {
       return 'Regex không được vượt quá 500 ký tự.'
     }
-
-    try {
-      new RegExp(customPattern, 'i')
-      return null
-    } catch {
-      return 'Regex chưa hợp lệ.'
-    }
+    return null
   }, [customPattern])
 
   const visibleCustomRules = useMemo(() => {
@@ -249,28 +252,88 @@ export function WhiteboxAddRuleModal({
     }
   }
 
-  const handleTestCustomRegex = () => {
+  const buildCustomRegexRule = (): WhiteboxRule => {
+    const existingRule =
+      editingCustomRuleId !== null
+        ? customRules.find((entry) => entry.presetId === editingCustomRuleId)
+            ?.rule
+        : null
+    const base = existingRule ?? defaultCustomRegexRule()
+    const name = customName.trim() || 'Rule regex tùy chỉnh'
+    return {
+      ...base,
+      type: 'CUSTOM_REGEX',
+      description: name,
+      params: {
+        ...(base.params ?? {}),
+        name,
+        policy: customPolicyValue,
+        pattern: customPattern.trim(),
+        case_insensitive: true,
+        message: customMessage.trim()
+      }
+    }
+  }
+
+  const validateCustomRegexRule = async (
+    rule: WhiteboxRule,
+    sampleSql: string
+  ): Promise<CustomRegexValidationResult> => {
+    const response = await validateWhitebox({
+      questionType,
+      sql: sampleSql,
+      whiteboxRules: [rule],
+      questionPoints: 1
+    })
+    const result = response.data
+    const violation = result?.violations?.[0]
+    if (!result || !violation) {
+      return {
+        valid: false,
+        ok: false,
+        message: response.message || 'Không kiểm tra được regex ở backend.'
+      }
+    }
+    if (violation.status === 'UNVERIFIED') {
+      return {
+        valid: false,
+        ok: false,
+        message: violation.reason || 'Regex không chạy được ở backend.'
+      }
+    }
+
+    const ok = violation.status === 'PASS'
+    return {
+      valid: true,
+      ok,
+      match: violation.actual,
+      message: ok
+        ? 'SQL mẫu không vi phạm rule regex theo backend.'
+        : violation.reason || 'SQL mẫu vi phạm rule regex theo backend.'
+    }
+  }
+
+  const handleTestCustomRegex = async () => {
     if (customRegexError) {
       setCustomTestResult({ ok: false, message: customRegexError })
       return
     }
 
-    const regex = new RegExp(customPattern, 'i')
-    const match = regex.exec(customSampleSql)
-    const matched = Boolean(match)
-    const violated = customPolicyValue === 'FORBID' ? matched : !matched
-
-    setCustomTestResult({
-      ok: !violated,
-      match: match?.[0],
-      message: matched
-        ? customPolicyValue === 'FORBID'
-          ? 'SQL mẫu khớp regex. Với rule Cấm, đây là vi phạm.'
-          : 'SQL mẫu khớp regex. Với rule Bắt buộc, cấu hình này đạt.'
-        : customPolicyValue === 'FORBID'
-          ? 'SQL mẫu không khớp regex. Với rule Cấm, cấu hình này đạt.'
-          : 'SQL mẫu không khớp regex. Với rule Bắt buộc, đây là vi phạm.'
-    })
+    setTestingCustomRule(true)
+    try {
+      const result = await validateCustomRegexRule(
+        buildCustomRegexRule(),
+        customSampleSql
+      )
+      setCustomTestResult(result)
+    } catch {
+      setCustomTestResult({
+        ok: false,
+        message: 'Không kiểm tra được regex ở backend.'
+      })
+    } finally {
+      setTestingCustomRule(false)
+    }
   }
 
   const resetCustomForm = () => {
@@ -300,22 +363,20 @@ export function WhiteboxAddRuleModal({
       return
     }
 
-    const base = defaultCustomRegexRule()
-    const name = customName.trim() || 'Rule regex tùy chỉnh'
-    const savedRule: WhiteboxRule = {
-      ...base,
-      description: name,
-      params: {
-        name,
-        policy: customPolicyValue,
-        pattern: customPattern.trim(),
-        case_insensitive: true,
-        message: customMessage.trim()
-      }
-    }
+    const savedRule = buildCustomRegexRule()
+    const name = customParam(savedRule, 'name', 'Rule regex tùy chỉnh')
 
     setSavingCustomRule(true)
     try {
+      const validation = await validateCustomRegexRule(
+        savedRule,
+        customSampleSql
+      )
+      if (!validation.valid) {
+        setCustomTestResult(validation)
+        return
+      }
+
       if (editingCustomRuleId !== null) {
         await updateRulePreset(editingCustomRuleId, {
           name,
@@ -433,6 +494,7 @@ export function WhiteboxAddRuleModal({
             onTest={handleTestCustomRegex}
             onSave={handleSaveCustomRegex}
             savingCustomRule={savingCustomRule}
+            testingCustomRule={testingCustomRule}
           />
         ) : (
           <RuleLibrary
@@ -610,7 +672,8 @@ function CustomRegexBuilder({
   onSampleSqlChange,
   onTest,
   onSave,
-  savingCustomRule
+  savingCustomRule,
+  testingCustomRule
 }: {
   customName: string
   customPolicyValue: CustomRegexPolicy
@@ -618,7 +681,7 @@ function CustomRegexBuilder({
   customMessage: string
   customSampleSql: string
   customRegexError: string | null
-  customTestResult: { ok: boolean; message: string; match?: string } | null
+  customTestResult: CustomRegexTestResult | null
   onNameChange: (value: string) => void
   onPolicyChange: (value: CustomRegexPolicy) => void
   onPatternChange: (value: string) => void
@@ -627,6 +690,7 @@ function CustomRegexBuilder({
   onTest: () => void
   onSave: () => void | Promise<void>
   savingCustomRule: boolean
+  testingCustomRule: boolean
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-slate-50/50 dark:bg-slate-950/40">
@@ -739,15 +803,22 @@ function CustomRegexBuilder({
             type="button"
             variant="outline"
             onClick={onTest}
+            disabled={Boolean(customRegexError) || testingCustomRule}
             className="h-10 gap-2 rounded-lg border-violet-200 px-5 font-semibold text-violet-700 shadow-sm transition-all hover:border-violet-300 hover:bg-violet-50 hover:shadow-md dark:border-violet-900/50 dark:text-violet-300 dark:hover:bg-violet-950/30"
           >
-            <Play className="h-4 w-4" />
+            {testingCustomRule ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
             Chạy thử
           </Button>
           <Button
             type="button"
             onClick={() => void onSave()}
-            disabled={Boolean(customRegexError) || savingCustomRule}
+            disabled={
+              Boolean(customRegexError) || savingCustomRule || testingCustomRule
+            }
             className="h-10 gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-semibold text-white shadow-md shadow-blue-300/30 transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-300/40 disabled:from-slate-400 disabled:to-slate-400 disabled:shadow-none dark:shadow-none"
           >
             {savingCustomRule ? (
