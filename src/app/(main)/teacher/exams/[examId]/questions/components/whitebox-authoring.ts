@@ -19,6 +19,44 @@ export const POLICY_BADGE_CLASS: Record<WhiteboxPolicy, string> = {
     'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
 }
 
+export const POLICY_DISPLAY_LABEL: Record<WhiteboxPolicy, string> = {
+  FORBID: 'Cấm',
+  FORBID_ANY: 'Cấm',
+  REQUIRE: 'Bắt buộc',
+  REQUIRE_ANY: 'Bắt buộc',
+  REQUIRE_ALL: 'Bắt buộc (tất cả)',
+  AT_MOST: 'Tối đa',
+  AT_LEAST: 'Tối thiểu',
+  EXACTLY: 'Chính xác'
+}
+
+export const CUSTOM_REGEX_RULE_PREFIX = 'CUSTOM_REGEX_'
+
+export function isCustomRegexRule(ruleId: string): boolean {
+  return ruleId.startsWith(CUSTOM_REGEX_RULE_PREFIX)
+}
+
+export function defaultCustomRegexRule(): WhiteboxRule {
+  return {
+    rule_id: `${CUSTOM_REGEX_RULE_PREFIX}${Date.now()}_${Math.random()
+      .toString(36)
+      .slice(2, 8)}`,
+    enabled: true,
+    type: 'CUSTOM_REGEX',
+    penalty_value: 0.5,
+    penalty_unit: 'ABSOLUTE',
+    severity: 'DEDUCTION',
+    description: 'Rule regex tùy chỉnh',
+    params: {
+      name: 'Rule regex tùy chỉnh',
+      policy: 'FORBID',
+      pattern: '',
+      case_insensitive: true,
+      message: ''
+    }
+  }
+}
+
 // One SQL feature and the policies the teacher can apply to it (the catalog entries sharing featureId).
 export interface FeatureOption {
   featureId: string
@@ -48,7 +86,7 @@ export function buildFeatureGroups(
     if (configuredIds.has(item.ruleId)) continue
     if (term) {
       const haystack =
-        `${item.featureLabel} ${item.policyLabel} ${item.label} ${item.ruleId}`.toLowerCase()
+        `${item.featureLabel} ${POLICY_DISPLAY_LABEL[item.policy] ?? item.policyLabel} ${item.label} ${item.ruleId}`.toLowerCase()
       if (!haystack.includes(term)) continue
     }
 
@@ -112,8 +150,6 @@ export function policyAction(policy: WhiteboxPolicy): WhiteboxActionKey {
 // (boolean features carrying no match mode). Shown as an informational chip and, when an
 // action maps to >1 policy, used as the operator sub-choice label.
 export const OPERATOR_LABEL: Partial<Record<WhiteboxPolicy, string>> = {
-  FORBID_ANY: 'bất kỳ',
-  REQUIRE_ANY: 'bất kỳ',
   REQUIRE_ALL: 'tất cả',
   AT_MOST: 'tối đa',
   AT_LEAST: 'tối thiểu',
@@ -157,6 +193,187 @@ export interface WhiteboxConflict {
   labelB: string
 }
 
+export interface WhiteboxRuleVariantOption {
+  key: string
+  label: string
+  item: WhiteboxCatalogItem
+}
+
+export interface WhiteboxDisplayRule {
+  key: string
+  group: string
+  policy: WhiteboxPolicy
+  policyLabel: string
+  featureLabel: string
+  description: string
+  variants: WhiteboxRuleVariantOption[]
+}
+
+const SUBQUERY_VARIANT_LABELS: Record<string, string> = {
+  FORBIDDEN_SUBQUERY: 'Bất kỳ',
+  FORBIDDEN_SUBQUERY_IN_SELECT: 'Trong SELECT',
+  FORBIDDEN_SUBQUERY_IN_FROM: 'Trong FROM',
+  FORBIDDEN_SUBQUERY_IN_WHERE: 'Trong WHERE',
+  FORBIDDEN_SUBQUERY_IN_HAVING: 'Trong HAVING',
+  FORBIDDEN_CORRELATED_SUBQUERY: 'Tương quan'
+}
+
+function isSubqueryVariantRule(ruleId: string): boolean {
+  return Object.prototype.hasOwnProperty.call(SUBQUERY_VARIANT_LABELS, ruleId)
+}
+
+function isJoinVariantRule(item: WhiteboxCatalogItem): boolean {
+  if (item.group !== 'JOIN') return false
+  return (
+    item.ruleId === 'REQUIRED_JOIN' ||
+    item.ruleId === 'FORBIDDEN_JOIN' ||
+    item.ruleId.includes('JOIN') ||
+    item.ruleId.includes('OLD_JOIN_SYNTAX')
+  )
+}
+
+function joinVariantLabel(ruleId: string): string {
+  if (ruleId.includes('OLD_JOIN_SYNTAX')) return 'Comma join kiểu cũ'
+  if (ruleId.includes('INNER_JOIN')) return 'INNER JOIN'
+  if (ruleId.includes('LEFT_JOIN')) return 'LEFT JOIN'
+  if (ruleId.includes('RIGHT_JOIN')) return 'RIGHT JOIN'
+  if (ruleId.includes('FULL_JOIN')) return 'FULL JOIN'
+  if (ruleId.includes('CROSS_JOIN')) return 'CROSS JOIN'
+  return 'Bất kỳ'
+}
+
+function displayRuleKey(item: WhiteboxCatalogItem): string {
+  if (isSubqueryVariantRule(item.ruleId)) return 'SUBQUERY_FORBID'
+  if (isJoinVariantRule(item)) return `JOIN_${policyAction(item.policy)}`
+  return item.ruleId
+}
+
+function displayRuleFeatureLabel(item: WhiteboxCatalogItem): string {
+  if (isSubqueryVariantRule(item.ruleId)) return 'Truy vấn con'
+  if (isJoinVariantRule(item)) return 'JOIN'
+  return item.featureLabel
+}
+
+function displayRuleDescription(item: WhiteboxCatalogItem): string {
+  if (isSubqueryVariantRule(item.ruleId)) {
+    return 'Chọn phạm vi truy vấn con ở dòng rule bên ngoài.'
+  }
+  if (isJoinVariantRule(item)) {
+    return 'Chọn loại JOIN cần áp dụng ở dòng rule bên ngoài.'
+  }
+  return item.description
+}
+
+function displayRuleVariantLabel(item: WhiteboxCatalogItem): string {
+  if (isSubqueryVariantRule(item.ruleId)) {
+    return SUBQUERY_VARIANT_LABELS[item.ruleId] ?? item.label
+  }
+  if (isJoinVariantRule(item)) {
+    return joinVariantLabel(item.ruleId)
+  }
+  return item.label
+}
+
+export function buildWhiteboxDisplayRules(
+  catalog: WhiteboxCatalogItem[],
+  configuredIds?: Set<string>
+): WhiteboxDisplayRule[] {
+  const groups = new Map<string, WhiteboxDisplayRule>()
+
+  for (const item of catalog) {
+    const key = displayRuleKey(item)
+    let group = groups.get(key)
+
+    if (!group) {
+      group = {
+        key,
+        group: item.group,
+        policy: item.policy,
+        policyLabel: POLICY_DISPLAY_LABEL[item.policy] ?? item.policyLabel,
+        featureLabel: displayRuleFeatureLabel(item),
+        description: displayRuleDescription(item),
+        variants: []
+      }
+      groups.set(key, group)
+    }
+
+    group.variants.push({
+      key: item.ruleId,
+      label: displayRuleVariantLabel(item),
+      item
+    })
+  }
+
+  const rules = Array.from(groups.values())
+    .map((rule) => ({
+      ...rule,
+      variants: rule.variants.sort((a, b) => {
+        if (a.label === 'Bất kỳ') return -1
+        if (b.label === 'Bất kỳ') return 1
+        return a.label.localeCompare(b.label)
+      })
+    }))
+    .filter((rule) =>
+      configuredIds
+        ? !rule.variants.some((variant) =>
+            configuredIds.has(variant.item.ruleId)
+          )
+        : true
+    )
+
+  return rules
+}
+
+export function buildWhiteboxDisplayGroups(
+  catalog: WhiteboxCatalogItem[],
+  configuredIds: Set<string>,
+  search: string
+): Array<{ key: string; items: WhiteboxDisplayRule[] }> {
+  const term = search.trim().toLowerCase()
+  const displayRules = buildWhiteboxDisplayRules(catalog, configuredIds)
+  const groups: Array<{ key: string; items: WhiteboxDisplayRule[] }> = []
+  const index = new Map<string, number>()
+
+  for (const item of displayRules) {
+    if (term) {
+      const haystack = [
+        item.featureLabel,
+        item.policyLabel,
+        item.description,
+        ...item.variants.map(
+          (variant) => `${variant.label} ${variant.item.ruleId}`
+        )
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      if (!haystack.includes(term)) continue
+    }
+
+    let groupIndex = index.get(item.group)
+    if (groupIndex === undefined) {
+      groupIndex = groups.length
+      index.set(item.group, groupIndex)
+      groups.push({ key: item.group, items: [] })
+    }
+    groups[groupIndex].items.push(item)
+  }
+
+  return groups
+}
+
+export function findWhiteboxDisplayRuleByRuleId(
+  catalog: WhiteboxCatalogItem[],
+  ruleId: string
+): WhiteboxDisplayRule | null {
+  const displayRules = buildWhiteboxDisplayRules(catalog)
+  return (
+    displayRules.find((rule) =>
+      rule.variants.some((variant) => variant.item.ruleId === ruleId)
+    ) ?? null
+  )
+}
+
 export function normalizeWhiteboxRulePenalty(
   rule: WhiteboxRule,
   item?: WhiteboxCatalogItem | null
@@ -185,7 +402,7 @@ export function normalizeWhiteboxRulePenalty(
 }
 
 // Detect contradictory configured rules from catalog conflictsWith metadata, plus the param-aware
-// MAX_JOIN_COUNT=0 vs REQUIRED_JOIN case the static metadata cannot express. Warn only — never mutate.
+// MAX_JOIN_COUNT=0 vs REQUIRED_JOIN case the static metadata cannot express. Warn only - never mutate.
 export function detectConflicts(
   rules: WhiteboxRule[],
   catalogById: Map<string, WhiteboxCatalogItem>
@@ -196,7 +413,9 @@ export function detectConflicts(
 
   const describe = (ruleId: string): string => {
     const item = catalogById.get(ruleId)
-    return item ? `${item.featureLabel} · ${item.policyLabel}` : ruleId
+    return item
+      ? `${item.featureLabel} · ${POLICY_DISPLAY_LABEL[item.policy] ?? item.policyLabel}`
+      : ruleId
   }
 
   for (const rule of rules) {
@@ -264,7 +483,7 @@ export const GROUP_LABELS: Record<string, string> = {
 }
 
 // Build the stored WhiteboxRule from a catalog entry using its suggested severity/penalty/params.
-// Stable rule_id contract — same shape the direct catalog add produced.
+// Stable rule_id contract - same shape the direct catalog add produced.
 export function defaultRuleFromCatalog(
   item: WhiteboxCatalogItem
 ): WhiteboxRule {

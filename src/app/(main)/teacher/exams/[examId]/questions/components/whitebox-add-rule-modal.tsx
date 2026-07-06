@@ -1,567 +1,1069 @@
 'use client'
 
-import { AlertTriangle, ArrowLeft, ChevronRight, Search } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronRight,
+  Loader2,
+  Pencil,
+  Play,
+  Plus,
+  Save,
+  Search,
+  ShieldAlert,
+  Trash2
+} from 'lucide-react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
+import {
+  createRulePreset,
+  deleteRulePreset,
+  getRulePresets,
+  updateRulePreset,
+  validateWhitebox
+} from '@/lib/actions'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
-import {
-  WhiteboxCatalogItem,
-  WhiteboxPenaltyUnit,
-  WhiteboxRule,
-  WhiteboxSeverity
-} from '@/lib/types'
+import { Textarea } from '@/components/ui/textarea'
+import { WhiteboxCatalogItem, WhiteboxRule } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 import {
-  ACTION_HINT,
-  buildFeatureActions,
-  buildFeatureGroups,
+  buildWhiteboxDisplayGroups,
+  defaultCustomRegexRule,
   defaultRuleFromCatalog,
-  FeatureActionGroup,
   GROUP_LABELS,
-  OPERATOR_LABEL,
-  policyAction,
   POLICY_BADGE_CLASS,
-  normalizeWhiteboxRulePenalty,
-  requiredParamsSatisfied
+  WhiteboxDisplayRule
 } from './whitebox-authoring'
+import { TeacherSqlEditor } from './teacher-sql-editor'
+
+type ModalMode = 'LIST' | 'CUSTOM_REGEX'
+type CustomRegexPolicy = 'FORBID' | 'REQUIRE'
+const CUSTOM_RULE_PRESET_KIND = 'WHITEBOX_CUSTOM_RULE'
+
+interface CustomRuleLibraryItem {
+  presetId: number
+  presetName: string
+  rule: WhiteboxRule
+}
+
+type CustomRegexTestResult = {
+  ok: boolean
+  message: string
+  match?: string
+}
+
+type CustomRegexValidationResult = CustomRegexTestResult & {
+  valid: boolean
+}
 
 interface WhiteboxAddRuleModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  questionType: string
   catalog: WhiteboxCatalogItem[]
-  // Already-configured rules — excluded from the picker and used for conflict warnings.
   rules: WhiteboxRule[]
   catalogById: Map<string, WhiteboxCatalogItem>
   onAdd: (rule: WhiteboxRule) => void
 }
 
-// Black-box-style rule builder: object (Đối tượng) -> Action/Type (Cấm/Bắt buộc/Giới hạn) ->
-// optional operator/match mode -> params -> penalty/severity. The configured tuple compiles to one
-// supported backend rule_id; a rule is appended to whitebox_rules[] only on the footer "Thêm quy tắc".
+function customParam(rule: WhiteboxRule, name: string, fallback = ''): string {
+  const value = rule.params?.[name]
+  return typeof value === 'string' ? value : fallback
+}
+
+function customPolicy(rule: WhiteboxRule): CustomRegexPolicy {
+  return customParam(rule, 'policy', 'FORBID') === 'REQUIRE'
+    ? 'REQUIRE'
+    : 'FORBID'
+}
+
 export function WhiteboxAddRuleModal({
   open,
   onOpenChange,
+  questionType,
   catalog,
   rules,
-  catalogById,
   onAdd
 }: WhiteboxAddRuleModalProps) {
+  const [mode, setMode] = useState<ModalMode>('LIST')
   const [search, setSearch] = useState('')
-  const [featureId, setFeatureId] = useState<string | null>(null)
-  const [actionKey, setActionKey] = useState<string | null>(null)
-  // The resolved catalog rule, plus its editable draft config (seeded from catalog defaults).
-  const [draft, setDraft] = useState<WhiteboxRule | null>(null)
+  const [customRules, setCustomRules] = useState<CustomRuleLibraryItem[]>([])
+  const [loadingCustomRules, setLoadingCustomRules] = useState(false)
+  const [savingCustomRule, setSavingCustomRule] = useState(false)
+  const [editingCustomRuleId, setEditingCustomRuleId] = useState<number | null>(
+    null
+  )
+  const [customName, setCustomName] = useState('Rule regex tùy chỉnh')
+  const [customPolicyValue, setCustomPolicyValue] =
+    useState<CustomRegexPolicy>('FORBID')
+  const [customPattern, setCustomPattern] = useState('')
+  const [customMessage, setCustomMessage] = useState('')
+  const [customSampleSql, setCustomSampleSql] = useState('')
+  const [customTestResult, setCustomTestResult] =
+    useState<CustomRegexTestResult | null>(null)
+  const [testingCustomRule, setTestingCustomRule] = useState(false)
 
   useEffect(() => {
     if (!open) {
+      setMode('LIST')
       setSearch('')
-      setFeatureId(null)
-      setActionKey(null)
-      setDraft(null)
+      setEditingCustomRuleId(null)
     }
   }, [open])
 
+  useEffect(() => {
+    if (!open) return
+
+    let active = true
+
+    const loadCustomRules = async () => {
+      setLoadingCustomRules(true)
+      try {
+        const response = await getRulePresets(
+          questionType,
+          CUSTOM_RULE_PRESET_KIND
+        )
+        if (!active) return
+
+        const nextRules = (response.data ?? [])
+          .map((preset) => {
+            try {
+              const parsed = JSON.parse(preset.rulesJson) as
+                | WhiteboxRule
+                | WhiteboxRule[]
+              const rule = Array.isArray(parsed) ? parsed[0] : parsed
+              return rule && rule.type === 'CUSTOM_REGEX'
+                ? {
+                    presetId: preset.id,
+                    presetName: preset.name,
+                    rule
+                  }
+                : null
+            } catch {
+              return null
+            }
+          })
+          .filter((rule): rule is CustomRuleLibraryItem => rule !== null)
+
+        setCustomRules(nextRules)
+      } catch {
+        if (active) {
+          toast.error('Không tải được thư viện regex tùy chỉnh')
+        }
+      } finally {
+        if (active) setLoadingCustomRules(false)
+      }
+    }
+
+    void loadCustomRules()
+
+    return () => {
+      active = false
+    }
+  }, [open, questionType])
+
   const configuredIds = useMemo(
-    () => new Set(rules.map((r) => r.rule_id)),
+    () => new Set(rules.map((rule) => rule.rule_id)),
     [rules]
   )
 
-  const featureGroups = useMemo(
-    () => buildFeatureGroups(catalog, configuredIds, search),
-    [catalog, configuredIds, search]
-  )
-
-  const activeFeature = useMemo(() => {
-    if (!featureId) return null
-    for (const group of featureGroups) {
-      const found = group.features.find((f) => f.featureId === featureId)
-      if (found) return found
+  const customRegexError = useMemo(() => {
+    if (!customPattern.trim()) return 'Cần nhập regex trước khi lưu.'
+    if (customPattern.length > 500) {
+      return 'Regex không được vượt quá 500 ký tự.'
     }
     return null
-  }, [featureGroups, featureId])
+  }, [customPattern])
 
-  // Action/Type families available for the selected object, in backend order.
-  const actionGroups = useMemo(
-    () => (activeFeature ? buildFeatureActions(activeFeature) : []),
-    [activeFeature]
-  )
+  const visibleCustomRules = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    return customRules.filter((entry) => {
+      const rule = entry.rule
+      if (configuredIds.has(entry.rule.rule_id)) return false
+      if (!term) return true
 
-  const activeActionGroup = useMemo(
-    () => actionGroups.find((g) => g.actionKey === actionKey) ?? null,
-    [actionGroups, actionKey]
-  )
+      const haystack = [
+        entry.rule.rule_id,
+        customParam(entry.rule, 'name', entry.rule.description ?? ''),
+        customPolicy(rule) === 'FORBID' ? 'Cấm' : 'Bắt buộc',
+        customParam(entry.rule, 'pattern'),
+        customParam(entry.rule, 'message')
+      ]
+        .join(' ')
+        .toLowerCase()
 
-  const selectedItem = draft ? (catalogById.get(draft.rule_id) ?? null) : null
-
-  // Conflict warnings the draft would introduce against already-configured rules.
-  const draftConflicts = useMemo(() => {
-    if (!selectedItem) return [] as string[]
-    const out: string[] = []
-    const describe = (id: string) => {
-      const item = catalogById.get(id)
-      return item ? `${item.featureLabel} · ${item.policyLabel}` : id
-    }
-    for (const other of selectedItem.conflictsWith ?? []) {
-      if (configuredIds.has(other)) out.push(describe(other))
-    }
-    if (
-      selectedItem.ruleId === 'MAX_JOIN_COUNT' &&
-      configuredIds.has('REQUIRED_JOIN') &&
-      Number(draft?.params?.max_joins) === 0
-    ) {
-      out.push(describe('REQUIRED_JOIN'))
-    }
-    if (selectedItem.ruleId === 'REQUIRED_JOIN') {
-      const mj = rules.find((r) => r.rule_id === 'MAX_JOIN_COUNT')
-      if (mj && Number(mj.params?.max_joins) === 0) {
-        out.push(`${describe('MAX_JOIN_COUNT')} = 0`)
-      }
-    }
-    return out
-  }, [selectedItem, draft, rules, configuredIds, catalogById])
-
-  // Pick the object first; reset downstream action/draft.
-  const selectFeature = (id: string) => {
-    setFeatureId(id)
-    setActionKey(null)
-    setDraft(null)
-  }
-
-  const clearFeature = () => {
-    setFeatureId(null)
-    setActionKey(null)
-    setDraft(null)
-  }
-
-  // Pick the Action/Type. Single-option actions resolve the ruleId immediately; multi-option
-  // actions wait for the operator/match-mode sub-choice.
-  const selectAction = (group: FeatureActionGroup) => {
-    setActionKey(group.actionKey)
-    setDraft(
-      group.options.length === 1
-        ? defaultRuleFromCatalog(group.options[0])
-        : null
-    )
-  }
-
-  const selectOperator = (item: WhiteboxCatalogItem) => {
-    setDraft(defaultRuleFromCatalog(item))
-  }
-
-  const selectOperatorByRuleId = (ruleId: string) => {
-    const item = activeActionGroup?.options.find(
-      (option) => option.ruleId === ruleId
-    )
-    if (item) selectOperator(item)
-  }
-
-  const setParam = (name: string, value: unknown) => {
-    setDraft((prev) =>
-      prev
-        ? { ...prev, params: { ...(prev.params ?? {}), [name]: value } }
-        : prev
-    )
-  }
-
-  const stringListValue = (name: string): string => {
-    const raw = draft?.params?.[name]
-    return Array.isArray(raw) ? (raw as string[]).join(',') : ''
-  }
-
-  const canAdd =
-    !!selectedItem && requiredParamsSatisfied(selectedItem, draft?.params ?? {})
-
-  const handleAdd = () => {
-    if (!draft || !selectedItem) return
-    const normalizedDraft = normalizeWhiteboxRulePenalty(draft, selectedItem)
-    onAdd({
-      ...normalizedDraft,
-      description: (draft.description ?? '').trim() || selectedItem.label
+      return haystack.includes(term)
     })
+  }, [configuredIds, customRules, search])
+
+  const groupedItems = useMemo(() => {
+    return buildWhiteboxDisplayGroups(catalog, configuredIds, search)
+  }, [catalog, configuredIds, search])
+
+  const handlePick = (displayRule: WhiteboxDisplayRule) => {
+    const defaultVariant =
+      displayRule.variants.find((variant) => variant.label === 'Bất kỳ') ??
+      displayRule.variants[0]
+    if (!defaultVariant) return
+    onAdd(defaultRuleFromCatalog(defaultVariant.item))
     onOpenChange(false)
   }
 
-  const availableCount = featureGroups.reduce(
-    (sum, g) => sum + g.features.reduce((s, f) => s + f.policies.length, 0),
-    0
-  )
+  const handlePickCustomRule = (entry: CustomRuleLibraryItem) => {
+    onAdd({ ...entry.rule, params: { ...(entry.rule.params ?? {}) } })
+    onOpenChange(false)
+  }
+
+  const handleEditCustomRule = (entry: CustomRuleLibraryItem) => {
+    setEditingCustomRuleId(entry.presetId)
+    setCustomName(customParam(entry.rule, 'name', entry.rule.description ?? ''))
+    setCustomPolicyValue(customPolicy(entry.rule))
+    setCustomPattern(customParam(entry.rule, 'pattern'))
+    setCustomMessage(customParam(entry.rule, 'message'))
+    setCustomSampleSql('')
+    setCustomTestResult(null)
+    setMode('CUSTOM_REGEX')
+  }
+
+  const handleDeleteCustomRule = async (entry: CustomRuleLibraryItem) => {
+    try {
+      await deleteRulePreset(entry.presetId)
+      setCustomRules((prev) =>
+        prev.filter((item) => item.presetId !== entry.presetId)
+      )
+      if (editingCustomRuleId === entry.presetId) {
+        setEditingCustomRuleId(null)
+        resetCustomForm()
+        setMode('LIST')
+      }
+      toast.success('Đã xóa rule regex khỏi thư viện')
+    } catch {
+      toast.error('Xóa rule regex thất bại')
+    }
+  }
+
+  const buildCustomRegexRule = (): WhiteboxRule => {
+    const existingRule =
+      editingCustomRuleId !== null
+        ? customRules.find((entry) => entry.presetId === editingCustomRuleId)
+            ?.rule
+        : null
+    const base = existingRule ?? defaultCustomRegexRule()
+    const name = customName.trim() || 'Rule regex tùy chỉnh'
+    return {
+      ...base,
+      type: 'CUSTOM_REGEX',
+      description: name,
+      params: {
+        ...(base.params ?? {}),
+        name,
+        policy: customPolicyValue,
+        pattern: customPattern.trim(),
+        case_insensitive: true,
+        message: customMessage.trim()
+      }
+    }
+  }
+
+  const validateCustomRegexRule = async (
+    rule: WhiteboxRule,
+    sampleSql: string
+  ): Promise<CustomRegexValidationResult> => {
+    const response = await validateWhitebox({
+      questionType,
+      sql: sampleSql,
+      whiteboxRules: [rule],
+      questionPoints: 1
+    })
+    const result = response.data
+    const violation = result?.violations?.[0]
+    if (!result || !violation) {
+      return {
+        valid: false,
+        ok: false,
+        message: response.message || 'Không kiểm tra được regex ở backend.'
+      }
+    }
+    if (violation.status === 'UNVERIFIED') {
+      return {
+        valid: false,
+        ok: false,
+        message: violation.reason || 'Regex không chạy được ở backend.'
+      }
+    }
+
+    const ok = violation.status === 'PASS'
+    return {
+      valid: true,
+      ok,
+      match: violation.actual,
+      message: ok
+        ? 'SQL mẫu không vi phạm rule regex theo backend.'
+        : violation.reason || 'SQL mẫu vi phạm rule regex theo backend.'
+    }
+  }
+
+  const handleTestCustomRegex = async () => {
+    if (customRegexError) {
+      setCustomTestResult({ ok: false, message: customRegexError })
+      return
+    }
+
+    setTestingCustomRule(true)
+    try {
+      const result = await validateCustomRegexRule(
+        buildCustomRegexRule(),
+        customSampleSql
+      )
+      setCustomTestResult(result)
+    } catch {
+      setCustomTestResult({
+        ok: false,
+        message: 'Không kiểm tra được regex ở backend.'
+      })
+    } finally {
+      setTestingCustomRule(false)
+    }
+  }
+
+  const resetCustomForm = () => {
+    setCustomName('Rule regex tùy chỉnh')
+    setCustomPolicyValue('FORBID')
+    setCustomPattern('')
+    setCustomMessage('')
+    setCustomSampleSql('')
+    setCustomTestResult(null)
+  }
+
+  const handleBackToList = () => {
+    setEditingCustomRuleId(null)
+    resetCustomForm()
+    setMode('LIST')
+  }
+
+  const handleStartCreateCustomRule = () => {
+    setEditingCustomRuleId(null)
+    resetCustomForm()
+    setMode('CUSTOM_REGEX')
+  }
+
+  const handleSaveCustomRegex = async () => {
+    if (customRegexError) {
+      setCustomTestResult({ ok: false, message: customRegexError })
+      return
+    }
+
+    const savedRule = buildCustomRegexRule()
+    const name = customParam(savedRule, 'name', 'Rule regex tùy chỉnh')
+
+    setSavingCustomRule(true)
+    try {
+      const validation = await validateCustomRegexRule(
+        savedRule,
+        customSampleSql
+      )
+      if (!validation.valid) {
+        setCustomTestResult(validation)
+        return
+      }
+
+      if (editingCustomRuleId !== null) {
+        await updateRulePreset(editingCustomRuleId, {
+          name,
+          rulesJson: JSON.stringify(savedRule)
+        })
+        setCustomRules((prev) =>
+          prev.map((entry) =>
+            entry.presetId === editingCustomRuleId
+              ? { ...entry, presetName: name, rule: savedRule }
+              : entry
+          )
+        )
+      } else {
+        const response = await createRulePreset({
+          name,
+          questionType,
+          rulesJson: JSON.stringify(savedRule),
+          kind: CUSTOM_RULE_PRESET_KIND
+        })
+        const createdPreset = response.data
+        if (createdPreset) {
+          setCustomRules((prev) => [
+            {
+              presetId: createdPreset.id,
+              presetName: createdPreset.name,
+              rule: savedRule
+            },
+            ...prev
+          ])
+        }
+      }
+      resetCustomForm()
+      setEditingCustomRuleId(null)
+      setSearch('')
+      setMode('LIST')
+      toast.success(
+        editingCustomRuleId !== null
+          ? 'Đã cập nhật rule regex trong thư viện'
+          : 'Đã lưu rule regex vào thư viện'
+      )
+    } catch {
+      toast.error(
+        editingCustomRuleId !== null
+          ? 'Cập nhật rule regex thất bại'
+          : 'Lưu rule regex thất bại'
+      )
+    } finally {
+      setSavingCustomRule(false)
+    }
+  }
+
+  const visibleCount =
+    groupedItems.reduce((total, group) => total + group.items.length, 0) +
+    visibleCustomRules.length
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[calc(100dvh-2rem)] max-h-[760px] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
-        <DialogHeader className="shrink-0 border-b px-5 py-4">
-          <DialogTitle className="text-xl font-bold text-foreground">
-            Thêm quy tắc cách viết
-          </DialogTitle>
-          <DialogDescription className="text-sm font-medium leading-6 text-slate-600 dark:text-slate-300">
-            Chọn đối tượng kiểm tra, cách xử lý, tham số rồi mức điểm — quy tắc
-            chỉ được thêm khi bấm “Thêm quy tắc”.
-          </DialogDescription>
+      <DialogContent className="flex h-[calc(100dvh-2rem)] max-h-[800px] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="shrink-0 border-b border-slate-100 bg-background px-6 py-4">
+          <div className="flex min-w-0 items-start gap-4">
+            {mode === 'CUSTOM_REGEX' && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToList}
+                className="h-9 w-9 shrink-0 rounded-full p-0 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                title="Quay lại"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">
+                {mode === 'CUSTOM_REGEX'
+                  ? 'Tạo rule regex tùy chỉnh'
+                  : 'Thêm quy tắc cách viết'}
+              </DialogTitle>
+              <DialogDescription className="mt-1 max-w-3xl text-sm leading-5 text-slate-500 dark:text-slate-300">
+                {mode === 'CUSTOM_REGEX'
+                  ? 'Kiểm thử pattern bằng SQL mẫu, lưu rule, rồi chọn rule đó trong danh sách.'
+                  : 'Chọn rule có sẵn hoặc tự tạo regex để kiểm soát cách sinh viên viết SQL.'}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 pb-8">
-          <div className="space-y-5">
-            {/* Section 1 — object (feature) */}
-            <section className="space-y-2">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                1. Đối tượng kiểm tra
-              </h5>
-              {activeFeature ? (
-                <button
-                  type="button"
-                  onClick={clearFeature}
-                  className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-muted"
-                >
-                  <ArrowLeft className="h-4 w-4 text-slate-500" />
-                  <span className="font-medium">
-                    {activeFeature.featureLabel}
-                  </span>
-                  <span className="ml-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                    đổi đối tượng khác
-                  </span>
-                </button>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                    <Search className="h-4 w-4 text-slate-500" />
-                    <input
-                      autoFocus
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Tìm đối tượng kiểm tra…"
-                      className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-slate-400"
-                    />
-                  </div>
-                  <div className="max-h-[calc(100dvh-23rem)] min-h-80 overflow-y-auto rounded-md border">
-                    {availableCount === 0 ? (
-                      <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                        Không còn đối tượng phù hợp.
-                      </p>
-                    ) : (
-                      featureGroups.map((group) => (
-                        <div key={group.key} className="py-1">
-                          <div className="px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                            {GROUP_LABELS[group.key] ?? group.key}
-                          </div>
-                          {group.features.map((feature) => {
-                            const actionCount = new Set(
-                              feature.policies.map((p) =>
-                                policyAction(p.policy)
-                              )
-                            ).size
-                            return (
-                              <button
-                                key={feature.featureId}
-                                type="button"
-                                onClick={() => selectFeature(feature.featureId)}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-foreground hover:bg-muted"
-                              >
-                                <span className="flex-1">
-                                  <span className="block font-medium">
-                                    {feature.featureLabel}
-                                  </span>
-                                  <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">
-                                    {actionCount} cách xử lý
-                                  </span>
-                                </span>
-                                <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
-                              </button>
-                            )
-                          })}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </>
-              )}
-            </section>
+        {mode === 'LIST' && (
+          <RuleLibraryToolbar
+            search={search}
+            resultCount={visibleCount}
+            onSearchChange={setSearch}
+            onCreateCustom={handleStartCreateCustomRule}
+          />
+        )}
 
-            {/* Section 2 — Action/Type */}
-            {activeFeature && (
-              <section className="space-y-2">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                  2. Cách xử lý
-                </h5>
-                <div className="grid gap-1.5 sm:grid-cols-3">
-                  {actionGroups.map((group) => {
-                    const selected = group.actionKey === actionKey
-                    // Operator hint shown only when the single option carries a match mode.
-                    const hint =
-                      group.options.length === 1
-                        ? OPERATOR_LABEL[group.options[0].policy]
-                        : undefined
-                    return (
-                      <button
-                        key={group.actionKey}
-                        type="button"
-                        onClick={() => selectAction(group)}
-                        className={cn(
-                          'flex flex-col gap-1 rounded-md border px-3 py-2 text-left text-sm text-foreground hover:bg-muted',
-                          selected
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border'
-                        )}
-                      >
-                        <span className="flex items-center gap-1.5 font-semibold">
-                          {group.actionLabel}
-                          {hint && (
-                            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-300">
-                              {hint}
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                          {ACTION_HINT[group.actionKey]}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-            )}
+        {mode === 'CUSTOM_REGEX' ? (
+          <CustomRegexBuilder
+            customName={customName}
+            customPolicyValue={customPolicyValue}
+            customPattern={customPattern}
+            customMessage={customMessage}
+            customSampleSql={customSampleSql}
+            customRegexError={customRegexError}
+            customTestResult={customTestResult}
+            onNameChange={setCustomName}
+            onPolicyChange={setCustomPolicyValue}
+            onPatternChange={(value) => {
+              setCustomPattern(value)
+              setCustomTestResult(null)
+            }}
+            onMessageChange={setCustomMessage}
+            onSampleSqlChange={setCustomSampleSql}
+            onTest={handleTestCustomRegex}
+            onSave={handleSaveCustomRegex}
+            savingCustomRule={savingCustomRule}
+            testingCustomRule={testingCustomRule}
+          />
+        ) : (
+          <RuleLibrary
+            loadingCustomRules={loadingCustomRules}
+            visibleCustomRules={visibleCustomRules}
+            groupedItems={groupedItems}
+            hasVisibleRules={visibleCount > 0}
+            onPickCustomRule={handlePickCustomRule}
+            onEditCustomRule={handleEditCustomRule}
+            onDeleteCustomRule={handleDeleteCustomRule}
+            onPickCatalogRule={handlePick}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
 
-            {/* Section 2b — scope/match mode (only when an action maps to >1 backend rule) */}
-            {activeActionGroup && activeActionGroup.options.length > 1 && (
-              <section className="space-y-2">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                  Phạm vi áp dụng
-                </h5>
-                <Select
-                  value={draft?.rule_id ?? ''}
-                  onValueChange={selectOperatorByRuleId}
-                >
-                  <SelectTrigger className="h-10 w-full text-left font-semibold text-foreground">
-                    <SelectValue placeholder="Chọn phạm vi kiểm tra" />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    align="start"
-                    sideOffset={4}
-                    className="w-[var(--radix-select-trigger-width)]"
-                  >
-                    {activeActionGroup.options.map((item) => (
-                      <SelectItem key={item.ruleId} value={item.ruleId}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Chọn rule cụ thể trong nhóm “
-                  {activeFeature?.featureLabel ?? 'đối tượng đã chọn'}”.
-                </p>
-              </section>
-            )}
-
-            {/* Section 3-5 — params, penalty/severity, description */}
-            {selectedItem && draft && (
-              <>
-                {/* Resolved backend rule shown as technical reference only. */}
-                <p className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200">
-                  <span
-                    className={cn(
-                      'rounded px-1.5 py-0.5 text-[10px] font-semibold',
-                      POLICY_BADGE_CLASS[selectedItem.policy] ?? ''
-                    )}
-                  >
-                    {selectedItem.policyLabel}
-                  </span>
-                  <span>{selectedItem.description}</span>
-                  <span className="font-mono">({selectedItem.ruleId})</span>
-                </p>
-
-                <section className="space-y-2">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                    3. Tham số
-                  </h5>
-                  {selectedItem.params.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                      Quy tắc này không cần tham số.
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-3">
-                      {selectedItem.params.map((spec) =>
-                        spec.type === 'NUMBER' ? (
-                          <label
-                            key={spec.name}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300"
-                          >
-                            {spec.label}
-                            <Input
-                              type="number"
-                              min={0}
-                              step={1}
-                              value={Number(
-                                draft.params?.[spec.name] ??
-                                  (typeof spec.defaultValue === 'number'
-                                    ? spec.defaultValue
-                                    : 0)
-                              )}
-                              onChange={(e) =>
-                                setParam(spec.name, Number(e.target.value))
-                              }
-                              className="h-8 w-24"
-                            />
-                          </label>
-                        ) : (
-                          <label
-                            key={spec.name}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300"
-                          >
-                            {spec.label}
-                            <Input
-                              type="text"
-                              placeholder="VD: COUNT,SUM"
-                              value={stringListValue(spec.name)}
-                              onChange={(e) =>
-                                setParam(
-                                  spec.name,
-                                  e.target.value
-                                    .split(',')
-                                    .map((token) => token.trim())
-                                    .filter(Boolean)
-                                )
-                              }
-                              className="h-8 w-56"
-                            />
-                          </label>
-                        )
-                      )}
-                    </div>
-                  )}
-                </section>
-
-                <section className="space-y-2">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                    4. Điểm trừ và mức áp dụng
-                  </h5>
-                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    <Select
-                      value={draft.severity}
-                      onValueChange={(v) =>
-                        setDraft(
-                          normalizeWhiteboxRulePenalty(
-                            {
-                              ...draft,
-                              severity: v as WhiteboxSeverity
-                            },
-                            selectedItem
-                          )
-                        )
-                      }
-                    >
-                      <SelectTrigger className="h-8 w-[160px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="WARNING_ONLY">
-                          Chỉ cảnh báo
-                        </SelectItem>
-                        <SelectItem value="DEDUCTION">Trừ điểm</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {draft.severity === 'DEDUCTION' && (
-                      <>
-                        <label className="flex items-center gap-1.5">
-                          Trừ
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.25}
-                            value={draft.penalty_value ?? 0}
-                            onChange={(e) =>
-                              setDraft({
-                                ...draft,
-                                penalty_value: Number(e.target.value)
-                              })
-                            }
-                            className="h-8 w-24"
-                          />
-                        </label>
-                        <Select
-                          value={draft.penalty_unit}
-                          onValueChange={(v) =>
-                            setDraft({
-                              ...draft,
-                              penalty_unit: v as WhiteboxPenaltyUnit
-                            })
-                          }
-                        >
-                          <SelectTrigger className="h-8 w-[110px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ABSOLUTE">điểm</SelectItem>
-                            <SelectItem value="PERCENTAGE_OF_QUESTION">
-                              % câu
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </>
-                    )}
-                  </div>
-                </section>
-
-                <section className="space-y-2">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                    5. Mô tả
-                  </h5>
-                  <Input
-                    type="text"
-                    value={draft.description ?? ''}
-                    onChange={(e) =>
-                      setDraft({ ...draft, description: e.target.value })
-                    }
-                    placeholder={selectedItem.label}
-                    className="h-9"
-                  />
-                </section>
-
-                {draftConflicts.length > 0 && (
-                  <p className="flex items-start gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      Mâu thuẫn với: {draftConflicts.join(', ')} (vẫn cho phép
-                      thêm).
-                    </span>
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+function RuleLibraryToolbar({
+  search,
+  resultCount,
+  onSearchChange,
+  onCreateCustom
+}: {
+  search: string
+  resultCount: number
+  onSearchChange: (value: string) => void
+  onCreateCustom: () => void
+}) {
+  return (
+    <div className="shrink-0 border-b border-slate-100 bg-slate-50/80 px-6 py-4 dark:border-slate-800 dark:bg-slate-950/40">
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_190px]">
+        <div className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 dark:border-slate-700 dark:bg-slate-950">
+          <Search className="h-4 w-4 shrink-0 text-slate-400" />
+          <input
+            autoFocus
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Tìm rule, keyword, nhóm..."
+            className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-slate-400"
+          />
+          <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+            {resultCount}
+          </span>
         </div>
 
-        <DialogFooter className="shrink-0 border-t bg-background px-5 py-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCreateCustom}
+          className="h-10 justify-center gap-2 rounded-lg border-blue-200 bg-blue-50 px-4 font-semibold text-blue-700 shadow-sm hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300"
+        >
+          <Plus className="h-4 w-4" />
+          Regex tùy chỉnh
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function RuleLibrary({
+  loadingCustomRules,
+  visibleCustomRules,
+  groupedItems,
+  hasVisibleRules,
+  onPickCustomRule,
+  onEditCustomRule,
+  onDeleteCustomRule,
+  onPickCatalogRule
+}: {
+  loadingCustomRules: boolean
+  visibleCustomRules: CustomRuleLibraryItem[]
+  groupedItems: Array<{ key: string; items: WhiteboxDisplayRule[] }>
+  hasVisibleRules: boolean
+  onPickCustomRule: (entry: CustomRuleLibraryItem) => void
+  onEditCustomRule: (entry: CustomRuleLibraryItem) => void
+  onDeleteCustomRule: (entry: CustomRuleLibraryItem) => void | Promise<void>
+  onPickCatalogRule: (item: WhiteboxDisplayRule) => void
+}) {
+  if (!hasVisibleRules) {
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-6 py-6 dark:bg-slate-950/40">
+        <p className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-8 text-center text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+          Không còn rule phù hợp để thêm.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-6 py-6 dark:bg-slate-950/40">
+      <div className="space-y-5">
+        {loadingCustomRules && (
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Đang tải thư viện regex tùy chỉnh...
+          </div>
+        )}
+
+        {visibleCustomRules.length > 0 && (
+          <RuleSection
+            title="Regex tùy chỉnh"
+            count={visibleCustomRules.length}
+          >
+            {visibleCustomRules.map((entry) => (
+              <CustomRuleButton
+                key={entry.presetId}
+                entry={entry}
+                onClick={() => onPickCustomRule(entry)}
+                onEdit={() => onEditCustomRule(entry)}
+                onDelete={() => void onDeleteCustomRule(entry)}
+              />
+            ))}
+          </RuleSection>
+        )}
+
+        {groupedItems.map((group) => (
+          <RuleSection
+            key={group.key}
+            title={GROUP_LABELS[group.key] ?? group.key}
+            count={group.items.length}
+          >
+            {group.items.map((item) => (
+              <CatalogRuleButton
+                key={item.key}
+                item={item}
+                onClick={() => onPickCatalogRule(item)}
+              />
+            ))}
+          </RuleSection>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RuleSection({
+  title,
+  count,
+  children
+}: {
+  title: string
+  count: number
+  children: ReactNode
+}) {
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center justify-between px-1">
+        <h5 className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+          {title}
+        </h5>
+        <span className="rounded-md bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 shadow-sm dark:bg-slate-900 dark:text-slate-300">
+          {count}
+        </span>
+      </div>
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        {children}
+      </div>
+    </section>
+  )
+}
+
+function CustomRegexBuilder({
+  customName,
+  customPolicyValue,
+  customPattern,
+  customMessage,
+  customSampleSql,
+  customRegexError,
+  customTestResult,
+  onNameChange,
+  onPolicyChange,
+  onPatternChange,
+  onMessageChange,
+  onSampleSqlChange,
+  onTest,
+  onSave,
+  savingCustomRule,
+  testingCustomRule
+}: {
+  customName: string
+  customPolicyValue: CustomRegexPolicy
+  customPattern: string
+  customMessage: string
+  customSampleSql: string
+  customRegexError: string | null
+  customTestResult: CustomRegexTestResult | null
+  onNameChange: (value: string) => void
+  onPolicyChange: (value: CustomRegexPolicy) => void
+  onPatternChange: (value: string) => void
+  onMessageChange: (value: string) => void
+  onSampleSqlChange: (value: string) => void
+  onTest: () => void
+  onSave: () => void | Promise<void>
+  savingCustomRule: boolean
+  testingCustomRule: boolean
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-50/50 dark:bg-slate-950/40">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <BuilderPanel title="Định nghĩa Rule" accentColor="blue">
+            <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+              <Field label="Tên rule" hint="Tên này sẽ hiển thị trong thư viện">
+                <div className="group flex h-11 items-center rounded-md border border-slate-300 bg-white transition-colors focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:focus-within:border-slate-600 dark:focus-within:ring-slate-800">
+                  <span className="flex h-full shrink-0 items-center border-r border-slate-200 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                    Tên
+                  </span>
+                  <Input
+                    value={customName}
+                    onChange={(event) => onNameChange(event.target.value)}
+                    placeholder="VD: Cấm dùng SELECT *"
+                    className="h-full border-0 bg-transparent px-3 text-sm font-medium shadow-none placeholder:text-slate-400 focus-visible:ring-0"
+                  />
+                </div>
+              </Field>
+
+              <Field label="Loại rule">
+                <PolicySegmentedControl
+                  value={customPolicyValue}
+                  onChange={onPolicyChange}
+                />
+              </Field>
+            </div>
+
+            <Field
+              label="Regex"
+              hint={String.raw`Nhập regex trực tiếp, ví dụ \bselect\b\s*\*`}
+            >
+              <div className="overflow-hidden rounded-md border border-slate-300 bg-white transition-colors focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:focus-within:border-slate-600 dark:focus-within:ring-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/80">
+                  <span className="font-mono text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Pattern
+                  </span>
+                  <span className="rounded bg-white px-2 py-0.5 font-mono text-[10px] text-slate-500 ring-1 ring-slate-200 dark:bg-slate-950 dark:text-slate-400 dark:ring-slate-700">
+                    RegExp
+                  </span>
+                </div>
+                <Textarea
+                  value={customPattern}
+                  onChange={(event) => onPatternChange(event.target.value)}
+                  placeholder={String.raw`\bselect\b\s*\*`}
+                  className="min-h-[96px] resize-y rounded-none border-0 bg-transparent p-3 font-mono text-sm leading-relaxed shadow-none placeholder:text-slate-400 focus-visible:ring-0"
+                />
+              </div>
+              {customRegexError && customPattern.trim() !== '' && (
+                <ValidationMessage ok={false} message={customRegexError} />
+              )}
+            </Field>
+
+            <Field
+              label="Thông báo khi vi phạm"
+              hint="Sinh viên sẽ thấy nội dung này"
+            >
+              <Input
+                value={customMessage}
+                onChange={(event) => onMessageChange(event.target.value)}
+                placeholder="VD: Không được dùng NOLOCK"
+                className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm shadow-sm transition-colors placeholder:text-slate-400 focus-visible:border-slate-300 focus-visible:outline-none focus-visible:ring-0 dark:border-slate-700 dark:bg-slate-900 dark:focus-visible:border-slate-700"
+              />
+            </Field>
+          </BuilderPanel>
+
+          <div className="h-px bg-slate-100 dark:bg-slate-800" />
+
+          <BuilderPanel title="Kiểm thử Regex" accentColor="violet">
+            <Field
+              label="SQL mẫu"
+              hint="Nhập câu SQL để kiểm tra regex có khớp đúng không"
+            >
+              <div className="h-[100px] overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm focus-within:border-slate-300 focus-within:ring-0 dark:border-slate-700 dark:bg-slate-900 dark:focus-within:border-slate-700">
+                <TeacherSqlEditor
+                  value={customSampleSql}
+                  onChange={(value) => onSampleSqlChange(value || '')}
+                  height="100%"
+                  showExpandButton={false}
+                />
+              </div>
+              {customTestResult && (
+                <div className="space-y-2">
+                  <ValidationMessage
+                    ok={customTestResult.ok}
+                    message={customTestResult.message}
+                  />
+                  {customTestResult.match && (
+                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                      Đoạn khớp:{' '}
+                      <code className="font-mono font-semibold">
+                        {customTestResult.match}
+                      </code>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Field>
+          </BuilderPanel>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center justify-between border-t border-slate-200/80 bg-white/80 px-6 py-4 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
+        <p className="hidden text-xs text-slate-400 sm:block">
+          Lưu rule vào thư viện để dùng lại cho nhiều câu hỏi
+        </p>
+        <div className="flex gap-3 sm:ml-auto">
           <Button
             type="button"
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={onTest}
+            disabled={Boolean(customRegexError) || testingCustomRule}
+            className="h-10 gap-2 rounded-lg border-violet-200 px-5 font-semibold text-violet-700 shadow-sm transition-all hover:border-violet-300 hover:bg-violet-50 hover:shadow-md dark:border-violet-900/50 dark:text-violet-300 dark:hover:bg-violet-950/30"
           >
-            Hủy
+            {testingCustomRule ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            Chạy thử
           </Button>
-          <Button type="button" onClick={handleAdd} disabled={!canAdd}>
-            Thêm quy tắc
+          <Button
+            type="button"
+            onClick={() => void onSave()}
+            disabled={
+              Boolean(customRegexError) || savingCustomRule || testingCustomRule
+            }
+            className="h-10 gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-6 font-semibold text-white shadow-md shadow-blue-300/30 transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-300/40 disabled:from-slate-400 disabled:to-slate-400 disabled:shadow-none dark:shadow-none"
+          >
+            {savingCustomRule ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Lưu vào thư viện
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BuilderPanel({
+  icon,
+  title,
+  accentColor = 'blue',
+  children
+}: {
+  icon?: ReactNode
+  title: string
+  accentColor?: 'blue' | 'violet'
+  children: ReactNode
+}) {
+  const iconColors = {
+    blue: 'text-blue-600 dark:text-blue-400',
+    violet: 'text-violet-600 dark:text-violet-400'
+  }
+  return (
+    <section className="p-5 sm:p-6">
+      <div className="mb-4 flex items-center gap-2.5">
+        {icon && <span className={cn(iconColors[accentColor])}>{icon}</span>}
+        <h3 className="text-sm font-bold tracking-wide text-slate-800 dark:text-slate-200">
+          {title}
+        </h3>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  )
+}
+
+function Field({
+  label,
+  hint,
+  children
+}: {
+  label: string
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <div className="block space-y-1.5">
+      <div>
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          {label}
+        </span>
+        {hint && (
+          <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+            {hint}
+          </p>
+        )}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function PolicySegmentedControl({
+  value,
+  onChange
+}: {
+  value: CustomRegexPolicy
+  onChange: (value: CustomRegexPolicy) => void
+}) {
+  return (
+    <div className="grid h-9 grid-cols-2 rounded-md bg-slate-100 p-1 dark:bg-slate-800">
+      {(['FORBID', 'REQUIRE'] as const).map((option) => {
+        const selected = value === option
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            className={cn(
+              'flex items-center justify-center gap-1.5 rounded text-sm font-medium transition-all duration-200',
+              selected && option === 'FORBID'
+                ? 'bg-white text-rose-600 shadow-sm dark:bg-rose-950/60 dark:text-rose-300'
+                : '',
+              selected && option === 'REQUIRE'
+                ? 'bg-white text-emerald-600 shadow-sm dark:bg-emerald-950/60 dark:text-emerald-300'
+                : '',
+              !selected
+                ? 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                : ''
+            )}
+          >
+            {option === 'FORBID' ? 'Cấm' : 'Bắt buộc'}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function ValidationMessage({ ok, message }: { ok?: boolean; message: string }) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-2 rounded-md px-2.5 py-2 text-xs transition-all border',
+        ok
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300'
+          : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300'
+      )}
+    >
+      {ok ? (
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+      ) : (
+        <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
+      )}
+      <span className="font-medium">{message}</span>
+    </div>
+  )
+}
+
+function CustomRuleButton({
+  entry,
+  onClick,
+  onEdit,
+  onDelete
+}: {
+  entry: CustomRuleLibraryItem
+  onClick: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const { rule } = entry
+  const policy = customPolicy(rule)
+  return (
+    <div
+      onClick={onClick}
+      className="flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left text-sm transition-colors last:border-b-0 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 dark:border-slate-800 dark:hover:bg-slate-900/70"
+    >
+      <PolicyBadge policy={policy} />
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-foreground">
+          {customParam(
+            rule,
+            'name',
+            rule.description ?? 'Rule regex tùy chỉnh'
+          )}
+        </span>
+        <span className="mt-1 block truncate font-mono text-xs text-slate-500">
+          {customParam(rule, 'pattern')}
+        </span>
+        <span className="mt-1 block font-mono text-[10px] text-slate-400">
+          {rule.rule_id}
+        </span>
+      </span>
+      <div className="flex items-center gap-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={(event) => {
+            event.stopPropagation()
+            onEdit()
+          }}
+          className="h-8 w-8 shrink-0 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-900"
+          title="Sửa rule"
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={(event) => {
+            event.stopPropagation()
+            onDelete()
+          }}
+          className="h-8 w-8 shrink-0 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+          title="Xóa rule"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+        <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-slate-400" />
+      </div>
+    </div>
+  )
+}
+
+function CatalogRuleButton({
+  item,
+  onClick
+}: {
+  item: WhiteboxDisplayRule
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left text-sm transition-colors last:border-b-0 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 dark:border-slate-800 dark:hover:bg-slate-900/70"
+    >
+      <span
+        className={cn(
+          'mt-0.5 w-20 shrink-0 rounded-md px-2 py-0.5 text-center text-[10px] font-semibold',
+          POLICY_BADGE_CLASS[item.policy] ?? ''
+        )}
+      >
+        {item.policyLabel}
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-foreground">
+          {item.featureLabel}
+        </span>
+        <span className="mt-1 block text-xs leading-5 text-slate-500">
+          {item.description}
+        </span>
+        {item.variants.length > 1 && (
+          <span className="mt-1 block text-[11px] text-slate-500">
+            Tùy chọn: {item.variants.map((variant) => variant.label).join(', ')}
+          </span>
+        )}
+      </span>
+
+      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-slate-400" />
+    </button>
+  )
+}
+
+function PolicyBadge({ policy }: { policy: CustomRegexPolicy }) {
+  return (
+    <span
+      className={cn(
+        'mt-0.5 w-20 shrink-0 rounded-md px-2 py-0.5 text-center text-[10px] font-semibold',
+        policy === 'FORBID'
+          ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+          : 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+      )}
+    >
+      {policy === 'FORBID' ? 'Cấm' : 'Bắt buộc'}
+    </span>
   )
 }

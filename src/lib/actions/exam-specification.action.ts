@@ -220,6 +220,10 @@ export async function testGradeSelectData(
     earnedPoints: number
     totalPoints: number
     allPassed: boolean
+    totalDeductions?: number | null
+    blackboxScore?: number | null
+    whiteboxDeduction?: number | null
+    finalScore?: number | null
     details: { type: string; message: string; points: number }[]
   }>
 > {
@@ -239,6 +243,10 @@ export async function testGradeRoutineData(
     earnedPoints: number
     totalPoints: number
     allPassed: boolean
+    totalDeductions?: number | null
+    blackboxScore?: number | null
+    whiteboxDeduction?: number | null
+    finalScore?: number | null
     details: { type: string; message: string; points: number }[]
   }>
 > {
@@ -258,6 +266,10 @@ export async function testGradeTriggerData(
     earnedPoints: number
     totalPoints: number
     allPassed: boolean
+    totalDeductions?: number | null
+    blackboxScore?: number | null
+    whiteboxDeduction?: number | null
+    finalScore?: number | null
     details: { type: string; message: string; points: number }[]
   }>
 > {

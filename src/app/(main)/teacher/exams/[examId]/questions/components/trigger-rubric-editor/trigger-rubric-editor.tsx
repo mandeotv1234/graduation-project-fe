@@ -144,7 +144,8 @@ function normalizeTriggerPayload(
       : [],
     whitebox_settings:
       payloadRecord.whitebox_settings &&
-      typeof payloadRecord.whitebox_settings === 'object'
+      typeof payloadRecord.whitebox_settings === 'object' &&
+      !Array.isArray(payloadRecord.whitebox_settings)
         ? (payloadRecord.whitebox_settings as WhiteboxSettings)
         : {}
   }
