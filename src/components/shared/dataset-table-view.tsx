@@ -16,6 +16,12 @@ type ParsedTableData = {
   rows: string[][]
 }
 
+function stringifyCellValue(value: unknown) {
+  if (value === null || value === undefined) return 'null'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
 const parseJsonToTablesData = (
   jsonString?: string,
   fallbackSql?: string
@@ -40,7 +46,19 @@ const parseJsonToTablesData = (
     )
 
     if (isParsedTableDataArray) {
-      return data as ParsedTableData[]
+      return data.map((item) => {
+        const rawColumns = item.columns as unknown[]
+        const rawRows = item.rows as unknown[]
+        const columns = rawColumns.map((column) => String(column))
+        return {
+          tableName: String(item.tableName),
+          columns,
+          rows: rawRows.map((row) => {
+            if (!Array.isArray(row)) return columns.map(() => '')
+            return columns.map((_, index) => stringifyCellValue(row[index]))
+          })
+        }
+      })
     }
 
     // Determine tableName from fallbackSql if possible (heuristic for display)
@@ -61,10 +79,7 @@ const parseJsonToTablesData = (
     const columns = Object.keys(firstRow)
     const rows = data.map((item) =>
       columns.map((col) => {
-        const val = item[col]
-        if (val === null || val === undefined) return 'null'
-        if (typeof val === 'object') return JSON.stringify(val)
-        return String(val)
+        return stringifyCellValue(item[col])
       })
     )
 
