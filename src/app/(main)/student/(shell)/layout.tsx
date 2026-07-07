@@ -16,8 +16,8 @@ export default function StudentShellLayout({
       {/* Content - Phần bên phải chứa Header và Main */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <StudentHeader />
-        <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-[1200px]">{children}</div>
+        <main className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="mx-auto w-full max-w-[1200px]">{children}</div>
         </main>
       </div>
     </div>

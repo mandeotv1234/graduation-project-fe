@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
+  ArrowLeft,
   Mail,
   Calendar,
   CheckCircle2,
@@ -10,7 +11,10 @@ import {
   RefreshCw,
   TrendingUp,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ClipboardList,
+  Gauge,
+  ListChecks
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -269,20 +273,63 @@ export function SubmissionDetailView({
     ? detail.totalScore - previousScores.totalScore
     : 0
 
+  const questionCount = detail.totalQuestions || detail.questionResults.length
+  const answeredCount = detail.questionResults.filter((qr) =>
+    qr.studentQuery?.trim()
+  ).length
+  const manualCount = detail.questionResults.filter(
+    (qr) => qr.gradingType === 'MANUAL'
+  ).length
+  const autoCount = questionCount - manualCount
+  const correctPercent =
+    questionCount > 0
+      ? Math.round((detail.correctCount / questionCount) * 100)
+      : 0
+  const scorePercent =
+    detail.maxScore > 0
+      ? Math.min(100, Math.max(0, (detail.totalScore / detail.maxScore) * 100))
+      : 0
+  const normalizedScore =
+    detail.maxScore > 0 ? (detail.totalScore / detail.maxScore) * 10 : 0
+  const scoreTone =
+    normalizedScore >= 8
+      ? styles.scoreHigh
+      : normalizedScore >= 5
+        ? styles.scoreMedium
+        : styles.scoreLow
+
   return (
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.titleSection}>
-          <div>
-            <h1>Chi tiết bài làm</h1>
-            <p>
-              Học sinh: {detail.studentName} · Mã lượt nộp #{submissionId}
-            </p>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={styles.backButton}
+            aria-label="Quay lại danh sách kết quả"
+            onClick={() => router.push(`/teacher/exams/${examId}/results`)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+
+          <div className={styles.titleCopy}>
+            <span className={styles.kicker}>Kết quả bài thi</span>
+            <h1>Bài làm của {detail.studentName}</h1>
+            <div className={styles.titleMeta}>
+              <span>
+                <Mail className="h-3.5 w-3.5" />
+                {detail.studentEmail}
+              </span>
+              <span>
+                <ClipboardList className="h-3.5 w-3.5" />
+                Mã lượt nộp #{submissionId}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className={styles.headerActions}>
           {/* Phase 9: Re-grade button */}
           {canEdit && (
             <AlertDialog>
@@ -429,52 +476,94 @@ export function SubmissionDetailView({
 
       {/* Overview Cards */}
       <div className={styles.overviewCard}>
-        <div className={styles.statItem}>
-          <span className={styles.label}>Học sinh</span>
-          <span className={styles.value}>{detail.studentName}</span>
-          <span className="text-xs text-muted-foreground flex items-center gap-0.5 mt-0.5">
-            <Mail className="h-3 w-3" />
-            {detail.studentEmail}
+        <div className={`${styles.statItem} ${styles.scoreStat}`}>
+          <div className={styles.statLabelRow}>
+            <span className={styles.statIcon}>
+              <Gauge className="h-4 w-4" />
+            </span>
+            <span className={styles.label}>Tổng điểm</span>
+          </div>
+          <div className={styles.scoreRow}>
+            <span className={`${styles.scoreValue} ${scoreTone}`}>
+              {detail.totalScore.toFixed(1)}
+            </span>
+            <span className={styles.scoreMax}>/ {detail.maxScore}</span>
+          </div>
+          <div
+            className={styles.scoreProgress}
+            aria-label={`Đạt ${Math.round(scorePercent)} phần trăm thang điểm`}
+          >
+            <span
+              className={`${styles.scoreProgressFill} ${scoreTone}`}
+              style={{ width: `${scorePercent}%` }}
+            />
+          </div>
+          <span className={styles.statHint}>
+            {Math.round(scorePercent)}% thang điểm
           </span>
         </div>
+
         <div className={styles.statItem}>
-          <span className={styles.label}>Thời gian nộp</span>
+          <div className={styles.statLabelRow}>
+            <span className={styles.statIcon}>
+              <ListChecks className="h-4 w-4" />
+            </span>
+            <span className={styles.label}>Số câu đúng</span>
+          </div>
+          <span className={styles.value}>
+            {detail.correctCount}/{questionCount}
+          </span>
+          <span className={styles.statHint}>
+            {correctPercent}% độ chính xác · {answeredCount}/{questionCount} có
+            bài làm
+          </span>
+        </div>
+
+        <div className={styles.statItem}>
+          <div className={styles.statLabelRow}>
+            <span className={styles.statIcon}>
+              <Calendar className="h-4 w-4" />
+            </span>
+            <span className={styles.label}>Thời gian nộp</span>
+          </div>
           <span className={styles.value}>
             {formatDateTime(detail.submittedAt)}
           </span>
-          <span className="text-xs text-muted-foreground flex items-center gap-0.5 mt-0.5">
-            <Calendar className="h-3 w-3" />
+          <span className={styles.statHint}>
             Lần thi {detail.attemptNumber}
-            {attempts.length > 1 && ` / ${attempts.length}`}
+            {attempts.length > 1 ? ` / ${attempts.length}` : ''}
           </span>
         </div>
-        <div className={styles.statItem}>
-          <span className={styles.label}>Tổng điểm</span>
-          <h2
-            className={`${styles.value} ${detail.totalScore >= 5 ? 'text-green-600' : 'text-red-600'}`}
-          >
-            {detail.totalScore.toFixed(1)} / {detail.maxScore}
-          </h2>
-          <span className="text-xs text-muted-foreground mt-0.5">
-            Đúng {detail.correctCount}/{detail.totalQuestions} câu
-          </span>
-        </div>
+
         {/* Phase 7: grading type in overview */}
         <div className={styles.statItem}>
-          <span className={styles.label}>Phương thức chấm</span>
+          <div className={styles.statLabelRow}>
+            <span className={styles.statIcon}>
+              <ClipboardList className="h-4 w-4" />
+            </span>
+            <span className={styles.label}>Phương thức chấm</span>
+          </div>
           <span className={styles.value}>
             {GRADING_TYPE_LABELS[detail.gradingType] ?? detail.gradingType}
           </span>
-          <span className="text-xs text-muted-foreground mt-0.5">
-            Mã nộp bài #{submissionId}
+          <span className={styles.statHint}>
+            {autoCount} tự động · {manualCount} thủ công
           </span>
         </div>
       </div>
 
       {/* Questions Breakdown */}
-      <h3 className="text-lg font-semibold mb-4 text-slate-700">
-        Chi tiết từng câu hỏi
-      </h3>
+      <div className={styles.sectionHeading}>
+        <div className={styles.sectionHeadingMain}>
+          <span className={styles.kicker}>Danh sách câu hỏi</span>
+          <h2>Chi tiết từng câu hỏi</h2>
+        </div>
+        <div className={styles.sectionBadges}>
+          <span>{questionCount} câu</span>
+          <span>{answeredCount} có bài làm</span>
+          {manualCount > 0 && <span>{manualCount} chấm thủ công</span>}
+        </div>
+      </div>
       <div className={styles.questionList}>
         {detail.questionResults.map((qr, index) => (
           <QuestionCard

@@ -62,6 +62,364 @@ interface ExamTakeInterfaceProps {
   questions: ExamQuestionItem[]
 }
 
+type SchemaOverviewColumn = {
+  name: string
+  type: string
+  primaryKey: boolean
+  nullable: boolean
+  foreignKey: boolean
+  referencesTable: string | null
+  referencesColumn: string | null
+  unique: boolean
+  autoIncrement: boolean
+}
+
+type SchemaOverviewTable = {
+  tableName: string
+  columns: SchemaOverviewColumn[]
+}
+
+type SchemaMeta = Array<{
+  tableName: string
+  columns: Array<{
+    columnName: string
+    dataType: string
+    primaryKey: boolean
+    nullable: boolean
+    foreignKey?: boolean
+    referencesTable?: string | null
+    referencesColumn?: string | null
+    unique?: boolean
+    autoIncrement?: boolean
+  }>
+}>
+
+function normalizeSchemaName(value?: string | null) {
+  return value?.trim().toLowerCase() ?? ''
+}
+
+function buildSchemaMetaFromSpecTables(
+  tables: SpecificationSchemaJsonTable[]
+): SchemaMeta {
+  const tableNames = new Set(
+    tables.map((table) => normalizeSchemaName(table.tableName)).filter(Boolean)
+  )
+
+  return tables.map((table) => {
+    const fkByColumn = new Map<
+      string,
+      { referencesTable: string; referencesColumn: string }
+    >()
+
+    ;(table.foreignKeys || []).forEach((fk) => {
+      fk.sourceColumns.forEach((sourceColumn, index) => {
+        const referencesColumn = fk.targetColumns[index]
+        if (!sourceColumn || !fk.targetTable || !referencesColumn) return
+
+        fkByColumn.set(normalizeSchemaName(sourceColumn), {
+          referencesTable: fk.targetTable,
+          referencesColumn
+        })
+      })
+    })
+
+    table.columns.forEach((column) => {
+      const columnKey = normalizeSchemaName(column.columnName)
+      if (fkByColumn.has(columnKey)) return
+      if (
+        !column.foreignKey ||
+        !column.referencesTable ||
+        !column.referencesColumn
+      ) {
+        return
+      }
+
+      fkByColumn.set(columnKey, {
+        referencesTable: column.referencesTable,
+        referencesColumn: column.referencesColumn
+      })
+    })
+
+    return {
+      tableName: table.tableName,
+      columns: table.columns.map((column) => {
+        const fk = fkByColumn.get(normalizeSchemaName(column.columnName))
+        const isValidForeignKey = Boolean(
+          fk &&
+          normalizeSchemaName(fk.referencesColumn) &&
+          tableNames.has(normalizeSchemaName(fk.referencesTable))
+        )
+
+        return {
+          columnName: column.columnName,
+          dataType: column.dataType,
+          primaryKey: Boolean(column.primaryKey),
+          nullable: column.nullable ?? false,
+          foreignKey: isValidForeignKey,
+          referencesTable: isValidForeignKey ? fk!.referencesTable : null,
+          referencesColumn: isValidForeignKey ? fk!.referencesColumn : null,
+          unique: Boolean(column.unique),
+          autoIncrement: Boolean(column.autoIncrement)
+        }
+      })
+    }
+  })
+}
+
+function mergeSchemaWithSpecConstraints(
+  schema: ExecuteSqlResponse['schema'],
+  specSchema: SchemaMeta | null
+): SchemaMeta | null {
+  if (!schema || schema.length === 0) return specSchema
+  if (!specSchema || specSchema.length === 0) return schema
+
+  const specByTable = new Map(
+    specSchema.map((table) => [normalizeSchemaName(table.tableName), table])
+  )
+
+  return schema.map((table) => {
+    const specTable = specByTable.get(normalizeSchemaName(table.tableName))
+    if (!specTable) return table
+
+    const specColumnsByName = new Map(
+      specTable.columns.map((column) => [
+        normalizeSchemaName(column.columnName),
+        column
+      ])
+    )
+
+    return {
+      tableName: table.tableName,
+      columns: table.columns.map((column) => {
+        const specColumn = specColumnsByName.get(
+          normalizeSchemaName(column.columnName)
+        )
+
+        if (!specColumn) return column
+
+        const hasRuntimeForeignKey = Boolean(
+          column.foreignKey && column.referencesTable && column.referencesColumn
+        )
+
+        return {
+          ...column,
+          foreignKey: hasRuntimeForeignKey
+            ? column.foreignKey
+            : specColumn.foreignKey,
+          referencesTable: hasRuntimeForeignKey
+            ? column.referencesTable
+            : specColumn.referencesTable,
+          referencesColumn: hasRuntimeForeignKey
+            ? column.referencesColumn
+            : specColumn.referencesColumn,
+          unique: (column as { unique?: boolean }).unique ?? specColumn.unique,
+          autoIncrement:
+            (column as { autoIncrement?: boolean }).autoIncrement ??
+            specColumn.autoIncrement
+        }
+      })
+    }
+  })
+}
+
+function getConstraintBadges(col: SchemaOverviewColumn) {
+  const badges: Array<{ label: string; className: string }> = []
+
+  if (col.primaryKey) {
+    badges.push({
+      label: 'PK',
+      className:
+        'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+    })
+  }
+
+  if (col.foreignKey) {
+    badges.push({
+      label: col.referencesTable
+        ? `FK -> ${col.referencesTable}${col.referencesColumn ? `.${col.referencesColumn}` : ''}`
+        : 'FK',
+      className:
+        'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+    })
+  }
+
+  if (col.unique) {
+    badges.push({
+      label: 'UNIQUE',
+      className:
+        'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300'
+    })
+  }
+
+  if (col.autoIncrement) {
+    badges.push({
+      label: 'AUTO',
+      className:
+        'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+    })
+  }
+
+  badges.push(
+    col.nullable
+      ? {
+          label: 'NULL',
+          className: 'border-border bg-muted/50 text-muted-foreground'
+        }
+      : {
+          label: 'NOT NULL',
+          className:
+            'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300'
+        }
+  )
+
+  return badges
+}
+
+function SchemaTablesOverview({
+  tables,
+  compact = false
+}: {
+  tables: SchemaOverviewTable[]
+  compact?: boolean
+}) {
+  if (tables.length === 0) {
+    return (
+      <div className="flex h-28 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 text-xs text-muted-foreground">
+        Chưa có thông tin schema
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn('space-y-3', compact && 'space-y-2')}>
+      {tables.map((table) => {
+        const constrainedColumns = table.columns.filter(
+          (col) =>
+            col.primaryKey ||
+            col.foreignKey ||
+            col.unique ||
+            col.autoIncrement ||
+            !col.nullable
+        ).length
+
+        return (
+          <section
+            key={table.tableName}
+            className="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
+          >
+            <div
+              className={cn(
+                'flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30',
+                compact ? 'px-3 py-2' : 'px-4 py-3'
+              )}
+            >
+              <div className="min-w-0">
+                <h5
+                  className={cn(
+                    'truncate font-semibold text-primary',
+                    compact ? 'text-xs' : 'text-sm'
+                  )}
+                >
+                  {table.tableName}
+                </h5>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {table.columns.length} cột · {constrainedColumns} cột có ràng
+                  buộc
+                </p>
+              </div>
+              <span className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                table
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table
+                className={cn(
+                  'w-full border-collapse',
+                  compact
+                    ? 'min-w-[520px] text-[11px]'
+                    : 'min-w-[640px] text-xs'
+                )}
+              >
+                <thead className="bg-background text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th
+                      className={cn(
+                        'text-left font-semibold',
+                        compact ? 'px-3 py-2' : 'px-4 py-2.5'
+                      )}
+                    >
+                      Cột
+                    </th>
+                    <th
+                      className={cn(
+                        'text-left font-semibold',
+                        compact ? 'px-3 py-2' : 'px-4 py-2.5'
+                      )}
+                    >
+                      Kiểu dữ liệu
+                    </th>
+                    <th
+                      className={cn(
+                        'text-left font-semibold',
+                        compact ? 'px-3 py-2' : 'px-4 py-2.5'
+                      )}
+                    >
+                      Ràng buộc
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {table.columns.map((col) => (
+                    <tr
+                      key={`${table.tableName}-${col.name}`}
+                      className="border-b border-border/50 last:border-b-0 hover:bg-muted/30"
+                    >
+                      <td
+                        className={cn(
+                          'whitespace-nowrap font-medium text-foreground',
+                          compact ? 'px-3 py-2' : 'px-4 py-2.5'
+                        )}
+                      >
+                        {col.name}
+                      </td>
+                      <td
+                        className={cn(
+                          'whitespace-nowrap',
+                          compact ? 'px-3 py-2' : 'px-4 py-2.5'
+                        )}
+                      >
+                        <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+                          {col.type}
+                        </span>
+                      </td>
+                      <td className={cn(compact ? 'px-3 py-2' : 'px-4 py-2.5')}>
+                        <div className="flex flex-wrap gap-1.5">
+                          {getConstraintBadges(col).map((badge) => (
+                            <span
+                              key={`${col.name}-${badge.label}`}
+                              className={cn(
+                                'rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                                badge.className
+                              )}
+                            >
+                              {badge.label}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )
+      })}
+    </div>
+  )
+}
+
 export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   // Always call hooks at the top
   const [sessionStarted, setSessionStarted] = useState(false)
@@ -84,9 +442,14 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   const [layoutMode, setLayoutMode] = useState<'default' | 'split'>('default')
   const [showShortcutHint, setShowShortcutHint] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
-  const schemaTablesForOverview = useMemo(() => {
-    if (schemaMeta && schemaMeta.length > 0) {
-      return schemaMeta.map((table) => ({
+  const [specSchemaMeta, setSpecSchemaMeta] = useState<SchemaMeta | null>(null)
+  const enrichedSchemaMeta = useMemo(
+    () => mergeSchemaWithSpecConstraints(schemaMeta, specSchemaMeta),
+    [schemaMeta, specSchemaMeta]
+  )
+  const schemaTablesForOverview = useMemo<SchemaOverviewTable[]>(() => {
+    if (enrichedSchemaMeta && enrichedSchemaMeta.length > 0) {
+      return enrichedSchemaMeta.map((table) => ({
         tableName: table.tableName,
         columns: table.columns.map((col) => ({
           name: col.columnName,
@@ -122,12 +485,12 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         autoIncrement: false
       }))
     }))
-  }, [editorSchema, schemaMeta])
+  }, [editorSchema, enrichedSchemaMeta])
 
   const schemaDiagramData = useMemo(() => {
     const schemaForDiagram =
-      schemaMeta && schemaMeta.length > 0
-        ? schemaMeta
+      enrichedSchemaMeta && enrichedSchemaMeta.length > 0
+        ? enrichedSchemaMeta
         : schemaTablesForOverview.length > 0
           ? (schemaTablesForOverview.map((table) => ({
               tableName: table.tableName,
@@ -147,7 +510,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
 
     if (!schemaForDiagram || schemaForDiagram.length === 0) return null
     return JSON.stringify(buildInitialSchemaDiagram(schemaForDiagram))
-  }, [schemaMeta, schemaTablesForOverview])
+  }, [enrichedSchemaMeta, schemaTablesForOverview])
 
   const applySchemaMeta = useCallback(
     (
@@ -329,6 +692,9 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         } else if (Array.isArray(rawSchemaJson)) {
           parsedSchemaJson = rawSchemaJson
         }
+
+        const specSchema = buildSchemaMetaFromSpecTables(parsedSchemaJson)
+        setSpecSchemaMeta(specSchema.length > 0 ? specSchema : null)
 
         const tables: SchemaTable[] =
           spec.entities?.length > 0
@@ -676,63 +1042,10 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                   <div className="min-h-0 flex-1 overflow-auto">
                     {specViewMode === 'table' ? (
                       <div className="space-y-2 p-2">
-                        {schemaTablesForOverview.length > 0 ? (
-                          schemaTablesForOverview.map((table) => (
-                            <div
-                              key={table.tableName}
-                              className="overflow-hidden rounded border border-border/70"
-                            >
-                              <div className="border-b border-border bg-muted/30 px-2 py-1.5 text-xs font-semibold text-primary">
-                                {table.tableName}
-                              </div>
-                              <div className="overflow-x-auto">
-                                <table className="min-w-[520px] w-full border-collapse text-xs">
-                                  <thead className="bg-muted/20 text-muted-foreground">
-                                    <tr>
-                                      <th className="border-b border-r border-border px-2 py-1.5 text-left">
-                                        Cột
-                                      </th>
-                                      <th className="border-b border-r border-border px-2 py-1.5 text-left">
-                                        Kiểu
-                                      </th>
-                                      <th className="border-b border-border px-2 py-1.5 text-left">
-                                        Ràng buộc
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {table.columns.map((col) => (
-                                      <tr
-                                        key={`${table.tableName}-${col.name}`}
-                                        className="odd:bg-background even:bg-muted/10"
-                                      >
-                                        <td className="border-r border-border px-2 py-1 font-medium text-foreground whitespace-nowrap">
-                                          {col.name}
-                                        </td>
-                                        <td className="border-r border-border px-2 py-1 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
-                                          {col.type}
-                                        </td>
-                                        <td className="px-2 py-1 text-[10px] text-muted-foreground whitespace-nowrap">
-                                          {[
-                                            col.primaryKey ? 'PK' : null,
-                                            col.foreignKey ? 'FK' : null,
-                                            !col.nullable ? 'NOT NULL' : null
-                                          ]
-                                            .filter(Boolean)
-                                            .join(' · ')}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="flex h-20 items-center justify-center text-xs text-muted-foreground">
-                            Chưa có thông tin schema
-                          </div>
-                        )}
+                        <SchemaTablesOverview
+                          tables={schemaTablesForOverview}
+                          compact
+                        />
 
                         {examSpecification?.datasets?.length ? (
                           <div className="space-y-3 pt-2">
@@ -752,12 +1065,18 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                                   key={`${dataset.id ?? idx}-${dataset.name}`}
                                   className="space-y-2"
                                 >
-                                  <h4 className="text-xs font-semibold text-foreground">
-                                    Dataset: {dataset.name}
-                                  </h4>
+                                  <div>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                      Dataset
+                                    </span>
+                                    <h4 className="text-xs font-semibold text-foreground">
+                                      {dataset.name}
+                                    </h4>
+                                  </div>
                                   <DatasetTableView
                                     sql={dataset.dataScript}
                                     tableData={dataset.tableData}
+                                    variant="exam-spec"
                                   />
                                 </section>
                               ))}
@@ -1082,81 +1401,9 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                                 </p>
                               </div>
                               <ScrollArea className="h-full min-h-0 flex-1 p-3">
-                                <div className="space-y-3">
-                                  {schemaTablesForOverview.length > 0 ? (
-                                    schemaTablesForOverview.map((table) => (
-                                      <div
-                                        key={table.tableName}
-                                        className="overflow-hidden rounded-md border border-border/70"
-                                      >
-                                        <div className="border-b border-border bg-muted/30 px-3 py-2 text-sm font-semibold text-primary">
-                                          {table.tableName}
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                          <table className="min-w-[640px] w-full border-collapse text-xs">
-                                            <thead className="bg-muted/20 text-muted-foreground">
-                                              <tr>
-                                                <th className="border-b border-r border-border px-3 py-2 text-left">
-                                                  Cột
-                                                </th>
-                                                <th className="border-b border-r border-border px-3 py-2 text-left">
-                                                  Kiểu dữ liệu
-                                                </th>
-                                                <th className="border-b border-border px-3 py-2 text-left">
-                                                  Ràng buộc
-                                                </th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {table.columns.map((col) => (
-                                                <tr
-                                                  key={`${table.tableName}-${col.name}`}
-                                                  className="odd:bg-background even:bg-muted/10"
-                                                >
-                                                  <td className="border-r border-border px-3 py-2 font-medium text-foreground whitespace-nowrap">
-                                                    {col.name}
-                                                  </td>
-                                                  <td className="border-r border-border px-3 py-2 font-mono text-muted-foreground whitespace-nowrap">
-                                                    {col.type}
-                                                  </td>
-                                                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                                                    {[
-                                                      col.primaryKey
-                                                        ? 'PK'
-                                                        : null,
-                                                      col.foreignKey
-                                                        ? `FK${
-                                                            col.referencesTable
-                                                              ? ` -> ${col.referencesTable}.${col.referencesColumn || ''}`
-                                                              : ''
-                                                          }`
-                                                        : null,
-                                                      col.unique
-                                                        ? 'UNIQUE'
-                                                        : null,
-                                                      col.autoIncrement
-                                                        ? 'AUTO_INCREMENT'
-                                                        : null,
-                                                      !col.nullable
-                                                        ? 'NOT NULL'
-                                                        : 'NULL'
-                                                    ]
-                                                      .filter(Boolean)
-                                                      .join(' · ')}
-                                                  </td>
-                                                </tr>
-                                              ))}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <div className={styles.emptyStateCenter}>
-                                      Chưa có thông tin schema
-                                    </div>
-                                  )}
-                                </div>
+                                <SchemaTablesOverview
+                                  tables={schemaTablesForOverview}
+                                />
                               </ScrollArea>
                             </>
                           ) : (
@@ -1206,12 +1453,18 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                                       key={`${dataset.id ?? idx}-${dataset.name}`}
                                       className="space-y-2"
                                     >
-                                      <h4 className="text-sm font-semibold text-foreground">
-                                        Dataset: {dataset.name}
-                                      </h4>
+                                      <div>
+                                        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                          Dataset
+                                        </span>
+                                        <h4 className="text-sm font-semibold text-foreground">
+                                          {dataset.name}
+                                        </h4>
+                                      </div>
                                       <DatasetTableView
                                         sql={dataset.dataScript}
                                         tableData={dataset.tableData}
+                                        variant="exam-spec"
                                       />
                                     </section>
                                   ))}

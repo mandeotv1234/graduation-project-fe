@@ -28,7 +28,7 @@ export function AdminHeader() {
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-lg border-b border-border/60">
-      <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 w-full items-center justify-between px-4">
         <Link
           href={PATH.ADMIN_FEEDBACKS}
           className="flex lg:hidden items-center gap-2 text-lg font-semibold tracking-tight text-foreground transition-colors"
