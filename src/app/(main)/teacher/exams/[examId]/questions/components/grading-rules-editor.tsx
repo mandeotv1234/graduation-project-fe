@@ -44,6 +44,8 @@ import {
   RulePreset
 } from '@/lib/types'
 import { SystemPresetList } from './system-preset-list'
+import { CreateTableTreeRubric } from './create-table-tree-rubric'
+import { SelectQueryTreeRubric } from './select-query-tree-rubric'
 
 export type RuleQuestionType = 'CREATE_TABLE' | 'SELECT_QUERY' | 'INSERT_DATA'
 
@@ -86,7 +88,14 @@ const CREATE_TARGET_OPTIONS: Array<{
   ].includes(option.value)
 )
 
-const SELECT_TARGET_OPTIONS = ALL_TARGET_OPTIONS
+// Result-set grading only sees columns, rows, and cells — drop the DDL/structural
+// targets (TABLE, DATA_TYPE, PRIMARY_KEY, FOREIGN_KEY, CONSTRAINT_LOCAL) that the
+// SELECT comparator never emits, so teachers cannot pick a silent no-op rule.
+const SELECT_TARGET_OPTIONS = ALL_TARGET_OPTIONS.filter((option) =>
+  ['COLUMN', 'COLUMN_ORDER', 'ROW', 'CELL_VALUE', 'ROW_ORDER'].includes(
+    option.value
+  )
+)
 
 const SELECT_CONDITION_OPTIONS: Partial<
   Record<
@@ -102,8 +111,7 @@ const SELECT_CONDITION_OPTIONS: Partial<
   COLUMN: [
     { value: 'IS_MISSING', label: 'Bị thiếu' },
     { value: 'IS_EXTRA', label: 'Bị dư thừa' },
-    { value: 'NOT_EQUAL', label: 'Không khớp đáp án' },
-    { value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }
+    { value: 'NOT_EQUAL', label: 'Không khớp đáp án' }
   ],
   DATA_TYPE: [
     { value: 'TYPE_MISMATCH', label: 'Sai kiểu dữ liệu' },
@@ -132,9 +140,7 @@ const SELECT_CONDITION_OPTIONS: Partial<
   ],
   CELL_VALUE: [
     { value: 'NOT_EQUAL', label: 'Sai giá trị' },
-    { value: 'IS_NULL', label: 'Giá trị rỗng' },
-    { value: 'TYPE_MISMATCH', label: 'Sai kiểu dữ liệu' },
-    { value: 'LENGTH_MISMATCH', label: 'Sai độ dài' }
+    { value: 'IS_NULL', label: 'Giá trị rỗng' }
   ],
   ROW_ORDER: [{ value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }],
   // White-box QUERY rules are configured via the dedicated white-box card, not this modal.
@@ -1307,107 +1313,152 @@ export function GradingRulesEditor({
 
   return (
     <div className="rounded-lg bg-card space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
-          Quy tắc chấm điểm nâng cao
-          <Badge
-            variant="secondary"
-            className="rounded-full px-2.5 py-0.5 text-xs"
-          >
-            {normalizedRules.length}
-          </Badge>
-        </h4>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              loadPresets()
-              setIsPresetModalOpen(true)
-            }}
-            className="h-9 px-4 text-sm whitespace-nowrap"
-          >
-            <FileText className="h-4 w-4 mr-1.5" />
-            Mẫu quy tắc
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={openAddModal}
-            className="h-9 px-4 text-sm whitespace-nowrap"
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Thêm quy tắc
-          </Button>
-        </div>
-      </div>
-
-      {normalizedRules.length === 0 && (
-        <div className="rounded-md border border-dashed border-border bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
-          Chưa có quy tắc nâng cao. Bạn có thể thêm thủ công hoặc dùng AI trong
-          modal.
-        </div>
+      {questionType === 'CREATE_TABLE' && (
+        <CreateTableTreeRubric
+          rules={normalizedRules}
+          onChange={onChange}
+          headerAction={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                loadPresets()
+                setIsPresetModalOpen(true)
+              }}
+              className="h-9 px-4 text-sm whitespace-nowrap bg-background"
+            >
+              <FileText className="h-4 w-4 mr-1.5" />
+              Mẫu quy tắc
+            </Button>
+          }
+        />
       )}
 
-      <div
-        className={`space-y-3 ${
-          shouldScrollRules ? 'max-h-[30rem] overflow-y-auto pr-1' : ''
-        }`}
-      >
-        {normalizedRules.map((rule, idx) => {
-          const title = isDescriptionOnlySpecialRule(rule)
-            ? `Rule đặc biệt #${idx + 1}`
-            : rule.rule_name || buildRuleName(idx)
-
-          return (
-            <div
-              key={`${rule.rule_name || 'special'}-${idx}`}
-              className="rounded-md border border-border bg-sub-background p-3"
+      {questionType === 'SELECT_QUERY' && (
+        <SelectQueryTreeRubric
+          rules={normalizedRules}
+          onChange={onChange}
+          headerAction={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                loadPresets()
+                setIsPresetModalOpen(true)
+              }}
+              className="h-9 px-4 text-sm whitespace-nowrap bg-background"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-sub-primary">
-                    {title}
-                  </p>
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {buildRuleSummary(rule, questionType)}
-                  </p>
-                  {!isDescriptionOnlySpecialRule(rule) && (
-                    <p className="text-xs text-muted-foreground">
-                      Hành động: {getActionLabel(rule.action)}
-                    </p>
-                  )}
-                </div>
+              <FileText className="h-4 w-4 mr-1.5" />
+              Mẫu quy tắc
+            </Button>
+          }
+        />
+      )}
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-2.5"
-                    onClick={() => openEditModal(idx)}
-                  >
-                    <Pencil className="h-3.5 w-3.5 mr-1" />
-                    Sửa
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2.5 text-destructive hover:text-destructive"
-                    onClick={() => removeRuleAt(idx)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />
-                    Xóa
-                  </Button>
-                </div>
-              </div>
+      {questionType !== 'CREATE_TABLE' && questionType !== 'SELECT_QUERY' && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
+              Quy tắc chấm điểm nâng cao
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2.5 py-0.5 text-xs"
+              >
+                {normalizedRules.length}
+              </Badge>
+            </h4>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  loadPresets()
+                  setIsPresetModalOpen(true)
+                }}
+                className="h-9 px-4 text-sm font-semibold whitespace-nowrap"
+              >
+                Mẫu quy tắc
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={openAddModal}
+                className="h-9 px-4 text-sm whitespace-nowrap"
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                Thêm quy tắc
+              </Button>
             </div>
-          )
-        })}
-      </div>
+          </div>
+
+          {normalizedRules.length === 0 && (
+            <div className="rounded-md border border-dashed border-border bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
+              Chưa có quy tắc nâng cao. Bạn có thể thêm thủ công hoặc dùng AI
+              trong modal.
+            </div>
+          )}
+
+          <div
+            className={`space-y-3 ${shouldScrollRules ? 'max-h-[30rem] overflow-y-auto pr-1' : ''}`}
+          >
+            {normalizedRules.map((rule, idx) => {
+              const title = isDescriptionOnlySpecialRule(rule)
+                ? `Rule đặc biệt #${idx + 1}`
+                : rule.rule_name || buildRuleName(idx)
+
+              return (
+                <div
+                  key={`${rule.rule_name || 'special'}-${idx}`}
+                  className="rounded-md border border-border bg-sub-background p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-sub-primary">
+                        {title}
+                      </p>
+                      <p className="text-sm text-foreground leading-relaxed">
+                        {buildRuleSummary(rule, questionType)}
+                      </p>
+                      {!isDescriptionOnlySpecialRule(rule) && (
+                        <p className="text-xs text-muted-foreground">
+                          Hành động: {getActionLabel(rule.action)}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2.5"
+                        onClick={() => openEditModal(idx)}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                        Sửa
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2.5 text-destructive hover:text-destructive"
+                        onClick={() => removeRuleAt(idx)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Xóa
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[calc(100dvh-2rem)] overflow-hidden p-0 gap-0 flex flex-col">
