@@ -84,6 +84,63 @@ const QUESTION_TYPE_COLORS: Record<string, string> = {
   STORED_PROCEDURE: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
 }
 
+type EditStepItem = {
+  step: number
+  label: string
+}
+
+const RESULT_RULE_EDIT_STEPS: EditStepItem[] = [
+  { step: 1, label: '1. Nội dung & đáp án' },
+  { step: 2, label: '2. Cấu hình kỳ vọng' },
+  { step: 3, label: '3. Kiểm tra kết quả' },
+  { step: 4, label: '4. Quy tắc cách viết' },
+  { step: 5, label: '5. Hoàn tất' }
+]
+
+const ROUTINE_EDIT_STEPS: EditStepItem[] = [
+  { step: 1, label: '1. Nội dung & đáp án' },
+  { step: 2, label: '2. Test cases' },
+  { step: 3, label: '3. Rubric chấm điểm' },
+  { step: 4, label: '4. Quy tắc cách viết' },
+  { step: 5, label: '5. Hoàn tất' }
+]
+
+const TRIGGER_EDIT_STEPS: EditStepItem[] = [
+  { step: 1, label: '1. Nội dung & đáp án' },
+  { step: 2, label: '2. Cấu hình kỳ vọng' },
+  { step: 3, label: '3. Quy tắc cách viết' },
+  { step: 4, label: '4. Hoàn tất' }
+]
+
+function EditStepButtons({
+  items,
+  activeStep,
+  onStepChange
+}: {
+  items: EditStepItem[]
+  activeStep: number
+  onStepChange: (step: number) => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-sm">
+      {items.map((item) => (
+        <button
+          key={item.step}
+          type="button"
+          onClick={() => onStepChange(item.step)}
+          className={`min-h-10 px-4 py-2 rounded-md font-semibold transition-colors ${
+            activeStep === item.step
+              ? 'bg-blue-500 text-white'
+              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+          }`}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function buildRoutineSchemaContext(
   tables: SpecificationSchemaJsonTable[],
   specification?: ExamSpecification | SpecificationDetailResponse | null
@@ -756,7 +813,21 @@ export function QuestionItem({
           {(editForm.questionType === 'CREATE_TABLE' ||
             editForm.questionType === 'INSERT_DATA' ||
             editForm.questionType === 'SELECT_QUERY') && (
-            <div className="rounded-lg space-y-4">
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 space-y-4">
+              <h4 className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
+                <Sparkles className="h-4 w-4" /> Cấu hình rubric{' '}
+                {editForm.questionType === 'CREATE_TABLE'
+                  ? 'CREATE TABLE'
+                  : editForm.questionType === 'INSERT_DATA'
+                    ? 'INSERT DATA'
+                    : 'SELECT'}
+              </h4>
+              <EditStepButtons
+                items={RESULT_RULE_EDIT_STEPS}
+                activeStep={editWizardStep}
+                onStepChange={setEditWizardStep}
+              />
+
               {editForm.questionType === 'CREATE_TABLE' && (
                 <CreateTableRubricEditor
                   examId={examId}
@@ -770,6 +841,8 @@ export function QuestionItem({
                   }
                   correctQuery={editForm.correctQuery}
                   questionContent={editForm.content}
+                  wizardStep={editWizardStep}
+                  onRequestWizardStep={setEditWizardStep}
                 />
               )}
               {editForm.questionType === 'INSERT_DATA' && (
@@ -785,6 +858,7 @@ export function QuestionItem({
                   }
                   correctQuery={editForm.correctQuery}
                   questionContent={editForm.content}
+                  wizardStep={editWizardStep}
                 />
               )}
               {editForm.questionType === 'SELECT_QUERY' && (
@@ -819,16 +893,16 @@ export function QuestionItem({
                       value: String(q.id),
                       label: `#${q.orderIndex} - Câu đã lưu`
                     }))}
+                  wizardStep={editWizardStep}
                 />
               )}
 
-              {/* Vùng chấm thử — MAIN SECTION */}
-              {editForm.rubricData && (
-                <div className="mt-5 rounded-lg border border-amber-500/20 bg-amber-500/3 p-4 space-y-3">
+              {editWizardStep === 5 && editForm.rubricData && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
                   <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
-                    <Play className="h-4 w-4" /> Vùng chấm thử
+                    <Play className="h-4 w-4" /> Kiểm tra chấm điểm với câu truy
+                    vấn
                   </h4>
-
                   {editForm.questionType === 'CREATE_TABLE' && (
                     <RubricTestGrader
                       rubric={editForm.rubricData}
@@ -864,29 +938,11 @@ export function QuestionItem({
                 <Sparkles className="h-4 w-4" /> Cấu hình rubric
                 FUNCTION/PROCEDURE
               </h4>
-              {/* Step indicator */}
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                {[
-                  { step: 1, label: '1. Nội dung' },
-                  { step: 2, label: '2. Test cases' },
-                  { step: 3, label: '3. Rubric' },
-                  { step: 4, label: '4. Quy tắc cách viết' },
-                  { step: 5, label: '5. Kiểm thử' }
-                ].map((item) => (
-                  <button
-                    key={item.step}
-                    type="button"
-                    onClick={() => setEditWizardStep(item.step)}
-                    className={`min-h-10 px-4 py-2 rounded-md font-semibold transition-colors ${
-                      editWizardStep === item.step
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+              <EditStepButtons
+                items={ROUTINE_EDIT_STEPS}
+                activeStep={editWizardStep}
+                onStepChange={setEditWizardStep}
+              />
               <RoutineRubricEditor
                 questionType={
                   editForm.questionType === 'STORED_PROCEDURE'
@@ -907,7 +963,8 @@ export function QuestionItem({
               {editWizardStep === 5 && (
                 <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
                   <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
-                    <Play className="h-4 w-4" /> Kiểm thử rubric
+                    <Play className="h-4 w-4" /> Kiểm tra chấm điểm với câu truy
+                    vấn
                   </h4>
                   <RoutineTestGrader
                     examId={examId}
@@ -925,28 +982,11 @@ export function QuestionItem({
               <h4 className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
                 <Sparkles className="h-4 w-4" /> Cấu hình rubric TRIGGER
               </h4>
-              {/* Step indicator */}
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                {[
-                  { step: 1, label: '1. Nội dung' },
-                  { step: 2, label: '2. Test cases' },
-                  { step: 3, label: '3. Quy tắc cách viết' },
-                  { step: 4, label: '4. Kiểm thử' }
-                ].map((item) => (
-                  <button
-                    key={item.step}
-                    type="button"
-                    onClick={() => setEditWizardStep(item.step)}
-                    className={`min-h-10 px-4 py-2 rounded-md font-semibold transition-colors ${
-                      editWizardStep === item.step
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+              <EditStepButtons
+                items={TRIGGER_EDIT_STEPS}
+                activeStep={editWizardStep}
+                onStepChange={setEditWizardStep}
+              />
               <TriggerRubricEditor
                 totalPoints={editForm.points}
                 rubric={editForm.rubricData}
@@ -961,7 +1001,8 @@ export function QuestionItem({
               {editWizardStep === 4 && (
                 <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
                   <h4 className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400">
-                    <Play className="h-4 w-4" /> Kiểm thử rubric
+                    <Play className="h-4 w-4" /> Kiểm tra chấm điểm với câu truy
+                    vấn
                   </h4>
                   <TriggerTestGrader
                     examId={examId}
