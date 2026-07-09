@@ -45,6 +45,7 @@ import {
 } from '@/lib/types'
 import { SystemPresetList } from './system-preset-list'
 import { CreateTableTreeRubric } from './create-table-tree-rubric'
+import { InsertDataTreeRubric } from './insert-data-tree-rubric'
 import { SelectQueryTreeRubric } from './select-query-tree-rubric'
 
 export type RuleQuestionType = 'CREATE_TABLE' | 'SELECT_QUERY' | 'INSERT_DATA'
@@ -1357,7 +1358,31 @@ export function GradingRulesEditor({
         />
       )}
 
-      {questionType !== 'CREATE_TABLE' && questionType !== 'SELECT_QUERY' && (
+      {questionType === 'INSERT_DATA' && (
+        <InsertDataTreeRubric
+          rules={normalizedRules}
+          onChange={onChange}
+          headerAction={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                loadPresets()
+                setIsPresetModalOpen(true)
+              }}
+              className="h-9 px-4 text-sm whitespace-nowrap bg-background"
+            >
+              <FileText className="h-4 w-4 mr-1.5" />
+              Mẫu quy tắc
+            </Button>
+          }
+        />
+      )}
+
+      {!['CREATE_TABLE', 'SELECT_QUERY', 'INSERT_DATA'].includes(
+        questionType
+      ) && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h4 className="text-base font-semibold text-foreground flex items-center gap-2">
