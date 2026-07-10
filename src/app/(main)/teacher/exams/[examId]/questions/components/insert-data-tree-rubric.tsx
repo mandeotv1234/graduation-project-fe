@@ -2,9 +2,17 @@
 
 import { useMemo, type ReactNode } from 'react'
 
-import { InsertDataGradingRule } from '@/lib/types'
+import {
+  GradingRuleModifier,
+  GradingRuleTarget,
+  InsertDataGradingRule
+} from '@/lib/types'
 
-import { CreateTableTreeRubric, GroupConfig } from './create-table-tree-rubric'
+import {
+  CreateTableTreeRubric,
+  GroupConfig,
+  RuleModifierOption
+} from './create-table-tree-rubric'
 
 // INSERT DATA uses the same compact tree editor as CREATE TABLE and SELECT,
 // with only the result checks that InsertDataQuestionGrader actually emits.
@@ -64,8 +72,50 @@ export const INSERT_DATA_TREE_CONFIG: GroupConfig[] = [
         defaultPenalty: 5
       }
     ]
+  },
+  {
+    id: 'group_reference',
+    label: 'RÀNG BUỘC THAM CHIẾU',
+    nodes: [
+      {
+        id: 'fk_reference_error',
+        label: 'Lỗi khóa ngoại / tham chiếu',
+        microcopy:
+          'Bài làm vi phạm khóa ngoại hoặc ràng buộc khi INSERT; dùng cho trường hợp hệ thống phải chạy lại theo fallback.',
+        target: 'FOREIGN_KEY',
+        condition: 'REFERENCE_ERROR',
+        defaultPenalty: 10,
+        isOptional: true
+      }
+    ]
   }
 ]
+
+const INSERT_DATA_MODIFIER_OPTIONS: Partial<
+  Record<GradingRuleTarget, RuleModifierOption[]>
+> = {
+  ROW: [{ value: 'SORT_ASC', label: 'Sắp xếp tăng dần trước khi so khớp' }],
+  CELL_VALUE: [
+    { value: 'TO_LOWERCASE', label: 'Bỏ qua hoa/thường' },
+    { value: 'TRIM_WHITESPACE', label: 'Xóa khoảng trắng đầu/cuối' },
+    { value: 'REMOVE_ALL_WHITESPACE', label: 'Xóa toàn bộ khoảng trắng' },
+    { value: 'REMOVE_DIACRITICS', label: 'Bỏ qua dấu tiếng Việt' },
+    { value: 'REMOVE_SPECIAL_CHARS', label: 'Xóa ký tự đặc biệt' },
+    { value: 'CAST_TO_STRING', label: 'Ép kiểu về chuỗi' },
+    { value: 'CAST_TO_FLOAT', label: 'Ép kiểu về số thực' },
+    { value: 'ROUND_TO_INT', label: 'Làm tròn về số nguyên' },
+    { value: 'ROUND_2_DECIMALS', label: 'Làm tròn 2 chữ số thập phân' }
+  ],
+  ROW_ORDER: [
+    { value: 'SORT_ASC', label: 'Sắp xếp tăng dần trước khi so khớp' }
+  ]
+}
+
+const VALID_INSERT_MODIFIERS = new Set<GradingRuleModifier>(
+  Object.values(INSERT_DATA_MODIFIER_OPTIONS)
+    .flat()
+    .map((option) => option.value)
+)
 
 interface InsertDataTreeRubricProps {
   rules: InsertDataGradingRule[]
@@ -84,15 +134,24 @@ export function InsertDataTreeRubric({
   const canonicalRules = useMemo(() => {
     const seen = new Set<string>()
 
-    return rules.filter((rule) => {
-      if (!rule.target || !rule.condition) return true
+    return rules
+      .filter((rule) => {
+        if (!rule.target || !rule.condition) return true
 
-      const key = `${rule.target}|${rule.condition}`
-      if (seen.has(key)) return false
+        const key = `${rule.target}|${rule.condition}`
+        if (seen.has(key)) return false
 
-      seen.add(key)
-      return true
-    })
+        seen.add(key)
+        return true
+      })
+      .map((rule) => ({
+        ...rule,
+        modifiers: Array.isArray(rule.modifiers)
+          ? rule.modifiers.filter((modifier) =>
+              VALID_INSERT_MODIFIERS.has(modifier)
+            )
+          : []
+      }))
   }, [rules])
 
   return (
@@ -101,6 +160,7 @@ export function InsertDataTreeRubric({
       onChange={onChange}
       headerAction={headerAction}
       config={INSERT_DATA_TREE_CONFIG}
+      modifierOptions={INSERT_DATA_MODIFIER_OPTIONS}
     />
   )
 }
