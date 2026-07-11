@@ -32,24 +32,36 @@ export function GlobalSearch() {
   const [query, setQuery] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [results, setResults] = React.useState<GlobalSearchResult | null>(null)
+  const requestSeqRef = React.useRef(0)
 
   React.useEffect(() => {
-    if (!query || query.trim().length === 0) {
+    const trimmedQuery = query.trim()
+    const requestSeq = ++requestSeqRef.current
+
+    if (trimmedQuery.length === 0) {
       setResults(null)
+      setLoading(false)
       return
     }
 
     const timer = setTimeout(async () => {
       setLoading(true)
       try {
-        const res = await globalSearch(query)
-        if (res.data) {
-          setResults(res.data)
+        const res = await globalSearch(trimmedQuery)
+        if (requestSeqRef.current !== requestSeq) {
+          return
         }
+        setResults(res.data ?? null)
       } catch (error) {
+        if (requestSeqRef.current !== requestSeq) {
+          return
+        }
         console.error('Search error:', error)
+        setResults(null)
       } finally {
-        setLoading(false)
+        if (requestSeqRef.current === requestSeq) {
+          setLoading(false)
+        }
       }
     }, 300)
 
@@ -78,12 +90,13 @@ export function GlobalSearch() {
             placeholder="Tìm kiếm lớp học, bài thi, sinh viên..."
             value={query}
             onChange={(e) => {
-              setQuery(e.target.value)
-              if (e.target.value.length > 0) setOpen(true)
+              const nextQuery = e.target.value
+              setQuery(nextQuery)
+              if (nextQuery.trim().length > 0) setOpen(true)
               else setOpen(false)
             }}
             onFocus={(e) => {
-              if (e.target.value.length > 0) setOpen(true)
+              if (e.target.value.trim().length > 0) setOpen(true)
             }}
             className="w-full h-9 pl-9 bg-surface-container/50 focus-visible:ring-1 focus-visible:border-border focus-visible:bg-surface-container-lowest rounded-full transition-all shadow-none border-none"
           />
@@ -103,7 +116,7 @@ export function GlobalSearch() {
               </div>
             )}
 
-            {!loading && query.length > 0 && !hasResults && (
+            {!loading && query.trim().length > 0 && !hasResults && (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 Không tìm thấy kết quả nào.
               </div>
