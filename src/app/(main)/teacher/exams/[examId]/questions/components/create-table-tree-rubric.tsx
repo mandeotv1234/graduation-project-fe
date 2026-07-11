@@ -26,6 +26,7 @@ import {
 import {
   GradingRuleAction,
   GradingRuleCondition,
+  GradingRuleModifier,
   GradingRuleTarget,
   InsertDataGradingRule
 } from '@/lib/types'
@@ -50,6 +51,7 @@ interface CreateTableTreeRubricProps {
   // Atomic-rule catalog to render. Defaults to the CREATE TABLE taxonomy; other question types
   // (e.g. SELECT) pass their own catalog to reuse the identical tree UI.
   config?: GroupConfig[]
+  modifierOptions?: Partial<Record<GradingRuleTarget, RuleModifierOption[]>>
 }
 
 export type RuleNodeConfig = {
@@ -67,6 +69,11 @@ export type GroupConfig = {
   id: string
   label: string
   nodes: RuleNodeConfig[]
+}
+
+export type RuleModifierOption = {
+  value: GradingRuleModifier
+  label: string
 }
 
 const TREE_CONFIG: GroupConfig[] = [
@@ -302,7 +309,8 @@ export function CreateTableTreeRubric({
   rules,
   onChange,
   headerAction,
-  config = TREE_CONFIG
+  config = TREE_CONFIG,
+  modifierOptions = {}
 }: CreateTableTreeRubricProps) {
   const rulesMap = useMemo(() => {
     const map = new Map<string, InsertDataGradingRule>()
@@ -356,7 +364,8 @@ export function CreateTableTreeRubric({
     condition: GradingRuleCondition,
     action: GradingRuleAction | 'IGNORE',
     penaltyValue: number,
-    label: string
+    label: string,
+    modifiers?: GradingRuleModifier[]
   ) => {
     const nextRules = [...rules]
 
@@ -365,17 +374,20 @@ export function CreateTableTreeRubric({
       c: GradingRuleCondition,
       a: GradingRuleAction | 'IGNORE',
       p: number,
-      l: string
+      l: string,
+      m?: GradingRuleModifier[]
     ) => {
       const existIdx = nextRules.findIndex(
         (r) => r.target === t && r.condition === c
       )
+      const nextModifiers = a === 'IGNORE' ? [] : m
       if (existIdx >= 0) {
         nextRules[existIdx] = {
           ...nextRules[existIdx],
           action: a as GradingRuleAction,
           penalty_value: p,
-          rule_name: nextRules[existIdx].rule_name || l
+          rule_name: nextRules[existIdx].rule_name || l,
+          ...(nextModifiers !== undefined ? { modifiers: nextModifiers } : {})
         }
       } else {
         nextRules.push({
@@ -384,12 +396,12 @@ export function CreateTableTreeRubric({
           condition: c,
           action: a as GradingRuleAction,
           penalty_value: p,
-          modifiers: []
+          modifiers: nextModifiers ?? []
         })
       }
     }
 
-    applyToRule(target, condition, action, penaltyValue, label)
+    applyToRule(target, condition, action, penaltyValue, label, modifiers)
 
     const nodesToIgnore = [`${target}|${condition}`]
 
@@ -408,7 +420,8 @@ export function CreateTableTreeRubric({
               childNode.condition,
               'IGNORE',
               0,
-              childNode.label
+              childNode.label,
+              []
             )
             nodesToIgnore.push(`${childNode.target}|${childNode.condition}`)
             i++
@@ -708,6 +721,12 @@ export function CreateTableTreeRubric({
                                   ].includes(rule.action as string) &&
                                     rule.action}
                                 </span>
+                                {Array.isArray(rule.modifiers) &&
+                                  rule.modifiers.length > 0 && (
+                                    <span className="inline-flex items-center justify-center rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                      {rule.modifiers.length} châm chước
+                                    </span>
+                                  )}
                               </div>
                             ) : (
                               <div className="flex flex-col items-end gap-1">
@@ -722,13 +741,17 @@ export function CreateTableTreeRubric({
                                 rule={rule}
                                 nodeLabel={node.label}
                                 defaultPenalty={node.defaultPenalty}
-                                onSave={(action, penaltyVal) =>
+                                modifierOptions={
+                                  modifierOptions[node.target] ?? []
+                                }
+                                onSave={(action, penaltyVal, modifiers) =>
                                   handleUpdateRule(
                                     node.target,
                                     node.condition,
                                     action,
                                     penaltyVal,
-                                    node.label
+                                    node.label,
+                                    modifiers
                                   )
                                 }
                                 onDelete={() =>
@@ -773,13 +796,19 @@ function RuleEditorModal({
   rule,
   nodeLabel,
   defaultPenalty,
+  modifierOptions = [],
   onSave,
   onDelete
 }: {
   rule?: InsertDataGradingRule
   nodeLabel: string
   defaultPenalty: number
-  onSave: (action: GradingRuleAction, penalty: number) => void
+  modifierOptions?: RuleModifierOption[]
+  onSave: (
+    action: GradingRuleAction,
+    penalty: number,
+    modifiers?: GradingRuleModifier[]
+  ) => void
   onDelete: () => void
 }) {
   const [open, setOpen] = useState(false)
@@ -789,12 +818,23 @@ function RuleEditorModal({
   const [penalty, setPenalty] = useState<number>(
     rule?.penalty_value ?? defaultPenalty
   )
+  const [selectedModifiers, setSelectedModifiers] = useState<
+    GradingRuleModifier[]
+  >([])
+
+  const normalizeModifiers = (values?: GradingRuleModifier[]) => {
+    const allowed = new Set(modifierOptions.map((item) => item.value))
+    return Array.isArray(values)
+      ? values.filter((item) => allowed.has(item))
+      : []
+  }
 
   // Reset state when opening based on current rule
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
       setAction(rule?.action || 'DEDUCT_PERCENTAGE')
       setPenalty(rule?.penalty_value ?? defaultPenalty)
+      setSelectedModifiers(normalizeModifiers(rule?.modifiers))
     }
     setOpen(newOpen)
   }
@@ -806,11 +846,23 @@ function RuleEditorModal({
       action === 'FAIL_ALL' ||
       action === 'FAIL_ITEM'
     ) {
-      onSave(action as GradingRuleAction, penalty)
+      onSave(
+        action as GradingRuleAction,
+        penalty,
+        modifierOptions.length > 0 ? selectedModifiers : undefined
+      )
     } else {
       onDelete()
     }
     setOpen(false)
+  }
+
+  const toggleModifier = (modifier: GradingRuleModifier) => {
+    setSelectedModifiers((prev) =>
+      prev.includes(modifier)
+        ? prev.filter((item) => item !== modifier)
+        : [...prev, modifier]
+    )
   }
 
   const needsInput =
@@ -878,6 +930,30 @@ function RuleEditorModal({
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
                   {action === 'DEDUCT_PERCENTAGE' ? '%' : 'đ'}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {modifierOptions.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">
+                Bộ tiền xử lý / châm chước
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {modifierOptions.map((option) => (
+                  <label
+                    key={option.value}
+                    className="inline-flex items-center gap-2 rounded border border-border bg-card px-2.5 py-1.5 text-xs"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedModifiers.includes(option.value)}
+                      onChange={() => toggleModifier(option.value)}
+                      className="h-3.5 w-3.5 rounded border-border accent-sub-primary"
+                    />
+                    {option.label}
+                  </label>
+                ))}
               </div>
             </div>
           )}
