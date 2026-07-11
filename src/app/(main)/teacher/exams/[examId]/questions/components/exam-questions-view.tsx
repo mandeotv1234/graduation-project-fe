@@ -68,8 +68,7 @@ import {
 } from './insert-data-question-generator'
 import { RoutineRubricEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/routine-rubric-editor/routine-rubric-editor'
 import { TriggerRubricEditor } from '@/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor'
-import { CreateTableQueryFromSpec } from './create-table-query-from-spec'
-import { InsertQueryFromSpec } from './insert-query-from-spec'
+
 import { RubricTestGrader } from './rubric-test-grader'
 import { SelectQueryTestGrader } from './select-query-test-grader'
 import { TeacherSqlEditor } from './teacher-sql-editor'
@@ -415,7 +414,8 @@ export function ExamQuestionsView({
     const generated = generateCreateTableQuestionFromSchema(
       availableSchemaTables,
       selected,
-      options
+      options,
+      specification
     )
     if (!generated.content || !generated.correctQuery) {
       toast.error('Không thể sinh câu hỏi từ schema hiện tại')
@@ -1363,7 +1363,7 @@ export function ExamQuestionsView({
                                 }))
                               }
                             >
-                              Mở modal CREATE
+                              Tạo đáp án
                             </Button>
                           )}
                           {q.questionType === 'INSERT_DATA' && (
@@ -1379,7 +1379,7 @@ export function ExamQuestionsView({
                                 }))
                               }
                             >
-                              Mở modal INSERT
+                              Tạo đáp án
                             </Button>
                           )}
                         </div>
@@ -1523,26 +1523,7 @@ export function ExamQuestionsView({
                                   Đáp án
                                 </span>
                               </label>
-                              {q.questionType === 'CREATE_TABLE' && (
-                                <CreateTableQueryFromSpec
-                                  specification={specification}
-                                  onApply={(sql) =>
-                                    updateQuestion(q.id, {
-                                      correctQuery: sql
-                                    })
-                                  }
-                                />
-                              )}
-                              {q.questionType === 'INSERT_DATA' && (
-                                <InsertQueryFromSpec
-                                  specification={specification}
-                                  onApply={(sql) =>
-                                    updateQuestion(q.id, {
-                                      correctQuery: sql
-                                    })
-                                  }
-                                />
-                              )}
+
                               <div className="h-[280px] overflow-hidden rounded-md border border-border bg-sub-background">
                                 <TeacherSqlEditor
                                   value={q.correctQuery}
@@ -1624,6 +1605,11 @@ export function ExamQuestionsView({
                                 })
                               }
                               correctQuery={q.correctQuery}
+                              onChangeCorrectQuery={(sql) =>
+                                updateQuestion(q.id, {
+                                  correctQuery: sql
+                                })
+                              }
                               questionContent={q.content}
                               wizardStep={step}
                               onRequestWizardStep={(nextStep) =>
@@ -1751,6 +1737,11 @@ export function ExamQuestionsView({
                                 })
                               }
                               correctQuery={q.correctQuery}
+                              onChangeCorrectQuery={(sql) =>
+                                updateQuestion(q.id, {
+                                  correctQuery: sql
+                                })
+                              }
                               questionContent={q.content}
                               wizardStep={step}
                               onRequestWizardStep={(nextStep) =>

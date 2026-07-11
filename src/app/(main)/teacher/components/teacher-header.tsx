@@ -1,18 +1,18 @@
 'use client'
 
+import { GraduationCap, LogOut } from 'lucide-react'
 import Link from 'next/link'
-import { LogOut, GraduationCap, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ModeToggle } from '@/components/shared/mode-toggle'
 import { TeacherNotificationBell } from '@/app/(main)/teacher/components/teacher-notification-bell'
+import { GlobalSearch } from '@/components/shared/global-search'
+import { ModeToggle } from '@/components/shared/mode-toggle'
+import { Button } from '@/components/ui/button'
+import { getMe, logout } from '@/lib/actions'
 import { PATH } from '@/lib/constants'
-import { logout, getMe } from '@/lib/actions'
-import { useEffect, useState } from 'react'
-import { User as UserType } from '@/lib/types'
 import { connectStomp } from '@/lib/socket'
+import { User as UserType } from '@/lib/types'
+import { useEffect, useState } from 'react'
 
 export function TeacherHeader() {
   const router = useRouter()
@@ -47,14 +47,7 @@ export function TeacherHeader() {
 
         {/* Thanh tìm kiếm hiển thị trên Desktop */}
         <div className="hidden lg:flex flex-1 items-center max-w-md ml-48 mr-4">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Tìm kiếm lớp học, chức năng..."
-              className="w-full h-9 pl-9 bg-surface-container/50 focus-visible:ring-1 focus-visible:border-border focus-visible:bg-surface-container-lowest rounded-full transition-all shadow-none border-none"
-            />
-          </div>
+          <GlobalSearch />
         </div>
 
         <div className="flex items-center gap-4 ml-auto">

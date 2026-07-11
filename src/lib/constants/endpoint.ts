@@ -159,5 +159,8 @@ export const ENDPOINTS = Object.freeze({
 
   // PDF Question Extraction
   EXAM_EXTRACT_QUESTIONS_FROM_PDF: (examId: number) =>
-    `/exams/${examId}/extract-questions-from-pdf`
+    `/exams/${examId}/extract-questions-from-pdf`,
+
+  // System
+  GLOBAL_SEARCH: '/search'
 })

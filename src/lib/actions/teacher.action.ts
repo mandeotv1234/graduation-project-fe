@@ -436,3 +436,12 @@ export async function dropAllExamSchemas(
 ): Promise<ApiResponse<null>> {
   return apiClient.delete<null>(ENDPOINTS.EXAM_DROP_ALL_SCHEMAS(examId))
 }
+
+export async function getStudentDashboard(
+  studentId: number
+): Promise<ApiResponse<import('@/lib/types').StudentDashboardResponse>> {
+  return apiClient.get<import('@/lib/types').StudentDashboardResponse>(
+    `/teacher/students/${studentId}/dashboard`,
+    { cache: 'no-store' }
+  )
+}
