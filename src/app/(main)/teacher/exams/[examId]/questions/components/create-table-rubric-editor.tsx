@@ -34,6 +34,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { GradingRulesEditor } from './grading-rules-editor'
 import { WhiteboxRulesEditor } from './whitebox-rules-editor'
+import { TeacherSqlEditor } from './teacher-sql-editor'
 
 // ===== Default factories =====
 
@@ -264,6 +265,7 @@ interface CreateTableRubricEditorProps {
   rubric: GradingRubric | null
   onChange: (rubric: GradingRubric) => void
   correctQuery?: string
+  onChangeCorrectQuery?: (sql: string) => void
   questionContent?: string
   wizardStep?: number
   onRequestWizardStep?: (step: number) => void
@@ -275,6 +277,7 @@ export function CreateTableRubricEditor({
   rubric,
   onChange,
   correctQuery,
+  onChangeCorrectQuery,
   questionContent,
   wizardStep,
   onRequestWizardStep
@@ -539,6 +542,8 @@ export function CreateTableRubricEditor({
           tables={tables}
           isBuilding={isBuildingTables}
           errorMessage={buildTablesError}
+          correctQuery={correctQuery}
+          onChangeCorrectQuery={onChangeCorrectQuery}
           onRebuild={handleBuildTablesFromAnswer}
           onBackToAnswer={
             onRequestWizardStep ? () => onRequestWizardStep(1) : undefined
@@ -909,12 +914,16 @@ function CreateExpectedSchemaPreview({
   tables,
   isBuilding,
   errorMessage,
+  correctQuery,
+  onChangeCorrectQuery,
   onRebuild,
   onBackToAnswer
 }: {
   tables: RubricTable[]
   isBuilding: boolean
   errorMessage: string | null
+  correctQuery?: string
+  onChangeCorrectQuery?: (sql: string) => void
   onRebuild: () => void
   onBackToAnswer?: () => void
 }) {
@@ -945,43 +954,76 @@ function CreateExpectedSchemaPreview({
 
   if (errorMessage || tables.length === 0) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-5">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-          <div className="min-w-0 flex-1 space-y-3">
-            <div>
-              <h4 className="text-sm font-bold text-destructive">
-                Không thể dựng cấu trúc đáp án
-              </h4>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {errorMessage || 'Chưa có bảng nào được extract từ SQL đáp án.'}
-              </p>
+      <div className="space-y-4">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <div>
+                <h4 className="text-sm font-bold text-destructive">
+                  Không thể dựng cấu trúc đáp án
+                </h4>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {errorMessage ||
+                    'Chưa có bảng nào được extract từ SQL đáp án.'}
+                </p>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {onBackToAnswer && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={onBackToAnswer}
-                  className="h-8"
-                >
-                  Quay lại sửa đáp án
-                </Button>
-              )}
+          </div>
+        </div>
+
+        {onChangeCorrectQuery && (
+          <div className="rounded-lg border border-border bg-card overflow-hidden flex flex-col shadow-sm">
+            <div className="px-4 py-3 border-b border-border bg-muted/20 flex items-center justify-between">
+              <span className="text-sm font-bold text-foreground">
+                Sửa đáp án chuẩn
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                onClick={onRebuild}
+                className="h-8 gap-1.5"
+              >
+                <Table2 className="h-4 w-4" />
+                Dựng lại cấu trúc
+              </Button>
+            </div>
+            <div className="h-[280px] w-full border-t border-border">
+              <TeacherSqlEditor
+                value={correctQuery || ''}
+                onChange={(val) => onChangeCorrectQuery(val || '')}
+                height="100%"
+                showExpandButton={false}
+              />
+            </div>
+          </div>
+        )}
+
+        {!onChangeCorrectQuery && (
+          <div className="flex flex-wrap gap-2">
+            {onBackToAnswer && (
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={onRebuild}
+                onClick={onBackToAnswer}
                 className="h-8"
               >
-                <Table2 className="mr-1.5 h-4 w-4" />
-                Dựng lại cấu trúc
+                Quay lại sửa đáp án
               </Button>
-            </div>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onRebuild}
+              className="h-8"
+            >
+              <Table2 className="mr-1.5 h-4 w-4" />
+              Dựng lại cấu trúc
+            </Button>
           </div>
-        </div>
+        )}
       </div>
     )
   }

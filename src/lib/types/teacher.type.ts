@@ -400,3 +400,27 @@ export interface MoodleSqlImportConfirmResponse {
   files: MoodleSqlImportedFile[]
   message: string
 }
+
+// ===== Teacher Student Dashboard =====
+
+export interface StudentDashboardOverviewDto {
+  id: number
+  fullName: string
+  studentCode: string
+  email: string
+  overallGpa: number | null
+}
+
+export interface StudentDashboardClassPerformanceDto {
+  classId: number
+  classCode: string
+  term: string
+  totalExams: number
+  submittedExams: number
+  averageScore: number | null
+}
+
+export interface StudentDashboardResponse {
+  student: StudentDashboardOverviewDto
+  classes: StudentDashboardClassPerformanceDto[]
+}
