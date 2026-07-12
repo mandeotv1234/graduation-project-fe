@@ -388,7 +388,6 @@
 
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: #2186eb !important;
-  marker-end: url(#hasOneSelected);
   stroke-width: 1.5px;
 }
 

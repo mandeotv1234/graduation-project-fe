@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Background,
   Handle,
+  MarkerType,
   type Edge,
   type Node,
   type NodeChange,
@@ -212,7 +213,16 @@ function computeEdges(nodes: Node[], edgeConfigs: EdgeConfig[]): Edge[] {
       sourceHandle: `${cfg.sourceKey}-source-${sourceSide}`,
       targetHandle: `${cfg.targetKey}-target-${targetSide}`,
       type: 'smoothstep',
-      markerEnd: 'url(#hasOne)',
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 15,
+        height: 15,
+        color: '#9ca3af'
+      },
+      style: {
+        strokeWidth: 2,
+        stroke: '#9ca3af'
+      },
       className: 'has-one-edge'
     })
   }
