@@ -574,6 +574,11 @@ export function ExamForm({
                         type="datetime-local"
                         className="focus-visible:ring-blue-500"
                       />
+                      {errors.endTime && (
+                        <p className="text-destructive text-xs mt-1">
+                          {errors.endTime.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

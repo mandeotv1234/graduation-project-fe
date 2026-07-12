@@ -663,6 +663,7 @@ export function RoutineRubricEditor({
               test_cases[selectedTestCaseIndex]?.case_name ||
               test_cases[selectedTestCaseIndex]?.case_id
             }
+            disabled={isGenerating}
           />
 
           <div className="flex items-center justify-between pb-2">

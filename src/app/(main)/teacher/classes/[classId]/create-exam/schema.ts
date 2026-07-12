@@ -35,6 +35,22 @@ export const examSchema = z
     })
   })
   .superRefine((value, context) => {
+    if (value.startTime && value.endTime) {
+      const startTime = new Date(value.startTime).getTime()
+      const endTime = new Date(value.endTime).getTime()
+      if (
+        Number.isFinite(startTime) &&
+        Number.isFinite(endTime) &&
+        endTime <= startTime
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['endTime'],
+          message: 'Thời gian kết thúc phải sau thời gian bắt đầu'
+        })
+      }
+    }
+
     if (value.settings.isLoadDdl && !value.settings.seedDatasetId) {
       context.addIssue({
         code: 'custom',

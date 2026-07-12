@@ -601,6 +601,7 @@ export function CreateTableRubricEditor({
             tables[activeTableIndex]?.expected_name ||
             (tables.length > 0 ? `Bảng ${activeTableIndex + 1}` : undefined)
           }
+          disabled={isBuildingTables}
         />
       )}
 

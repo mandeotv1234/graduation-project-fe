@@ -177,6 +177,9 @@ export function AiRubricRefinementPanel({
   }
 
   const handleRunAgent = async () => {
+    if (disabled) {
+      return
+    }
     if (!correctQuery?.trim()) {
       toast.error('Cần có SQL đáp án trước khi chạy Rubric QA Agent')
       return
@@ -217,6 +220,7 @@ export function AiRubricRefinementPanel({
   }
 
   const handleApplyAgent = () => {
+    if (disabled) return
     if (!agentPending?.rubric) return
     onApply(agentPending.rubric)
     setAgentPending(null)
@@ -306,7 +310,7 @@ export function AiRubricRefinementPanel({
             size="sm"
             variant="outline"
             onClick={handleRunAgent}
-            disabled={isAgentRunning}
+            disabled={disabled || isAgentRunning}
             className="gap-2"
           >
             {isAgentRunning ? (
@@ -397,6 +401,7 @@ export function AiRubricRefinementPanel({
                 variant="ghost"
                 size="sm"
                 onClick={() => setAgentPending(null)}
+                disabled={disabled}
                 className="gap-1"
               >
                 <X className="h-4 w-4" />
@@ -406,6 +411,7 @@ export function AiRubricRefinementPanel({
                 type="button"
                 size="sm"
                 onClick={handleApplyAgent}
+                disabled={disabled}
                 className="gap-1"
               >
                 <Check className="h-4 w-4" />

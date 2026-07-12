@@ -401,7 +401,7 @@ export function ClassDetailView({
                 <Link href={PATH.TEACHER_EDIT_CLASS(classDetail.id)}>
                   <Button variant="outline" size="sm" className="gap-2">
                     <PencilLine className="h-4 w-4" />
-                    Chỉnh sửa danh sách
+                    Thêm/sửa sinh viên
                   </Button>
                 </Link>
               </div>

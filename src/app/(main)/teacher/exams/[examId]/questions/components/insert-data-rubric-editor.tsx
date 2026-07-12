@@ -468,6 +468,7 @@ export function InsertDataRubricEditor({
             tables[activeTableIndex]?.table_name ||
             (tables.length > 0 ? `Bảng ${activeTableIndex + 1}` : undefined)
           }
+          disabled={isBuildingTables}
         />
       )}
 

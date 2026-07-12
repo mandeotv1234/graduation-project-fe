@@ -442,6 +442,7 @@ export function SelectQueryRubricEditor({
               testCases[activeTestCaseIndex]?.case_name ||
               testCases[activeTestCaseIndex]?.case_id
             }
+            disabled={isGenerating}
           />
 
           <div className="flex items-center justify-between pb-2">

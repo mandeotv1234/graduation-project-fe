@@ -33,14 +33,14 @@ export default function CreateClassPage() {
   }
 
   const processData = (data: unknown[]) => {
-    if (data.length < 2) {
+    if (data.length < 1) {
       toast.error('File không có dữ liệu hợp lệ')
       return
     }
 
     let headerRowIdx = 0
     let mssvColIdx = -1
-    let nameColIdx = -1
+    let hasHeader = false
 
     // Tìm dòng header
     for (let i = 0; i < Math.min(10, data.length); i++) {
@@ -59,46 +59,38 @@ export default function CreateClassPage() {
         ) {
           mssvColIdx = colIdx
         }
-        if (
-          val.includes('tên') ||
-          val.includes('họ và tên') ||
-          val.includes('họ tên') ||
-          val === 'name'
-        ) {
-          nameColIdx = colIdx
-        }
       })
 
-      if (mssvColIdx !== -1 && nameColIdx !== -1) {
+      if (mssvColIdx !== -1) {
         headerRowIdx = i
+        hasHeader = true
         break
       }
     }
 
-    if (mssvColIdx === -1 || nameColIdx === -1) {
-      // Fallback mặc định cột 0 là MSSV, cột 1 là Họ Tên nếu không tìm thấy header rõ ràng
+    if (mssvColIdx === -1) {
+      // Fallback mặc định cột 0 là MSSV nếu không tìm thấy header rõ ràng
       mssvColIdx = 0
-      nameColIdx = 1
     }
 
     const newStudents: CreateClassStudentInfo[] = []
 
-    for (let i = headerRowIdx + 1; i < data.length; i++) {
+    const firstDataRowIdx = hasHeader ? headerRowIdx + 1 : 0
+    for (let i = firstDataRowIdx; i < data.length; i++) {
       const row = data[i]
       if (!row || !Array.isArray(row)) continue
 
       const mssv = String(row[mssvColIdx] || '').trim()
-      const name = String(row[nameColIdx] || '').trim()
 
-      if (mssv && name) {
-        newStudents.push({ studentId: mssv, fullName: name })
+      if (mssv) {
+        newStudents.push({ studentId: mssv, fullName: '' })
       }
     }
 
     if (newStudents.length > 0) {
       setStudents((prev) => {
         // Khử trùng lặp và loại bỏ các trường rỗng
-        const currentValid = prev.filter((s) => s.studentId && s.fullName)
+        const currentValid = prev.filter((s) => s.studentId)
 
         // Chỉ thêm những sinh viên chưa có trong danh sách (dựa vào MSSV)
         const map = new Map(currentValid.map((s) => [s.studentId, s]))
@@ -178,9 +170,20 @@ export default function CreateClassPage() {
       return
     }
 
-    const validStudents = students.filter(
-      (s) => s.studentId.trim() && s.fullName.trim()
-    )
+    const validStudents = students
+      .map((s) => ({
+        studentId: s.studentId.trim(),
+        fullName: s.fullName.trim()
+      }))
+      .filter((s) => s.studentId)
+
+    const uniqueStudentIds = new Set(validStudents.map((s) => s.studentId))
+    if (uniqueStudentIds.size !== validStudents.length) {
+      toast.error(
+        'Có mã số sinh viên (MSSV) bị trùng lặp. Vui lòng kiểm tra lại!'
+      )
+      return
+    }
 
     // Optional: add debug log if needed but eslint complains
 
@@ -293,7 +296,7 @@ export default function CreateClassPage() {
                 className="gap-1.5"
               >
                 <Plus className="h-4 w-4" />
-                Thêm 1
+                Thêm MSSV
               </Button>
             </div>
           </div>
@@ -305,8 +308,8 @@ export default function CreateClassPage() {
                 📋 Hướng dẫn nhập file CSV hoặc Excel
               </p>
               <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
-                File của bạn phải có 2 cột với header (dòng đầu tiên). Hệ thống
-                sẽ tự nhận diện cột MSSV và Họ tên.
+                File của bạn chỉ cần cột MSSV. Hệ thống sẽ tự nhận diện cột
+                MSSV, các cột khác nếu có sẽ được bỏ qua.
               </p>
             </div>
 
@@ -314,7 +317,7 @@ export default function CreateClassPage() {
               <p className="text-xs font-medium text-amber-900 dark:text-amber-200">
                 ✓ Các tên cột được hỗ trợ:
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-amber-800 dark:text-amber-300">
+              <div className="grid grid-cols-1 gap-2 text-xs text-amber-800 dark:text-amber-300">
                 <div>
                   <span className="font-semibold">Cột MSSV:</span>
                   <div className="pl-2 space-y-0.5">
@@ -322,15 +325,6 @@ export default function CreateClassPage() {
                     <div>• Mã SV</div>
                     <div>• Mã sinh viên</div>
                     <div>• ID</div>
-                  </div>
-                </div>
-                <div>
-                  <span className="font-semibold">Cột Họ tên:</span>
-                  <div className="pl-2 space-y-0.5">
-                    <div>• Tên</div>
-                    <div>• Họ và tên</div>
-                    <div>• Họ tên</div>
-                    <div>• Name</div>
                   </div>
                 </div>
               </div>
@@ -345,21 +339,17 @@ export default function CreateClassPage() {
                   <thead>
                     <tr className="border-b border-amber-200 dark:border-amber-800">
                       <td className="px-2 py-1 font-semibold">MSSV</td>
-                      <td className="px-2 py-1 font-semibold">Họ và tên</td>
                     </tr>
                   </thead>
                   <tbody className="text-[10px]">
                     <tr>
                       <td className="px-2 py-0.5">22120201</td>
-                      <td className="px-2 py-0.5">Nguyễn Văn A</td>
                     </tr>
                     <tr>
                       <td className="px-2 py-0.5">22120202</td>
-                      <td className="px-2 py-0.5">Trần Thị B</td>
                     </tr>
                     <tr>
                       <td className="px-2 py-0.5">22120203</td>
-                      <td className="px-2 py-0.5">Lê Hoàng C</td>
                     </tr>
                   </tbody>
                 </table>
@@ -369,7 +359,7 @@ export default function CreateClassPage() {
             <p className="text-xs text-amber-800 dark:text-amber-300">
               💡 <span className="font-semibold">Mẹo:</span> Hệ thống sẽ bỏ qua
               dòng trống và tự động phát hiện header. Nếu file có thêm cột khác,
-              hệ thống chỉ lấy dữ liệu từ 2 cột MSSV và Họ tên.
+              hệ thống chỉ lấy dữ liệu từ cột MSSV.
             </p>
           </div>
 
@@ -386,18 +376,13 @@ export default function CreateClassPage() {
                   type="text"
                   value={student.studentId}
                   onChange={(e) =>
-                    updateStudent(index, 'studentId', e.target.value)
+                    updateStudent(
+                      index,
+                      'studentId',
+                      e.target.value.replace(/\D/g, '')
+                    )
                   }
                   placeholder="MSSV (VD: 22120201)"
-                  className="flex h-9 flex-1 rounded-md border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-                <input
-                  type="text"
-                  value={student.fullName}
-                  onChange={(e) =>
-                    updateStudent(index, 'fullName', e.target.value)
-                  }
-                  placeholder="Họ và tên"
                   className="flex h-9 flex-1 rounded-md border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
                 <Button
