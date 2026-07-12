@@ -456,6 +456,7 @@ export function InsertDataRubricEditor({
 
       {(!isWizardMode || wizardStep === 2) && (
         <AiRubricRefinementPanel
+          examId={examId}
           questionType="INSERT_DATA"
           totalPoints={totalPoints}
           currentRubric={expectedJsonPreview}
@@ -467,6 +468,7 @@ export function InsertDataRubricEditor({
             tables[activeTableIndex]?.table_name ||
             (tables.length > 0 ? `Bảng ${activeTableIndex + 1}` : undefined)
           }
+          disabled={isBuildingTables}
         />
       )}
 

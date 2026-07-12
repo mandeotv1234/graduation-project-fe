@@ -429,6 +429,7 @@ export function SelectQueryRubricEditor({
       {(!isWizardMode || wizardStep === 2) && (
         <div className="space-y-4 pt-4">
           <AiRubricRefinementPanel
+            examId={examId}
             questionType="SELECT_QUERY"
             totalPoints={totalPoints}
             currentRubric={currentRubric}
@@ -441,6 +442,7 @@ export function SelectQueryRubricEditor({
               testCases[activeTestCaseIndex]?.case_name ||
               testCases[activeTestCaseIndex]?.case_id
             }
+            disabled={isGenerating}
           />
 
           <div className="flex items-center justify-between pb-2">

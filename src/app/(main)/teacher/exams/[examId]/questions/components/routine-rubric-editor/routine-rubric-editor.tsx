@@ -317,6 +317,7 @@ interface RoutineRubricEditorProps {
 }
 
 export function RoutineRubricEditor({
+  examId,
   questionType = 'FUNCTION',
   totalPoints,
   rubric,
@@ -648,6 +649,7 @@ export function RoutineRubricEditor({
           </div>
 
           <AiRubricRefinementPanel
+            examId={examId}
             questionType={rubricCategory}
             totalPoints={totalPoints}
             currentRubric={currentRubricForAi}
@@ -661,6 +663,7 @@ export function RoutineRubricEditor({
               test_cases[selectedTestCaseIndex]?.case_name ||
               test_cases[selectedTestCaseIndex]?.case_id
             }
+            disabled={isGenerating}
           />
 
           <div className="flex items-center justify-between pb-2">

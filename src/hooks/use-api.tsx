@@ -37,6 +37,11 @@ export function useApi() {
         // Next.js internal control-flow errors or network errors.
         // API error responses are converted into ApiResponse by apiClient.
         console.error('[useApi] Unhandled error:', error)
+        if (showToast) {
+          toast.error(
+            error instanceof Error ? error.message : 'Đã có lỗi xảy ra'
+          )
+        }
 
         return {
           code: 'UNHANDLED_ERROR',

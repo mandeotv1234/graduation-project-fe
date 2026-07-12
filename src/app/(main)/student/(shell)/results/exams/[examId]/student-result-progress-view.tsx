@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import type { MouseEvent } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, ArrowLeft, Sparkles } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Loader2, Sparkles } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -432,6 +433,9 @@ function AttemptFeedbackAction({
 }: {
   attempt: StudentExamResultResponse
 }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
   if (!attempt.allowReview) {
     return <span className="text-xs text-muted-foreground">Không khả dụng</span>
   }
@@ -440,15 +444,28 @@ function AttemptFeedbackAction({
     return <span className="text-xs text-muted-foreground">Chưa chấm</span>
   }
 
+  const handleOpenFeedback = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    startTransition(() => {
+      router.push(PATH.STUDENT_EXAM_RESULT_FEEDBACK(attempt.id))
+    })
+  }
+
   return (
-    <Button asChild variant="outline" size="sm" className="h-8 gap-1.5">
-      <Link
-        href={PATH.STUDENT_EXAM_RESULT_FEEDBACK(attempt.id)}
-        onClick={(event) => event.stopPropagation()}
-      >
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="h-8 min-w-[104px] gap-1.5"
+      disabled={isPending}
+      onClick={handleOpenFeedback}
+    >
+      {isPending ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
         <Sparkles className="h-3.5 w-3.5" />
-        Feedback AI
-      </Link>
+      )}
+      {isPending ? 'Đang mở...' : 'Feedback AI'}
     </Button>
   )
 }

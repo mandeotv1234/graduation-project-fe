@@ -416,6 +416,11 @@ export function ExamSettingsForm({
                     type="datetime-local"
                     className="focus-visible:ring-blue-500"
                   />
+                  {errors.endTime && (
+                    <p className="mt-1 text-xs text-destructive">
+                      {errors.endTime.message}
+                    </p>
+                  )}
                 </div>
               </div>
 

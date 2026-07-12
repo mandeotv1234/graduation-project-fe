@@ -19,7 +19,9 @@ import {
   WhiteboxRule,
   WhiteboxSettings,
   RefineRubricTestCasesRequest,
-  RefineRubricTestCasesResponse
+  RefineRubricTestCasesResponse,
+  RubricAgentRunRequest,
+  RubricAgentRunResponse
 } from '@/lib/types'
 
 export async function getSpecifications(): Promise<
@@ -134,6 +136,15 @@ export async function refineRubricTestCases(
 ): Promise<ApiResponse<RefineRubricTestCasesResponse>> {
   return apiClient.post<RefineRubricTestCasesResponse>(
     ENDPOINTS.EXAM_REFINE_RUBRIC_TESTCASES,
+    data
+  )
+}
+
+export async function runRubricQaAgent(
+  data: RubricAgentRunRequest
+): Promise<ApiResponse<RubricAgentRunResponse>> {
+  return apiClient.post<RubricAgentRunResponse>(
+    ENDPOINTS.EXAM_RUBRIC_AGENT_RUN,
     data
   )
 }

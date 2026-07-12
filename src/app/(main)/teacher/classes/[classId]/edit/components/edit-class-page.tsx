@@ -62,6 +62,7 @@ interface ConflictRow extends CreateClassStudentInfo {
 }
 
 const CLASS_CODE_MAX_LENGTH = 20
+type AddStudentMode = 'single' | 'bulk'
 
 export function EditClassPage({
   classId,
@@ -86,20 +87,14 @@ export function EditClassPage({
   const [pendingValidRows, setPendingValidRows] = useState<
     CreateClassStudentInfo[]
   >([])
+  const [addStudentModalOpen, setAddStudentModalOpen] = useState(false)
+  const [addStudentMode, setAddStudentMode] = useState<AddStudentMode>('single')
+  const [addStudentInput, setAddStudentInput] = useState('')
 
   const addStudent = () => {
-    setStudents((prev) => {
-      const newIndex = prev.length
-      setTimeout(() => {
-        const row = document.getElementById(`student-row-${newIndex}`)
-        if (row) {
-          row.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          const input = row.querySelector('input')
-          if (input) input.focus()
-        }
-      }, 100)
-      return [...prev, { studentId: '', fullName: '' }]
-    })
+    setAddStudentMode('single')
+    setAddStudentInput('')
+    setAddStudentModalOpen(true)
   }
 
   const removeStudent = (index: number) => {
@@ -115,14 +110,14 @@ export function EditClassPage({
   }
 
   const processData = (data: unknown[]) => {
-    if (data.length < 2) {
+    if (data.length < 1) {
       toast.error('File không có dữ liệu hợp lệ')
       return
     }
 
+    let headerRowIdx = 0
     let mssvColIdx = -1
-    let nameColIdx = -1
-
+    let hasHeader = false
     for (let i = 0; i < Math.min(10, data.length); i++) {
       const row = data[i]
       if (!row || !Array.isArray(row)) continue
@@ -139,40 +134,33 @@ export function EditClassPage({
         ) {
           mssvColIdx = colIdx
         }
-        if (
-          val.includes('tên') ||
-          val.includes('họ và tên') ||
-          val.includes('họ tên') ||
-          val === 'name'
-        ) {
-          nameColIdx = colIdx
-        }
       })
-      if (mssvColIdx !== -1 && nameColIdx !== -1) break
+      if (mssvColIdx !== -1) {
+        headerRowIdx = i
+        hasHeader = true
+        break
+      }
     }
 
-    if (mssvColIdx === -1 || nameColIdx === -1) {
-      toast.error(
-        'Cấu trúc file không hợp lệ! Vui lòng tải file mẫu để xem định dạng đúng.'
-      )
-      return
+    if (mssvColIdx === -1) {
+      mssvColIdx = 0
     }
 
     const currentMssvs = new Set(
       students.map((s) => s.studentId.trim()).filter(Boolean)
     )
-    const rawExtracted: { mssv: string; name: string; _index: number }[] = []
+    const rawExtracted: { mssv: string; _index: number }[] = []
 
-    for (let i = 1; i < data.length; i++) {
+    const firstDataRowIdx = hasHeader ? headerRowIdx + 1 : 0
+    for (let i = firstDataRowIdx; i < data.length; i++) {
       const row = data[i]
       if (!row || !Array.isArray(row)) continue
 
       const rawMssvStr = String(row[mssvColIdx] || '').trim()
-      const rawName = String(row[nameColIdx] || '').trim()
 
-      if (!rawMssvStr && !rawName) continue
+      if (!rawMssvStr) continue
 
-      rawExtracted.push({ mssv: rawMssvStr, name: rawName, _index: i })
+      rawExtracted.push({ mssv: rawMssvStr, _index: i })
     }
 
     const fileMssvCounts = rawExtracted.reduce(
@@ -189,7 +177,7 @@ export function EditClassPage({
     rawExtracted.forEach((item) => {
       const errors: ConflictErrorType[] = []
 
-      if (!item.mssv || !item.name) errors.push('missing')
+      if (!item.mssv) errors.push('missing')
       if (item.mssv && /\D/.test(item.mssv)) errors.push('invalid_format')
       if (item.mssv && fileMssvCounts[item.mssv] > 1)
         errors.push('duplicate_internal')
@@ -199,12 +187,12 @@ export function EditClassPage({
       if (errors.length > 0) {
         conflicts.push({
           studentId: item.mssv,
-          fullName: item.name,
+          fullName: '',
           _index: item._index,
           errorType: errors
         })
       } else {
-        valid.push({ studentId: item.mssv, fullName: item.name })
+        valid.push({ studentId: item.mssv, fullName: '' })
       }
     })
 
@@ -223,11 +211,7 @@ export function EditClassPage({
   }
 
   const handleDownloadTemplate = () => {
-    const ws = XLSX.utils.aoa_to_sheet([
-      ['STT', 'MSSV', 'Họ và tên'],
-      ['1', '22120001', 'Nguyễn Văn A'],
-      ['2', '22120002', 'Trần Thị B']
-    ])
+    const ws = XLSX.utils.aoa_to_sheet([['MSSV'], ['22120001'], ['22120002']])
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Template')
     XLSX.writeFile(wb, 'Danh_sach_sinh_vien_mau.xlsx')
@@ -275,9 +259,8 @@ export function EditClassPage({
     conflictRows.forEach((item) => {
       const errors: ConflictErrorType[] = []
       const cleanMssv = item.studentId.trim()
-      const cleanName = item.fullName.trim()
 
-      if (!cleanMssv || !cleanName) errors.push('missing')
+      if (!cleanMssv) errors.push('missing')
       if (cleanMssv && /\D/.test(cleanMssv)) errors.push('invalid_format')
       if (cleanMssv && newFileCounts[cleanMssv] > 1)
         errors.push('duplicate_internal')
@@ -290,10 +273,10 @@ export function EditClassPage({
           ...item,
           errorType: errors,
           studentId: cleanMssv,
-          fullName: cleanName
+          fullName: ''
         })
       } else {
-        combinedPending.push({ studentId: cleanMssv, fullName: cleanName })
+        combinedPending.push({ studentId: cleanMssv, fullName: '' })
       }
     })
 
@@ -329,6 +312,87 @@ export function EditClassPage({
     setPendingValidRows([])
   }
 
+  const closeAddStudentModal = () => {
+    setAddStudentModalOpen(false)
+    setAddStudentInput('')
+    setAddStudentMode('single')
+  }
+
+  const parseStudentCodes = (value: string) =>
+    value
+      .split(/[\s,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((item) => item.split('@')[0])
+
+  const handleAddStudentsFromModal = () => {
+    const parsedCodes = parseStudentCodes(addStudentInput)
+
+    if (parsedCodes.length === 0) {
+      toast.error('Vui lòng nhập MSSV cần thêm')
+      return
+    }
+
+    if (addStudentMode === 'single' && parsedCodes.length > 1) {
+      toast.error('Chế độ thêm 1 sinh viên chỉ nhận một MSSV')
+      return
+    }
+
+    const invalidCodes = parsedCodes.filter((code) => !/^\d+$/.test(code))
+    if (invalidCodes.length > 0) {
+      toast.error(
+        `MSSV chỉ được chứa chữ số: ${invalidCodes.slice(0, 3).join(', ')}`
+      )
+      return
+    }
+
+    const codeCounts = parsedCodes.reduce(
+      (acc, code) => {
+        acc[code] = (acc[code] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    )
+    const duplicateInInput = Object.entries(codeCounts)
+      .filter(([, count]) => count > 1)
+      .map(([code]) => code)
+    if (duplicateInInput.length > 0) {
+      toast.error(
+        `MSSV bị trùng trong danh sách nhập: ${duplicateInInput
+          .slice(0, 3)
+          .join(', ')}`
+      )
+      return
+    }
+
+    const existingCodes = new Set(
+      students.map((student) => student.studentId.trim()).filter(Boolean)
+    )
+    const duplicateExisting = parsedCodes.filter((code) =>
+      existingCodes.has(code)
+    )
+    if (duplicateExisting.length > 0) {
+      toast.error(
+        `MSSV đã có trong lớp: ${duplicateExisting.slice(0, 3).join(', ')}`
+      )
+      return
+    }
+
+    const firstNewIndex = students.length
+    const newStudents = parsedCodes.map((studentId) => ({
+      studentId,
+      fullName: ''
+    }))
+    setStudents((prev) => [...prev, ...newStudents])
+    closeAddStudentModal()
+    toast.success(`Đã thêm ${newStudents.length} sinh viên`)
+
+    setTimeout(() => {
+      const row = document.getElementById(`student-row-${firstNewIndex}`)
+      row?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 100)
+  }
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -337,17 +401,26 @@ export function EditClassPage({
     if (fileExt === 'csv') {
       Papa.parse(file, {
         complete: (results) => processData(results.data as unknown[]),
+        error: () => {
+          toast.error('Lỗi khi đọc file CSV. Vui lòng kiểm tra lại định dạng.')
+        },
         skipEmptyLines: true,
         encoding: 'UTF-8'
       })
     } else {
       const reader = new FileReader()
       reader.onload = (evt) => {
-        const arrayBuffer = evt.target?.result
-        const wb = XLSX.read(arrayBuffer, { type: 'array', codepage: 65001 })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const data = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 })
-        processData(data)
+        try {
+          const arrayBuffer = evt.target?.result
+          const wb = XLSX.read(arrayBuffer, { type: 'array', codepage: 65001 })
+          const ws = wb.Sheets[wb.SheetNames[0]]
+          const data = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 })
+          processData(data)
+        } catch {
+          toast.error(
+            'Lỗi khi đọc file Excel. Vui lòng kiểm tra lại định dạng.'
+          )
+        }
       }
       reader.readAsArrayBuffer(file)
     }
@@ -376,9 +449,12 @@ export function EditClassPage({
       return
     }
 
-    const validStudents = students.filter(
-      (s) => s.studentId.trim() && s.fullName.trim()
-    )
+    const validStudents = students
+      .map((s) => ({
+        studentId: s.studentId.trim(),
+        fullName: s.fullName.trim()
+      }))
+      .filter((s) => s.studentId)
 
     const uniqueStudentIds = new Set(
       validStudents.map((s) => s.studentId.trim())
@@ -436,8 +512,8 @@ export function EditClassPage({
   const isAllSelected =
     filteredStudents.length > 0 &&
     filteredStudents.every((s) => selectedIndices.includes(s.originalIndex))
-  const validStudentCount = students.filter(
-    (student) => student.studentId.trim() && student.fullName.trim()
+  const validStudentCount = students.filter((student) =>
+    student.studentId.trim()
   ).length
   const duplicateStudentCount = Object.values(mssvCounts).reduce(
     (total, count) => total + (count > 1 ? count : 0),
@@ -599,7 +675,7 @@ export function EditClassPage({
                 <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Tìm MSSV, tên..."
+                  placeholder="Tìm MSSV, họ tên..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm transition-colors focus:border-outline focus:outline-none focus:ring-0 lg:w-[240px]"
@@ -667,7 +743,7 @@ export function EditClassPage({
           </div>
 
           <div className="overflow-x-auto">
-            <Table className="min-w-[720px]">
+            <Table className="min-w-[760px]">
               <TableHeader className="bg-muted/40">
                 <TableRow className="border-border">
                   <TableHead className="w-[76px] px-0 text-center font-semibold text-muted-foreground">
@@ -710,6 +786,8 @@ export function EditClassPage({
                     const mssv = student.studentId.trim()
                     const isDuplicate = mssv !== '' && mssvCounts[mssv] > 1
                     const oIdx = student.originalIndex
+                    const displayName = student.fullName.trim()
+                    const hasRealName = displayName && displayName !== mssv
 
                     return (
                       <TableRow
@@ -779,15 +857,20 @@ export function EditClassPage({
                           </div>
                         </TableCell>
                         <TableCell className="align-middle">
-                          <input
-                            type="text"
-                            value={student.fullName}
-                            onChange={(e) =>
-                              updateStudent(oIdx, 'fullName', e.target.value)
-                            }
-                            placeholder="Họ và tên"
-                            className="h-9 w-full rounded-md border border-transparent bg-background/60 px-3 text-sm text-foreground transition-colors focus:border-outline focus:outline-none focus:ring-0"
-                          />
+                          {hasRealName ? (
+                            <span className="text-sm font-medium text-foreground">
+                              {displayName}
+                            </span>
+                          ) : (
+                            <div className="space-y-0.5">
+                              <span className="text-sm text-muted-foreground">
+                                Chưa có tên
+                              </span>
+                              <p className="text-xs text-muted-foreground/80">
+                                Sẽ cập nhật khi sinh viên đăng nhập Microsoft
+                              </p>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right align-middle">
                           <Button
@@ -844,6 +927,101 @@ export function EditClassPage({
         </div>
       </form>
 
+      <Dialog
+        open={addStudentModalOpen}
+        onOpenChange={(open: boolean) => {
+          if (!open) {
+            closeAddStudentModal()
+            return
+          }
+          setAddStudentModalOpen(true)
+        }}
+      >
+        <DialogContent className="max-w-lg bg-surface-container-lowest border-border">
+          <DialogHeader>
+            <DialogTitle>Thêm sinh viên bằng MSSV</DialogTitle>
+            <DialogDescription>
+              Chỉ cần nhập MSSV. Họ tên sẽ hiển thị nếu sinh viên đã có tài
+              khoản hoặc sẽ tự cập nhật sau khi đăng nhập Microsoft.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-1">
+              <Button
+                type="button"
+                variant={addStudentMode === 'single' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => {
+                  setAddStudentMode('single')
+                  setAddStudentInput('')
+                }}
+              >
+                Thêm 1
+              </Button>
+              <Button
+                type="button"
+                variant={addStudentMode === 'bulk' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => {
+                  setAddStudentMode('bulk')
+                  setAddStudentInput('')
+                }}
+              >
+                Thêm nhiều
+              </Button>
+            </div>
+
+            {addStudentMode === 'single' ? (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  MSSV
+                </label>
+                <input
+                  type="text"
+                  value={addStudentInput}
+                  onChange={(event) =>
+                    setAddStudentInput(event.target.value.replace(/\D/g, ''))
+                  }
+                  placeholder="VD: 22120201"
+                  className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-outline focus:outline-none focus:ring-0"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Danh sách MSSV
+                </label>
+                <textarea
+                  value={addStudentInput}
+                  onChange={(event) => setAddStudentInput(event.target.value)}
+                  placeholder={'22120201\n22120202\n22120203'}
+                  rows={7}
+                  className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-outline focus:outline-none focus:ring-0"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Mỗi MSSV một dòng, hoặc ngăn cách bằng dấu phẩy/khoảng trắng.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeAddStudentModal}
+            >
+              Hủy
+            </Button>
+            <Button type="button" onClick={handleAddStudentsFromModal}>
+              <Plus className="h-4 w-4" />
+              Thêm vào lớp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Import Conflict Modal */}
       <Dialog
         open={conflictModalOpen}
@@ -856,8 +1034,8 @@ export function EditClassPage({
               Phát hiện dữ liệu bất thường
             </DialogTitle>
             <DialogDescription className="text-on-surface-variant">
-              Có {conflictRows.length} dòng dữ liệu bị lỗi (thiếu thông tin, sai
-              định dạng, hoặc bị trùng lặp). Vui lòng xử lý để tiếp tục.
+              Có {conflictRows.length} dòng MSSV bị lỗi (thiếu MSSV, sai định
+              dạng, hoặc bị trùng lặp). Vui lòng xử lý để tiếp tục.
             </DialogDescription>
           </DialogHeader>
 
@@ -870,9 +1048,6 @@ export function EditClassPage({
                   </TableHead>
                   <TableHead className="w-[120px] font-semibold text-on-surface-variant">
                     MSSV
-                  </TableHead>
-                  <TableHead className="w-[180px] font-semibold text-on-surface-variant">
-                    Họ và tên
                   </TableHead>
                   <TableHead className="font-semibold text-on-surface-variant">
                     Chi tiết lỗi
@@ -906,19 +1081,9 @@ export function EditClassPage({
                       />
                     </TableCell>
                     <TableCell className="align-middle">
-                      <input
-                        type="text"
-                        value={row.fullName}
-                        onChange={(e) =>
-                          updateConflictRow(idx, 'fullName', e.target.value)
-                        }
-                        className="w-full bg-surface-container-lowest border border-border px-3 py-1 flex h-9 rounded-md text-sm focus:border-outline focus:ring-0 outline-none transition-colors text-on-surface"
-                      />
-                    </TableCell>
-                    <TableCell className="align-middle">
                       <div className="flex flex-col gap-1.5 text-[0.8rem] text-error font-medium">
                         {row.errorType.includes('missing') && (
-                          <span>• Thiếu MSSV hoặc Tên</span>
+                          <span>• Thiếu MSSV</span>
                         )}
                         {row.errorType.includes('invalid_format') && (
                           <span>• MSSV chứa ký tự chữ (chỉ nhận số)</span>
