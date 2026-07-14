@@ -30,6 +30,12 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -413,19 +419,30 @@ export function TeacherExamDetailContent({
               onImported={handleImportedSqlFiles}
             />
 
-            <span className="inline-block" title={exportDisabledReason}>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                disabled={!canExport}
-                onClick={() => setIsExportOpen(true)}
-                aria-label="Xuất đề thi ra file PDF"
-              >
-                <FileDown className="h-4 w-4" />
-                Xuất đề PDF
-              </Button>
-            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-block">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      disabled={!canExport}
+                      onClick={() => setIsExportOpen(true)}
+                      aria-label="Xuất đề thi ra file PDF"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      Xuất đề PDF
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!canExport && exportDisabledReason && (
+                  <TooltipContent>
+                    <p>{exportDisabledReason}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
 
             {canManageTemplate && (
               <Button

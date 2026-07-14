@@ -23,6 +23,17 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { useApi } from '@/hooks/use-api'
 import { getTeacherExamMonitor, getTeacherExamViolations } from '@/lib/actions'
@@ -760,37 +771,66 @@ export function ExamMonitorPanel({
                           <BellRing className="h-3.5 w-3.5" />
                           Nhắc nhở
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 border-red-200 text-red-600 hover:bg-red-50"
-                          disabled={row.examStatus !== 'IN_PROGRESS'}
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            if (
-                              window.confirm(
-                                `Bạn có chắc chắn muốn nộp bài tự động của ${row.studentName}?`
-                              )
-                            ) {
-                              callApi(
-                                forceSubmitStudentExam(
-                                  monitor.examId,
-                                  row.studentId
-                                ),
-                                false
-                              ).then((res) => {
-                                if (res?.code !== 'UNHANDLED_ERROR') {
-                                  toast.success(
-                                    `Đã cưỡng chế nộp bài của ${row.studentName}`
-                                  )
-                                }
-                              })
-                            }
-                          }}
-                        >
-                          <UserX className="h-3.5 w-3.5" />
-                          Cưỡng chế nộp
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 border-red-200 text-red-600 hover:bg-red-50"
+                              disabled={row.examStatus !== 'IN_PROGRESS'}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                              }}
+                            >
+                              <UserX className="h-3.5 w-3.5" />
+                              Cưỡng chế nộp
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Xác nhận cưỡng chế nộp bài
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Bạn có chắc chắn muốn nộp bài tự động của{' '}
+                                <span className="font-semibold text-foreground">
+                                  {row.studentName}
+                                </span>
+                                ? Hành động này không thể hoàn tác.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                Hủy
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-red-600 text-white hover:bg-red-700"
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  callApi(
+                                    forceSubmitStudentExam(
+                                      monitor.examId,
+                                      row.studentId
+                                    ),
+                                    false
+                                  ).then((res) => {
+                                    if (res?.code !== 'UNHANDLED_ERROR') {
+                                      toast.success(
+                                        `Đã cưỡng chế nộp bài của ${row.studentName}`
+                                      )
+                                    }
+                                  })
+                                }}
+                              >
+                                Xác nhận
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </td>
                   </tr>

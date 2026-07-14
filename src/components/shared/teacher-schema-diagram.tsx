@@ -31,7 +31,8 @@ export type TableColumn = {
   name: string
   type: string
   key?: boolean
-  handleType?: 'source' | 'target'
+  isSource?: boolean
+  isTarget?: boolean
 }
 
 export type TableNodeData = {
@@ -100,28 +101,36 @@ const TableNode = memo(({ data }: NodeProps<Node<TableNodeData>>) => {
       <div className="table__columns">
         {data.columns.map((column) => (
           <div key={column.name} className="column-name">
-            {column.handleType && (
+            {column.isSource && (
               <Handle
-                type={column.handleType}
+                type="source"
                 position={Position.Right}
-                id={`${column.name}-right`}
-                className={
-                  column.handleType === 'source'
-                    ? 'right-handle source-handle'
-                    : 'right-handle target-handle'
-                }
+                id={`${column.name}-source-right`}
+                className="right-handle source-handle"
               />
             )}
-            {column.handleType && (
+            {column.isTarget && (
               <Handle
-                type={column.handleType}
+                type="target"
+                position={Position.Right}
+                id={`${column.name}-target-right`}
+                className="right-handle target-handle"
+              />
+            )}
+            {column.isSource && (
+              <Handle
+                type="source"
                 position={Position.Left}
-                id={`${column.name}-left`}
-                className={
-                  column.handleType === 'source'
-                    ? 'left-handle source-handle'
-                    : 'left-handle target-handle'
-                }
+                id={`${column.name}-source-left`}
+                className="left-handle source-handle"
+              />
+            )}
+            {column.isTarget && (
+              <Handle
+                type="target"
+                position={Position.Left}
+                id={`${column.name}-target-left`}
+                className="left-handle target-handle"
               />
             )}
 
@@ -162,9 +171,9 @@ export function computeEdges(nodes: Node[], edgeConfigs: EdgeConfig[]): Edge[] {
       id: `${cfg.source}.${cfg.sourceKey}->${cfg.target}.${cfg.targetKey}`,
       source: cfg.source,
       target: cfg.target,
-      sourceHandle: `${cfg.sourceKey}-${sourceSide}`,
-      targetHandle: `${cfg.targetKey}-${targetSide}`,
-      type: 'smoothstep',
+      sourceHandle: `${cfg.sourceKey}-source-${sourceSide}`,
+      targetHandle: `${cfg.targetKey}-target-${targetSide}`,
+      type: 'bezier',
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 15,
@@ -199,34 +208,52 @@ export function buildInitialSchemaDiagram(
   for (const t of schemaMeta) {
     for (const c of t.columns) {
       if (!c.foreignKey) continue
-      if (!c.referencesTable || !c.referencesColumn) continue
-      if (!tableNames.has(c.referencesTable)) continue
-      edgeConfigs.push({
-        source: t.tableName,
-        target: c.referencesTable,
-        sourceKey: c.columnName,
-        targetKey: c.referencesColumn
-      })
+
+      const fks = [...(c.foreignKeys || [])]
+      if (c.referencesTable && c.referencesColumn && fks.length === 0) {
+        fks.push({
+          referencesTable: c.referencesTable,
+          referencesColumn: c.referencesColumn
+        })
+      }
+
+      for (const fk of fks) {
+        if (!tableNames.has(fk.referencesTable)) continue
+        edgeConfigs.push({
+          source: t.tableName,
+          target: fk.referencesTable,
+          sourceKey: c.columnName,
+          targetKey: fk.referencesColumn
+        })
+      }
     }
   }
 
-  const handleByTable = new Map<string, Map<string, 'source' | 'target'>>()
+  const sourceHandleByTable = new Map<string, Set<string>>()
+  const targetHandleByTable = new Map<string, Set<string>>()
   for (const e of edgeConfigs) {
-    if (!handleByTable.has(e.source)) handleByTable.set(e.source, new Map())
-    if (!handleByTable.has(e.target)) handleByTable.set(e.target, new Map())
-    handleByTable.get(e.source)!.set(e.sourceKey, 'source')
-    handleByTable.get(e.target)!.set(e.targetKey, 'target')
+    if (!sourceHandleByTable.has(e.source)) {
+      sourceHandleByTable.set(e.source, new Set())
+    }
+    if (!targetHandleByTable.has(e.target)) {
+      targetHandleByTable.set(e.target, new Set())
+    }
+    sourceHandleByTable.get(e.source)!.add(e.sourceKey)
+    targetHandleByTable.get(e.target)!.add(e.targetKey)
   }
 
   const nodes: Node[] = schemaMeta.map((t, idx) => {
     const col = idx % 3
     const row = Math.floor(idx / 3)
-    const handleMap = handleByTable.get(t.tableName) ?? new Map()
+    const sourceSet = sourceHandleByTable.get(t.tableName) ?? new Set()
+    const targetSet = targetHandleByTable.get(t.tableName) ?? new Set()
+
     const columns: TableColumn[] = (t.columns ?? []).map((c) => ({
       name: c.columnName,
       type: c.dataType,
       key: c.primaryKey,
-      handleType: handleMap.get(c.columnName)
+      isSource: sourceSet.has(c.columnName),
+      isTarget: targetSet.has(c.columnName)
     }))
 
     return {

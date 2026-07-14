@@ -841,7 +841,7 @@ function buildCreateSchemaDiagramData(tables: RubricTable[]) {
   const primaryKeyColumnsByTable = new Map<string, Set<string>>()
   const foreignKeyColumnsByTable = new Map<
     string,
-    Map<string, { referencesTable: string; referencesColumn: string }>
+    Map<string, Array<{ referencesTable: string; referencesColumn: string }>>
   >()
 
   for (const table of tables) {
@@ -851,7 +851,7 @@ function buildCreateSchemaDiagramData(tables: RubricTable[]) {
     const pkColumns = new Set<string>()
     const fkColumns = new Map<
       string,
-      { referencesTable: string; referencesColumn: string }
+      Array<{ referencesTable: string; referencesColumn: string }>
     >()
 
     for (const constraint of table.constraints || []) {
@@ -868,7 +868,13 @@ function buildCreateSchemaDiagramData(tables: RubricTable[]) {
         sourceColumns.forEach((sourceColumn, index) => {
           const referencesColumn = targetColumns[index]
           if (!sourceColumn || !referencesColumn) return
-          fkColumns.set(sourceColumn, { referencesTable, referencesColumn })
+
+          if (!fkColumns.has(sourceColumn)) {
+            fkColumns.set(sourceColumn, [])
+          }
+          fkColumns
+            .get(sourceColumn)!
+            .push({ referencesTable, referencesColumn })
         })
       }
     }
@@ -888,20 +894,21 @@ function buildCreateSchemaDiagramData(tables: RubricTable[]) {
             foreignKeyColumnsByTable.get(tableName) ??
             new Map<
               string,
-              { referencesTable: string; referencesColumn: string }
+              Array<{ referencesTable: string; referencesColumn: string }>
             >()
 
           return {
             tableName,
             columns: table.columns.map((column) => {
-              const fk = fkColumns.get(column.name)
+              const fks = fkColumns.get(column.name)
               return {
                 columnName: column.name,
                 dataType: column.expected_type || 'UNKNOWN',
                 primaryKey: pkColumns.has(column.name),
-                foreignKey: Boolean(fk),
-                referencesTable: fk?.referencesTable ?? null,
-                referencesColumn: fk?.referencesColumn ?? null,
+                foreignKey: Boolean(fks && fks.length > 0),
+                referencesTable: fks?.[0]?.referencesTable ?? null,
+                referencesColumn: fks?.[0]?.referencesColumn ?? null,
+                foreignKeys: fks ?? [],
                 nullable: column.is_nullable
               }
             })

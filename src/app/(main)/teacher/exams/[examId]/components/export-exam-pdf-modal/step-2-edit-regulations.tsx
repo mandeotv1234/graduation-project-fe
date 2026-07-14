@@ -29,7 +29,7 @@ export function Step2EditRegulations({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <div>
         <h3 className="text-base font-semibold text-foreground">
           Bước 2: Quy định bài thi
@@ -53,7 +53,7 @@ export function Step2EditRegulations({
         {regulations.length}/{MAX_REGULATIONS_LENGTH}
       </p>
 
-      <div className="flex justify-between border-t border-border pt-3">
+      <div className="-mx-6 -mb-5 mt-auto flex shrink-0 justify-between border-t border-border bg-background px-6 py-3">
         <Button
           variant="outline"
           onClick={onBack}

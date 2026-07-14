@@ -159,6 +159,10 @@ export interface ExecuteSqlResponse {
       foreignKey?: boolean
       referencesTable?: string | null
       referencesColumn?: string | null
+      foreignKeys?: Array<{
+        referencesTable: string
+        referencesColumn: string
+      }>
       nullable: boolean
     }>
   }> | null

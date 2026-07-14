@@ -1,7 +1,6 @@
 import { Database, Play, Undo2, Redo2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -18,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
+import { TeacherSqlEditor } from '@/components/shared/teacher-sql-editor'
 import { useBuilderContext } from './builder-context'
 import { useEffect, useState } from 'react'
 
@@ -111,14 +110,14 @@ export function Header() {
                 </DialogDescription>
               </DialogHeader>
 
-              <ScrollArea className="min-h-0 h-[60vh] max-h-[60vh] rounded-md bg-neutral-950 p-4 font-mono text-sm text-neutral-50">
-                <Textarea
+              <div className="min-h-0 h-[60vh] max-h-[60vh] overflow-hidden rounded-md border border-border bg-background">
+                <TeacherSqlEditor
                   value={schemaScriptDraft}
-                  onChange={(event) => setSchemaScriptDraft(event.target.value)}
-                  className="min-h-[58vh] resize-none border-0 bg-transparent font-mono text-xs text-neutral-100 focus-visible:ring-0"
+                  onChange={(value) => setSchemaScriptDraft(value ?? '')}
+                  height="100%"
+                  showExpandButton={false}
                 />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"
@@ -169,17 +168,14 @@ export function Header() {
                 </Select>
               </div>
 
-              <ScrollArea className="min-h-0 h-[60vh] max-h-[60vh] rounded-md bg-neutral-950 p-4 font-mono text-sm text-neutral-50">
-                <Textarea
+              <div className="min-h-0 h-[60vh] max-h-[60vh] overflow-hidden rounded-md border border-border bg-background">
+                <TeacherSqlEditor
                   value={datasetScriptDraft}
-                  onChange={(event) =>
-                    setDatasetScriptDraft(event.target.value)
-                  }
-                  placeholder="Chưa có dataset hoặc dataset chưa có dữ liệu."
-                  className="min-h-[58vh] resize-none border-0 bg-transparent font-mono text-xs text-neutral-100 focus-visible:ring-0"
+                  onChange={(value) => setDatasetScriptDraft(value ?? '')}
+                  height="100%"
+                  showExpandButton={false}
                 />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"

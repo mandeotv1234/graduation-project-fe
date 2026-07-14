@@ -60,7 +60,7 @@ export function ExportExamPdfModal({
     >
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[95vh] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden p-0"
+        className="flex max-h-[95vh] w-[95vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
       >
         <DialogClose className="absolute right-4 top-4 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
           <X className="h-4 w-4" />
@@ -115,7 +115,7 @@ export function ExportExamPdfModal({
           </div>
         </DialogHeader>
 
-        <div className="min-h-0 overflow-hidden px-6 py-5">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6 py-5">
           {step === 'STEP1_DESCRIPTIONS' && (
             <Step1EditDescriptions
               entities={entities}
