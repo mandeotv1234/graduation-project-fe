@@ -460,6 +460,17 @@ export interface RegradeResponse {
   previousScores: PreviousScores
 }
 
+export type RegradeAllScope =
+  | 'ALL_ATTEMPTS'
+  | 'FIRST_ATTEMPT'
+  | 'LATEST_ATTEMPT'
+  | 'SPECIFIC_ATTEMPT'
+
+export interface RegradeAllRequest {
+  scope: RegradeAllScope
+  attemptNumber?: number
+}
+
 export interface PreviousScores {
   totalScore: number
   correctCount: number

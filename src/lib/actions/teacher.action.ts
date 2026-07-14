@@ -26,6 +26,7 @@ import {
   OverrideSubmissionRequest,
   OverrideSubmissionResponse,
   RegradeResponse,
+  RegradeAllRequest,
   RegradeAllResponse,
   RulePreset,
   CreateRulePresetRequest,
@@ -321,9 +322,13 @@ export async function regradeExamResult(
 }
 
 export async function regradeAllExamResults(
-  examId: number
+  examId: number,
+  data?: RegradeAllRequest
 ): Promise<ApiResponse<RegradeAllResponse>> {
-  return apiClient.post<RegradeAllResponse>(ENDPOINTS.EXAM_REGRADE_ALL(examId))
+  return apiClient.post<RegradeAllResponse>(
+    ENDPOINTS.EXAM_REGRADE_ALL(examId),
+    data
+  )
 }
 
 export async function getExamStatistics(
