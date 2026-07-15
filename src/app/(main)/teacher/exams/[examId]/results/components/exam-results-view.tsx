@@ -101,6 +101,12 @@ function isRegradableStatus(status: TeacherExamResult['status']) {
   )
 }
 
+function getResultId(
+  result: Pick<TeacherExamResult, 'resultId' | 'submissionId'>
+) {
+  return result.resultId ?? result.submissionId
+}
+
 function getResultStatusLabel(status: TeacherExamResult['status']) {
   switch (status) {
     case 'COMPLETED':
@@ -372,7 +378,7 @@ export function ExamResultsView({
     studentName: string
     studentEmail: string
     attempts: TeacherExamResult[]
-    activeSubmissionId: number
+    activeResultId: number
   }
 
   const groupsMap = new Map<number, StudentGroup>()
@@ -384,7 +390,7 @@ export function ExamResultsView({
         studentName: r.studentName,
         studentEmail: r.studentEmail,
         attempts: [],
-        activeSubmissionId: r.submissionId
+        activeResultId: getResultId(r)
       }
       groupsMap.set(r.studentId, group)
     }
@@ -396,21 +402,21 @@ export function ExamResultsView({
     const explicitId = selectedSubmissions[group.studentId]
     if (
       explicitId &&
-      group.attempts.some((a) => a.submissionId === explicitId)
+      group.attempts.some((a) => getResultId(a) === explicitId)
     ) {
-      group.activeSubmissionId = explicitId
+      group.activeResultId = explicitId
     } else {
-      group.activeSubmissionId = group.attempts[0].submissionId
+      group.activeResultId = getResultId(group.attempts[0])
     }
     return group
   })
 
   studentGroups.sort((gA, gB) => {
     const activeA = gA.attempts.find(
-      (a) => a.submissionId === gA.activeSubmissionId
+      (a) => getResultId(a) === gA.activeResultId
     )!
     const activeB = gB.attempts.find(
-      (a) => a.submissionId === gB.activeSubmissionId
+      (a) => getResultId(a) === gB.activeResultId
     )!
 
     switch (sortOrder) {
@@ -473,8 +479,8 @@ export function ExamResultsView({
         : 0
   }
 
-  const handleRowClick = (submissionId: number) => {
-    router.push(`/teacher/exams/${examId}/results/${submissionId}`)
+  const handleRowClick = (result: TeacherExamResult) => {
+    router.push(`/teacher/exams/${examId}/results/${getResultId(result)}`)
   }
 
   const handleExportCSV = async () => {
@@ -901,15 +907,13 @@ export function ExamResultsView({
                     paginatedResults.map((group: StudentGroup) => {
                       const activeResult = group.attempts.find(
                         (a: TeacherExamResult) =>
-                          a.submissionId === group.activeSubmissionId
+                          getResultId(a) === group.activeResultId
                       )!
 
                       return (
                         <tr
                           key={group.studentId}
-                          onClick={() =>
-                            handleRowClick(activeResult.submissionId)
-                          }
+                          onClick={() => handleRowClick(activeResult)}
                         >
                           <td>
                             <div className={styles.studentCell}>
@@ -944,7 +948,7 @@ export function ExamResultsView({
                             {group.attempts.length > 1 ? (
                               <div className="relative inline-block min-w-[70px]">
                                 <select
-                                  value={activeResult.submissionId}
+                                  value={getResultId(activeResult)}
                                   onChange={(e) =>
                                     setSelectedSubmissions((prev) => ({
                                       ...prev,
@@ -956,8 +960,8 @@ export function ExamResultsView({
                                   {group.attempts.map(
                                     (a: TeacherExamResult) => (
                                       <option
-                                        key={a.submissionId}
-                                        value={a.submissionId}
+                                        key={getResultId(a)}
+                                        value={getResultId(a)}
                                       >
                                         Lần {a.attemptNumber}{' '}
                                         {!isScoredStatus(a.status)

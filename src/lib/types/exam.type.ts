@@ -301,6 +301,8 @@ export interface StudentFeedbackResponse {
 }
 
 export interface TeacherExamResult {
+  resultId: number
+  /** @deprecated Backend kept this alias for compatibility; use resultId for result detail routes. */
   submissionId: number
   examId?: number
   studentId: number

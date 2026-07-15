@@ -45,7 +45,7 @@ import styles from './submission-detail-view.module.scss'
 
 interface SubmissionDetailViewProps {
   examId: number
-  submissionId: number
+  resultId: number
   detail: TeacherExamResultDetail
 }
 
@@ -73,7 +73,7 @@ function getResultStatusLabel(status: TeacherExamResultDetail['status']) {
 
 export function SubmissionDetailView({
   examId,
-  submissionId,
+  resultId,
   detail: initialDetail
 }: SubmissionDetailViewProps) {
   const router = useRouter()
@@ -81,7 +81,7 @@ export function SubmissionDetailView({
   // Attempt switcher: all attempts of this student for this exam
   const [attempts, setAttempts] = useState<
     Array<{
-      submissionId: number
+      resultId: number
       attemptNumber: number
       totalScore: number
       submittedAt: string
@@ -151,7 +151,7 @@ export function SubmissionDetailView({
             .filter((r) => r.studentId === initialDetail.studentId)
             .sort((a, b) => a.attemptNumber - b.attemptNumber)
             .map((r) => ({
-              submissionId: r.submissionId,
+              resultId: r.resultId ?? r.submissionId,
               attemptNumber: r.attemptNumber,
               totalScore: r.totalScore,
               submittedAt: r.submittedAt
@@ -187,7 +187,7 @@ export function SubmissionDetailView({
       }
 
       try {
-        const res = await getTeacherSubmissionDetail(examId, submissionId)
+        const res = await getTeacherSubmissionDetail(examId, resultId)
         if (res.data) {
           const status = res.data.status
           if (status === 'COMPLETED' || status === 'FAILED') {
@@ -213,7 +213,7 @@ export function SubmissionDetailView({
 
     // Start first poll after 3s delay
     pollingRef.current = setTimeout(poll, 3000)
-  }, [examId, submissionId])
+  }, [examId, resultId])
 
   // Phase 9: trigger re-grade
   async function handleRegrade() {
@@ -221,7 +221,7 @@ export function SubmissionDetailView({
     setIsRegrading(true)
     setPreviousScores(null)
     try {
-      const res = await regradeExamResult(examId, submissionId)
+      const res = await regradeExamResult(examId, resultId)
       if (res.data) {
         setPreviousScores(res.data.previousScores)
         toast.info('Đang chấm lại... Vui lòng chờ.')
@@ -323,7 +323,7 @@ export function SubmissionDetailView({
               </span>
               <span>
                 <ClipboardList className="h-3.5 w-3.5" />
-                Mã lượt nộp #{submissionId}
+                Mã kết quả #{resultId}
               </span>
             </div>
           </div>
@@ -434,16 +434,14 @@ export function SubmissionDetailView({
           >
             {attempts.map((a) => (
               <button
-                key={a.submissionId}
+                key={a.resultId}
                 className={`${styles.attemptPill} ${
-                  a.submissionId === submissionId
-                    ? styles.attemptPillActive
-                    : ''
+                  a.resultId === resultId ? styles.attemptPillActive : ''
                 }`}
                 onClick={() => {
-                  if (a.submissionId !== submissionId) {
+                  if (a.resultId !== resultId) {
                     router.push(
-                      `/teacher/exams/${examId}/results/${a.submissionId}`
+                      `/teacher/exams/${examId}/results/${a.resultId}`
                     )
                   }
                 }}
@@ -452,7 +450,7 @@ export function SubmissionDetailView({
                   Lần {a.attemptNumber}
                 </span>
                 <span className={styles.attemptPillScore}>
-                  {(a.submissionId === submissionId
+                  {(a.resultId === resultId
                     ? detail.totalScore
                     : a.totalScore
                   ).toFixed(1)}
@@ -571,7 +569,7 @@ export function SubmissionDetailView({
             qr={qr}
             index={index}
             examId={examId}
-            resultId={submissionId}
+            resultId={resultId}
             isEditing={editingQuestionId === qr.questionId}
             isRegrading={isRegrading}
             canEdit={canEdit}
