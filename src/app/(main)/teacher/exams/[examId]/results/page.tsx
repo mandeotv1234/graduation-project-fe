@@ -31,6 +31,7 @@ export default async function ExamResultsPage({
   const initialPagination = resultsResponse.meta?.pagination
   const initialStats: ExamStatistics | null = statsResponse.data ?? null
   const examTitle = examResponse.data?.title || `Bài thi #${id}`
+  const maxAttempts = examResponse.data?.maxAttempts ?? 1
   const initialMutationAnalytics: ExamMutationAnalytics | null =
     mutationResponse.data ?? null
 
@@ -38,6 +39,7 @@ export default async function ExamResultsPage({
     <ExamResultsView
       examId={id}
       examTitle={examTitle}
+      maxAttempts={maxAttempts}
       initialResults={initialResults}
       initialPagination={initialPagination}
       initialStats={initialStats}

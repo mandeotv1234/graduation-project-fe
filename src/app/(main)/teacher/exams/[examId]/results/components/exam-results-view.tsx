@@ -24,6 +24,8 @@ import { toast } from 'sonner'
 import styles from './exam-results-view.module.scss'
 
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Pagination } from '@/components/shared/pagination'
 import {
   AlertDialog,
@@ -41,7 +43,9 @@ import type {
   GradingNotificationDto,
   ExamStatistics,
   ExamMutationAnalytics,
-  PaginationMeta
+  PaginationMeta,
+  RegradeAllRequest,
+  RegradeAllScope
 } from '@/lib/types'
 import { subscribeToTeacherGradingResult } from '@/lib/socket'
 import { regradeAllExamResults } from '@/lib/actions'
@@ -53,14 +57,54 @@ import { MutationAnalytics } from './mutation-analytics/mutation-analytics'
 interface ExamResultsViewProps {
   examId: number
   examTitle: string
+  maxAttempts: number
   initialResults: TeacherExamResult[]
   initialPagination?: PaginationMeta
   initialStats: ExamStatistics | null
   initialMutationAnalytics: ExamMutationAnalytics | null
 }
 
+const regradeScopeOptions: Array<{
+  value: RegradeAllScope
+  label: string
+  description: string
+}> = [
+  {
+    value: 'ALL_ATTEMPTS',
+    label: 'Tất cả lần thi',
+    description: 'Chấm lại mọi lượt nộp'
+  },
+  {
+    value: 'FIRST_ATTEMPT',
+    label: 'Chỉ lần đầu',
+    description: 'Chỉ chấm lượt 1'
+  },
+  {
+    value: 'LATEST_ATTEMPT',
+    label: 'Chỉ lần cuối',
+    description: 'Lượt mới nhất mỗi sinh viên'
+  },
+  {
+    value: 'SPECIFIC_ATTEMPT',
+    label: 'Lần cụ thể',
+    description: 'Chọn số lần thi'
+  }
+]
+
 function isScoredStatus(status: TeacherExamResult['status']) {
   return status === 'COMPLETED' || status === 'FAILED'
+}
+
+function isRegradableStatus(status: TeacherExamResult['status']) {
+  return (
+    status === 'COMPLETED' || status === 'FAILED' || status === 'SYSTEM_ERROR'
+  )
+}
+
+function getResultId(
+  result: Pick<TeacherExamResult, 'resultId' | 'submissionId'>
+) {
+  return result.resultId ?? result.submissionId
 }
 
 function getResultStatusLabel(status: TeacherExamResult['status']) {
@@ -81,6 +125,7 @@ function getResultStatusLabel(status: TeacherExamResult['status']) {
 export function ExamResultsView({
   examId,
   examTitle,
+  maxAttempts,
   initialResults,
   initialPagination,
   initialStats,
@@ -102,6 +147,9 @@ export function ExamResultsView({
     'timeDesc' | 'timeAsc' | 'scoreDesc' | 'scoreAsc'
   >('timeDesc')
   const [isRegradingAll, setIsRegradingAll] = useState(false)
+  const [regradeScope, setRegradeScope] =
+    useState<RegradeAllScope>('ALL_ATTEMPTS')
+  const [specificAttemptNumber, setSpecificAttemptNumber] = useState(1)
   const [selectedSubmissions, setSelectedSubmissions] = useState<
     Record<number, number>
   >({})
@@ -110,20 +158,80 @@ export function ExamResultsView({
   const regradingRemainingRef = useRef(0)
   const didMountRef = useRef(false)
 
+  const isMultiAttemptExam = maxAttempts !== 1
+  const isSpecificAttemptInvalid =
+    isMultiAttemptExam &&
+    regradeScope === 'SPECIFIC_ATTEMPT' &&
+    (specificAttemptNumber < 1 ||
+      (maxAttempts > 1 && specificAttemptNumber > maxAttempts))
+
+  function buildRegradeAllRequest(): RegradeAllRequest | undefined {
+    if (!isMultiAttemptExam) {
+      return undefined
+    }
+
+    if (regradeScope === 'SPECIFIC_ATTEMPT') {
+      return {
+        scope: regradeScope,
+        attemptNumber: specificAttemptNumber
+      }
+    }
+
+    return { scope: regradeScope }
+  }
+
+  function shouldMarkResultPending(
+    result: TeacherExamResult,
+    request: RegradeAllRequest | undefined,
+    latestAttemptByStudent: Map<number, number>
+  ) {
+    if (!isRegradableStatus(result.status)) {
+      return false
+    }
+
+    const scope = request?.scope ?? 'ALL_ATTEMPTS'
+    switch (scope) {
+      case 'FIRST_ATTEMPT':
+        return result.attemptNumber === 1
+      case 'LATEST_ATTEMPT':
+        return (
+          result.attemptNumber === latestAttemptByStudent.get(result.studentId)
+        )
+      case 'SPECIFIC_ATTEMPT':
+        return result.attemptNumber === request?.attemptNumber
+      default:
+        return true
+    }
+  }
+
   async function handleRegradeAll() {
+    if (isSpecificAttemptInvalid) {
+      toast.error('Vui lòng nhập lần thi hợp lệ')
+      return
+    }
+
+    const request = buildRegradeAllRequest()
     setIsRegradingAll(true)
 
     // Prevent Race Condition: Reflect BE state immediately BEFORE API call
-    setResults((prev) =>
-      prev.map((r) =>
-        r.status === 'COMPLETED' || r.status === 'FAILED'
+    setResults((prev) => {
+      const latestAttemptByStudent = new Map<number, number>()
+      for (const result of prev) {
+        const current = latestAttemptByStudent.get(result.studentId) ?? 0
+        if (result.attemptNumber > current) {
+          latestAttemptByStudent.set(result.studentId, result.attemptNumber)
+        }
+      }
+
+      return prev.map((r) =>
+        shouldMarkResultPending(r, request, latestAttemptByStudent)
           ? { ...r, status: 'PENDING' as const }
           : r
       )
-    )
+    })
 
     try {
-      const res = await regradeAllExamResults(examId)
+      const res = await regradeAllExamResults(examId, request)
       if (res.data) {
         const { queuedCount, skippedCount } = res.data
         regradingRemainingRef.current = queuedCount
@@ -270,7 +378,7 @@ export function ExamResultsView({
     studentName: string
     studentEmail: string
     attempts: TeacherExamResult[]
-    activeSubmissionId: number
+    activeResultId: number
   }
 
   const groupsMap = new Map<number, StudentGroup>()
@@ -282,7 +390,7 @@ export function ExamResultsView({
         studentName: r.studentName,
         studentEmail: r.studentEmail,
         attempts: [],
-        activeSubmissionId: r.submissionId
+        activeResultId: getResultId(r)
       }
       groupsMap.set(r.studentId, group)
     }
@@ -294,21 +402,21 @@ export function ExamResultsView({
     const explicitId = selectedSubmissions[group.studentId]
     if (
       explicitId &&
-      group.attempts.some((a) => a.submissionId === explicitId)
+      group.attempts.some((a) => getResultId(a) === explicitId)
     ) {
-      group.activeSubmissionId = explicitId
+      group.activeResultId = explicitId
     } else {
-      group.activeSubmissionId = group.attempts[0].submissionId
+      group.activeResultId = getResultId(group.attempts[0])
     }
     return group
   })
 
   studentGroups.sort((gA, gB) => {
     const activeA = gA.attempts.find(
-      (a) => a.submissionId === gA.activeSubmissionId
+      (a) => getResultId(a) === gA.activeResultId
     )!
     const activeB = gB.attempts.find(
-      (a) => a.submissionId === gB.activeSubmissionId
+      (a) => getResultId(a) === gB.activeResultId
     )!
 
     switch (sortOrder) {
@@ -371,8 +479,8 @@ export function ExamResultsView({
         : 0
   }
 
-  const handleRowClick = (submissionId: number) => {
-    router.push(`/teacher/exams/${examId}/results/${submissionId}`)
+  const handleRowClick = (result: TeacherExamResult) => {
+    router.push(`/teacher/exams/${examId}/results/${getResultId(result)}`)
   }
 
   const handleExportCSV = async () => {
@@ -449,17 +557,75 @@ export function ExamResultsView({
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Chấm lại toàn bộ bài thi</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {isMultiAttemptExam
+                    ? 'Chọn phạm vi chấm lại'
+                    : 'Chấm lại toàn bộ bài thi'}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  Tất cả bài đã hoàn tất sẽ được chấm lại từ đầu. Điểm cũ và các
-                  chỉnh sửa thủ công sẽ bị ghi đè. Hành động này không thể hoàn
-                  tác.
+                  Các bài phù hợp sẽ được chấm lại từ đầu. Điểm cũ và các chỉnh
+                  sửa thủ công sẽ bị ghi đè. Hành động này không thể hoàn tác.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              {isMultiAttemptExam && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {regradeScopeOptions.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={
+                          regradeScope === option.value ? 'default' : 'outline'
+                        }
+                        className="h-auto justify-start px-3 py-2 text-left"
+                        onClick={() => setRegradeScope(option.value)}
+                      >
+                        <span className="flex flex-col items-start gap-0.5">
+                          <span className="text-sm font-medium">
+                            {option.label}
+                          </span>
+                          <span className="text-xs font-normal opacity-80">
+                            {option.description}
+                          </span>
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+
+                  {regradeScope === 'SPECIFIC_ATTEMPT' && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="specific-attempt-number">Lần thi</Label>
+                      <Input
+                        id="specific-attempt-number"
+                        type="number"
+                        min={1}
+                        max={maxAttempts > 1 ? maxAttempts : undefined}
+                        value={specificAttemptNumber}
+                        onChange={(event) =>
+                          setSpecificAttemptNumber(
+                            Number(event.target.value || '1')
+                          )
+                        }
+                      />
+                      {isSpecificAttemptInvalid && (
+                        <p className="text-xs text-destructive">
+                          Lần thi phải từ 1
+                          {maxAttempts > 1 ? ` đến ${maxAttempts}` : ''}.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               <AlertDialogFooter>
                 <AlertDialogCancel>Hủy</AlertDialogCancel>
-                <AlertDialogAction onClick={handleRegradeAll}>
-                  Chấm lại toàn bộ
+                <AlertDialogAction
+                  disabled={isRegradingAll || isSpecificAttemptInvalid}
+                  onClick={handleRegradeAll}
+                >
+                  {isMultiAttemptExam
+                    ? 'Chấm lại phạm vi đã chọn'
+                    : 'Chấm lại toàn bộ'}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -741,15 +907,13 @@ export function ExamResultsView({
                     paginatedResults.map((group: StudentGroup) => {
                       const activeResult = group.attempts.find(
                         (a: TeacherExamResult) =>
-                          a.submissionId === group.activeSubmissionId
+                          getResultId(a) === group.activeResultId
                       )!
 
                       return (
                         <tr
                           key={group.studentId}
-                          onClick={() =>
-                            handleRowClick(activeResult.submissionId)
-                          }
+                          onClick={() => handleRowClick(activeResult)}
                         >
                           <td>
                             <div className={styles.studentCell}>
@@ -784,7 +948,7 @@ export function ExamResultsView({
                             {group.attempts.length > 1 ? (
                               <div className="relative inline-block min-w-[70px]">
                                 <select
-                                  value={activeResult.submissionId}
+                                  value={getResultId(activeResult)}
                                   onChange={(e) =>
                                     setSelectedSubmissions((prev) => ({
                                       ...prev,
@@ -796,8 +960,8 @@ export function ExamResultsView({
                                   {group.attempts.map(
                                     (a: TeacherExamResult) => (
                                       <option
-                                        key={a.submissionId}
-                                        value={a.submissionId}
+                                        key={getResultId(a)}
+                                        value={getResultId(a)}
                                       >
                                         Lần {a.attemptNumber}{' '}
                                         {!isScoredStatus(a.status)

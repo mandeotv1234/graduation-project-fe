@@ -301,6 +301,8 @@ export interface StudentFeedbackResponse {
 }
 
 export interface TeacherExamResult {
+  resultId: number
+  /** @deprecated Backend kept this alias for compatibility; use resultId for result detail routes. */
   submissionId: number
   examId?: number
   studentId: number
@@ -458,6 +460,17 @@ export interface OverrideSubmissionResponse {
 export interface RegradeResponse {
   message: string
   previousScores: PreviousScores
+}
+
+export type RegradeAllScope =
+  | 'ALL_ATTEMPTS'
+  | 'FIRST_ATTEMPT'
+  | 'LATEST_ATTEMPT'
+  | 'SPECIFIC_ATTEMPT'
+
+export interface RegradeAllRequest {
+  scope: RegradeAllScope
+  attemptNumber?: number
 }
 
 export interface PreviousScores {
