@@ -32,7 +32,6 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { AiRubricRefinementPanel } from './ai-rubric-refinement-panel'
 import { GradingRulesEditor } from './grading-rules-editor'
 import { WhiteboxRulesEditor } from './whitebox-rules-editor'
 import { TeacherSqlEditor } from './teacher-sql-editor'
@@ -479,41 +478,6 @@ export function CreateTableRubricEditor({
     }
   }
 
-  const handleApplyAiRefinement = useCallback(
-    (nextRubric: GradingRubric) => {
-      const activeTableName = tables[activeTableIndex]?.expected_name
-      const normalizedPayload = normalizeCreateTablePayload(
-        nextRubric.grading_payload
-      )
-      const normalizedRubric: GradingRubric = {
-        ...nextRubric,
-        total_points: totalPoints,
-        question_category: 'CREATE_TABLE',
-        grading_payload: {
-          ...normalizedPayload,
-          grading_rules: normalizedPayload.grading_rules,
-          tables: normalizedPayload.tables,
-          whitebox_rules: normalizedPayload.whitebox_rules,
-          whitebox_settings: normalizedPayload.whitebox_settings
-        }
-      }
-      const nextActiveIndex = activeTableName
-        ? normalizedPayload.tables.findIndex(
-            (table) => table.expected_name === activeTableName
-          )
-        : -1
-
-      rubricRef.current = normalizedRubric
-      onChange(normalizedRubric)
-      setActiveTableIndex(nextActiveIndex >= 0 ? nextActiveIndex : 0)
-      setExpandedTables((prev) => ({
-        ...prev,
-        [nextActiveIndex >= 0 ? nextActiveIndex : 0]: true
-      }))
-    },
-    [activeTableIndex, onChange, tables, totalPoints]
-  )
-
   const isWizardMode = typeof wizardStep === 'number'
 
   // Auto-trigger build when entering Step 2 with empty tables
@@ -584,24 +548,6 @@ export function CreateTableRubricEditor({
           onBackToAnswer={
             onRequestWizardStep ? () => onRequestWizardStep(1) : undefined
           }
-        />
-      )}
-
-      {(!isWizardMode || wizardStep === 2) && (
-        <AiRubricRefinementPanel
-          examId={examId}
-          questionType="CREATE_TABLE"
-          totalPoints={totalPoints}
-          currentRubric={currentRubric}
-          onApply={handleApplyAiRefinement}
-          correctQuery={correctQuery}
-          questionContent={questionContent}
-          activeTargetId={tables[activeTableIndex]?.expected_name}
-          activeTargetLabel={
-            tables[activeTableIndex]?.expected_name ||
-            (tables.length > 0 ? `Bảng ${activeTableIndex + 1}` : undefined)
-          }
-          disabled={isBuildingTables}
         />
       )}
 

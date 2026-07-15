@@ -1,10 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PATH, PRIVATE_PATH, PUBLIC_PATH, ROLES } from '@/lib/constants'
+import type { UserRole } from '@/lib/constants'
 import { ApiResponse, RefreshTokenResponse } from '@/lib/types'
 import { decodeJwtPayload } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'
 const REFRESH_ENDPOINT = '/auth/refresh'
+
+const ROLE_DEFAULT_PATH: Record<UserRole, string> = {
+  [ROLES.ADMIN]: PATH.ADMIN_FEEDBACKS,
+  [ROLES.TEACHER]: PATH.TEACHER_CLASSES,
+  [ROLES.STUDENT]: PATH.STUDENT_EXAMS
+}
+
+const ROLE_ROUTE_PREFIX: Record<UserRole, string> = {
+  [ROLES.ADMIN]: PATH.ADMIN,
+  [ROLES.TEACHER]: PATH.TEACHER,
+  [ROLES.STUDENT]: PATH.STUDENT
+}
+
+function normalizeRole(value: unknown): UserRole | null {
+  return Object.values(ROLES).includes(value as UserRole)
+    ? (value as UserRole)
+    : null
+}
+
+function roleFromAccessToken(accessToken: string): UserRole | null {
+  const decoded = decodeJwtPayload(accessToken)
+  if (!decoded || decoded.exp * 1000 <= Date.now()) return null
+  return normalizeRole(decoded.role)
+}
+
+function matchesPathPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
+
+function requiredRoleForPath(pathname: string): UserRole | null {
+  return (
+    (Object.entries(ROLE_ROUTE_PREFIX).find(([, prefix]) =>
+      matchesPathPrefix(pathname, prefix)
+    )?.[0] as UserRole | undefined) ?? null
+  )
+}
+
+function redirectToRoleHome(
+  request: NextRequest,
+  role: UserRole
+): NextResponse {
+  return NextResponse.redirect(new URL(ROLE_DEFAULT_PATH[role], request.url))
+}
+
+function enforceRouteRole(
+  request: NextRequest,
+  role: UserRole
+): NextResponse | null {
+  const requiredRole = requiredRoleForPath(request.nextUrl.pathname)
+  if (!requiredRole || requiredRole === role) return null
+
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return NextResponse.json(
+      { message: 'Bạn không có quyền truy cập chức năng này.' },
+      { status: 403 }
+    )
+  }
+
+  return redirectToRoleHome(request, role)
+}
 
 function parseExpiryDate(dateStr: string): Date {
   const date = new Date(dateStr.replace('T', ' '))
@@ -102,32 +163,26 @@ export async function proxy(request: NextRequest) {
   const csp = buildCsp(nonce)
 
   // ── If already authenticated, redirect away from public auth pages ──
-  if (PUBLIC_PATH.some((path) => pathname.startsWith(path))) {
+  if (PUBLIC_PATH.some((path) => matchesPathPrefix(pathname, path))) {
     const accessToken = request.cookies.get('accessToken')?.value
     const refreshToken = request.cookies.get('refreshToken')?.value
     if (accessToken || refreshToken) {
-      // Decode role from token to redirect to the correct default page
-      const decoded = accessToken ? decodeJwtPayload(accessToken) : null
-      const role = decoded?.role
-      let redirectTo: string
-      switch (role) {
-        case ROLES.STUDENT:
-          redirectTo = PATH.STUDENT_EXAMS
-          break
-        case ROLES.TEACHER:
-          redirectTo = PATH.TEACHER_CLASSES
-          break
-        default:
-          redirectTo = PATH.STUDENT_EXAMS
+      const role = accessToken
+        ? roleFromAccessToken(accessToken)
+        : normalizeRole(request.cookies.get('userRole')?.value)
+      if (role) {
+        return redirectToRoleHome(request, role)
       }
-      return NextResponse.redirect(new URL(redirectTo, request.url))
+
+      // Let the private root refresh the access token and resolve the role.
+      return NextResponse.redirect(new URL(PATH.HOME, request.url))
     }
     return nextWithCsp(request, nonce, csp)
   }
 
   const isPrivateRoute =
     pathname === PATH.HOME ||
-    PRIVATE_PATH.some((path) => pathname.startsWith(path))
+    PRIVATE_PATH.some((path) => matchesPathPrefix(pathname, path))
 
   if (!isPrivateRoute) {
     return nextWithCsp(request, nonce, csp)
@@ -135,7 +190,13 @@ export async function proxy(request: NextRequest) {
 
   const accessToken = request.cookies.get('accessToken')?.value
   if (accessToken) {
-    return nextWithCsp(request, nonce, csp)
+    const role = roleFromAccessToken(accessToken)
+    if (role) {
+      if (pathname === PATH.HOME) {
+        return redirectToRoleHome(request, role)
+      }
+      return enforceRouteRole(request, role) ?? nextWithCsp(request, nonce, csp)
+    }
   }
 
   const refreshToken = request.cookies.get('refreshToken')?.value
@@ -147,7 +208,8 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!refreshToken) {
-    return NextResponse.redirect(new URL(PATH.LOGIN, request.url))
+    const response = NextResponse.redirect(new URL(PATH.LOGIN, request.url))
+    return clearAuthCookies(response)
   }
 
   const tokenData = await refreshAccessToken(refreshToken)
@@ -157,13 +219,33 @@ export async function proxy(request: NextRequest) {
     return clearAuthCookies(response)
   }
 
-  const response = NextResponse.redirect(new URL(pathname, request.url))
+  const refreshedRole = roleFromAccessToken(tokenData.accessToken)
+  if (!refreshedRole) {
+    const response = NextResponse.redirect(new URL(PATH.LOGIN, request.url))
+    return clearAuthCookies(response)
+  }
+
+  const requiredRole = requiredRoleForPath(pathname)
+  const redirectPath =
+    pathname === PATH.HOME ||
+    (requiredRole !== null && requiredRole !== refreshedRole)
+      ? ROLE_DEFAULT_PATH[refreshedRole]
+      : pathname
+  const response = NextResponse.redirect(new URL(redirectPath, request.url))
+  const accessTokenExpiry = parseExpiryDate(tokenData.accessTokenExpiresAt)
   response.cookies.set('accessToken', tokenData.accessToken, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    expires: parseExpiryDate(tokenData.accessTokenExpiresAt)
+    expires: accessTokenExpiry
+  })
+  response.cookies.set('userRole', refreshedRole, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    expires: accessTokenExpiry
   })
 
   return response

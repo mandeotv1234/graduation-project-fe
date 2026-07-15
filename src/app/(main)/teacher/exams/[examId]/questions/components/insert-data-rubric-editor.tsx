@@ -25,7 +25,6 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { AiRubricRefinementPanel } from './ai-rubric-refinement-panel'
 import { GradingRulesEditor } from './grading-rules-editor'
 import { WhiteboxRulesEditor } from './whitebox-rules-editor'
 
@@ -370,40 +369,6 @@ export function InsertDataRubricEditor({
     }
   }
 
-  const handleApplyAiRefinement = useCallback(
-    (nextRubric: GradingRubric) => {
-      const activeTableName = tables[activeTableIndex]?.table_name
-      const normalizedPayload = normalizeInsertDataPayload(
-        nextRubric.grading_payload
-      )
-      const normalizedRubric: GradingRubric = {
-        ...nextRubric,
-        total_points: totalPoints,
-        question_category: 'INSERT_DATA',
-        grading_payload: {
-          ...normalizedPayload,
-          grading_rules: normalizedPayload.grading_rules,
-          tables: normalizedPayload.tables,
-          whitebox_rules: normalizedPayload.whitebox_rules,
-          whitebox_settings: normalizedPayload.whitebox_settings
-        }
-      }
-      const nextActiveIndex = activeTableName
-        ? normalizedPayload.tables.findIndex(
-            (table) => table.table_name === activeTableName
-          )
-        : -1
-
-      rubricRef.current = normalizedRubric
-      onChange(normalizedRubric)
-      setActiveTableIndex(nextActiveIndex >= 0 ? nextActiveIndex : 0)
-      setExpandedTables((prev) => ({
-        ...prev,
-        [nextActiveIndex >= 0 ? nextActiveIndex : 0]: true
-      }))
-    },
-    [activeTableIndex, onChange, tables, totalPoints]
-  )
   const isAnyExpanded = useMemo(
     () => tables.some((_, idx) => expandedTables[idx] ?? false),
     [tables, expandedTables]
@@ -452,24 +417,6 @@ export function InsertDataRubricEditor({
             )}
           </Button>
         </div>
-      )}
-
-      {(!isWizardMode || wizardStep === 2) && (
-        <AiRubricRefinementPanel
-          examId={examId}
-          questionType="INSERT_DATA"
-          totalPoints={totalPoints}
-          currentRubric={expectedJsonPreview}
-          onApply={handleApplyAiRefinement}
-          correctQuery={correctQuery}
-          questionContent={questionContent}
-          activeTargetId={tables[activeTableIndex]?.table_name}
-          activeTargetLabel={
-            tables[activeTableIndex]?.table_name ||
-            (tables.length > 0 ? `Bảng ${activeTableIndex + 1}` : undefined)
-          }
-          disabled={isBuildingTables}
-        />
       )}
 
       {(!isWizardMode || wizardStep === 3) && (
