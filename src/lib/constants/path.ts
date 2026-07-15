@@ -4,6 +4,7 @@ export const PATH = {
   REGISTER: '/register',
 
   // Student paths
+  STUDENT: '/student',
   STUDENT_EXAMS: '/student/exams',
   STUDENT_EXAM_DETAIL: (examId: number) => `/student/exams/${examId}`,
   STUDENT_EXAM_TAKE: (examId: number) => `/student/exams/${examId}/take`,
@@ -16,6 +17,7 @@ export const PATH = {
     `/student/results/${resultId}/feedback`,
 
   // Teacher paths
+  TEACHER: '/teacher',
   TEACHER_CLASSES: '/teacher/classes',
   TEACHER_CLASS_DETAIL: (classId: number) => `/teacher/classes/${classId}`,
   TEACHER_STUDENT_PROGRESS: (classId: number, studentId: number) =>
@@ -47,6 +49,6 @@ export const PATH = {
   ADMIN_USERS: '/admin/users'
 }
 
-export const PRIVATE_PATH = ['/student', '/teacher', '/admin']
+export const PRIVATE_PATH = [PATH.STUDENT, PATH.TEACHER, PATH.ADMIN]
 
 export const PUBLIC_PATH = [PATH.LOGIN, PATH.REGISTER]

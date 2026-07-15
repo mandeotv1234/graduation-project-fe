@@ -103,10 +103,23 @@ export async function refreshNewAccessToken(): Promise<
   )
 
   if (response.data) {
-    await setCookie('accessToken', response.data.accessToken, {
-      expires: toExpiryDate(response.data.accessTokenExpiresAt),
-      ...COOKIE_BASE_OPTIONS
-    })
+    const accessExpiry = toExpiryDate(response.data.accessTokenExpiresAt)
+    const decoded = decodeJwtPayload(response.data.accessToken)
+
+    await Promise.all([
+      setCookie('accessToken', response.data.accessToken, {
+        expires: accessExpiry,
+        ...COOKIE_BASE_OPTIONS
+      }),
+      ...(decoded
+        ? [
+            setCookie('userRole', decoded.role, {
+              expires: accessExpiry,
+              ...COOKIE_BASE_OPTIONS
+            })
+          ]
+        : [])
+    ])
   }
 
   return response
