@@ -1,3 +1,5 @@
+import type { UserRole } from '@/lib/constants/common'
+
 export interface FeedbackItem {
   id: number
   studentId: number
@@ -19,6 +21,11 @@ export interface AdminUserItem {
   role: string
   isActive: boolean
   createdAt: string
+}
+
+export interface CreateAdminUserRequest {
+  role: UserRole
+  email: string
 }
 
 export interface UpdateUserRoleResponse {

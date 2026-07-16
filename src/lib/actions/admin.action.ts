@@ -7,6 +7,7 @@ import type { PaginatedApiResponse } from '@/lib/types/teacher.type'
 import type {
   FeedbackItem,
   AdminUserItem,
+  CreateAdminUserRequest,
   UpdateUserRoleResponse
 } from '@/lib/types/admin.type'
 
@@ -37,6 +38,12 @@ export async function getAdminUsers(
     },
     cache: 'no-store'
   }) as Promise<PaginatedApiResponse<AdminUserItem>>
+}
+
+export async function createAdminUser(
+  request: CreateAdminUserRequest
+): Promise<ApiResponse<AdminUserItem>> {
+  return apiClient.post<AdminUserItem>(ENDPOINTS.ADMIN_USERS, request)
 }
 
 export async function updateUserRole(
