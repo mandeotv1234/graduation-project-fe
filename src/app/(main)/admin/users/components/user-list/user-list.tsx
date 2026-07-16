@@ -10,6 +10,8 @@ import type { PaginationMeta } from '@/lib/types/teacher.type'
 import { ROLES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
+import { CreateUserDialog } from '../create-user-dialog/create-user-dialog'
+
 const ROLE_OPTIONS = [
   { value: ROLES.STUDENT, label: 'Sinh viên' },
   { value: ROLES.TEACHER, label: 'Giáo viên' },
@@ -68,19 +70,39 @@ export function UserList() {
     }
   }
 
+  const handleUserCreated = () => {
+    if (page === 1) {
+      fetchUsers(1)
+      return
+    }
+    setPage(1)
+  }
+
+  const createUserToolbar = (
+    <div className="flex justify-end">
+      <CreateUserDialog onCreated={handleUserCreated} />
+    </div>
+  )
+
   if (isPending && users.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="space-y-4">
+        {createUserToolbar}
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
       </div>
     )
   }
 
-  if (!isPending && users.length === 0) {
+  if (users.length === 0) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
-        <Users className="h-10 w-10 opacity-30" />
-        <p className="text-sm">Không có người dùng nào</p>
+      <div className="space-y-4">
+        {createUserToolbar}
+        <div className="flex h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
+          <Users className="h-10 w-10 opacity-30" />
+          <p className="text-sm">Không có người dùng nào</p>
+        </div>
       </div>
     )
   }
@@ -89,6 +111,8 @@ export function UserList() {
 
   return (
     <div className="space-y-4">
+      {createUserToolbar}
+
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-surface-container-lowest">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
