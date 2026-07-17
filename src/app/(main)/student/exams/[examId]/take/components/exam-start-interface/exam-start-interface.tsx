@@ -17,7 +17,7 @@ import {
   ApiResponse
 } from '@/lib/types'
 import { getMe } from '@/lib/actions'
-import { PATH } from '@/lib/constants'
+import { IS_PRODUCTION_ENV, PATH } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { WaitingApprovalOverlay } from '@/app/(main)/exam/components/waiting-approval-overlay/waiting-approval-overlay'
@@ -94,6 +94,9 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
   const hasAutoStarted = useRef(false)
 
   const dispatch = useAppDispatch()
+  const antiCheatEnabled = IS_PRODUCTION_ENV
+  const forceFullscreenRequired =
+    antiCheatEnabled && exam.settings?.forceFullscreen === true
 
   // Fetch studentId for WaitingApprovalOverlay
   useEffect(() => {
@@ -162,7 +165,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
     setIsStarting(true)
     setError(null)
 
-    if (exam.settings?.forceFullscreen) {
+    if (forceFullscreenRequired) {
       try {
         await document.documentElement.requestFullscreen()
         dispatch(setFullscreen(true))
@@ -229,7 +232,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
       exam.maxAttempts === 1 &&
       exam.startTime
     ) {
-      if (!exam.settings?.forceFullscreen) {
+      if (!forceFullscreenRequired) {
         hasAutoStarted.current = true
         setIsStarting(true)
         doStartSession()
@@ -240,7 +243,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
     cannotStart,
     exam.maxAttempts,
     exam.startTime,
-    exam.settings?.forceFullscreen,
+    forceFullscreenRequired,
     doStartSession
   ])
 
@@ -351,26 +354,26 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                 Nội quy trực tuyến & Giám sát
               </h2>
               <ul className={styles.rulesList}>
-                {settings?.preventCopyPaste && (
+                {antiCheatEnabled && settings?.preventCopyPaste && (
                   <li>
                     Không được phép sử dụng chức năng{' '}
                     <strong>Copy-Paste</strong> trong suốt quá trình làm bài.
                   </li>
                 )}
-                {settings?.forceFullscreen && (
+                {forceFullscreenRequired && (
                   <li>
                     Chế độ <strong>toàn màn hình</strong> là bắt buộc. Hệ thống
                     sẽ ghi nhận vi phạm lưu vào lịch sử nếu bạn thoát hoặc thu
                     nhỏ trình duyệt.
                   </li>
                 )}
-                {settings?.trackTabSwitch && (
+                {antiCheatEnabled && settings?.trackTabSwitch && (
                   <li>
                     Việc <strong>chuyển đổi cửa sổ hoặc ứng dụng</strong> sẽ bị
                     giám sát chặt chẽ bằng thuật toán.
                   </li>
                 )}
-                {settings?.autoSubmitOnViolation && (
+                {antiCheatEnabled && settings?.autoSubmitOnViolation && (
                   <li>
                     Các vi phạm nghiêm trọng hoặc lặp lại nhiều lần sẽ dẫn đến
                     việc hệ thống tự động
@@ -386,10 +389,11 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                     Không được phép xem lại kết quả chi tiết sau khi đã nộp bài.
                   </li>
                 )}
-                {!settings?.preventCopyPaste &&
-                  !settings?.forceFullscreen &&
-                  !settings?.trackTabSwitch &&
-                  !settings?.autoSubmitOnViolation &&
+                {(!antiCheatEnabled ||
+                  (!settings?.preventCopyPaste &&
+                    !settings?.forceFullscreen &&
+                    !settings?.trackTabSwitch &&
+                    !settings?.autoSubmitOnViolation)) &&
                   settings?.allowReview !== false && (
                     <li className={styles.noRules}>
                       Bài thi này không áp dụng các quy định giám sát tự động
@@ -397,7 +401,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                     </li>
                   )}
               </ul>
-              {settings?.forceFullscreen && (
+              {forceFullscreenRequired && (
                 <div className="mt-5 p-4 bg-background/50 rounded-lg border border-amber-200/40">
                   <p className="font-semibold text-foreground mb-2 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-amber-600" /> Chế độ thi an
@@ -415,7 +419,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
             {!cannotStart &&
               (!exam.startTime ||
                 exam.maxAttempts !== 1 ||
-                settings?.forceFullscreen) && (
+                forceFullscreenRequired) && (
                 <label className={styles.agreementLabel}>
                   <Checkbox
                     checked={agreed}
@@ -454,7 +458,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                 (!agreed &&
                   (!exam.startTime ||
                     exam.maxAttempts !== 1 ||
-                    settings?.forceFullscreen)) ||
+                    forceFullscreenRequired)) ||
                 isStarting
               }
               onClick={handleStartExam}
@@ -470,7 +474,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
                 </>
               ) : !canStart && countdownStr ? (
                 `Bắt đầu sau ${countdownStr}`
-              ) : settings?.forceFullscreen ? (
+              ) : forceFullscreenRequired ? (
                 <>
                   <Maximize className="w-4 h-4 mr-2" />
                   Bật toàn màn hình & Bắt đầu

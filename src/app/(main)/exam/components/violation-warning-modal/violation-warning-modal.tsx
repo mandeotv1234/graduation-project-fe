@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, ShieldAlert, X } from 'lucide-react'
+import { AlertTriangle, Loader2, ShieldAlert, X } from 'lucide-react'
 
 import styles from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.module.scss'
 import {
@@ -12,6 +12,7 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { IS_PRODUCTION_ENV } from '@/lib/constants/environment'
 import { resolveMaxViolations } from '@/lib/constants/violation'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 import { hideWarning } from '@/lib/redux/slices/anti-cheat.slice'
@@ -32,10 +33,9 @@ export function ViolationWarningModal({
     totalViolations,
     isForceSubmitted
   } = useAppSelector((state) => state.antiCheat)
-  const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
   const violationLimit = resolveMaxViolations(maxViolations)
 
-  if (isDev) return null
+  if (!IS_PRODUCTION_ENV) return null
 
   const isForceSubmit = isForceSubmitted
   const severity = isForceSubmit
@@ -92,7 +92,7 @@ export function ViolationWarningModal({
           </div>
         )}
 
-        <AlertDialogFooter>
+        <AlertDialogFooter className={styles.modalFooter}>
           {!isForceSubmit ? (
             <Button
               onClick={handleClose}
@@ -103,9 +103,12 @@ export function ViolationWarningModal({
               Tôi đã hiểu, tiếp tục làm bài
             </Button>
           ) : (
-            <p className={styles.forceSubmitMessage}>
-              Bài thi đang được nộp tự động...
-            </p>
+            <div className={styles.forceSubmitStatus}>
+              <Loader2 className={styles.loadingIcon} />
+              <p className={styles.forceSubmitMessage}>
+                Bài thi đang được nộp tự động...
+              </p>
+            </div>
           )}
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,27 +1,45 @@
 'use client'
 
-import { AlertTriangle, Maximize } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, Loader2, Maximize } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { IS_PRODUCTION_ENV } from '@/lib/constants/environment'
 import { setBlurred, setFullscreen } from '@/lib/redux/slices/anti-cheat.slice'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 import styles from '@/app/(main)/exam/components/blur-overlay/blur-overlay.module.scss'
 
-export function BlurOverlay() {
-  const dispatch = useAppDispatch()
-  const { isBlurred } = useAppSelector((state) => state.antiCheat)
-  const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
+interface BlurOverlayProps {
+  requireFullscreen?: boolean
+}
 
-  if (isDev || !isBlurred) return null
+export function BlurOverlay({ requireFullscreen = false }: BlurOverlayProps) {
+  const dispatch = useAppDispatch()
+  const { isBlurred, isFullscreen } = useAppSelector((state) => state.antiCheat)
+  const [isRequesting, setIsRequesting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (!IS_PRODUCTION_ENV || !requireFullscreen || !isBlurred || isFullscreen) {
+    return null
+  }
 
   const handleReturnToExam = async () => {
+    setIsRequesting(true)
+    setError(null)
     try {
-      await document.documentElement.requestFullscreen()
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen()
+      }
+      if (!document.fullscreenElement) {
+        throw new Error('Fullscreen request was not accepted')
+      }
       dispatch(setFullscreen(true))
+      dispatch(setBlurred(false))
     } catch {
-      // Fullscreen không được hỗ trợ hoặc bị từ chối
+      setError('Không thể bật toàn màn hình. Vui lòng cấp quyền và thử lại.')
+    } finally {
+      setIsRequesting(false)
     }
-    dispatch(setBlurred(false))
   }
 
   return (
@@ -31,19 +49,25 @@ export function BlurOverlay() {
           <AlertTriangle className={styles.alertIcon} />
         </div>
         <div className={styles.messageContent}>
-          <h2 className={styles.title}>Phát hiện rời khỏi bài thi!</h2>
+          <h2 className={styles.title}>Phát hiện thoát toàn màn hình!</h2>
           <p className={styles.description}>
-            Hệ thống đã ghi nhận hành vi rời khỏi trang thi. Hành vi này đã được
-            ghi lại và thông báo cho giám thị.
+            Bài thi này bắt buộc ở chế độ toàn màn hình. Nội dung bài làm sẽ bị
+            khóa cho đến khi bạn quay lại toàn màn hình.
           </p>
+          {error && <p className={styles.errorMessage}>{error}</p>}
         </div>
         <Button
           onClick={handleReturnToExam}
           size="lg"
           className={styles.returnButton}
+          disabled={isRequesting}
         >
-          <Maximize className={styles.buttonIcon} />
-          Quay lại bài thi
+          {isRequesting ? (
+            <Loader2 className={`${styles.buttonIcon} animate-spin`} />
+          ) : (
+            <Maximize className={styles.buttonIcon} />
+          )}
+          {isRequesting ? 'Đang bật toàn màn hình...' : 'Trở lại toàn màn hình'}
         </Button>
       </div>
     </div>

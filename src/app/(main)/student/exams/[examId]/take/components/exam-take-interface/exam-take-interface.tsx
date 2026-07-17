@@ -1,6 +1,7 @@
 'use client'
 
 import { ViolationWarningModal } from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal'
+import { BlurOverlay } from '@/app/(main)/exam/components/blur-overlay/blur-overlay'
 import { ConfirmLeaveDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-leave-dialog/confirm-leave-dialog'
 import { ConfirmSubmitDialog } from '@/app/(main)/student/exams/[examId]/take/components/confirm-submit-dialog/confirm-submit-dialog'
 import { DraftRestoredBanner } from '@/app/(main)/student/exams/[examId]/take/components/draft-restored-banner'
@@ -966,6 +967,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         maxViolations={exam.settings?.maxViolations}
         autoSubmitOnViolation={exam.settings?.autoSubmitOnViolation}
       />
+      <BlurOverlay requireFullscreen={exam.settings?.forceFullscreen} />
       <NetworkStatusBanner
         isReachable={isServerReachable}
         onDownloadBackup={handleDownloadBackup}

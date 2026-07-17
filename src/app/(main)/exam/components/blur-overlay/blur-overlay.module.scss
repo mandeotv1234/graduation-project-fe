@@ -25,6 +25,10 @@
       .description {
         @apply text-gray-300;
       }
+
+      .errorMessage {
+        @apply text-sm font-medium text-red-300;
+      }
     }
 
     .returnButton {
