@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { reportViolation } from '@/lib/actions/anti-cheat.action'
 import { sendHeartbeat } from '@/lib/actions/heartbeat.action'
 import {
-  MAX_VIOLATIONS_BEFORE_SUBMIT,
+  resolveMaxViolations,
   VIOLATION_LABELS,
   ViolationType
 } from '@/lib/constants/violation'
@@ -13,6 +13,7 @@ import { runIntegrityCanary } from '@/lib/utils'
 import {
   addViolation,
   markViolationSynced,
+  setForceSubmitted,
   setTotalViolations,
   setBlurred,
   setFullscreen,
@@ -34,6 +35,7 @@ export function useAntiCheat({
   settings
 }: UseAntiCheatOptions) {
   const antiCheatEnabled = enabled
+  const violationLimit = resolveMaxViolations(settings?.maxViolations)
 
   const dispatch = useAppDispatch()
   const { totalViolations, isFullscreen } = useAppSelector(
@@ -74,7 +76,14 @@ export function useAntiCheat({
       const timestamp = new Date().toISOString()
       const violationDetail = detail || VIOLATION_LABELS[type]
 
-      dispatch(addViolation({ type, detail: violationDetail, timestamp }))
+      dispatch(
+        addViolation({
+          type,
+          detail: violationDetail,
+          timestamp,
+          maxViolations: violationLimit
+        })
+      )
 
       // Send to backend
       try {
@@ -92,9 +101,10 @@ export function useAntiCheat({
 
           // Backend already auto-submitted — only show modal, DO NOT trigger FE submit
           if (result.data.autoSubmitted) {
+            dispatch(setForceSubmitted(true))
             dispatch(
               showWarning(
-                `Bạn đã vi phạm ${count}/${MAX_VIOLATIONS_BEFORE_SUBMIT} lần. Bài thi đã được nộp tự động!`
+                `Bạn đã vi phạm ${count}/${violationLimit} lần. Bài thi đã được nộp tự động!`
               )
             )
             // Do not call onForceSubmit — backend already handled it
@@ -105,7 +115,7 @@ export function useAntiCheat({
           if (settings?.autoSubmitOnViolation) {
             dispatch(
               showWarning(
-                `Cảnh báo vi phạm! Bạn đã vi phạm ${count}/${MAX_VIOLATIONS_BEFORE_SUBMIT} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
+                `Cảnh báo vi phạm! Bạn đã vi phạm ${count}/${violationLimit} lần. Sau ${violationLimit} lần bài thi sẽ bị nộp tự động.`
               )
             )
           } else {
@@ -125,7 +135,7 @@ export function useAntiCheat({
         if (settings?.autoSubmitOnViolation) {
           dispatch(
             showWarning(
-              `Cảnh báo vi phạm! Bạn đã vi phạm ${newTotal} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
+              `Cảnh báo vi phạm! Bạn đã vi phạm ${newTotal}/${violationLimit} lần. Sau ${violationLimit} lần bài thi sẽ bị nộp tự động.`
             )
           )
         } else {
@@ -137,7 +147,13 @@ export function useAntiCheat({
         }
       }
     },
-    [dispatch, examId, antiCheatEnabled, settings?.autoSubmitOnViolation] // Stable deps — no totalViolations
+    [
+      dispatch,
+      examId,
+      antiCheatEnabled,
+      settings?.autoSubmitOnViolation,
+      violationLimit
+    ] // Stable deps — no totalViolations
   )
 
   // 1. Detect tab switch / browser minimize (debounced — prevent duplicates)

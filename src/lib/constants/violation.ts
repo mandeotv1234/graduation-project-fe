@@ -36,3 +36,15 @@ export const VIOLATION_SEVERITY: Record<
 
 export const MAX_VIOLATIONS_BEFORE_WARNING = 90
 export const MAX_VIOLATIONS_BEFORE_SUBMIT = 100
+
+export function resolveMaxViolations(configuredLimit?: number): number {
+  if (
+    typeof configuredLimit === 'number' &&
+    Number.isFinite(configuredLimit) &&
+    configuredLimit >= 1
+  ) {
+    return Math.floor(configuredLimit)
+  }
+
+  return MAX_VIOLATIONS_BEFORE_SUBMIT
+}

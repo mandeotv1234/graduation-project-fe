@@ -962,7 +962,10 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
           }}
         />
       </div>
-      <ViolationWarningModal />
+      <ViolationWarningModal
+        maxViolations={exam.settings?.maxViolations}
+        autoSubmitOnViolation={exam.settings?.autoSubmitOnViolation}
+      />
       <NetworkStatusBanner
         isReachable={isServerReachable}
         onDownloadBackup={handleDownloadBackup}

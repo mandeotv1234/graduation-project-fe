@@ -1655,7 +1655,7 @@
       "source_file": "src/app/loading.tsx",
       "source_location": "L1",
       "id": "src_app_loading_tsx",
-      "community": 101,
+      "community": 79,
       "norm_label": "loading.tsx"
     },
     {
@@ -1664,7 +1664,7 @@
       "source_file": "src/app/loading.tsx",
       "source_location": "L3",
       "id": "app_loading_loading",
-      "community": 101,
+      "community": 79,
       "norm_label": "loading()"
     },
     {
@@ -1898,7 +1898,7 @@
       "source_file": "src/app/(main)/student/exams/components/exam-list/exam-list.tsx",
       "source_location": "L54",
       "id": "exam_list_exam_list_examcard",
-      "community": 77,
+      "community": 31,
       "norm_label": "examcard()"
     },
     {
@@ -2042,7 +2042,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/network-status-banner.tsx",
       "source_location": "L1",
       "id": "src_app_main_student_exams_examid_take_components_network_status_banner_tsx",
-      "community": 45,
+      "community": 57,
       "norm_label": "network-status-banner.tsx"
     },
     {
@@ -2051,7 +2051,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/network-status-banner.tsx",
       "source_location": "L6",
       "id": "components_network_status_banner_networkstatusbannerprops",
-      "community": 45,
+      "community": 57,
       "norm_label": "networkstatusbannerprops"
     },
     {
@@ -2060,7 +2060,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/network-status-banner.tsx",
       "source_location": "L11",
       "id": "components_network_status_banner_networkstatusbanner",
-      "community": 45,
+      "community": 85,
       "norm_label": "networkstatusbanner()"
     },
     {
@@ -2069,7 +2069,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/draft-restored-banner.tsx",
       "source_location": "L1",
       "id": "src_app_main_student_exams_examid_take_components_draft_restored_banner_tsx",
-      "community": 45,
+      "community": 85,
       "norm_label": "draft-restored-banner.tsx"
     },
     {
@@ -2078,7 +2078,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/draft-restored-banner.tsx",
       "source_location": "L5",
       "id": "components_draft_restored_banner_draftrestoredbannerprops",
-      "community": 45,
+      "community": 85,
       "norm_label": "draftrestoredbannerprops"
     },
     {
@@ -2087,7 +2087,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/draft-restored-banner.tsx",
       "source_location": "L9",
       "id": "components_draft_restored_banner_draftrestoredbanner",
-      "community": 45,
+      "community": 85,
       "norm_label": "draftrestoredbanner()"
     },
     {
@@ -2096,7 +2096,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-panel/question-panel.tsx",
       "source_location": "L1",
       "id": "src_app_main_student_exams_examid_take_components_question_panel_question_panel_tsx",
-      "community": 67,
+      "community": 85,
       "norm_label": "question-panel.tsx"
     },
     {
@@ -2105,7 +2105,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-panel/question-panel.tsx",
       "source_location": "L8",
       "id": "question_panel_question_panel_questionpanelprops",
-      "community": 67,
+      "community": 85,
       "norm_label": "questionpanelprops"
     },
     {
@@ -2114,7 +2114,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-panel/question-panel.tsx",
       "source_location": "L12",
       "id": "question_panel_question_panel_question_type_config",
-      "community": 67,
+      "community": 85,
       "norm_label": "question_type_config"
     },
     {
@@ -2123,7 +2123,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-panel/question-panel.tsx",
       "source_location": "L39",
       "id": "question_panel_question_panel_questionpanel",
-      "community": 67,
+      "community": 85,
       "norm_label": "questionpanel()"
     },
     {
@@ -2132,7 +2132,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/result-panel/result-panel.tsx",
       "source_location": "L1",
       "id": "src_app_main_student_exams_examid_take_components_result_panel_result_panel_tsx",
-      "community": 8,
+      "community": 55,
       "norm_label": "result-panel.tsx"
     },
     {
@@ -2141,7 +2141,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/result-panel/result-panel.tsx",
       "source_location": "L8",
       "id": "result_panel_result_panel_resultpanelprops",
-      "community": 8,
+      "community": 55,
       "norm_label": "resultpanelprops"
     },
     {
@@ -2150,7 +2150,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/result-panel/result-panel.tsx",
       "source_location": "L12",
       "id": "result_panel_result_panel_resultpanel",
-      "community": 8,
+      "community": 55,
       "norm_label": "resultpanel()"
     },
     {
@@ -2159,7 +2159,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface.tsx",
       "source_location": "L1",
       "id": "src_app_main_student_exams_examid_take_components_exam_take_interface_exam_take_interface_tsx",
-      "community": 45,
+      "community": 85,
       "norm_label": "exam-take-interface.tsx"
     },
     {
@@ -2177,7 +2177,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface.tsx",
       "source_location": "L65",
       "id": "exam_take_interface_exam_take_interface_schemaoverviewcolumn",
-      "community": 45,
+      "community": 85,
       "norm_label": "schemaoverviewcolumn"
     },
     {
@@ -2186,7 +2186,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface.tsx",
       "source_location": "L77",
       "id": "exam_take_interface_exam_take_interface_schemaoverviewtable",
-      "community": 45,
+      "community": 85,
       "norm_label": "schemaoverviewtable"
     },
     {
@@ -2195,7 +2195,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface.tsx",
       "source_location": "L82",
       "id": "exam_take_interface_exam_take_interface_schemameta",
-      "community": 45,
+      "community": 85,
       "norm_label": "schemameta"
     },
     {
@@ -2204,7 +2204,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface.tsx",
       "source_location": "L97",
       "id": "exam_take_interface_exam_take_interface_normalizeschemaname",
-      "community": 45,
+      "community": 85,
       "norm_label": "normalizeschemaname()"
     },
     {
@@ -2213,7 +2213,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface.tsx",
       "source_location": "L101",
       "id": "exam_take_interface_exam_take_interface_buildschemametafromspectables",
-      "community": 45,
+      "community": 85,
       "norm_label": "buildschemametafromspectables()"
     },
     {
@@ -2222,7 +2222,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface.tsx",
       "source_location": "L169",
       "id": "exam_take_interface_exam_take_interface_mergeschemawithspecconstraints",
-      "community": 45,
+      "community": 85,
       "norm_label": "mergeschemawithspecconstraints()"
     },
     {
@@ -2231,7 +2231,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface.tsx",
       "source_location": "L225",
       "id": "exam_take_interface_exam_take_interface_getconstraintbadges",
-      "community": 45,
+      "community": 85,
       "norm_label": "getconstraintbadges()"
     },
     {
@@ -2240,7 +2240,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-interface/exam-take-interface.tsx",
       "source_location": "L278",
       "id": "exam_take_interface_exam_take_interface_schematablesoverview",
-      "community": 45,
+      "community": 85,
       "norm_label": "schematablesoverview()"
     },
     {
@@ -2258,7 +2258,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-navigation/question-navigation.tsx",
       "source_location": "L1",
       "id": "src_app_main_student_exams_examid_take_components_question_navigation_question_navigation_tsx",
-      "community": 67,
+      "community": 85,
       "norm_label": "question-navigation.tsx"
     },
     {
@@ -2267,7 +2267,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-navigation/question-navigation.tsx",
       "source_location": "L9",
       "id": "question_navigation_question_navigation_questionnavigationprops",
-      "community": 67,
+      "community": 85,
       "norm_label": "questionnavigationprops"
     },
     {
@@ -2276,7 +2276,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-navigation/question-navigation.tsx",
       "source_location": "L16",
       "id": "question_navigation_question_navigation_questionnavigation",
-      "community": 67,
+      "community": 85,
       "norm_label": "questionnavigation()"
     },
     {
@@ -2285,7 +2285,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-header/exam-take-header.tsx",
       "source_location": "L1",
       "id": "src_app_main_student_exams_examid_take_components_exam_take_header_exam_take_header_tsx",
-      "community": 103,
+      "community": 79,
       "norm_label": "exam-take-header.tsx"
     },
     {
@@ -2294,7 +2294,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-header/exam-take-header.tsx",
       "source_location": "L8",
       "id": "exam_take_header_exam_take_header_examtakeheaderprops",
-      "community": 103,
+      "community": 79,
       "norm_label": "examtakeheaderprops"
     },
     {
@@ -2303,7 +2303,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-header/exam-take-header.tsx",
       "source_location": "L16",
       "id": "exam_take_header_exam_take_header_formattime",
-      "community": 103,
+      "community": 79,
       "norm_label": "formattime()"
     },
     {
@@ -2312,7 +2312,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-header/exam-take-header.tsx",
       "source_location": "L26",
       "id": "exam_take_header_exam_take_header_examtakeheader",
-      "community": 103,
+      "community": 79,
       "norm_label": "examtakeheader()"
     },
     {
@@ -2411,7 +2411,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-sidebar/question-sidebar.tsx",
       "source_location": "L1",
       "id": "src_app_main_student_exams_examid_take_components_question_sidebar_question_sidebar_tsx",
-      "community": 105,
+      "community": 85,
       "norm_label": "question-sidebar.tsx"
     },
     {
@@ -2420,7 +2420,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-sidebar/question-sidebar.tsx",
       "source_location": "L10",
       "id": "question_sidebar_question_sidebar_questionsidebarprops",
-      "community": 105,
+      "community": 85,
       "norm_label": "questionsidebarprops"
     },
     {
@@ -2429,7 +2429,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-sidebar/question-sidebar.tsx",
       "source_location": "L20",
       "id": "question_sidebar_question_sidebar_question_type_labels",
-      "community": 105,
+      "community": 85,
       "norm_label": "question_type_labels"
     },
     {
@@ -2438,7 +2438,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/question-sidebar/question-sidebar.tsx",
       "source_location": "L29",
       "id": "question_sidebar_question_sidebar_questionsidebar",
-      "community": 105,
+      "community": 85,
       "norm_label": "questionsidebar()"
     },
     {
@@ -2564,7 +2564,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/schema-flow/schema-flow.tsx",
       "source_location": "L314",
       "id": "schema_flow_schema_flow_schemaflow",
-      "community": 8,
+      "community": 60,
       "norm_label": "schemaflow()"
     },
     {
@@ -2591,7 +2591,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/confirm-leave-dialog/confirm-leave-dialog.tsx",
       "source_location": "L22",
       "id": "confirm_leave_dialog_confirm_leave_dialog_confirmleavedialog",
-      "community": 45,
+      "community": 85,
       "norm_label": "confirmleavedialog()"
     },
     {
@@ -2699,7 +2699,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/submit-result-dialog/submit-result-dialog.tsx",
       "source_location": "L31",
       "id": "submit_result_dialog_submit_result_dialog_submitresultdialog",
-      "community": 76,
+      "community": 85,
       "norm_label": "submitresultdialog()"
     },
     {
@@ -2726,7 +2726,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/components/exam-take-bottom-panel/exam-take-bottom-panel.tsx",
       "source_location": "L18",
       "id": "exam_take_bottom_panel_exam_take_bottom_panel_examtakebottompanel",
-      "community": 8,
+      "community": 85,
       "norm_label": "examtakebottompanel()"
     },
     {
@@ -2789,7 +2789,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/hooks/use-exam-draft.ts",
       "source_location": "L1",
       "id": "src_app_main_student_exams_examid_take_hooks_use_exam_draft_ts",
-      "community": 34,
+      "community": 43,
       "norm_label": "use-exam-draft.ts"
     },
     {
@@ -2807,7 +2807,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/hooks/use-exam-draft.ts",
       "source_location": "L13",
       "id": "hooks_use_exam_draft_local_key",
-      "community": 34,
+      "community": 43,
       "norm_label": "local_key()"
     },
     {
@@ -2816,7 +2816,7 @@
       "source_file": "src/app/(main)/student/exams/[examId]/take/hooks/use-exam-draft.ts",
       "source_location": "L17",
       "id": "hooks_use_exam_draft_useexamdraft",
-      "community": 34,
+      "community": 43,
       "norm_label": "useexamdraft()"
     },
     {
@@ -3248,7 +3248,7 @@
       "source_file": "src/app/(main)/student/(shell)/results/[resultId]/components/result-question-list.tsx",
       "source_location": "L10",
       "id": "components_result_question_list_resultquestionlistprops",
-      "community": 31,
+      "community": 63,
       "norm_label": "resultquestionlistprops"
     },
     {
@@ -3401,7 +3401,7 @@
       "source_file": "src/app/(main)/admin/page.tsx",
       "source_location": "L1",
       "id": "src_app_main_admin_page_tsx",
-      "community": 17,
+      "community": 38,
       "norm_label": "page.tsx"
     },
     {
@@ -3410,7 +3410,7 @@
       "source_file": "src/app/(main)/admin/page.tsx",
       "source_location": "L4",
       "id": "admin_page_adminpage",
-      "community": 17,
+      "community": 38,
       "norm_label": "adminpage()"
     },
     {
@@ -3671,7 +3671,7 @@
       "source_file": "src/app/(main)/exam/components/exam-editor/exam-editor.tsx",
       "source_location": "L1",
       "id": "src_app_main_exam_components_exam_editor_exam_editor_tsx",
-      "community": 8,
+      "community": 71,
       "norm_label": "exam-editor.tsx"
     },
     {
@@ -3680,7 +3680,7 @@
       "source_file": "src/app/(main)/exam/components/exam-editor/exam-editor.tsx",
       "source_location": "L10",
       "id": "exam_editor_exam_editor_exameditorprops",
-      "community": 8,
+      "community": 71,
       "norm_label": "exameditorprops"
     },
     {
@@ -3689,7 +3689,7 @@
       "source_file": "src/app/(main)/exam/components/exam-editor/exam-editor.tsx",
       "source_location": "L14",
       "id": "exam_editor_exam_editor_exameditor",
-      "community": 8,
+      "community": 71,
       "norm_label": "exameditor()"
     },
     {
@@ -3770,7 +3770,7 @@
       "source_file": "src/app/(main)/exam/components/device-conflict-dialog/device-conflict-dialog.tsx",
       "source_location": "L29",
       "id": "device_conflict_dialog_device_conflict_dialog_deviceconflictdialog",
-      "community": 56,
+      "community": 0,
       "norm_label": "deviceconflictdialog()"
     },
     {
@@ -3779,7 +3779,7 @@
       "source_file": "src/app/(main)/exam/components/fullscreen-gate/fullscreen-gate.tsx",
       "source_location": "L1",
       "id": "src_app_main_exam_components_fullscreen_gate_fullscreen_gate_tsx",
-      "community": 80,
+      "community": 83,
       "norm_label": "fullscreen-gate.tsx"
     },
     {
@@ -3788,7 +3788,7 @@
       "source_file": "src/app/(main)/exam/components/fullscreen-gate/fullscreen-gate.tsx",
       "source_location": "L21",
       "id": "fullscreen_gate_fullscreen_gate_callstartsession",
-      "community": 80,
+      "community": 83,
       "norm_label": "callstartsession()"
     },
     {
@@ -3797,7 +3797,7 @@
       "source_file": "src/app/(main)/exam/components/fullscreen-gate/fullscreen-gate.tsx",
       "source_location": "L47",
       "id": "fullscreen_gate_fullscreen_gate_fullscreengateprops",
-      "community": 80,
+      "community": 83,
       "norm_label": "fullscreengateprops"
     },
     {
@@ -3842,7 +3842,7 @@
       "source_file": "src/app/(main)/exam/components/question-list/question-list.tsx",
       "source_location": "L1",
       "id": "src_app_main_exam_components_question_list_question_list_tsx",
-      "community": 8,
+      "community": 71,
       "norm_label": "question-list.tsx"
     },
     {
@@ -3851,7 +3851,7 @@
       "source_file": "src/app/(main)/exam/components/question-list/question-list.tsx",
       "source_location": "L8",
       "id": "question_list_question_list_questionlistprops",
-      "community": 8,
+      "community": 71,
       "norm_label": "questionlistprops"
     },
     {
@@ -3860,7 +3860,7 @@
       "source_file": "src/app/(main)/exam/components/question-list/question-list.tsx",
       "source_location": "L14",
       "id": "question_list_question_list_questionlist",
-      "community": 8,
+      "community": 71,
       "norm_label": "questionlist()"
     },
     {
@@ -3887,7 +3887,7 @@
       "source_file": "src/app/(main)/exam/components/waiting-approval-overlay/waiting-approval-overlay.tsx",
       "source_location": "L22",
       "id": "waiting_approval_overlay_waiting_approval_overlay_waitingapprovaloverlay",
-      "community": 80,
+      "community": 83,
       "norm_label": "waitingapprovaloverlay()"
     },
     {
@@ -3896,14 +3896,23 @@
       "source_file": "src/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.tsx",
       "source_location": "L1",
       "id": "src_app_main_exam_components_violation_warning_modal_violation_warning_modal_tsx",
-      "community": 18,
+      "community": 46,
       "norm_label": "violation-warning-modal.tsx"
+    },
+    {
+      "label": "ViolationWarningModalProps",
+      "file_type": "code",
+      "source_file": "src/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.tsx",
+      "source_location": "L19",
+      "id": "violation_warning_modal_violation_warning_modal_violationwarningmodalprops",
+      "community": 46,
+      "norm_label": "violationwarningmodalprops"
     },
     {
       "label": "ViolationWarningModal()",
       "file_type": "code",
       "source_file": "src/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.tsx",
-      "source_location": "L19",
+      "source_location": "L24",
       "id": "violation_warning_modal_violation_warning_modal_violationwarningmodal",
       "community": 46,
       "norm_label": "violationwarningmodal()"
@@ -3968,7 +3977,7 @@
       "source_file": "src/app/(main)/exam/components/violation-banner/violation-banner.tsx",
       "source_location": "L1",
       "id": "src_app_main_exam_components_violation_banner_violation_banner_tsx",
-      "community": 83,
+      "community": 46,
       "norm_label": "violation-banner.tsx"
     },
     {
@@ -3977,7 +3986,7 @@
       "source_file": "src/app/(main)/exam/components/violation-banner/violation-banner.tsx",
       "source_location": "L13",
       "id": "violation_banner_violation_banner_violationbanner",
-      "community": 83,
+      "community": 46,
       "norm_label": "violationbanner()"
     },
     {
@@ -4004,7 +4013,7 @@
       "source_file": "src/app/(main)/create-exam/page.tsx",
       "source_location": "L1",
       "id": "src_app_main_create_exam_page_tsx",
-      "community": 17,
+      "community": 38,
       "norm_label": "page.tsx"
     },
     {
@@ -4013,7 +4022,7 @@
       "source_file": "src/app/(main)/create-exam/page.tsx",
       "source_location": "L6",
       "id": "create_exam_page_metadata",
-      "community": 17,
+      "community": 38,
       "norm_label": "metadata"
     },
     {
@@ -4022,7 +4031,7 @@
       "source_file": "src/app/(main)/create-exam/page.tsx",
       "source_location": "L10",
       "id": "src_app_main_create_exam_page_tsx_create_exam_page_createexampage",
-      "community": 17,
+      "community": 38,
       "norm_label": "createexampage()"
     },
     {
@@ -4085,7 +4094,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-blocks.ts",
       "source_location": "L41",
       "id": "components_common_part_blocks_sqlddlblock",
-      "community": 98,
+      "community": 28,
       "norm_label": "sqlddlblock"
     },
     {
@@ -4094,7 +4103,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-blocks.ts",
       "source_location": "L42",
       "id": "components_common_part_blocks_sqldmlblock",
-      "community": 98,
+      "community": 28,
       "norm_label": "sqldmlblock"
     },
     {
@@ -4121,7 +4130,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-blocks.ts",
       "source_location": "L65",
       "id": "components_common_part_blocks_examblock",
-      "community": 98,
+      "community": 28,
       "norm_label": "examblock"
     },
     {
@@ -4184,7 +4193,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-blocks.ts",
       "source_location": "L137",
       "id": "components_common_part_blocks_block_registry",
-      "community": 98,
+      "community": 28,
       "norm_label": "block_registry"
     },
     {
@@ -4220,7 +4229,7 @@
       "source_file": "src/app/(main)/create-exam/components/student-common-part-view.tsx",
       "source_location": "L1",
       "id": "src_app_main_create_exam_components_student_common_part_view_tsx",
-      "community": 99,
+      "community": 47,
       "norm_label": "student-common-part-view.tsx"
     },
     {
@@ -4229,7 +4238,7 @@
       "source_file": "src/app/(main)/create-exam/components/student-common-part-view.tsx",
       "source_location": "L5",
       "id": "components_student_common_part_view_studentcommonblock",
-      "community": 99,
+      "community": 47,
       "norm_label": "studentcommonblock"
     },
     {
@@ -4238,7 +4247,7 @@
       "source_file": "src/app/(main)/create-exam/components/student-common-part-view.tsx",
       "source_location": "L38",
       "id": "components_student_common_part_view_studentcommonpartviewprops",
-      "community": 99,
+      "community": 47,
       "norm_label": "studentcommonpartviewprops"
     },
     {
@@ -4247,7 +4256,7 @@
       "source_file": "src/app/(main)/create-exam/components/student-common-part-view.tsx",
       "source_location": "L44",
       "id": "components_student_common_part_view_lookslikehtml",
-      "community": 99,
+      "community": 47,
       "norm_label": "lookslikehtml()"
     },
     {
@@ -4256,7 +4265,7 @@
       "source_file": "src/app/(main)/create-exam/components/student-common-part-view.tsx",
       "source_location": "L46",
       "id": "components_student_common_part_view_sanitizeblocktitle",
-      "community": 99,
+      "community": 47,
       "norm_label": "sanitizeblocktitle()"
     },
     {
@@ -4265,7 +4274,7 @@
       "source_file": "src/app/(main)/create-exam/components/student-common-part-view.tsx",
       "source_location": "L54",
       "id": "components_student_common_part_view_getconstraints",
-      "community": 99,
+      "community": 47,
       "norm_label": "getconstraints()"
     },
     {
@@ -4274,7 +4283,7 @@
       "source_file": "src/app/(main)/create-exam/components/student-common-part-view.tsx",
       "source_location": "L68",
       "id": "components_student_common_part_view_entitystatementtable",
-      "community": 99,
+      "community": 47,
       "norm_label": "entitystatementtable()"
     },
     {
@@ -4283,7 +4292,7 @@
       "source_file": "src/app/(main)/create-exam/components/student-common-part-view.tsx",
       "source_location": "L142",
       "id": "components_student_common_part_view_studentcommonpartview",
-      "community": 99,
+      "community": 47,
       "norm_label": "studentcommonpartview()"
     },
     {
@@ -4364,7 +4373,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-export.domain.ts",
       "source_location": "L1",
       "id": "src_app_main_create_exam_components_common_part_export_domain_ts",
-      "community": 98,
+      "community": 28,
       "norm_label": "common-part-export.domain.ts"
     },
     {
@@ -4373,7 +4382,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-export.domain.ts",
       "source_location": "L5",
       "id": "components_common_part_export_domain_scriptsourcemode",
-      "community": 98,
+      "community": 28,
       "norm_label": "scriptsourcemode"
     },
     {
@@ -4382,7 +4391,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-export.domain.ts",
       "source_location": "L7",
       "id": "components_common_part_export_domain_existingscriptoption",
-      "community": 98,
+      "community": 28,
       "norm_label": "existingscriptoption"
     },
     {
@@ -4409,7 +4418,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-export.domain.ts",
       "source_location": "L23",
       "id": "components_common_part_export_domain_resolvescripttorun",
-      "community": 98,
+      "community": 28,
       "norm_label": "resolvescripttorun()"
     },
     {
@@ -4418,7 +4427,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-export.domain.ts",
       "source_location": "L36",
       "id": "components_common_part_export_domain_formatsqlvalue",
-      "community": 98,
+      "community": 28,
       "norm_label": "formatsqlvalue()"
     },
     {
@@ -4436,7 +4445,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-export.domain.ts",
       "source_location": "L93",
       "id": "components_common_part_export_domain_getdatasetblocktitle",
-      "community": 98,
+      "community": 28,
       "norm_label": "getdatasetblocktitle()"
     },
     {
@@ -4445,7 +4454,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-export.domain.ts",
       "source_location": "L96",
       "id": "components_common_part_export_domain_todatasetname",
-      "community": 98,
+      "community": 28,
       "norm_label": "todatasetname()"
     },
     {
@@ -4454,7 +4463,7 @@
       "source_file": "src/app/(main)/create-exam/components/common-part-export.domain.ts",
       "source_location": "L105",
       "id": "components_common_part_export_domain_mapdatasetblockstosavepayload",
-      "community": 98,
+      "community": 28,
       "norm_label": "mapdatasetblockstosavepayload()"
     },
     {
@@ -4472,7 +4481,7 @@
       "source_file": "src/app/(main)/create-exam/components/script-picker-dialog.tsx",
       "source_location": "L18",
       "id": "components_script_picker_dialog_scriptpickerdialogprops",
-      "community": 98,
+      "community": 28,
       "norm_label": "scriptpickerdialogprops"
     },
     {
@@ -4490,7 +4499,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-file-upload/exam-file-upload.tsx",
       "source_location": "L1",
       "id": "src_app_main_create_exam_components_exam_file_upload_exam_file_upload_tsx",
-      "community": 10,
+      "community": 57,
       "norm_label": "exam-file-upload.tsx"
     },
     {
@@ -4499,7 +4508,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-file-upload/exam-file-upload.tsx",
       "source_location": "L9",
       "id": "exam_file_upload_exam_file_upload_examfileuploadprops",
-      "community": 10,
+      "community": 57,
       "norm_label": "examfileuploadprops"
     },
     {
@@ -4508,7 +4517,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-file-upload/exam-file-upload.tsx",
       "source_location": "L14",
       "id": "exam_file_upload_exam_file_upload_examfileupload",
-      "community": 10,
+      "community": 57,
       "norm_label": "examfileupload()"
     },
     {
@@ -4517,7 +4526,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-description-editor/exam-description-editor.tsx",
       "source_location": "L1",
       "id": "src_app_main_create_exam_components_exam_description_editor_exam_description_editor_tsx",
-      "community": 10,
+      "community": 57,
       "norm_label": "exam-description-editor.tsx"
     },
     {
@@ -4526,7 +4535,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-description-editor/exam-description-editor.tsx",
       "source_location": "L18",
       "id": "exam_description_editor_exam_description_editor_examdescriptioneditorprops",
-      "community": 10,
+      "community": 57,
       "norm_label": "examdescriptioneditorprops"
     },
     {
@@ -4535,7 +4544,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-description-editor/exam-description-editor.tsx",
       "source_location": "L23",
       "id": "exam_description_editor_exam_description_editor_examdescriptioneditor",
-      "community": 10,
+      "community": 57,
       "norm_label": "examdescriptioneditor()"
     },
     {
@@ -4544,7 +4553,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-sample-data-table/exam-sample-data-table.tsx",
       "source_location": "L1",
       "id": "src_app_main_create_exam_components_exam_sample_data_table_exam_sample_data_table_tsx",
-      "community": 10,
+      "community": 97,
       "norm_label": "exam-sample-data-table.tsx"
     },
     {
@@ -4553,7 +4562,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-sample-data-table/exam-sample-data-table.tsx",
       "source_location": "L10",
       "id": "exam_sample_data_table_exam_sample_data_table_examsampledatatableprops",
-      "community": 10,
+      "community": 97,
       "norm_label": "examsampledatatableprops"
     },
     {
@@ -4562,7 +4571,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-sample-data-table/exam-sample-data-table.tsx",
       "source_location": "L15",
       "id": "exam_sample_data_table_exam_sample_data_table_examsampledatatable",
-      "community": 10,
+      "community": 97,
       "norm_label": "examsampledatatable()"
     },
     {
@@ -4625,7 +4634,7 @@
       "source_file": "src/app/(main)/create-exam/components/schema-editor-modal/schema-editor-modal.tsx",
       "source_location": "L1",
       "id": "src_app_main_create_exam_components_schema_editor_modal_schema_editor_modal_tsx",
-      "community": 10,
+      "community": 5,
       "norm_label": "schema-editor-modal.tsx"
     },
     {
@@ -4634,7 +4643,7 @@
       "source_file": "src/app/(main)/create-exam/components/schema-editor-modal/schema-editor-modal.tsx",
       "source_location": "L17",
       "id": "schema_editor_modal_schema_editor_modal_schemaeditormodalprops",
-      "community": 10,
+      "community": 5,
       "norm_label": "schemaeditormodalprops"
     },
     {
@@ -4643,7 +4652,7 @@
       "source_file": "src/app/(main)/create-exam/components/schema-editor-modal/schema-editor-modal.tsx",
       "source_location": "L24",
       "id": "schema_editor_modal_schema_editor_modal_schemaeditormodal",
-      "community": 10,
+      "community": 5,
       "norm_label": "schemaeditormodal()"
     },
     {
@@ -4679,7 +4688,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-basic-info/exam-basic-info.tsx",
       "source_location": "L1",
       "id": "src_app_main_create_exam_components_exam_basic_info_exam_basic_info_tsx",
-      "community": 10,
+      "community": 70,
       "norm_label": "exam-basic-info.tsx"
     },
     {
@@ -4688,7 +4697,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-basic-info/exam-basic-info.tsx",
       "source_location": "L7",
       "id": "exam_basic_info_exam_basic_info_exambasicinfoprops",
-      "community": 10,
+      "community": 70,
       "norm_label": "exambasicinfoprops"
     },
     {
@@ -4697,7 +4706,7 @@
       "source_file": "src/app/(main)/create-exam/components/exam-basic-info/exam-basic-info.tsx",
       "source_location": "L12",
       "id": "exam_basic_info_exam_basic_info_exambasicinfo",
-      "community": 10,
+      "community": 70,
       "norm_label": "exambasicinfo()"
     },
     {
@@ -4706,7 +4715,7 @@
       "source_file": "src/app/(main)/create-exam/hooks/use-dataset-export.ts",
       "source_location": "L1",
       "id": "src_app_main_create_exam_hooks_use_dataset_export_ts",
-      "community": 98,
+      "community": 28,
       "norm_label": "use-dataset-export.ts"
     },
     {
@@ -4715,7 +4724,7 @@
       "source_file": "src/app/(main)/create-exam/hooks/use-dataset-export.ts",
       "source_location": "L20",
       "id": "hooks_use_dataset_export_usedatasetexportoptions",
-      "community": 98,
+      "community": 28,
       "norm_label": "usedatasetexportoptions"
     },
     {
@@ -4733,7 +4742,7 @@
       "source_file": "src/app/(main)/create-exam/hooks/use-schema-export.ts",
       "source_location": "L1",
       "id": "src_app_main_create_exam_hooks_use_schema_export_ts",
-      "community": 98,
+      "community": 28,
       "norm_label": "use-schema-export.ts"
     },
     {
@@ -4742,7 +4751,7 @@
       "source_file": "src/app/(main)/create-exam/hooks/use-schema-export.ts",
       "source_location": "L22",
       "id": "hooks_use_schema_export_useschemaexportoptions",
-      "community": 98,
+      "community": 28,
       "norm_label": "useschemaexportoptions"
     },
     {
@@ -4760,7 +4769,7 @@
       "source_file": "src/app/(main)/teacher/layout.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_layout_tsx",
-      "community": 57,
+      "community": 38,
       "norm_label": "layout.tsx"
     },
     {
@@ -4769,7 +4778,7 @@
       "source_file": "src/app/(main)/teacher/layout.tsx",
       "source_location": "L4",
       "id": "teacher_layout_teacherlayout",
-      "community": 57,
+      "community": 38,
       "norm_label": "teacherlayout()"
     },
     {
@@ -4859,7 +4868,7 @@
       "source_file": "src/app/(main)/teacher/specifications/[specificationId]/edit/page.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_specifications_specificationid_edit_page_tsx",
-      "community": 70,
+      "community": 53,
       "norm_label": "page.tsx"
     },
     {
@@ -4868,7 +4877,7 @@
       "source_file": "src/app/(main)/teacher/specifications/[specificationId]/edit/page.tsx",
       "source_location": "L7",
       "id": "edit_page_specificationeditpageprops",
-      "community": 70,
+      "community": 53,
       "norm_label": "specificationeditpageprops"
     },
     {
@@ -4877,7 +4886,7 @@
       "source_file": "src/app/(main)/teacher/specifications/[specificationId]/edit/page.tsx",
       "source_location": "L11",
       "id": "edit_page_specificationeditpage",
-      "community": 70,
+      "community": 53,
       "norm_label": "specificationeditpage()"
     },
     {
@@ -4895,7 +4904,7 @@
       "source_file": "src/app/(main)/teacher/specifications/[specificationId]/edit/components/specification-edit-view.tsx",
       "source_location": "L11",
       "id": "components_specification_edit_view_specificationeditviewprops",
-      "community": 70,
+      "community": 21,
       "norm_label": "specificationeditviewprops"
     },
     {
@@ -4904,7 +4913,7 @@
       "source_file": "src/app/(main)/teacher/specifications/[specificationId]/edit/components/specification-edit-view.tsx",
       "source_location": "L15",
       "id": "components_specification_edit_view_specificationeditview",
-      "community": 70,
+      "community": 53,
       "norm_label": "specificationeditview()"
     },
     {
@@ -4922,7 +4931,7 @@
       "source_file": "src/app/(main)/teacher/specifications/components/specifications-view.tsx",
       "source_location": "L26",
       "id": "components_specifications_view_specificationsviewprops",
-      "community": 71,
+      "community": 21,
       "norm_label": "specificationsviewprops"
     },
     {
@@ -4931,7 +4940,7 @@
       "source_file": "src/app/(main)/teacher/specifications/components/specifications-view.tsx",
       "source_location": "L30",
       "id": "components_specifications_view_specificationsview",
-      "community": 26,
+      "community": 60,
       "norm_label": "specificationsview()"
     },
     {
@@ -5912,7 +5921,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/edit/components/edit-class-page.tsx",
       "source_location": "L67",
       "id": "components_edit_class_page_editclasspage",
-      "community": 42,
+      "community": 65,
       "norm_label": "editclasspage()"
     },
     {
@@ -5921,7 +5930,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/components/class-teachers-section.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_classes_classid_components_class_teachers_section_tsx",
-      "community": 26,
+      "community": 18,
       "norm_label": "class-teachers-section.tsx"
     },
     {
@@ -5939,7 +5948,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/components/class-teachers-section.tsx",
       "source_location": "L41",
       "id": "components_class_teachers_section_classteacherssection",
-      "community": 26,
+      "community": 60,
       "norm_label": "classteacherssection()"
     },
     {
@@ -5975,7 +5984,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/components/class-detail-view.tsx",
       "source_location": "L96",
       "id": "components_class_detail_view_examstatusbadge",
-      "community": 77,
+      "community": 31,
       "norm_label": "examstatusbadge()"
     },
     {
@@ -5984,7 +5993,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/components/class-detail-view.tsx",
       "source_location": "L112",
       "id": "components_class_detail_view_classdetailview",
-      "community": 77,
+      "community": 31,
       "norm_label": "classdetailview()"
     },
     {
@@ -6011,7 +6020,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/components/class-bans-section.tsx",
       "source_location": "L30",
       "id": "components_class_bans_section_classbanssection",
-      "community": 26,
+      "community": 60,
       "norm_label": "classbanssection()"
     },
     {
@@ -6074,7 +6083,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/page.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_classes_classid_create_exam_page_tsx",
-      "community": 106,
+      "community": 42,
       "norm_label": "page.tsx"
     },
     {
@@ -6083,7 +6092,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/page.tsx",
       "source_location": "L8",
       "id": "create_exam_page_createexampageprops",
-      "community": 106,
+      "community": 42,
       "norm_label": "createexampageprops"
     },
     {
@@ -6092,7 +6101,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/page.tsx",
       "source_location": "L12",
       "id": "create_exam_page_generatemetadata",
-      "community": 106,
+      "community": 42,
       "norm_label": "generatemetadata()"
     },
     {
@@ -6101,7 +6110,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/page.tsx",
       "source_location": "L24",
       "id": "src_app_main_teacher_classes_classid_create_exam_page_tsx_create_exam_page_createexampage",
-      "community": 106,
+      "community": 42,
       "norm_label": "createexampage()"
     },
     {
@@ -6110,7 +6119,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/components/create-exam-view.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_classes_classid_create_exam_components_create_exam_view_tsx",
-      "community": 71,
+      "community": 21,
       "norm_label": "create-exam-view.tsx"
     },
     {
@@ -6119,7 +6128,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/components/create-exam-view.tsx",
       "source_location": "L13",
       "id": "components_create_exam_view_createexamviewprops",
-      "community": 71,
+      "community": 21,
       "norm_label": "createexamviewprops"
     },
     {
@@ -6128,7 +6137,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/components/create-exam-view.tsx",
       "source_location": "L18",
       "id": "components_create_exam_view_createexamview",
-      "community": 71,
+      "community": 21,
       "norm_label": "createexamview()"
     },
     {
@@ -6137,7 +6146,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/components/create-exam-page.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_classes_classid_create_exam_components_create_exam_page_tsx",
-      "community": 25,
+      "community": 21,
       "norm_label": "create-exam-page.tsx"
     },
     {
@@ -6146,7 +6155,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/components/create-exam-page.tsx",
       "source_location": "L13",
       "id": "components_create_exam_page_createexampageclientprops",
-      "community": 25,
+      "community": 21,
       "norm_label": "createexampageclientprops"
     },
     {
@@ -6155,7 +6164,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/components/create-exam-page.tsx",
       "source_location": "L17",
       "id": "components_create_exam_page_createexampageclient",
-      "community": 25,
+      "community": 21,
       "norm_label": "createexampageclient()"
     },
     {
@@ -6164,7 +6173,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/components/toggle-field.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_classes_classid_create_exam_components_toggle_field_tsx",
-      "community": 107,
+      "community": 21,
       "norm_label": "toggle-field.tsx"
     },
     {
@@ -6173,7 +6182,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/components/toggle-field.tsx",
       "source_location": "L5",
       "id": "src_app_main_teacher_classes_classid_create_exam_components_toggle_field_tsx_components_toggle_field_togglefieldprops",
-      "community": 107,
+      "community": 21,
       "norm_label": "togglefieldprops"
     },
     {
@@ -6182,7 +6191,7 @@
       "source_file": "src/app/(main)/teacher/classes/[classId]/create-exam/components/toggle-field.tsx",
       "source_location": "L12",
       "id": "src_app_main_teacher_classes_classid_create_exam_components_toggle_field_tsx_components_toggle_field_togglefield",
-      "community": 107,
+      "community": 21,
       "norm_label": "togglefield()"
     },
     {
@@ -6209,7 +6218,7 @@
       "source_file": "src/app/(main)/teacher/classes/components/classes-list.tsx",
       "source_location": "L32",
       "id": "components_classes_list_classcard",
-      "community": 77,
+      "community": 64,
       "norm_label": "classcard()"
     },
     {
@@ -6254,7 +6263,7 @@
       "source_file": "src/app/(main)/teacher/classes/create/page.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_classes_create_page_tsx",
-      "community": 42,
+      "community": 65,
       "norm_label": "page.tsx"
     },
     {
@@ -6263,7 +6272,7 @@
       "source_file": "src/app/(main)/teacher/classes/create/page.tsx",
       "source_location": "L5",
       "id": "src_app_main_teacher_classes_create_page_tsx_create_page_metadata",
-      "community": 42,
+      "community": 65,
       "norm_label": "metadata"
     },
     {
@@ -6272,7 +6281,7 @@
       "source_file": "src/app/(main)/teacher/classes/create/page.tsx",
       "source_location": "L9",
       "id": "create_page_createclasspage",
-      "community": 42,
+      "community": 65,
       "norm_label": "createclasspage()"
     },
     {
@@ -6281,7 +6290,7 @@
       "source_file": "src/app/(main)/teacher/classes/create/components/create-class-page.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_classes_create_components_create_class_page_tsx",
-      "community": 49,
+      "community": 38,
       "norm_label": "create-class-page.tsx"
     },
     {
@@ -6290,7 +6299,7 @@
       "source_file": "src/app/(main)/teacher/classes/create/components/create-class-page.tsx",
       "source_location": "L18",
       "id": "components_create_class_page_createclasspage",
-      "community": 49,
+      "community": 38,
       "norm_label": "createclasspage()"
     },
     {
@@ -6353,7 +6362,7 @@
       "source_file": "src/app/(main)/teacher/library/components/clone-exam-template-dialog.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_library_components_clone_exam_template_dialog_tsx",
-      "community": 10,
+      "community": 5,
       "norm_label": "clone-exam-template-dialog.tsx"
     },
     {
@@ -6362,7 +6371,7 @@
       "source_file": "src/app/(main)/teacher/library/components/clone-exam-template-dialog.tsx",
       "source_location": "L24",
       "id": "components_clone_exam_template_dialog_cloneexamtemplatedialogprops",
-      "community": 10,
+      "community": 5,
       "norm_label": "cloneexamtemplatedialogprops"
     },
     {
@@ -6398,7 +6407,7 @@
       "source_file": "src/app/(main)/teacher/students/[studentId]/page.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_students_studentid_page_tsx",
-      "community": 16,
+      "community": 104,
       "norm_label": "page.tsx"
     },
     {
@@ -6407,7 +6416,7 @@
       "source_file": "src/app/(main)/teacher/students/[studentId]/page.tsx",
       "source_location": "L7",
       "id": "studentid_page_pageprops",
-      "community": 16,
+      "community": 104,
       "norm_label": "pageprops"
     },
     {
@@ -6416,7 +6425,7 @@
       "source_file": "src/app/(main)/teacher/students/[studentId]/page.tsx",
       "source_location": "L13",
       "id": "studentid_page_studentdashboardpage",
-      "community": 16,
+      "community": 104,
       "norm_label": "studentdashboardpage()"
     },
     {
@@ -6533,7 +6542,7 @@
       "source_file": "src/app/(main)/teacher/components/teacher-sidebar.tsx",
       "source_location": "L32",
       "id": "components_teacher_sidebar_teachersidebar",
-      "community": 57,
+      "community": 38,
       "norm_label": "teachersidebar()"
     },
     {
@@ -6713,7 +6722,7 @@
       "source_file": "src/app/(main)/teacher/components/teacher-header.tsx",
       "source_location": "L17",
       "id": "components_teacher_header_teacherheader",
-      "community": 57,
+      "community": 38,
       "norm_label": "teacherheader()"
     },
     {
@@ -6821,7 +6830,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-form-schema.ts",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_components_exam_form_schema_ts",
-      "community": 25,
+      "community": 21,
       "norm_label": "exam-form-schema.ts"
     },
     {
@@ -6830,7 +6839,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-form-schema.ts",
       "source_location": "L3",
       "id": "components_exam_form_schema_examschema",
-      "community": 25,
+      "community": 21,
       "norm_label": "examschema"
     },
     {
@@ -6839,7 +6848,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-form-schema.ts",
       "source_location": "L64",
       "id": "components_exam_form_schema_examformvalues",
-      "community": 25,
+      "community": 21,
       "norm_label": "examformvalues"
     },
     {
@@ -6848,7 +6857,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-form-schema.ts",
       "source_location": "L65",
       "id": "components_exam_form_schema_examforminput",
-      "community": 25,
+      "community": 21,
       "norm_label": "examforminput"
     },
     {
@@ -6857,7 +6866,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-settings-form.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_components_exam_settings_form_tsx",
-      "community": 71,
+      "community": 21,
       "norm_label": "exam-settings-form.tsx"
     },
     {
@@ -6866,7 +6875,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-settings-form.tsx",
       "source_location": "L43",
       "id": "components_exam_settings_form_examsettingsformprops",
-      "community": 71,
+      "community": 21,
       "norm_label": "examsettingsformprops"
     },
     {
@@ -6875,7 +6884,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-settings-form.tsx",
       "source_location": "L62",
       "id": "components_exam_settings_form_mapspecificationpreview",
-      "community": 71,
+      "community": 21,
       "norm_label": "mapspecificationpreview()"
     },
     {
@@ -6884,7 +6893,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-settings-form.tsx",
       "source_location": "L90",
       "id": "components_exam_settings_form_examsettingsform",
-      "community": 71,
+      "community": 21,
       "norm_label": "examsettingsform()"
     },
     {
@@ -6893,7 +6902,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-settings-form-schema.ts",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_components_exam_settings_form_schema_ts",
-      "community": 71,
+      "community": 21,
       "norm_label": "exam-settings-form-schema.ts"
     },
     {
@@ -6902,7 +6911,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-settings-form-schema.ts",
       "source_location": "L3",
       "id": "components_exam_settings_form_schema_examsettingsformschema",
-      "community": 71,
+      "community": 21,
       "norm_label": "examsettingsformschema"
     },
     {
@@ -6911,7 +6920,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-settings-form-schema.ts",
       "source_location": "L67",
       "id": "components_exam_settings_form_schema_examsettingsformvalues",
-      "community": 71,
+      "community": 21,
       "norm_label": "examsettingsformvalues"
     },
     {
@@ -6920,7 +6929,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-settings-form-schema.ts",
       "source_location": "L68",
       "id": "components_exam_settings_form_schema_examsettingsforminput",
-      "community": 71,
+      "community": 21,
       "norm_label": "examsettingsforminput"
     },
     {
@@ -6929,7 +6938,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/normalize-exam-settings.ts",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_components_normalize_exam_settings_ts",
-      "community": 25,
+      "community": 21,
       "norm_label": "normalize-exam-settings.ts"
     },
     {
@@ -6938,7 +6947,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/normalize-exam-settings.ts",
       "source_location": "L3",
       "id": "components_normalize_exam_settings_normalizedexamsettings",
-      "community": 25,
+      "community": 21,
       "norm_label": "normalizedexamsettings"
     },
     {
@@ -6947,7 +6956,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/normalize-exam-settings.ts",
       "source_location": "L21",
       "id": "components_normalize_exam_settings_examsettingspayload",
-      "community": 25,
+      "community": 21,
       "norm_label": "examsettingspayload"
     },
     {
@@ -6956,7 +6965,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/normalize-exam-settings.ts",
       "source_location": "L23",
       "id": "components_normalize_exam_settings_default_settings",
-      "community": 25,
+      "community": 21,
       "norm_label": "default_settings"
     },
     {
@@ -6965,7 +6974,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/normalize-exam-settings.ts",
       "source_location": "L40",
       "id": "components_normalize_exam_settings_normalizeexamsettings",
-      "community": 25,
+      "community": 21,
       "norm_label": "normalizeexamsettings()"
     },
     {
@@ -6974,7 +6983,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/normalize-exam-settings.ts",
       "source_location": "L79",
       "id": "components_normalize_exam_settings_buildexamsettingspayload",
-      "community": 25,
+      "community": 21,
       "norm_label": "buildexamsettingspayload()"
     },
     {
@@ -6983,7 +6992,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-form.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_components_exam_form_tsx",
-      "community": 25,
+      "community": 21,
       "norm_label": "exam-form.tsx"
     },
     {
@@ -6992,7 +7001,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-form.tsx",
       "source_location": "L35",
       "id": "components_exam_form_examformfocussection",
-      "community": 25,
+      "community": 21,
       "norm_label": "examformfocussection"
     },
     {
@@ -7001,7 +7010,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-form.tsx",
       "source_location": "L41",
       "id": "components_exam_form_examformprops",
-      "community": 25,
+      "community": 21,
       "norm_label": "examformprops"
     },
     {
@@ -7010,7 +7019,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/exam-form.tsx",
       "source_location": "L58",
       "id": "components_exam_form_examform",
-      "community": 25,
+      "community": 21,
       "norm_label": "examform()"
     },
     {
@@ -7019,7 +7028,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/toggle-field.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_components_toggle_field_tsx",
-      "community": 108,
+      "community": 21,
       "norm_label": "toggle-field.tsx"
     },
     {
@@ -7028,7 +7037,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/toggle-field.tsx",
       "source_location": "L5",
       "id": "src_app_main_teacher_exams_components_toggle_field_tsx_components_toggle_field_togglefieldprops",
-      "community": 108,
+      "community": 21,
       "norm_label": "togglefieldprops"
     },
     {
@@ -7037,7 +7046,7 @@
       "source_file": "src/app/(main)/teacher/exams/components/toggle-field.tsx",
       "source_location": "L12",
       "id": "src_app_main_teacher_exams_components_toggle_field_tsx_components_toggle_field_togglefield",
-      "community": 108,
+      "community": 21,
       "norm_label": "togglefield()"
     },
     {
@@ -7172,7 +7181,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/monitor/components/exam-monitor-panel.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_monitor_components_exam_monitor_panel_tsx",
-      "community": 26,
+      "community": 60,
       "norm_label": "exam-monitor-panel.tsx"
     },
     {
@@ -7181,7 +7190,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/monitor/components/exam-monitor-panel.tsx",
       "source_location": "L56",
       "id": "components_exam_monitor_panel_studentmonitorstate",
-      "community": 26,
+      "community": 60,
       "norm_label": "studentmonitorstate"
     },
     {
@@ -7190,7 +7199,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/monitor/components/exam-monitor-panel.tsx",
       "source_location": "L67",
       "id": "components_exam_monitor_panel_exammonitorpanelprops",
-      "community": 26,
+      "community": 60,
       "norm_label": "exammonitorpanelprops"
     },
     {
@@ -7199,7 +7208,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/monitor/components/exam-monitor-panel.tsx",
       "source_location": "L74",
       "id": "components_exam_monitor_panel_exammonitorpanel",
-      "community": 26,
+      "community": 60,
       "norm_label": "exammonitorpanel()"
     },
     {
@@ -7271,7 +7280,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/[submissionId]/page.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_results_submissionid_page_tsx",
-      "community": 31,
+      "community": 101,
       "norm_label": "page.tsx"
     },
     {
@@ -7280,7 +7289,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/[submissionId]/page.tsx",
       "source_location": "L6",
       "id": "submissionid_page_pageprops",
-      "community": 31,
+      "community": 101,
       "norm_label": "pageprops"
     },
     {
@@ -7289,7 +7298,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/[submissionId]/page.tsx",
       "source_location": "L13",
       "id": "submissionid_page_submissiondetailpage",
-      "community": 31,
+      "community": 101,
       "norm_label": "submissiondetailpage()"
     },
     {
@@ -7298,7 +7307,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/[submissionId]/page.tsx",
       "source_location": "L45",
       "id": "submissionid_page_resultdetailunavailable",
-      "community": 31,
+      "community": 101,
       "norm_label": "resultdetailunavailable()"
     },
     {
@@ -7406,7 +7415,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/components/question-card.tsx",
       "source_location": "L123",
       "id": "components_question_card_questioncardprops",
-      "community": 31,
+      "community": 63,
       "norm_label": "questioncardprops"
     },
     {
@@ -7424,7 +7433,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/components/exam-results-view.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_results_components_exam_results_view_tsx",
-      "community": 102,
+      "community": 68,
       "norm_label": "exam-results-view.tsx"
     },
     {
@@ -7442,7 +7451,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/components/exam-results-view.tsx",
       "source_location": "L67",
       "id": "components_exam_results_view_regradescopeoptions",
-      "community": 102,
+      "community": 68,
       "norm_label": "regradescopeoptions"
     },
     {
@@ -7451,7 +7460,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/components/exam-results-view.tsx",
       "source_location": "L94",
       "id": "components_exam_results_view_isscoredstatus",
-      "community": 102,
+      "community": 68,
       "norm_label": "isscoredstatus()"
     },
     {
@@ -7460,7 +7469,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/components/exam-results-view.tsx",
       "source_location": "L98",
       "id": "components_exam_results_view_isregradablestatus",
-      "community": 102,
+      "community": 68,
       "norm_label": "isregradablestatus()"
     },
     {
@@ -7469,7 +7478,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/components/exam-results-view.tsx",
       "source_location": "L104",
       "id": "components_exam_results_view_getresultid",
-      "community": 102,
+      "community": 68,
       "norm_label": "getresultid()"
     },
     {
@@ -7478,7 +7487,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/components/exam-results-view.tsx",
       "source_location": "L110",
       "id": "components_exam_results_view_getresultstatuslabel",
-      "community": 102,
+      "community": 68,
       "norm_label": "getresultstatuslabel()"
     },
     {
@@ -7487,7 +7496,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/results/components/exam-results-view.tsx",
       "source_location": "L125",
       "id": "components_exam_results_view_examresultsview",
-      "community": 102,
+      "community": 68,
       "norm_label": "examresultsview()"
     },
     {
@@ -8018,7 +8027,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/template-library-management.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_components_template_library_management_tsx",
-      "community": 29,
+      "community": 99,
       "norm_label": "template-library-management.tsx"
     },
     {
@@ -8027,7 +8036,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/template-library-management.tsx",
       "source_location": "L18",
       "id": "components_template_library_management_templatelibrarymanagementprops",
-      "community": 29,
+      "community": 99,
       "norm_label": "templatelibrarymanagementprops"
     },
     {
@@ -8036,7 +8045,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/template-library-management.tsx",
       "source_location": "L23",
       "id": "components_template_library_management_templatelibrarymanagement",
-      "community": 29,
+      "community": 99,
       "norm_label": "templatelibrarymanagement()"
     },
     {
@@ -8135,7 +8144,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-modal-button.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_components_edit_exam_modal_button_tsx",
-      "community": 5,
+      "community": 21,
       "norm_label": "edit-exam-modal-button.tsx"
     },
     {
@@ -8144,7 +8153,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-modal-button.tsx",
       "source_location": "L28",
       "id": "components_edit_exam_modal_button_initialdata",
-      "community": 5,
+      "community": 21,
       "norm_label": "initialdata"
     },
     {
@@ -8162,7 +8171,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-modal-button.tsx",
       "source_location": "L40",
       "id": "components_edit_exam_modal_button_todatetimelocalvalue",
-      "community": 5,
+      "community": 21,
       "norm_label": "todatetimelocalvalue()"
     },
     {
@@ -8171,7 +8180,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-modal-button.tsx",
       "source_location": "L45",
       "id": "components_edit_exam_modal_button_buildexamforminitialdata",
-      "community": 5,
+      "community": 21,
       "norm_label": "buildexamforminitialdata()"
     },
     {
@@ -8180,7 +8189,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-modal-button.tsx",
       "source_location": "L63",
       "id": "components_edit_exam_modal_button_examupdatemergepayload",
-      "community": 5,
+      "community": 21,
       "norm_label": "examupdatemergepayload"
     },
     {
@@ -8189,7 +8198,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-modal-button.tsx",
       "source_location": "L72",
       "id": "components_edit_exam_modal_button_mergeteacherexamafterupdate",
-      "community": 5,
+      "community": 21,
       "norm_label": "mergeteacherexamafterupdate()"
     },
     {
@@ -8198,7 +8207,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-modal-button.tsx",
       "source_location": "L115",
       "id": "components_edit_exam_modal_button_editexammodalbutton",
-      "community": 5,
+      "community": 21,
       "norm_label": "editexammodalbutton()"
     },
     {
@@ -8207,7 +8216,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-section-modal.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_components_edit_exam_section_modal_tsx",
-      "community": 5,
+      "community": 21,
       "norm_label": "edit-exam-section-modal.tsx"
     },
     {
@@ -8216,7 +8225,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-section-modal.tsx",
       "source_location": "L30",
       "id": "components_edit_exam_section_modal_section_dialog",
-      "community": 5,
+      "community": 21,
       "norm_label": "section_dialog"
     },
     {
@@ -8225,7 +8234,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-section-modal.tsx",
       "source_location": "L53",
       "id": "components_edit_exam_section_modal_editexamsectionmodalprops",
-      "community": 5,
+      "community": 21,
       "norm_label": "editexamsectionmodalprops"
     },
     {
@@ -8234,7 +8243,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/edit-exam-section-modal.tsx",
       "source_location": "L61",
       "id": "components_edit_exam_section_modal_editexamsectionmodal",
-      "community": 5,
+      "community": 60,
       "norm_label": "editexamsectionmodal()"
     },
     {
@@ -8261,7 +8270,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/export-exam-pdf-modal/export-exam-pdf-modal.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_components_export_exam_pdf_modal_export_exam_pdf_modal_tsx",
-      "community": 21,
+      "community": 5,
       "norm_label": "export-exam-pdf-modal.tsx"
     },
     {
@@ -8270,7 +8279,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/export-exam-pdf-modal/export-exam-pdf-modal.tsx",
       "source_location": "L22",
       "id": "export_exam_pdf_modal_export_exam_pdf_modal_step_items",
-      "community": 21,
+      "community": 5,
       "norm_label": "step_items"
     },
     {
@@ -8288,7 +8297,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/export-exam-pdf-modal/step-2-edit-regulations.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_components_export_exam_pdf_modal_step_2_edit_regulations_tsx",
-      "community": 21,
+      "community": 5,
       "norm_label": "step-2-edit-regulations.tsx"
     },
     {
@@ -8297,7 +8306,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/export-exam-pdf-modal/step-2-edit-regulations.tsx",
       "source_location": "L13",
       "id": "export_exam_pdf_modal_step_2_edit_regulations_step2editregulations",
-      "community": 21,
+      "community": 5,
       "norm_label": "step2editregulations()"
     },
     {
@@ -8477,7 +8486,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/moodle-sql-import-dialog/moodle-sql-import-dialog.tsx",
       "source_location": "L48",
       "id": "moodle_sql_import_dialog_moodle_sql_import_dialog_formatfilesize",
-      "community": 5,
+      "community": 68,
       "norm_label": "formatfilesize()"
     },
     {
@@ -8513,7 +8522,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/components/moodle-sql-import-dialog/moodle-sql-import-dialog.tsx",
       "source_location": "L73",
       "id": "moodle_sql_import_dialog_moodle_sql_import_dialog_moodlesqlimportdialog",
-      "community": 5,
+      "community": 68,
       "norm_label": "moodlesqlimportdialog()"
     },
     {
@@ -8675,7 +8684,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-rule-row.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_questions_components_whitebox_rule_row_tsx",
-      "community": 7,
+      "community": 45,
       "norm_label": "whitebox-rule-row.tsx"
     },
     {
@@ -8693,7 +8702,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-rule-row.tsx",
       "source_location": "L34",
       "id": "components_whitebox_rule_row_getpolicymeta",
-      "community": 7,
+      "community": 45,
       "norm_label": "getpolicymeta()"
     },
     {
@@ -8702,7 +8711,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-rule-row.tsx",
       "source_location": "L82",
       "id": "components_whitebox_rule_row_whiteboxrulerow",
-      "community": 7,
+      "community": 45,
       "norm_label": "whiteboxrulerow()"
     },
     {
@@ -8945,7 +8954,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/create-table-rubric-editor.tsx",
       "source_location": "L783",
       "id": "components_create_table_rubric_editor_buildcreateschemadiagramdata",
-      "community": 55,
+      "community": 12,
       "norm_label": "buildcreateschemadiagramdata()"
     },
     {
@@ -9017,7 +9026,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/select-query-rubric-editor.tsx",
       "source_location": "L54",
       "id": "components_select_query_rubric_editor_selectqueryrubriceditorprops",
-      "community": 69,
+      "community": 75,
       "norm_label": "selectqueryrubriceditorprops"
     },
     {
@@ -9134,7 +9143,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-authoring.ts",
       "source_location": "L4",
       "id": "components_whitebox_authoring_policy_badge_class",
-      "community": 7,
+      "community": 45,
       "norm_label": "policy_badge_class"
     },
     {
@@ -9152,7 +9161,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-authoring.ts",
       "source_location": "L35",
       "id": "components_whitebox_authoring_iscustomregexrule",
-      "community": 7,
+      "community": 45,
       "norm_label": "iscustomregexrule()"
     },
     {
@@ -9386,7 +9395,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-authoring.ts",
       "source_location": "L377",
       "id": "components_whitebox_authoring_normalizewhiteboxrulepenalty",
-      "community": 7,
+      "community": 45,
       "norm_label": "normalizewhiteboxrulepenalty()"
     },
     {
@@ -9395,7 +9404,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-authoring.ts",
       "source_location": "L406",
       "id": "components_whitebox_authoring_detectconflicts",
-      "community": 7,
+      "community": 45,
       "norm_label": "detectconflicts()"
     },
     {
@@ -9413,7 +9422,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-authoring.ts",
       "source_location": "L487",
       "id": "components_whitebox_authoring_defaultrulefromcatalog",
-      "community": 7,
+      "community": 45,
       "norm_label": "defaultrulefromcatalog()"
     },
     {
@@ -9422,7 +9431,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-authoring.ts",
       "source_location": "L511",
       "id": "components_whitebox_authoring_requiredparamssatisfied",
-      "community": 7,
+      "community": 45,
       "norm_label": "requiredparamssatisfied()"
     },
     {
@@ -9431,7 +9440,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/insert-data-tree-rubric.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_questions_components_insert_data_tree_rubric_tsx",
-      "community": 6,
+      "community": 25,
       "norm_label": "insert-data-tree-rubric.tsx"
     },
     {
@@ -9440,7 +9449,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/insert-data-tree-rubric.tsx",
       "source_location": "L19",
       "id": "components_insert_data_tree_rubric_insert_data_tree_config",
-      "community": 6,
+      "community": 25,
       "norm_label": "insert_data_tree_config"
     },
     {
@@ -9449,7 +9458,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/insert-data-tree-rubric.tsx",
       "source_location": "L94",
       "id": "components_insert_data_tree_rubric_insert_data_modifier_options",
-      "community": 6,
+      "community": 25,
       "norm_label": "insert_data_modifier_options"
     },
     {
@@ -9458,7 +9467,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/insert-data-tree-rubric.tsx",
       "source_location": "L114",
       "id": "components_insert_data_tree_rubric_valid_insert_modifiers",
-      "community": 6,
+      "community": 25,
       "norm_label": "valid_insert_modifiers"
     },
     {
@@ -9467,7 +9476,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/insert-data-tree-rubric.tsx",
       "source_location": "L120",
       "id": "components_insert_data_tree_rubric_insertdatatreerubricprops",
-      "community": 6,
+      "community": 25,
       "norm_label": "insertdatatreerubricprops"
     },
     {
@@ -9476,7 +9485,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/insert-data-tree-rubric.tsx",
       "source_location": "L126",
       "id": "components_insert_data_tree_rubric_insertdatatreerubric",
-      "community": 6,
+      "community": 25,
       "norm_label": "insertdatatreerubric()"
     },
     {
@@ -9485,7 +9494,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/select-query-tree-rubric.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_questions_components_select_query_tree_rubric_tsx",
-      "community": 6,
+      "community": 25,
       "norm_label": "select-query-tree-rubric.tsx"
     },
     {
@@ -9494,7 +9503,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/select-query-tree-rubric.tsx",
       "source_location": "L14",
       "id": "components_select_query_tree_rubric_select_tree_config",
-      "community": 6,
+      "community": 25,
       "norm_label": "select_tree_config"
     },
     {
@@ -9503,7 +9512,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/select-query-tree-rubric.tsx",
       "source_location": "L114",
       "id": "components_select_query_tree_rubric_selectquerytreerubricprops",
-      "community": 6,
+      "community": 25,
       "norm_label": "selectquerytreerubricprops"
     },
     {
@@ -9512,7 +9521,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/select-query-tree-rubric.tsx",
       "source_location": "L120",
       "id": "components_select_query_tree_rubric_selectquerytreerubric",
-      "community": 6,
+      "community": 25,
       "norm_label": "selectquerytreerubric()"
     },
     {
@@ -9575,7 +9584,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/ai-rubric-refinement-panel.tsx",
       "source_location": "L32",
       "id": "components_ai_rubric_refinement_panel_airubricrefinementpanelprops",
-      "community": 81,
+      "community": 75,
       "norm_label": "airubricrefinementpanelprops"
     },
     {
@@ -9620,7 +9629,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/create-table-tree-rubric.tsx",
       "source_location": "L47",
       "id": "components_create_table_tree_rubric_createtabletreerubricprops",
-      "community": 6,
+      "community": 25,
       "norm_label": "createtabletreerubricprops"
     },
     {
@@ -9638,7 +9647,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/create-table-tree-rubric.tsx",
       "source_location": "L68",
       "id": "components_create_table_tree_rubric_groupconfig",
-      "community": 6,
+      "community": 25,
       "norm_label": "groupconfig"
     },
     {
@@ -9647,7 +9656,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/create-table-tree-rubric.tsx",
       "source_location": "L74",
       "id": "components_create_table_tree_rubric_rulemodifieroption",
-      "community": 6,
+      "community": 25,
       "norm_label": "rulemodifieroption"
     },
     {
@@ -9665,7 +9674,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/create-table-tree-rubric.tsx",
       "source_location": "L308",
       "id": "components_create_table_tree_rubric_createtabletreerubric",
-      "community": 6,
+      "community": 25,
       "norm_label": "createtabletreerubric()"
     },
     {
@@ -9926,7 +9935,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L53",
       "id": "components_grading_rules_editor_gradingruleseditorprops",
-      "community": 6,
+      "community": 25,
       "norm_label": "gradingruleseditorprops"
     },
     {
@@ -10025,7 +10034,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L271",
       "id": "components_grading_rules_editor_tonumber",
-      "community": 6,
+      "community": 67,
       "norm_label": "tonumber()"
     },
     {
@@ -10043,7 +10052,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L286",
       "id": "components_grading_rules_editor_getdefaulttarget",
-      "community": 6,
+      "community": 67,
       "norm_label": "getdefaulttarget()"
     },
     {
@@ -10052,7 +10061,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L290",
       "id": "components_grading_rules_editor_getconditionoptions",
-      "community": 6,
+      "community": 67,
       "norm_label": "getconditionoptions()"
     },
     {
@@ -10061,7 +10070,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L307",
       "id": "components_grading_rules_editor_getdefaultcondition",
-      "community": 6,
+      "community": 67,
       "norm_label": "getdefaultcondition()"
     },
     {
@@ -10070,7 +10079,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L315",
       "id": "components_grading_rules_editor_getmodifieroptions",
-      "community": 6,
+      "community": 67,
       "norm_label": "getmodifieroptions()"
     },
     {
@@ -10079,7 +10088,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L326",
       "id": "components_grading_rules_editor_getconditionlabel",
-      "community": 6,
+      "community": 67,
       "norm_label": "getconditionlabel()"
     },
     {
@@ -10088,7 +10097,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L338",
       "id": "components_grading_rules_editor_gettargetlabel",
-      "community": 6,
+      "community": 67,
       "norm_label": "gettargetlabel()"
     },
     {
@@ -10115,7 +10124,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L359",
       "id": "components_grading_rules_editor_buildrulename",
-      "community": 6,
+      "community": 67,
       "norm_label": "buildrulename()"
     },
     {
@@ -10133,7 +10142,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L367",
       "id": "components_grading_rules_editor_extractcolumnhintfromtext",
-      "community": 6,
+      "community": 67,
       "norm_label": "extractcolumnhintfromtext()"
     },
     {
@@ -10142,7 +10151,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L372",
       "id": "components_grading_rules_editor_buildfriendlyrulename",
-      "community": 6,
+      "community": 67,
       "norm_label": "buildfriendlyrulename()"
     },
     {
@@ -10178,7 +10187,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L457",
       "id": "components_grading_rules_editor_normalizebatchruleforappend",
-      "community": 6,
+      "community": 67,
       "norm_label": "normalizebatchruleforappend()"
     },
     {
@@ -10187,7 +10196,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L511",
       "id": "components_grading_rules_editor_buildstrictrulesignature",
-      "community": 6,
+      "community": 67,
       "norm_label": "buildstrictrulesignature()"
     },
     {
@@ -10196,7 +10205,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L529",
       "id": "components_grading_rules_editor_buildbroadrulesignature",
-      "community": 6,
+      "community": 67,
       "norm_label": "buildbroadrulesignature()"
     },
     {
@@ -10223,7 +10232,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L565",
       "id": "components_grading_rules_editor_isdescriptiononlyspecialrule",
-      "community": 6,
+      "community": 67,
       "norm_label": "isdescriptiononlyspecialrule()"
     },
     {
@@ -10232,7 +10241,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L580",
       "id": "components_grading_rules_editor_normalizerule",
-      "community": 6,
+      "community": 67,
       "norm_label": "normalizerule()"
     },
     {
@@ -10241,7 +10250,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L648",
       "id": "components_grading_rules_editor_buildrulesummary",
-      "community": 6,
+      "community": 67,
       "norm_label": "buildrulesummary()"
     },
     {
@@ -10268,7 +10277,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/grading-rules-editor.tsx",
       "source_location": "L745",
       "id": "components_grading_rules_editor_gradingruleseditor",
-      "community": 6,
+      "community": 67,
       "norm_label": "gradingruleseditor()"
     },
     {
@@ -10322,7 +10331,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/exam-questions-view.tsx",
       "source_location": "L113",
       "id": "components_exam_questions_view_formatversiontimestamp",
-      "community": 29,
+      "community": 51,
       "norm_label": "formatversiontimestamp()"
     },
     {
@@ -10349,7 +10358,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/exam-questions-view.tsx",
       "source_location": "L159",
       "id": "components_exam_questions_view_examquestionsview",
-      "community": 29,
+      "community": 51,
       "norm_label": "examquestionsview()"
     },
     {
@@ -10466,7 +10475,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-add-rule-modal.tsx",
       "source_location": "L90",
       "id": "components_whitebox_add_rule_modal_whiteboxaddrulemodal",
-      "community": 7,
+      "community": 45,
       "norm_label": "whiteboxaddrulemodal()"
     },
     {
@@ -10736,7 +10745,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-catalog-client.ts",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_questions_components_whitebox_catalog_client_ts",
-      "community": 97,
+      "community": 51,
       "norm_label": "whitebox-catalog-client.ts"
     },
     {
@@ -10745,7 +10754,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-catalog-client.ts",
       "source_location": "L4",
       "id": "components_whitebox_catalog_client_catalogrequests",
-      "community": 97,
+      "community": 51,
       "norm_label": "catalogrequests"
     },
     {
@@ -10754,7 +10763,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-catalog-client.ts",
       "source_location": "L9",
       "id": "components_whitebox_catalog_client_normalizequestiontype",
-      "community": 97,
+      "community": 51,
       "norm_label": "normalizequestiontype()"
     },
     {
@@ -10763,7 +10772,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-catalog-client.ts",
       "source_location": "L14",
       "id": "components_whitebox_catalog_client_loadwhiteboxcatalog",
-      "community": 97,
+      "community": 51,
       "norm_label": "loadwhiteboxcatalog()"
     },
     {
@@ -10790,7 +10799,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-test-grader.tsx",
       "source_location": "L19",
       "id": "components_trigger_test_grader_triggertestgrader",
-      "community": 51,
+      "community": 75,
       "norm_label": "triggertestgrader()"
     },
     {
@@ -11123,7 +11132,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-rules-editor.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_questions_components_whitebox_rules_editor_tsx",
-      "community": 7,
+      "community": 45,
       "norm_label": "whitebox-rules-editor.tsx"
     },
     {
@@ -11132,7 +11141,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-rules-editor.tsx",
       "source_location": "L64",
       "id": "components_whitebox_rules_editor_whiteboxruleseditorprops",
-      "community": 68,
+      "community": 81,
       "norm_label": "whiteboxruleseditorprops"
     },
     {
@@ -11276,7 +11285,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/routine-rubric-editor/routine-rubric-editor.tsx",
       "source_location": "L307",
       "id": "routine_rubric_editor_routine_rubric_editor_routinerubriceditorprops",
-      "community": 41,
+      "community": 75,
       "norm_label": "routinerubriceditorprops"
     },
     {
@@ -11294,7 +11303,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_questions_components_trigger_rubric_editor_trigger_rubric_editor_tsx",
-      "community": 68,
+      "community": 4,
       "norm_label": "trigger-rubric-editor.tsx"
     },
     {
@@ -11303,7 +11312,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.tsx",
       "source_location": "L32",
       "id": "trigger_rubric_editor_trigger_rubric_editor_createdefaulttestcase",
-      "community": 68,
+      "community": 4,
       "norm_label": "createdefaulttestcase()"
     },
     {
@@ -11312,7 +11321,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.tsx",
       "source_location": "L46",
       "id": "trigger_rubric_editor_trigger_rubric_editor_toboolean",
-      "community": 68,
+      "community": 4,
       "norm_label": "toboolean()"
     },
     {
@@ -11321,7 +11330,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.tsx",
       "source_location": "L57",
       "id": "trigger_rubric_editor_trigger_rubric_editor_tosyntaxerroraction",
-      "community": 68,
+      "community": 4,
       "norm_label": "tosyntaxerroraction()"
     },
     {
@@ -11330,7 +11339,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.tsx",
       "source_location": "L61",
       "id": "trigger_rubric_editor_trigger_rubric_editor_tooptionalnumber",
-      "community": 68,
+      "community": 4,
       "norm_label": "tooptionalnumber()"
     },
     {
@@ -11339,7 +11348,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.tsx",
       "source_location": "L65",
       "id": "trigger_rubric_editor_trigger_rubric_editor_triggertestcaseweight",
-      "community": 68,
+      "community": 4,
       "norm_label": "triggertestcaseweight()"
     },
     {
@@ -11348,7 +11357,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.tsx",
       "source_location": "L71",
       "id": "trigger_rubric_editor_trigger_rubric_editor_normalizetriggerpayload",
-      "community": 68,
+      "community": 4,
       "norm_label": "normalizetriggerpayload()"
     },
     {
@@ -11366,7 +11375,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.tsx",
       "source_location": "L165",
       "id": "trigger_rubric_editor_trigger_rubric_editor_triggerrubriceditor",
-      "community": 68,
+      "community": 4,
       "norm_label": "triggerrubriceditor()"
     },
     {
@@ -11375,7 +11384,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/pdf-upload-dialog/pdf-upload-dialog.tsx",
       "source_location": "L1",
       "id": "src_app_main_teacher_exams_examid_questions_components_pdf_upload_dialog_pdf_upload_dialog_tsx",
-      "community": 67,
+      "community": 5,
       "norm_label": "pdf-upload-dialog.tsx"
     },
     {
@@ -11384,7 +11393,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/pdf-upload-dialog/pdf-upload-dialog.tsx",
       "source_location": "L25",
       "id": "pdf_upload_dialog_pdf_upload_dialog_question_type_labels",
-      "community": 67,
+      "community": 5,
       "norm_label": "question_type_labels"
     },
     {
@@ -11393,7 +11402,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/pdf-upload-dialog/pdf-upload-dialog.tsx",
       "source_location": "L34",
       "id": "pdf_upload_dialog_pdf_upload_dialog_question_types",
-      "community": 67,
+      "community": 5,
       "norm_label": "question_types"
     },
     {
@@ -11402,7 +11411,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/pdf-upload-dialog/pdf-upload-dialog.tsx",
       "source_location": "L43",
       "id": "pdf_upload_dialog_pdf_upload_dialog_pdfextractdialogprops",
-      "community": 67,
+      "community": 85,
       "norm_label": "pdfextractdialogprops"
     },
     {
@@ -11411,7 +11420,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/pdf-upload-dialog/pdf-upload-dialog.tsx",
       "source_location": "L50",
       "id": "pdf_upload_dialog_pdf_upload_dialog_step",
-      "community": 67,
+      "community": 5,
       "norm_label": "step"
     },
     {
@@ -11420,7 +11429,7 @@
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/pdf-upload-dialog/pdf-upload-dialog.tsx",
       "source_location": "L52",
       "id": "pdf_upload_dialog_pdf_upload_dialog_pdfuploaddialog",
-      "community": 67,
+      "community": 21,
       "norm_label": "pdfuploaddialog()"
     },
     {
@@ -11447,7 +11456,7 @@
       "source_file": "src/app/(auth)/loading.tsx",
       "source_location": "L1",
       "id": "src_app_auth_loading_tsx",
-      "community": 101,
+      "community": 79,
       "norm_label": "loading.tsx"
     },
     {
@@ -11456,7 +11465,7 @@
       "source_file": "src/app/(auth)/loading.tsx",
       "source_location": "L3",
       "id": "auth_loading_loading",
-      "community": 101,
+      "community": 79,
       "norm_label": "loading()"
     },
     {
@@ -11465,7 +11474,7 @@
       "source_file": "src/app/(auth)/register/page.tsx",
       "source_location": "L1",
       "id": "src_app_auth_register_page_tsx",
-      "community": 10,
+      "community": 103,
       "norm_label": "page.tsx"
     },
     {
@@ -11474,7 +11483,7 @@
       "source_file": "src/app/(auth)/register/page.tsx",
       "source_location": "L3",
       "id": "register_page_registerpage",
-      "community": 10,
+      "community": 103,
       "norm_label": "registerpage()"
     },
     {
@@ -11483,7 +11492,7 @@
       "source_file": "src/app/(auth)/register/components/register-form/register-form.tsx",
       "source_location": "L1",
       "id": "src_app_auth_register_components_register_form_register_form_tsx",
-      "community": 10,
+      "community": 103,
       "norm_label": "register-form.tsx"
     },
     {
@@ -11492,7 +11501,7 @@
       "source_file": "src/app/(auth)/register/components/register-form/register-form.tsx",
       "source_location": "L14",
       "id": "register_form_register_form_registerform",
-      "community": 10,
+      "community": 103,
       "norm_label": "registerform()"
     },
     {
@@ -11510,7 +11519,7 @@
       "source_file": "src/app/(auth)/register/hooks/use-register.ts",
       "source_location": "L10",
       "id": "hooks_use_register_useregister",
-      "community": 10,
+      "community": 103,
       "norm_label": "useregister()"
     },
     {
@@ -11735,7 +11744,7 @@
       "source_file": "src/components/ui/scroll-area.tsx",
       "source_location": "L1",
       "id": "src_components_ui_scroll_area_tsx",
-      "community": 8,
+      "community": 65,
       "norm_label": "scroll-area.tsx"
     },
     {
@@ -11744,7 +11753,7 @@
       "source_file": "src/components/ui/scroll-area.tsx",
       "source_location": "L8",
       "id": "ui_scroll_area_scrollarea",
-      "community": 8,
+      "community": 65,
       "norm_label": "scrollarea()"
     },
     {
@@ -11762,7 +11771,7 @@
       "source_file": "src/components/ui/label.tsx",
       "source_location": "L1",
       "id": "src_components_ui_label_tsx",
-      "community": 10,
+      "community": 70,
       "norm_label": "label.tsx"
     },
     {
@@ -11771,7 +11780,7 @@
       "source_file": "src/components/ui/label.tsx",
       "source_location": "L8",
       "id": "ui_label_label",
-      "community": 10,
+      "community": 70,
       "norm_label": "label()"
     },
     {
@@ -11951,7 +11960,7 @@
       "source_file": "src/components/ui/dialog.tsx",
       "source_location": "L27",
       "id": "ui_dialog_dialogclose",
-      "community": 21,
+      "community": 5,
       "norm_label": "dialogclose()"
     },
     {
@@ -11987,7 +11996,7 @@
       "source_file": "src/components/ui/dialog.tsx",
       "source_location": "L93",
       "id": "ui_dialog_dialogfooter",
-      "community": 65,
+      "community": 5,
       "norm_label": "dialogfooter()"
     },
     {
@@ -12014,7 +12023,7 @@
       "source_file": "src/components/ui/badge.tsx",
       "source_location": "L1",
       "id": "src_components_ui_badge_tsx",
-      "community": 81,
+      "community": 13,
       "norm_label": "badge.tsx"
     },
     {
@@ -12023,7 +12032,7 @@
       "source_file": "src/components/ui/badge.tsx",
       "source_location": "L6",
       "id": "ui_badge_badgevariants",
-      "community": 81,
+      "community": 13,
       "norm_label": "badgevariants"
     },
     {
@@ -12032,7 +12041,7 @@
       "source_file": "src/components/ui/badge.tsx",
       "source_location": "L26",
       "id": "ui_badge_badgeprops",
-      "community": 81,
+      "community": 13,
       "norm_label": "badgeprops"
     },
     {
@@ -12041,7 +12050,7 @@
       "source_file": "src/components/ui/badge.tsx",
       "source_location": "L30",
       "id": "ui_badge_badge",
-      "community": 81,
+      "community": 13,
       "norm_label": "badge()"
     },
     {
@@ -12131,7 +12140,7 @@
       "source_file": "src/components/ui/button.tsx",
       "source_location": "L1",
       "id": "src_components_ui_button_tsx",
-      "community": 10,
+      "community": 57,
       "norm_label": "button.tsx"
     },
     {
@@ -12140,7 +12149,7 @@
       "source_file": "src/components/ui/button.tsx",
       "source_location": "L8",
       "id": "ui_button_buttonvariants",
-      "community": 10,
+      "community": 57,
       "norm_label": "buttonvariants"
     },
     {
@@ -12149,7 +12158,7 @@
       "source_file": "src/components/ui/button.tsx",
       "source_location": "L40",
       "id": "ui_button_buttonprops",
-      "community": 10,
+      "community": 57,
       "norm_label": "buttonprops"
     },
     {
@@ -12158,7 +12167,7 @@
       "source_file": "src/components/ui/button.tsx",
       "source_location": "L48",
       "id": "ui_button_button",
-      "community": 10,
+      "community": 57,
       "norm_label": "button"
     },
     {
@@ -12167,7 +12176,7 @@
       "source_file": "src/components/ui/checkbox.tsx",
       "source_location": "L1",
       "id": "src_components_ui_checkbox_tsx",
-      "community": 7,
+      "community": 45,
       "norm_label": "checkbox.tsx"
     },
     {
@@ -12176,7 +12185,7 @@
       "source_file": "src/components/ui/checkbox.tsx",
       "source_location": "L9",
       "id": "ui_checkbox_checkbox",
-      "community": 7,
+      "community": 45,
       "norm_label": "checkbox()"
     },
     {
@@ -12185,7 +12194,7 @@
       "source_file": "src/components/ui/spinner.tsx",
       "source_location": "L1",
       "id": "src_components_ui_spinner_tsx",
-      "community": 101,
+      "community": 79,
       "norm_label": "spinner.tsx"
     },
     {
@@ -12194,7 +12203,7 @@
       "source_file": "src/components/ui/spinner.tsx",
       "source_location": "L4",
       "id": "ui_spinner_spinnerprops",
-      "community": 101,
+      "community": 79,
       "norm_label": "spinnerprops"
     },
     {
@@ -12203,7 +12212,7 @@
       "source_file": "src/components/ui/spinner.tsx",
       "source_location": "L8",
       "id": "ui_spinner_spinner",
-      "community": 101,
+      "community": 79,
       "norm_label": "spinner()"
     },
     {
@@ -12239,7 +12248,7 @@
       "source_file": "src/components/ui/select.tsx",
       "source_location": "L21",
       "id": "ui_select_selectvalue",
-      "community": 7,
+      "community": 61,
       "norm_label": "selectvalue()"
     },
     {
@@ -12311,7 +12320,7 @@
       "source_file": "src/components/ui/textarea.tsx",
       "source_location": "L1",
       "id": "src_components_ui_textarea_tsx",
-      "community": 70,
+      "community": 5,
       "norm_label": "textarea.tsx"
     },
     {
@@ -12320,7 +12329,7 @@
       "source_file": "src/components/ui/textarea.tsx",
       "source_location": "L5",
       "id": "ui_textarea_textarea",
-      "community": 70,
+      "community": 5,
       "norm_label": "textarea()"
     },
     {
@@ -12329,7 +12338,7 @@
       "source_file": "src/components/ui/input.tsx",
       "source_location": "L1",
       "id": "src_components_ui_input_tsx",
-      "community": 10,
+      "community": 70,
       "norm_label": "input.tsx"
     },
     {
@@ -12338,7 +12347,7 @@
       "source_file": "src/components/ui/input.tsx",
       "source_location": "L5",
       "id": "ui_input_input",
-      "community": 10,
+      "community": 70,
       "norm_label": "input()"
     },
     {
@@ -12410,7 +12419,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L1",
       "id": "src_components_shared_global_search_tsx",
-      "community": 79,
+      "community": 11,
       "norm_label": "global-search.tsx"
     },
     {
@@ -12419,7 +12428,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L30",
       "id": "shared_global_search_featuresearchitem",
-      "community": 79,
+      "community": 11,
       "norm_label": "featuresearchitem"
     },
     {
@@ -12428,7 +12437,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L37",
       "id": "shared_global_search_featuresearchcontext",
-      "community": 79,
+      "community": 11,
       "norm_label": "featuresearchcontext"
     },
     {
@@ -12437,7 +12446,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L44",
       "id": "shared_global_search_featuresearchresult",
-      "community": 79,
+      "community": 11,
       "norm_label": "featuresearchresult"
     },
     {
@@ -12446,7 +12455,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L50",
       "id": "shared_global_search_feature_search_items",
-      "community": 79,
+      "community": 11,
       "norm_label": "feature_search_items"
     },
     {
@@ -12455,7 +12464,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L384",
       "id": "shared_global_search_extractpathid",
-      "community": 79,
+      "community": 11,
       "norm_label": "extractpathid()"
     },
     {
@@ -12464,7 +12473,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L392",
       "id": "shared_global_search_buildfeaturesearchcontext",
-      "community": 79,
+      "community": 11,
       "norm_label": "buildfeaturesearchcontext()"
     },
     {
@@ -12473,7 +12482,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L404",
       "id": "shared_global_search_resolvefeaturehref",
-      "community": 79,
+      "community": 11,
       "norm_label": "resolvefeaturehref()"
     },
     {
@@ -12482,7 +12491,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L411",
       "id": "shared_global_search_normalizesearchtext",
-      "community": 79,
+      "community": 11,
       "norm_label": "normalizesearchtext()"
     },
     {
@@ -12491,7 +12500,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L420",
       "id": "shared_global_search_matchfeaturesearchitems",
-      "community": 79,
+      "community": 11,
       "norm_label": "matchfeaturesearchitems()"
     },
     {
@@ -12500,7 +12509,7 @@
       "source_file": "src/components/shared/global-search.tsx",
       "source_location": "L438",
       "id": "shared_global_search_globalsearch",
-      "community": 57,
+      "community": 11,
       "norm_label": "globalsearch()"
     },
     {
@@ -12626,7 +12635,7 @@
       "source_file": "src/components/shared/pagination.tsx",
       "source_location": "L1",
       "id": "src_components_shared_pagination_tsx",
-      "community": 10,
+      "community": 68,
       "norm_label": "pagination.tsx"
     },
     {
@@ -12635,7 +12644,7 @@
       "source_file": "src/components/shared/pagination.tsx",
       "source_location": "L10",
       "id": "shared_pagination_paginationprops",
-      "community": 10,
+      "community": 68,
       "norm_label": "paginationprops"
     },
     {
@@ -12644,7 +12653,7 @@
       "source_file": "src/components/shared/pagination.tsx",
       "source_location": "L19",
       "id": "shared_pagination_pagination",
-      "community": 26,
+      "community": 68,
       "norm_label": "pagination()"
     },
     {
@@ -12833,7 +12842,7 @@
       "source_file": "src/components/shared/teacher-schema-diagram.tsx",
       "source_location": "L194",
       "id": "shared_teacher_schema_diagram_buildinitialschemadiagram",
-      "community": 55,
+      "community": 12,
       "norm_label": "buildinitialschemadiagram()"
     },
     {
@@ -12941,7 +12950,7 @@
       "source_file": "src/components/shared/resizable-panel.tsx",
       "source_location": "L1",
       "id": "src_components_shared_resizable_panel_tsx",
-      "community": 45,
+      "community": 85,
       "norm_label": "resizable-panel.tsx"
     },
     {
@@ -12950,7 +12959,7 @@
       "source_file": "src/components/shared/resizable-panel.tsx",
       "source_location": "L5",
       "id": "shared_resizable_panel_resizablepanelprops",
-      "community": 45,
+      "community": 85,
       "norm_label": "resizablepanelprops"
     },
     {
@@ -12959,7 +12968,7 @@
       "source_file": "src/components/shared/resizable-panel.tsx",
       "source_location": "L12",
       "id": "shared_resizable_panel_resizablepanel",
-      "community": 45,
+      "community": 85,
       "norm_label": "resizablepanel()"
     },
     {
@@ -13040,7 +13049,7 @@
       "source_file": "src/components/shared/teacher-notification-handler.tsx",
       "source_location": "L15",
       "id": "shared_teacher_notification_handler_teachernotificationhandler",
-      "community": 82,
+      "community": 0,
       "norm_label": "teachernotificationhandler()"
     },
     {
@@ -13121,7 +13130,7 @@
       "source_file": "src/components/shared/sql-editor.tsx",
       "source_location": "L1",
       "id": "src_components_shared_sql_editor_tsx",
-      "community": 8,
+      "community": 71,
       "norm_label": "sql-editor.tsx"
     },
     {
@@ -13130,7 +13139,7 @@
       "source_file": "src/components/shared/sql-editor.tsx",
       "source_location": "L8",
       "id": "shared_sql_editor_geistmono",
-      "community": 8,
+      "community": 71,
       "norm_label": "geistmono"
     },
     {
@@ -13139,7 +13148,7 @@
       "source_file": "src/components/shared/sql-editor.tsx",
       "source_location": "L13",
       "id": "shared_sql_editor_sqleditorprops",
-      "community": 8,
+      "community": 71,
       "norm_label": "sqleditorprops"
     },
     {
@@ -13148,7 +13157,7 @@
       "source_file": "src/components/shared/sql-editor.tsx",
       "source_location": "L20",
       "id": "shared_sql_editor_sqleditor",
-      "community": 8,
+      "community": 71,
       "norm_label": "sqleditor()"
     },
     {
@@ -13238,7 +13247,7 @@
       "source_file": "src/components/shared/auth-providers.tsx",
       "source_location": "L1",
       "id": "src_components_shared_auth_providers_tsx",
-      "community": 104,
+      "community": 82,
       "norm_label": "auth-providers.tsx"
     },
     {
@@ -13247,7 +13256,7 @@
       "source_file": "src/components/shared/auth-providers.tsx",
       "source_location": "L9",
       "id": "shared_auth_providers_authprovidersprops",
-      "community": 104,
+      "community": 82,
       "norm_label": "authprovidersprops"
     },
     {
@@ -13256,7 +13265,7 @@
       "source_file": "src/components/shared/auth-providers.tsx",
       "source_location": "L14",
       "id": "shared_auth_providers_authproviders",
-      "community": 104,
+      "community": 82,
       "norm_label": "authproviders()"
     },
     {
@@ -13373,7 +13382,7 @@
       "source_file": "src/hooks/use-action-lock.ts",
       "source_location": "L1",
       "id": "src_hooks_use_action_lock_ts",
-      "community": 105,
+      "community": 85,
       "norm_label": "use-action-lock.ts"
     },
     {
@@ -13382,7 +13391,7 @@
       "source_file": "src/hooks/use-action-lock.ts",
       "source_location": "L5",
       "id": "hooks_use_action_lock_useactionlock",
-      "community": 105,
+      "community": 85,
       "norm_label": "useactionlock()"
     },
     {
@@ -13391,7 +13400,7 @@
       "source_file": "src/hooks/use-api.tsx",
       "source_location": "L1",
       "id": "src_hooks_use_api_tsx",
-      "community": 26,
+      "community": 60,
       "norm_label": "use-api.tsx"
     },
     {
@@ -13400,7 +13409,7 @@
       "source_file": "src/hooks/use-api.tsx",
       "source_location": "L7",
       "id": "hooks_use_api_issuccesscode",
-      "community": 26,
+      "community": 60,
       "norm_label": "issuccesscode()"
     },
     {
@@ -13409,7 +13418,7 @@
       "source_file": "src/hooks/use-api.tsx",
       "source_location": "L13",
       "id": "hooks_use_api_useapi",
-      "community": 26,
+      "community": 60,
       "norm_label": "useapi()"
     },
     {
@@ -13445,14 +13454,14 @@
       "source_file": "src/hooks/use-anti-cheat.ts",
       "source_location": "L1",
       "id": "src_hooks_use_anti_cheat_ts",
-      "community": 83,
+      "community": 80,
       "norm_label": "use-anti-cheat.ts"
     },
     {
       "label": "UseAntiCheatOptions",
       "file_type": "code",
       "source_file": "src/hooks/use-anti-cheat.ts",
-      "source_location": "L25",
+      "source_location": "L26",
       "id": "hooks_use_anti_cheat_useanticheatoptions",
       "community": 22,
       "norm_label": "useanticheatoptions"
@@ -13461,7 +13470,7 @@
       "label": "useAntiCheat()",
       "file_type": "code",
       "source_file": "src/hooks/use-anti-cheat.ts",
-      "source_location": "L31",
+      "source_location": "L32",
       "id": "hooks_use_anti_cheat_useanticheat",
       "community": 46,
       "norm_label": "useanticheat()"
@@ -13472,7 +13481,7 @@
       "source_file": "src/lib/msal-config.ts",
       "source_location": "L1",
       "id": "src_lib_msal_config_ts",
-      "community": 104,
+      "community": 33,
       "norm_label": "msal-config.ts"
     },
     {
@@ -13481,7 +13490,7 @@
       "source_file": "src/lib/msal-config.ts",
       "source_location": "L3",
       "id": "lib_msal_config_msalconfig",
-      "community": 104,
+      "community": 33,
       "norm_label": "msalconfig"
     },
     {
@@ -13490,7 +13499,7 @@
       "source_file": "src/lib/msal-config.ts",
       "source_location": "L17",
       "id": "lib_msal_config_msalinstance",
-      "community": 104,
+      "community": 82,
       "norm_label": "msalinstance"
     },
     {
@@ -13499,7 +13508,7 @@
       "source_file": "src/lib/msal-config.ts",
       "source_location": "L19",
       "id": "lib_msal_config_loginrequest",
-      "community": 104,
+      "community": 33,
       "norm_label": "loginrequest"
     },
     {
@@ -13688,7 +13697,7 @@
       "source_file": "src/lib/types/specification-schema-json.type.ts",
       "source_location": "L28",
       "id": "types_specification_schema_json_type_specificationschemajsontable",
-      "community": 19,
+      "community": 81,
       "norm_label": "specificationschemajsontable"
     },
     {
@@ -13697,7 +13706,7 @@
       "source_file": "src/lib/types/anti-cheat.type.ts",
       "source_location": "L1",
       "id": "src_lib_types_anti_cheat_type_ts",
-      "community": 56,
+      "community": 80,
       "norm_label": "anti-cheat.type.ts"
     },
     {
@@ -13706,7 +13715,7 @@
       "source_file": "src/lib/types/anti-cheat.type.ts",
       "source_location": "L4",
       "id": "types_anti_cheat_type_violationentry",
-      "community": 83,
+      "community": 80,
       "norm_label": "violationentry"
     },
     {
@@ -13715,7 +13724,7 @@
       "source_file": "src/lib/types/anti-cheat.type.ts",
       "source_location": "L15",
       "id": "types_anti_cheat_type_reportviolationrequest",
-      "community": 56,
+      "community": 80,
       "norm_label": "reportviolationrequest"
     },
     {
@@ -13724,7 +13733,7 @@
       "source_file": "src/lib/types/anti-cheat.type.ts",
       "source_location": "L21",
       "id": "types_anti_cheat_type_reportviolationresponse",
-      "community": 56,
+      "community": 80,
       "norm_label": "reportviolationresponse"
     },
     {
@@ -13733,7 +13742,7 @@
       "source_file": "src/lib/types/anti-cheat.type.ts",
       "source_location": "L34",
       "id": "types_anti_cheat_type_startexamsessionresponse",
-      "community": 80,
+      "community": 83,
       "norm_label": "startexamsessionresponse"
     },
     {
@@ -13751,7 +13760,7 @@
       "source_file": "src/lib/types/anti-cheat.type.ts",
       "source_location": "L62",
       "id": "types_anti_cheat_type_studentexamsessionevent",
-      "community": 56,
+      "community": 0,
       "norm_label": "studentexamsessionevent"
     },
     {
@@ -13760,7 +13769,7 @@
       "source_file": "src/lib/types/anti-cheat.type.ts",
       "source_location": "L73",
       "id": "types_anti_cheat_type_examtimeresponse",
-      "community": 56,
+      "community": 80,
       "norm_label": "examtimeresponse"
     },
     {
@@ -13778,7 +13787,7 @@
       "source_file": "src/lib/types/anti-cheat.type.ts",
       "source_location": "L104",
       "id": "types_anti_cheat_type_teacherexamviolation",
-      "community": 56,
+      "community": 80,
       "norm_label": "teacherexamviolation"
     },
     {
@@ -13787,7 +13796,7 @@
       "source_file": "src/lib/types/common.type.ts",
       "source_location": "L1",
       "id": "src_lib_types_common_type_ts",
-      "community": 109,
+      "community": 14,
       "norm_label": "common.type.ts"
     },
     {
@@ -13796,7 +13805,7 @@
       "source_file": "src/lib/types/common.type.ts",
       "source_location": "L1",
       "id": "types_common_type_apimeta",
-      "community": 109,
+      "community": 14,
       "norm_label": "apimeta"
     },
     {
@@ -13814,7 +13823,7 @@
       "source_file": "src/lib/types/common.type.ts",
       "source_location": "L12",
       "id": "types_common_type_paginatedresult",
-      "community": 109,
+      "community": 14,
       "norm_label": "paginatedresult"
     },
     {
@@ -13832,7 +13841,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L3",
       "id": "types_exam_type_question",
-      "community": 8,
+      "community": 71,
       "norm_label": "question"
     },
     {
@@ -13904,7 +13913,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L102",
       "id": "types_exam_type_examquestionitem",
-      "community": 67,
+      "community": 85,
       "norm_label": "examquestionitem"
     },
     {
@@ -13913,7 +13922,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L121",
       "id": "types_exam_type_questiontype",
-      "community": 67,
+      "community": 5,
       "norm_label": "questiontype"
     },
     {
@@ -13922,7 +13931,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L129",
       "id": "types_exam_type_extractedquestiondraft",
-      "community": 67,
+      "community": 5,
       "norm_label": "extractedquestiondraft"
     },
     {
@@ -13949,7 +13958,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L146",
       "id": "types_exam_type_executesqlresponse",
-      "community": 98,
+      "community": 55,
       "norm_label": "executesqlresponse"
     },
     {
@@ -14120,7 +14129,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L372",
       "id": "types_exam_type_questionresultdetail",
-      "community": 31,
+      "community": 63,
       "norm_label": "questionresultdetail"
     },
     {
@@ -14156,7 +14165,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L441",
       "id": "types_exam_type_overridesubmissionrequest",
-      "community": 16,
+      "community": 4,
       "norm_label": "overridesubmissionrequest"
     },
     {
@@ -14165,7 +14174,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L447",
       "id": "types_exam_type_overridesubmissionresponse",
-      "community": 16,
+      "community": 4,
       "norm_label": "overridesubmissionresponse"
     },
     {
@@ -14174,7 +14183,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L460",
       "id": "types_exam_type_regraderesponse",
-      "community": 16,
+      "community": 4,
       "norm_label": "regraderesponse"
     },
     {
@@ -14183,7 +14192,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L465",
       "id": "types_exam_type_regradeallscope",
-      "community": 102,
+      "community": 4,
       "norm_label": "regradeallscope"
     },
     {
@@ -14192,7 +14201,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L471",
       "id": "types_exam_type_regradeallrequest",
-      "community": 102,
+      "community": 4,
       "norm_label": "regradeallrequest"
     },
     {
@@ -14210,7 +14219,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L486",
       "id": "types_exam_type_regradeallresponse",
-      "community": 16,
+      "community": 4,
       "norm_label": "regradeallresponse"
     },
     {
@@ -14264,7 +14273,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L553",
       "id": "types_exam_type_createexamquestionsbatchrequest",
-      "community": 4,
+      "community": 81,
       "norm_label": "createexamquestionsbatchrequest"
     },
     {
@@ -14282,7 +14291,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L570",
       "id": "types_exam_type_syntaxerroraction",
-      "community": 68,
+      "community": 4,
       "norm_label": "syntaxerroraction"
     },
     {
@@ -14291,7 +14300,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L571",
       "id": "types_exam_type_missingpenaltyaction",
-      "community": 68,
+      "community": 4,
       "norm_label": "missingpenaltyaction"
     },
     {
@@ -14336,7 +14345,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L611",
       "id": "types_exam_type_rubrictable",
-      "community": 12,
+      "community": 81,
       "norm_label": "rubrictable"
     },
     {
@@ -14372,7 +14381,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L645",
       "id": "types_exam_type_refinerubrictestcasesrequest",
-      "community": 4,
+      "community": 81,
       "norm_label": "refinerubrictestcasesrequest"
     },
     {
@@ -14426,7 +14435,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L685",
       "id": "types_exam_type_rubricagentrunrequest",
-      "community": 4,
+      "community": 81,
       "norm_label": "rubricagentrunrequest"
     },
     {
@@ -14453,7 +14462,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L727",
       "id": "types_exam_type_gradingruletarget",
-      "community": 6,
+      "community": 25,
       "norm_label": "gradingruletarget"
     },
     {
@@ -14480,7 +14489,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L778",
       "id": "types_exam_type_gradingrulemodifier",
-      "community": 6,
+      "community": 25,
       "norm_label": "gradingrulemodifier"
     },
     {
@@ -14498,7 +14507,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L801",
       "id": "types_exam_type_insertdatagradingrule",
-      "community": 6,
+      "community": 25,
       "norm_label": "insertdatagradingrule"
     },
     {
@@ -14615,7 +14624,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L905",
       "id": "types_exam_type_whiteboxseverity",
-      "community": 7,
+      "community": 45,
       "norm_label": "whiteboxseverity"
     },
     {
@@ -14624,7 +14633,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L906",
       "id": "types_exam_type_whiteboxpenaltyunit",
-      "community": 7,
+      "community": 45,
       "norm_label": "whiteboxpenaltyunit"
     },
     {
@@ -14669,7 +14678,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L936",
       "id": "types_exam_type_whiteboxsettings",
-      "community": 68,
+      "community": 81,
       "norm_label": "whiteboxsettings"
     },
     {
@@ -14759,7 +14768,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L1023",
       "id": "types_exam_type_verificationtype",
-      "community": 68,
+      "community": 4,
       "norm_label": "verificationtype"
     },
     {
@@ -14786,7 +14795,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L1056",
       "id": "types_exam_type_triggergradingsettings",
-      "community": 68,
+      "community": 4,
       "norm_label": "triggergradingsettings"
     },
     {
@@ -14795,7 +14804,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L1062",
       "id": "types_exam_type_triggertestcase",
-      "community": 68,
+      "community": 4,
       "norm_label": "triggertestcase"
     },
     {
@@ -14813,7 +14822,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L1081",
       "id": "types_exam_type_saveexamspecificationrequest",
-      "community": 98,
+      "community": 28,
       "norm_label": "saveexamspecificationrequest"
     },
     {
@@ -14822,7 +14831,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L1114",
       "id": "types_exam_type_rulepreset",
-      "community": 16,
+      "community": 4,
       "norm_label": "rulepreset"
     },
     {
@@ -14831,7 +14840,7 @@
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L1125",
       "id": "types_exam_type_createrulepresetrequest",
-      "community": 16,
+      "community": 4,
       "norm_label": "createrulepresetrequest"
     },
     {
@@ -14975,7 +14984,7 @@
       "source_file": "src/lib/types/create-exam.type.ts",
       "source_location": "L1",
       "id": "src_lib_types_create_exam_type_ts",
-      "community": 8,
+      "community": 97,
       "norm_label": "create-exam.type.ts"
     },
     {
@@ -14984,7 +14993,7 @@
       "source_file": "src/lib/types/create-exam.type.ts",
       "source_location": "L1",
       "id": "types_create_exam_type_sampledatarow",
-      "community": 10,
+      "community": 97,
       "norm_label": "sampledatarow"
     },
     {
@@ -14993,7 +15002,7 @@
       "source_file": "src/lib/types/create-exam.type.ts",
       "source_location": "L7",
       "id": "types_create_exam_type_examformdata",
-      "community": 8,
+      "community": 97,
       "norm_label": "examformdata"
     },
     {
@@ -15002,7 +15011,7 @@
       "source_file": "src/lib/types/create-exam.type.ts",
       "source_location": "L15",
       "id": "types_create_exam_type_schematab",
-      "community": 8,
+      "community": 97,
       "norm_label": "schematab"
     },
     {
@@ -15047,7 +15056,7 @@
       "source_file": "src/lib/types/index.ts",
       "source_location": "L1",
       "id": "src_lib_types_index_ts",
-      "community": 73,
+      "community": 85,
       "norm_label": "index.ts"
     },
     {
@@ -15074,7 +15083,7 @@
       "source_file": "src/lib/types/teacher.type.ts",
       "source_location": "L11",
       "id": "types_teacher_type_paginatedapiresponse",
-      "community": 27,
+      "community": 50,
       "norm_label": "paginatedapiresponse"
     },
     {
@@ -15299,7 +15308,7 @@
       "source_file": "src/lib/types/teacher.type.ts",
       "source_location": "L300",
       "id": "types_teacher_type_specificationresponse",
-      "community": 71,
+      "community": 21,
       "norm_label": "specificationresponse"
     },
     {
@@ -15308,7 +15317,7 @@
       "source_file": "src/lib/types/teacher.type.ts",
       "source_location": "L312",
       "id": "types_teacher_type_specificationdetailresponse",
-      "community": 70,
+      "community": 21,
       "norm_label": "specificationdetailresponse"
     },
     {
@@ -15317,7 +15326,7 @@
       "source_file": "src/lib/types/teacher.type.ts",
       "source_location": "L329",
       "id": "types_teacher_type_createspecificationrequest",
-      "community": 19,
+      "community": 81,
       "norm_label": "createspecificationrequest"
     },
     {
@@ -15416,7 +15425,7 @@
       "source_file": "src/lib/constants/path.ts",
       "source_location": "L1",
       "id": "constants_path_path",
-      "community": 17,
+      "community": 38,
       "norm_label": "path"
     },
     {
@@ -15497,7 +15506,7 @@
       "source_file": "src/lib/constants/system-rule-presets.ts",
       "source_location": "L1",
       "id": "src_lib_constants_system_rule_presets_ts",
-      "community": 6,
+      "community": 25,
       "norm_label": "system-rule-presets.ts"
     },
     {
@@ -15506,7 +15515,7 @@
       "source_file": "src/lib/constants/system-rule-presets.ts",
       "source_location": "L3",
       "id": "constants_system_rule_presets_systemrulepresetquestiontype",
-      "community": 6,
+      "community": 25,
       "norm_label": "systemrulepresetquestiontype"
     },
     {
@@ -15515,7 +15524,7 @@
       "source_file": "src/lib/constants/system-rule-presets.ts",
       "source_location": "L8",
       "id": "constants_system_rule_presets_systemrulepreset",
-      "community": 6,
+      "community": 25,
       "norm_label": "systemrulepreset"
     },
     {
@@ -15524,7 +15533,7 @@
       "source_file": "src/lib/constants/system-rule-presets.ts",
       "source_location": "L16",
       "id": "constants_system_rule_presets_system_rule_presets",
-      "community": 6,
+      "community": 25,
       "norm_label": "system_rule_presets"
     },
     {
@@ -15533,7 +15542,7 @@
       "source_file": "src/lib/constants/system-rule-presets.ts",
       "source_location": "L415",
       "id": "constants_system_rule_presets_getsystemrulepresets",
-      "community": 6,
+      "community": 25,
       "norm_label": "getsystemrulepresets()"
     },
     {
@@ -15551,7 +15560,7 @@
       "source_file": "src/lib/constants/violation.ts",
       "source_location": "L1",
       "id": "src_lib_constants_violation_ts",
-      "community": 83,
+      "community": 80,
       "norm_label": "violation.ts"
     },
     {
@@ -15560,7 +15569,7 @@
       "source_file": "src/lib/constants/violation.ts",
       "source_location": "L1",
       "id": "constants_violation_violationtype",
-      "community": 83,
+      "community": 80,
       "norm_label": "violationtype"
     },
     {
@@ -15569,7 +15578,7 @@
       "source_file": "src/lib/constants/violation.ts",
       "source_location": "L12",
       "id": "constants_violation_violation_labels",
-      "community": 83,
+      "community": 80,
       "norm_label": "violation_labels"
     },
     {
@@ -15578,8 +15587,17 @@
       "source_file": "src/lib/constants/violation.ts",
       "source_location": "L23",
       "id": "constants_violation_violation_severity",
-      "community": 83,
+      "community": 80,
       "norm_label": "violation_severity"
+    },
+    {
+      "label": "resolveMaxViolations()",
+      "file_type": "code",
+      "source_file": "src/lib/constants/violation.ts",
+      "source_location": "L40",
+      "id": "constants_violation_resolvemaxviolations",
+      "community": 46,
+      "norm_label": "resolvemaxviolations()"
     },
     {
       "label": "whitebox-presets.ts",
@@ -15587,7 +15605,7 @@
       "source_file": "src/lib/constants/whitebox-presets.ts",
       "source_location": "L1",
       "id": "src_lib_constants_whitebox_presets_ts",
-      "community": 7,
+      "community": 45,
       "norm_label": "whitebox-presets.ts"
     },
     {
@@ -15596,7 +15614,7 @@
       "source_file": "src/lib/constants/whitebox-presets.ts",
       "source_location": "L5",
       "id": "constants_whitebox_presets_whiteboxpresetrule",
-      "community": 7,
+      "community": 45,
       "norm_label": "whiteboxpresetrule"
     },
     {
@@ -15605,7 +15623,7 @@
       "source_file": "src/lib/constants/whitebox-presets.ts",
       "source_location": "L14",
       "id": "constants_whitebox_presets_whiteboxpreset",
-      "community": 7,
+      "community": 45,
       "norm_label": "whiteboxpreset"
     },
     {
@@ -15614,7 +15632,7 @@
       "source_file": "src/lib/constants/whitebox-presets.ts",
       "source_location": "L26",
       "id": "constants_whitebox_presets_whitebox_presets",
-      "community": 7,
+      "community": 45,
       "norm_label": "whitebox_presets"
     },
     {
@@ -15623,7 +15641,7 @@
       "source_file": "src/lib/constants/whitebox-presets.ts",
       "source_location": "L416",
       "id": "constants_whitebox_presets_getwhiteboxpresets",
-      "community": 7,
+      "community": 45,
       "norm_label": "getwhiteboxpresets()"
     },
     {
@@ -15632,7 +15650,7 @@
       "source_file": "src/lib/utils/integrity-canary.ts",
       "source_location": "L1",
       "id": "src_lib_utils_integrity_canary_ts",
-      "community": 83,
+      "community": 80,
       "norm_label": "integrity-canary.ts"
     },
     {
@@ -15641,7 +15659,7 @@
       "source_file": "src/lib/utils/integrity-canary.ts",
       "source_location": "L12",
       "id": "utils_integrity_canary_runintegritycanary",
-      "community": 83,
+      "community": 80,
       "norm_label": "runintegritycanary()"
     },
     {
@@ -15650,7 +15668,7 @@
       "source_file": "src/lib/utils/cn.ts",
       "source_location": "L1",
       "id": "src_lib_utils_cn_ts",
-      "community": 39,
+      "community": 79,
       "norm_label": "cn.ts"
     },
     {
@@ -15668,7 +15686,7 @@
       "source_file": "src/lib/utils/export-exam-answers.ts",
       "source_location": "L1",
       "id": "src_lib_utils_export_exam_answers_ts",
-      "community": 45,
+      "community": 85,
       "norm_label": "export-exam-answers.ts"
     },
     {
@@ -15677,7 +15695,7 @@
       "source_file": "src/lib/utils/export-exam-answers.ts",
       "source_location": "L3",
       "id": "utils_export_exam_answers_downloadanswersbackup",
-      "community": 45,
+      "community": 85,
       "norm_label": "downloadanswersbackup()"
     },
     {
@@ -15686,7 +15704,7 @@
       "source_file": "src/lib/utils/index.ts",
       "source_location": "L1",
       "id": "src_lib_utils_index_ts",
-      "community": 103,
+      "community": 79,
       "norm_label": "index.ts"
     },
     {
@@ -15695,7 +15713,7 @@
       "source_file": "src/lib/utils/error.ts",
       "source_location": "L1",
       "id": "src_lib_utils_error_ts",
-      "community": 103,
+      "community": 79,
       "norm_label": "error.ts"
     },
     {
@@ -15704,7 +15722,7 @@
       "source_file": "src/lib/utils/error.ts",
       "source_location": "L1",
       "id": "utils_error_isredirecterror",
-      "community": 103,
+      "community": 79,
       "norm_label": "isredirecterror()"
     },
     {
@@ -15740,7 +15758,7 @@
       "source_file": "src/lib/utils/time.ts",
       "source_location": "L1",
       "id": "src_lib_utils_time_ts",
-      "community": 77,
+      "community": 31,
       "norm_label": "time.ts"
     },
     {
@@ -15749,7 +15767,7 @@
       "source_file": "src/lib/utils/time.ts",
       "source_location": "L5",
       "id": "utils_time_parsebackenddate",
-      "community": 77,
+      "community": 31,
       "norm_label": "parsebackenddate()"
     },
     {
@@ -15767,7 +15785,7 @@
       "source_file": "src/lib/utils/time.ts",
       "source_location": "L33",
       "id": "utils_time_formatdate",
-      "community": 77,
+      "community": 31,
       "norm_label": "formatdate()"
     },
     {
@@ -15785,7 +15803,7 @@
       "source_file": "src/lib/utils/time.ts",
       "source_location": "L69",
       "id": "utils_time_examstatus",
-      "community": 77,
+      "community": 31,
       "norm_label": "examstatus"
     },
     {
@@ -15794,7 +15812,7 @@
       "source_file": "src/lib/utils/time.ts",
       "source_location": "L71",
       "id": "utils_time_getexamstatus",
-      "community": 77,
+      "community": 31,
       "norm_label": "getexamstatus()"
     },
     {
@@ -15803,7 +15821,7 @@
       "source_file": "src/lib/utils/time.ts",
       "source_location": "L91",
       "id": "utils_time_formattime",
-      "community": 77,
+      "community": 57,
       "norm_label": "formattime()"
     },
     {
@@ -15857,7 +15875,7 @@
       "source_file": "src/lib/actions/exam.action.ts",
       "source_location": "L151",
       "id": "actions_exam_action_updateexam",
-      "community": 5,
+      "community": 21,
       "norm_label": "updateexam()"
     },
     {
@@ -15866,7 +15884,7 @@
       "source_file": "src/lib/actions/exam.action.ts",
       "source_location": "L158",
       "id": "actions_exam_action_createexam",
-      "community": 25,
+      "community": 21,
       "norm_label": "createexam()"
     },
     {
@@ -15875,7 +15893,7 @@
       "source_file": "src/lib/actions/exam.action.ts",
       "source_location": "L164",
       "id": "actions_exam_action_deleteexam",
-      "community": 22,
+      "community": 29,
       "norm_label": "deleteexam()"
     },
     {
@@ -15920,7 +15938,7 @@
       "source_file": "src/lib/actions/exam.action.ts",
       "source_location": "L206",
       "id": "actions_exam_action_extractquestionsfrompdf",
-      "community": 67,
+      "community": 5,
       "norm_label": "extractquestionsfrompdf()"
     },
     {
@@ -15974,7 +15992,7 @@
       "source_file": "src/lib/actions/student-exam.action.ts",
       "source_location": "L60",
       "id": "actions_student_exam_action_getexamquestionsbyexamid",
-      "community": 85,
+      "community": 54,
       "norm_label": "getexamquestionsbyexamid()"
     },
     {
@@ -16028,7 +16046,7 @@
       "source_file": "src/lib/actions/student-exam.action.ts",
       "source_location": "L111",
       "id": "actions_student_exam_action_saveexamdraft",
-      "community": 34,
+      "community": 43,
       "norm_label": "saveexamdraft()"
     },
     {
@@ -16037,7 +16055,7 @@
       "source_file": "src/lib/actions/student-exam.action.ts",
       "source_location": "L120",
       "id": "actions_student_exam_action_getexamdraft",
-      "community": 34,
+      "community": 43,
       "norm_label": "getexamdraft()"
     },
     {
@@ -16190,7 +16208,7 @@
       "source_file": "src/lib/actions/library.action.ts",
       "source_location": "L55",
       "id": "actions_library_action_updateexamtemplatevisibility",
-      "community": 29,
+      "community": 99,
       "norm_label": "updateexamtemplatevisibility()"
     },
     {
@@ -16199,7 +16217,7 @@
       "source_file": "src/lib/actions/library.action.ts",
       "source_location": "L65",
       "id": "actions_library_action_hideexamtemplatelineage",
-      "community": 29,
+      "community": 99,
       "norm_label": "hideexamtemplatelineage()"
     },
     {
@@ -16271,7 +16289,7 @@
       "source_file": "src/lib/actions/auth.action.ts",
       "source_location": "L139",
       "id": "actions_auth_action_logout",
-      "community": 57,
+      "community": 33,
       "norm_label": "logout()"
     },
     {
@@ -16460,7 +16478,7 @@
       "source_file": "src/lib/actions/index.ts",
       "source_location": "L1",
       "id": "src_lib_actions_index_ts",
-      "community": 49,
+      "community": 16,
       "norm_label": "index.ts"
     },
     {
@@ -16505,7 +16523,7 @@
       "source_file": "src/lib/actions/teacher.action.ts",
       "source_location": "L105",
       "id": "actions_teacher_action_createclass",
-      "community": 49,
+      "community": 16,
       "norm_label": "createclass()"
     },
     {
@@ -16667,7 +16685,7 @@
       "source_file": "src/lib/actions/teacher.action.ts",
       "source_location": "L271",
       "id": "actions_teacher_action_getteachersubmissiondetail",
-      "community": 31,
+      "community": 101,
       "norm_label": "getteachersubmissiondetail()"
     },
     {
@@ -16712,7 +16730,7 @@
       "source_file": "src/lib/actions/teacher.action.ts",
       "source_location": "L324",
       "id": "actions_teacher_action_regradeallexamresults",
-      "community": 102,
+      "community": 16,
       "norm_label": "regradeallexamresults()"
     },
     {
@@ -16739,7 +16757,7 @@
       "source_file": "src/lib/actions/teacher.action.ts",
       "source_location": "L353",
       "id": "actions_teacher_action_getrulepresets",
-      "community": 7,
+      "community": 16,
       "norm_label": "getrulepresets()"
     },
     {
@@ -16748,7 +16766,7 @@
       "source_file": "src/lib/actions/teacher.action.ts",
       "source_location": "L365",
       "id": "actions_teacher_action_createrulepreset",
-      "community": 7,
+      "community": 16,
       "norm_label": "createrulepreset()"
     },
     {
@@ -16757,7 +16775,7 @@
       "source_file": "src/lib/actions/teacher.action.ts",
       "source_location": "L371",
       "id": "actions_teacher_action_updaterulepreset",
-      "community": 7,
+      "community": 16,
       "norm_label": "updaterulepreset()"
     },
     {
@@ -16766,7 +16784,7 @@
       "source_file": "src/lib/actions/teacher.action.ts",
       "source_location": "L378",
       "id": "actions_teacher_action_deleterulepreset",
-      "community": 7,
+      "community": 16,
       "norm_label": "deleterulepreset()"
     },
     {
@@ -16829,7 +16847,7 @@
       "source_file": "src/lib/actions/teacher.action.ts",
       "source_location": "L439",
       "id": "actions_teacher_action_dropallexamschemas",
-      "community": 29,
+      "community": 16,
       "norm_label": "dropallexamschemas()"
     },
     {
@@ -16838,7 +16856,7 @@
       "source_file": "src/lib/actions/teacher.action.ts",
       "source_location": "L445",
       "id": "actions_teacher_action_getstudentdashboard",
-      "community": 16,
+      "community": 104,
       "norm_label": "getstudentdashboard()"
     },
     {
@@ -16919,7 +16937,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L1",
       "id": "src_lib_actions_exam_specification_action_ts",
-      "community": 49,
+      "community": 81,
       "norm_label": "exam-specification.action.ts"
     },
     {
@@ -16937,7 +16955,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L35",
       "id": "actions_exam_specification_action_createspecification",
-      "community": 49,
+      "community": 81,
       "norm_label": "createspecification()"
     },
     {
@@ -16946,7 +16964,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L44",
       "id": "actions_exam_specification_action_generatespecificationschemabyai",
-      "community": 49,
+      "community": 81,
       "norm_label": "generatespecificationschemabyai()"
     },
     {
@@ -16955,7 +16973,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L54",
       "id": "actions_exam_specification_action_generatespecificationschemafromddl",
-      "community": 49,
+      "community": 81,
       "norm_label": "generatespecificationschemafromddl()"
     },
     {
@@ -16973,7 +16991,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L72",
       "id": "actions_exam_specification_action_saveexamspecification",
-      "community": 49,
+      "community": 81,
       "norm_label": "saveexamspecification()"
     },
     {
@@ -16982,7 +17000,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L82",
       "id": "actions_exam_specification_action_createexamquestionsbatch",
-      "community": 49,
+      "community": 5,
       "norm_label": "createexamquestionsbatch()"
     },
     {
@@ -16991,7 +17009,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L91",
       "id": "actions_exam_specification_action_getspecificationdetail",
-      "community": 49,
+      "community": 53,
       "norm_label": "getspecificationdetail()"
     },
     {
@@ -17000,7 +17018,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L102",
       "id": "actions_exam_specification_action_updatespecification",
-      "community": 49,
+      "community": 81,
       "norm_label": "updatespecification()"
     },
     {
@@ -17009,7 +17027,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L112",
       "id": "actions_exam_specification_action_deletespecification",
-      "community": 49,
+      "community": 81,
       "norm_label": "deletespecification()"
     },
     {
@@ -17018,7 +17036,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L118",
       "id": "actions_exam_specification_action_generategradingrubric",
-      "community": 49,
+      "community": 69,
       "norm_label": "generategradingrubric()"
     },
     {
@@ -17027,7 +17045,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L134",
       "id": "actions_exam_specification_action_refinerubrictestcases",
-      "community": 49,
+      "community": 81,
       "norm_label": "refinerubrictestcases()"
     },
     {
@@ -17036,7 +17054,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L143",
       "id": "actions_exam_specification_action_runrubricqaagent",
-      "community": 49,
+      "community": 81,
       "norm_label": "runrubricqaagent()"
     },
     {
@@ -17045,7 +17063,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L155",
       "id": "actions_exam_specification_action_getwhiteboxcatalog",
-      "community": 97,
+      "community": 51,
       "norm_label": "getwhiteboxcatalog()"
     },
     {
@@ -17054,7 +17072,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L166",
       "id": "actions_exam_specification_action_validatewhitebox",
-      "community": 49,
+      "community": 45,
       "norm_label": "validatewhitebox()"
     },
     {
@@ -17063,7 +17081,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L179",
       "id": "actions_exam_specification_action_testgradecreatetable",
-      "community": 49,
+      "community": 75,
       "norm_label": "testgradecreatetable()"
     },
     {
@@ -17072,7 +17090,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L199",
       "id": "actions_exam_specification_action_testgradeinsertdata",
-      "community": 49,
+      "community": 75,
       "norm_label": "testgradeinsertdata()"
     },
     {
@@ -17081,7 +17099,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L221",
       "id": "actions_exam_specification_action_testgradeselectdata",
-      "community": 49,
+      "community": 13,
       "norm_label": "testgradeselectdata()"
     },
     {
@@ -17090,7 +17108,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L244",
       "id": "actions_exam_specification_action_testgraderoutinedata",
-      "community": 49,
+      "community": 75,
       "norm_label": "testgraderoutinedata()"
     },
     {
@@ -17099,7 +17117,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L267",
       "id": "actions_exam_specification_action_testgradetriggerdata",
-      "community": 49,
+      "community": 75,
       "norm_label": "testgradetriggerdata()"
     },
     {
@@ -17108,7 +17126,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L290",
       "id": "actions_exam_specification_action_executeselecttestcaseconfig",
-      "community": 49,
+      "community": 69,
       "norm_label": "executeselecttestcaseconfig()"
     },
     {
@@ -17117,7 +17135,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L306",
       "id": "actions_exam_specification_action_buildinserttablesfromanswer",
-      "community": 49,
+      "community": 81,
       "norm_label": "buildinserttablesfromanswer()"
     },
     {
@@ -17126,7 +17144,7 @@
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L321",
       "id": "actions_exam_specification_action_buildcreatetablesfromanswer",
-      "community": 49,
+      "community": 81,
       "norm_label": "buildcreatetablesfromanswer()"
     },
     {
@@ -17189,7 +17207,7 @@
       "source_file": "src/lib/api/exam-client.ts",
       "source_location": "L1",
       "id": "src_lib_api_exam_client_ts",
-      "community": 22,
+      "community": 21,
       "norm_label": "exam-client.ts"
     },
     {
@@ -17198,7 +17216,7 @@
       "source_file": "src/lib/api/exam-client.ts",
       "source_location": "L13",
       "id": "api_exam_client_multipartfetch",
-      "community": 22,
+      "community": 21,
       "norm_label": "multipartfetch()"
     },
     {
@@ -17207,7 +17225,7 @@
       "source_file": "src/lib/api/exam-client.ts",
       "source_location": "L58",
       "id": "api_exam_client_createexamwithpdf",
-      "community": 22,
+      "community": 21,
       "norm_label": "createexamwithpdf()"
     },
     {
@@ -17216,7 +17234,7 @@
       "source_file": "src/lib/api/exam-client.ts",
       "source_location": "L66",
       "id": "api_exam_client_updateexamwithpdf",
-      "community": 22,
+      "community": 21,
       "norm_label": "updateexamwithpdf()"
     },
     {
@@ -17477,34 +17495,34 @@
       "source_file": "src/lib/redux/slices/anti-cheat.slice.ts",
       "source_location": "L1",
       "id": "src_lib_redux_slices_anti_cheat_slice_ts",
-      "community": 83,
+      "community": 80,
       "norm_label": "anti-cheat.slice.ts"
     },
     {
       "label": "AntiCheatState",
       "file_type": "code",
       "source_file": "src/lib/redux/slices/anti-cheat.slice.ts",
-      "source_location": "L9",
+      "source_location": "L6",
       "id": "slices_anti_cheat_slice_anticheatstate",
-      "community": 83,
+      "community": 80,
       "norm_label": "anticheatstate"
     },
     {
       "label": "initialState",
       "file_type": "code",
       "source_file": "src/lib/redux/slices/anti-cheat.slice.ts",
-      "source_location": "L20",
+      "source_location": "L17",
       "id": "slices_anti_cheat_slice_initialstate",
-      "community": 83,
+      "community": 80,
       "norm_label": "initialstate"
     },
     {
       "label": "antiCheatSlice",
       "file_type": "code",
       "source_file": "src/lib/redux/slices/anti-cheat.slice.ts",
-      "source_location": "L31",
+      "source_location": "L28",
       "id": "slices_anti_cheat_slice_anticheatslice",
-      "community": 83,
+      "community": 80,
       "norm_label": "anticheatslice"
     },
     {
@@ -18727,7 +18745,7 @@
       "file_type": "code",
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-catalog-client.ts",
       "source_location": "L4",
-      "community": 97,
+      "community": 51,
       "norm_label": "catalogcache",
       "id": "components_whitebox_catalog_client_catalogcache"
     },
@@ -18736,7 +18754,7 @@
       "file_type": "code",
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-catalog-client.ts",
       "source_location": "L15",
-      "community": 97,
+      "community": 51,
       "norm_label": "loadwhiteboxcatalogcached()",
       "id": "components_whitebox_catalog_client_loadwhiteboxcatalogcached"
     },
@@ -18781,7 +18799,7 @@
       "file_type": "code",
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/whitebox-rules-editor.tsx",
       "source_location": "L71",
-      "community": 7,
+      "community": 45,
       "norm_label": "violation_style",
       "id": "components_whitebox_rules_editor_violation_style"
     },
@@ -18790,7 +18808,7 @@
       "file_type": "code",
       "source_file": "src/app/(main)/teacher/exams/[examId]/questions/components/trigger-rubric-editor/trigger-rubric-editor.tsx",
       "source_location": "L33",
-      "community": 68,
+      "community": 4,
       "norm_label": "createdefaulttrigger()",
       "id": "trigger_rubric_editor_trigger_rubric_editor_createdefaulttrigger"
     },
@@ -18799,7 +18817,7 @@
       "file_type": "code",
       "source_file": "src/lib/types/exam.type.ts",
       "source_location": "L1050",
-      "community": 68,
+      "community": 4,
       "norm_label": "triggerrubrictrigger",
       "id": "types_exam_type_triggerrubrictrigger"
     },
@@ -18808,7 +18826,7 @@
       "file_type": "code",
       "source_file": "src/lib/actions/exam-specification.action.ts",
       "source_location": "L154",
-      "community": 49,
+      "community": 81,
       "norm_label": "_catalogcache",
       "id": "actions_exam_specification_action_catalogcache"
     },
@@ -28210,9 +28228,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L29",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "actions_admin_action_createadminuser",
-      "confidence_score": 1.0
+      "target": "actions_admin_action_createadminuser"
     },
     {
       "relation": "imports",
@@ -28221,9 +28239,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L30",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "constants_common_roles",
-      "confidence_score": 1.0
+      "target": "constants_common_roles"
     },
     {
       "relation": "contains",
@@ -28231,9 +28249,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L62",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "create_user_dialog_create_user_dialog_createuserdialog",
-      "confidence_score": 1.0
+      "target": "create_user_dialog_create_user_dialog_createuserdialog"
     },
     {
       "relation": "contains",
@@ -28241,9 +28259,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L58",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "create_user_dialog_create_user_dialog_createuserdialogprops",
-      "confidence_score": 1.0
+      "target": "create_user_dialog_create_user_dialog_createuserdialogprops"
     },
     {
       "relation": "contains",
@@ -28251,9 +28269,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "create_user_dialog_create_user_dialog_createuserformvalues",
-      "confidence_score": 1.0
+      "target": "create_user_dialog_create_user_dialog_createuserformvalues"
     },
     {
       "relation": "contains",
@@ -28261,9 +28279,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L41",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "create_user_dialog_create_user_dialog_createuserschema",
-      "confidence_score": 1.0
+      "target": "create_user_dialog_create_user_dialog_createuserschema"
     },
     {
       "relation": "contains",
@@ -28271,9 +28289,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "create_user_dialog_create_user_dialog_role_options",
-      "confidence_score": 1.0
+      "target": "create_user_dialog_create_user_dialog_role_options"
     },
     {
       "relation": "contains",
@@ -28281,9 +28299,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L33",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "create_user_dialog_create_user_dialog_role_values",
-      "confidence_score": 1.0
+      "target": "create_user_dialog_create_user_dialog_role_values"
     },
     {
       "relation": "imports_from",
@@ -28292,9 +28310,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "src_components_ui_button_tsx",
-      "confidence_score": 1.0
+      "target": "src_components_ui_button_tsx"
     },
     {
       "relation": "imports_from",
@@ -28303,9 +28321,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "src_components_ui_dialog_tsx",
-      "confidence_score": 1.0
+      "target": "src_components_ui_dialog_tsx"
     },
     {
       "relation": "imports_from",
@@ -28314,9 +28332,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "src_components_ui_input_tsx",
-      "confidence_score": 1.0
+      "target": "src_components_ui_input_tsx"
     },
     {
       "relation": "imports_from",
@@ -28325,9 +28343,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "src_components_ui_label_tsx",
-      "confidence_score": 1.0
+      "target": "src_components_ui_label_tsx"
     },
     {
       "relation": "imports_from",
@@ -28336,9 +28354,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "src_components_ui_select_tsx",
-      "confidence_score": 1.0
+      "target": "src_components_ui_select_tsx"
     },
     {
       "relation": "imports_from",
@@ -28347,9 +28365,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L29",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "src_lib_actions_admin_action_ts",
-      "confidence_score": 1.0
+      "target": "src_lib_actions_admin_action_ts"
     },
     {
       "relation": "imports_from",
@@ -28358,9 +28376,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L30",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "src_lib_constants_index_ts",
-      "confidence_score": 1.0
+      "target": "src_lib_constants_index_ts"
     },
     {
       "relation": "imports_from",
@@ -28369,9 +28387,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "src_lib_types_admin_type_ts",
-      "confidence_score": 1.0
+      "target": "src_lib_types_admin_type_ts"
     },
     {
       "relation": "imports",
@@ -28380,9 +28398,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "types_admin_type_adminuseritem",
-      "confidence_score": 1.0
+      "target": "types_admin_type_adminuseritem"
     },
     {
       "relation": "imports",
@@ -28391,9 +28409,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_button_button",
-      "confidence_score": 1.0
+      "target": "ui_button_button"
     },
     {
       "relation": "imports",
@@ -28402,9 +28420,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_dialog_dialog",
-      "confidence_score": 1.0
+      "target": "ui_dialog_dialog"
     },
     {
       "relation": "imports",
@@ -28413,9 +28431,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_dialog_dialogcontent",
-      "confidence_score": 1.0
+      "target": "ui_dialog_dialogcontent"
     },
     {
       "relation": "imports",
@@ -28424,9 +28442,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_dialog_dialogdescription",
-      "confidence_score": 1.0
+      "target": "ui_dialog_dialogdescription"
     },
     {
       "relation": "imports",
@@ -28435,9 +28453,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_dialog_dialogfooter",
-      "confidence_score": 1.0
+      "target": "ui_dialog_dialogfooter"
     },
     {
       "relation": "imports",
@@ -28446,9 +28464,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_dialog_dialogheader",
-      "confidence_score": 1.0
+      "target": "ui_dialog_dialogheader"
     },
     {
       "relation": "imports",
@@ -28457,9 +28475,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_dialog_dialogtitle",
-      "confidence_score": 1.0
+      "target": "ui_dialog_dialogtitle"
     },
     {
       "relation": "imports",
@@ -28468,9 +28486,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_dialog_dialogtrigger",
-      "confidence_score": 1.0
+      "target": "ui_dialog_dialogtrigger"
     },
     {
       "relation": "imports",
@@ -28479,9 +28497,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_input_input",
-      "confidence_score": 1.0
+      "target": "ui_input_input"
     },
     {
       "relation": "imports",
@@ -28490,9 +28508,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_label_label",
-      "confidence_score": 1.0
+      "target": "ui_label_label"
     },
     {
       "relation": "imports",
@@ -28501,9 +28519,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_select_select",
-      "confidence_score": 1.0
+      "target": "ui_select_select"
     },
     {
       "relation": "imports",
@@ -28512,9 +28530,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_select_selectcontent",
-      "confidence_score": 1.0
+      "target": "ui_select_selectcontent"
     },
     {
       "relation": "imports",
@@ -28523,9 +28541,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_select_selectitem",
-      "confidence_score": 1.0
+      "target": "ui_select_selectitem"
     },
     {
       "relation": "imports",
@@ -28534,9 +28552,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_select_selecttrigger",
-      "confidence_score": 1.0
+      "target": "ui_select_selecttrigger"
     },
     {
       "relation": "imports",
@@ -28545,9 +28563,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "target": "ui_select_selectvalue",
-      "confidence_score": 1.0
+      "target": "ui_select_selectvalue"
     },
     {
       "relation": "imports_from",
@@ -28556,9 +28574,9 @@
       "source_file": "src/app/(main)/admin/users/components/user-list/user-list.tsx",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_user_list_user_list_tsx",
-      "target": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx",
-      "confidence_score": 1.0
+      "target": "src_app_main_admin_users_components_create_user_dialog_create_user_dialog_tsx"
     },
     {
       "relation": "references",
@@ -28567,9 +28585,9 @@
       "source_file": "src/app/(main)/admin/users/components/create-user-dialog/create-user-dialog.tsx",
       "source_location": "L59",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "create_user_dialog_create_user_dialog_createuserdialogprops",
-      "target": "types_admin_type_adminuseritem",
-      "confidence_score": 1.0
+      "target": "types_admin_type_adminuseritem"
     },
     {
       "relation": "imports",
@@ -28578,9 +28596,9 @@
       "source_file": "src/app/(main)/admin/users/components/user-list/user-list.tsx",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_main_admin_users_components_user_list_user_list_tsx",
-      "target": "create_user_dialog_create_user_dialog_createuserdialog",
-      "confidence_score": 1.0
+      "target": "create_user_dialog_create_user_dialog_createuserdialog"
     },
     {
       "relation": "imports",
@@ -30155,6 +30173,17 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_app_main_exam_components_violation_warning_modal_violation_warning_modal_tsx",
+      "target": "constants_violation_resolvemaxviolations"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.tsx",
       "source_location": "L16",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -30302,6 +30331,27 @@
       "confidence_score": 1.0,
       "source": "src_app_main_exam_components_violation_warning_modal_violation_warning_modal_tsx",
       "target": "violation_warning_modal_violation_warning_modal_violationwarningmodal"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.tsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_app_main_exam_components_violation_warning_modal_violation_warning_modal_tsx",
+      "target": "violation_warning_modal_violation_warning_modal_violationwarningmodalprops"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.tsx",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "violation_warning_modal_violation_warning_modal_violationwarningmodal",
+      "target": "constants_violation_resolvemaxviolations"
     },
     {
       "relation": "calls",
@@ -66964,6 +67014,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "src_hooks_use_anti_cheat_ts",
+      "target": "constants_violation_resolvemaxviolations"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/hooks/use-anti-cheat.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_hooks_use_anti_cheat_ts",
       "target": "constants_violation_violation_labels"
     },
     {
@@ -67128,6 +67189,17 @@
       "confidence_score": 1.0,
       "source": "hooks_use_anti_cheat_useanticheatoptions",
       "target": "types_exam_type_examsettings"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/hooks/use-anti-cheat.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "hooks_use_anti_cheat_useanticheat",
+      "target": "constants_violation_resolvemaxviolations"
     },
     {
       "relation": "calls",
@@ -67430,9 +67502,9 @@
       "source_file": "src/lib/types/admin.type.ts",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_lib_types_admin_type_ts",
-      "target": "constants_common_userrole",
-      "confidence_score": 1.0
+      "target": "constants_common_userrole"
     },
     {
       "relation": "imports_from",
@@ -67441,9 +67513,9 @@
       "source_file": "src/lib/types/admin.type.ts",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_lib_types_admin_type_ts",
-      "target": "src_lib_constants_common_ts",
-      "confidence_score": 1.0
+      "target": "src_lib_constants_common_ts"
     },
     {
       "relation": "contains",
@@ -67461,9 +67533,9 @@
       "source_file": "src/lib/types/admin.type.ts",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_lib_types_admin_type_ts",
-      "target": "types_admin_type_createadminuserrequest",
-      "confidence_score": 1.0
+      "target": "types_admin_type_createadminuserrequest"
     },
     {
       "relation": "contains",
@@ -67525,9 +67597,9 @@
       "source_file": "src/lib/actions/admin.action.ts",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_lib_actions_admin_action_ts",
-      "target": "types_admin_type_createadminuserrequest",
-      "confidence_score": 1.0
+      "target": "types_admin_type_createadminuserrequest"
     },
     {
       "relation": "references",
@@ -67536,9 +67608,9 @@
       "source_file": "src/lib/types/admin.type.ts",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "types_admin_type_createadminuserrequest",
-      "target": "constants_common_userrole",
-      "confidence_score": 1.0
+      "target": "constants_common_userrole"
     },
     {
       "relation": "imports",
@@ -71824,6 +71896,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/constants/violation.ts",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_lib_constants_violation_ts",
+      "target": "constants_violation_resolvemaxviolations"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/constants/violation.ts",
       "source_location": "L12",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -74835,9 +74917,9 @@
       "source_file": "src/lib/actions/admin.action.ts",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_lib_actions_admin_action_ts",
-      "target": "actions_admin_action_createadminuser",
-      "confidence_score": 1.0
+      "target": "actions_admin_action_createadminuser"
     },
     {
       "relation": "contains",
@@ -77227,5 +77309,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "ac3092e38dbee2bd4aa4d45e7338cbf6d30c89a4"
+  "built_at_commit": "1058c33034ae24286735d6ce0de1e6d06c52251a"
 }
