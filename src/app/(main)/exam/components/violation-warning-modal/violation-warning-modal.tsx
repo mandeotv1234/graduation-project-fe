@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, ShieldAlert, X } from 'lucide-react'
+import { AlertTriangle, Loader2, ShieldAlert, X } from 'lucide-react'
 
 import styles from '@/app/(main)/exam/components/violation-warning-modal/violation-warning-modal.module.scss'
 import {
@@ -12,11 +12,20 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { MAX_VIOLATIONS_BEFORE_SUBMIT } from '@/lib/constants/violation'
+import { IS_PRODUCTION_ENV } from '@/lib/constants/environment'
+import { resolveMaxViolations } from '@/lib/constants/violation'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks'
 import { hideWarning } from '@/lib/redux/slices/anti-cheat.slice'
 
-export function ViolationWarningModal() {
+interface ViolationWarningModalProps {
+  maxViolations?: number
+  autoSubmitOnViolation?: boolean
+}
+
+export function ViolationWarningModal({
+  maxViolations,
+  autoSubmitOnViolation = false
+}: ViolationWarningModalProps) {
   const dispatch = useAppDispatch()
   const {
     isWarningVisible,
@@ -24,15 +33,14 @@ export function ViolationWarningModal() {
     totalViolations,
     isForceSubmitted
   } = useAppSelector((state) => state.antiCheat)
-  const isDev = process.env.NEXT_PUBLIC_ENV === 'development'
+  const violationLimit = resolveMaxViolations(maxViolations)
 
-  if (isDev) return null
+  if (!IS_PRODUCTION_ENV) return null
 
-  const isForceSubmit =
-    isForceSubmitted || totalViolations >= MAX_VIOLATIONS_BEFORE_SUBMIT
+  const isForceSubmit = isForceSubmitted
   const severity = isForceSubmit
     ? 'critical'
-    : totalViolations >= MAX_VIOLATIONS_BEFORE_SUBMIT / 2
+    : autoSubmitOnViolation && totalViolations >= violationLimit / 2
       ? 'high'
       : 'medium'
 
@@ -65,25 +73,26 @@ export function ViolationWarningModal() {
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        {/* Progress bar */}
-        <div className={styles.progressSection}>
-          <div className={styles.progressHeader}>
-            <span className={styles.progressLabel}>Số lần vi phạm: </span>
-            <span className={`${styles.progressCount} ${styles[severity]}`}>
-              {totalViolations} / {MAX_VIOLATIONS_BEFORE_SUBMIT}
-            </span>
+        {autoSubmitOnViolation && (
+          <div className={styles.progressSection}>
+            <div className={styles.progressHeader}>
+              <span className={styles.progressLabel}>Số lần vi phạm: </span>
+              <span className={`${styles.progressCount} ${styles[severity]}`}>
+                {totalViolations} / {violationLimit}
+              </span>
+            </div>
+            <div className={styles.progressBar}>
+              <div
+                className={`${styles.progressFill} ${styles[severity]}`}
+                style={{
+                  width: `${Math.min((totalViolations / violationLimit) * 100, 100)}%`
+                }}
+              />
+            </div>
           </div>
-          <div className={styles.progressBar}>
-            <div
-              className={`${styles.progressFill} ${styles[severity]}`}
-              style={{
-                width: `${Math.min((totalViolations / MAX_VIOLATIONS_BEFORE_SUBMIT) * 100, 100)}%`
-              }}
-            />
-          </div>
-        </div>
+        )}
 
-        <AlertDialogFooter>
+        <AlertDialogFooter className={styles.modalFooter}>
           {!isForceSubmit ? (
             <Button
               onClick={handleClose}
@@ -94,9 +103,12 @@ export function ViolationWarningModal() {
               Tôi đã hiểu, tiếp tục làm bài
             </Button>
           ) : (
-            <p className={styles.forceSubmitMessage}>
-              Bài thi đang được nộp tự động...
-            </p>
+            <div className={styles.forceSubmitStatus}>
+              <Loader2 className={styles.loadingIcon} />
+              <p className={styles.forceSubmitMessage}>
+                Bài thi đang được nộp tự động...
+              </p>
+            </div>
           )}
         </AlertDialogFooter>
       </AlertDialogContent>

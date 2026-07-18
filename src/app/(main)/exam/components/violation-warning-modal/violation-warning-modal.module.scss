@@ -4,109 +4,117 @@
 .modalContent {
   @apply bg-background border border-border rounded-lg shadow-lg max-w-md w-full;
 
-    &.critical {
-      @apply border-red-500 bg-red-50 dark:bg-red-950/80;
+  &.critical {
+    @apply border-red-500 bg-red-50 dark:bg-red-950/80;
+  }
+
+  &.high {
+    @apply border-orange-500 bg-orange-50 dark:bg-orange-950/80;
+  }
+
+  &.medium {
+    @apply border-yellow-500 bg-surface-container-lowest dark:bg-yellow-950/80;
+  }
+
+  .modalHeader {
+    @apply flex items-center gap-2;
+
+    .warningIcon {
+      @apply size-6 text-yellow-600;
     }
 
-    &.high {
-      @apply border-orange-500 bg-orange-50 dark:bg-orange-950/80;
+    .criticalIcon {
+      @apply size-6 text-red-600;
     }
 
-    &.medium {
-      @apply border-yellow-500 bg-surface-container-lowest dark:bg-yellow-950/80;
-    }
-
-    .modalHeader {
-      @apply flex items-center gap-2;
-
-      .warningIcon {
-        @apply size-6 text-yellow-600;
+    .modalTitle {
+      &.critical {
+        @apply text-red-700 dark:text-red-400;
       }
 
-      .criticalIcon {
-        @apply size-6 text-red-600;
+      &.high {
+        @apply text-orange-700 dark:text-orange-400;
       }
 
-      .modalTitle {
+      &.medium {
+        @apply text-yellow-700 dark:text-yellow-400;
+      }
+    }
+  }
+
+  .modalDescription {
+    @apply text-foreground/80 pt-2 text-sm;
+  }
+
+  .progressSection {
+    @apply bg-background/60 rounded-lg p-4;
+
+    .progressHeader {
+      @apply flex items-center justify-between text-sm;
+
+      .progressLabel {
+        @apply text-muted-foreground;
+      }
+
+      .progressCount {
+        @apply font-bold;
+
         &.critical {
-          @apply text-red-700 dark:text-red-400;
+          @apply text-red-600;
         }
 
         &.high {
-          @apply text-orange-700 dark:text-orange-400;
+          @apply text-orange-600;
         }
 
         &.medium {
-          @apply text-yellow-700 dark:text-yellow-400;
+          @apply text-yellow-600;
         }
       }
     }
 
-    .modalDescription {
-      @apply text-foreground/80 pt-2 text-sm;
-    }
+    .progressBar {
+      @apply bg-muted mt-2 h-2 w-full overflow-hidden rounded-full;
 
-    .progressSection {
-      @apply bg-background/60 rounded-lg p-4;
+      .progressFill {
+        @apply h-full rounded-full transition-all duration-500;
 
-      .progressHeader {
-        @apply flex items-center justify-between text-sm;
-
-        .progressLabel {
-          @apply text-muted-foreground;
+        &.critical {
+          @apply bg-red-500;
         }
 
-        .progressCount {
-          @apply font-bold;
-
-          &.critical {
-            @apply text-red-600;
-          }
-
-          &.high {
-            @apply text-orange-600;
-          }
-
-          &.medium {
-            @apply text-yellow-600;
-          }
+        &.high {
+          @apply bg-orange-500;
         }
-      }
 
-      .progressBar {
-        @apply bg-muted mt-2 h-2 w-full overflow-hidden rounded-full;
-
-        .progressFill {
-          @apply h-full rounded-full transition-all duration-500;
-
-          &.critical {
-            @apply bg-red-500;
-          }
-
-          &.high {
-            @apply bg-orange-500;
-          }
-
-          &.medium {
-            @apply bg-yellow-500;
-          }
+        &.medium {
+          @apply bg-yellow-500;
         }
       }
     }
+  }
 
-    .modalFooter {
-      @apply flex justify-end;
+  .modalFooter {
+    @apply flex justify-end;
 
-      .acknowledgeButton {
-        @apply w-full;
+    .acknowledgeButton {
+      @apply w-full;
 
-        .buttonIcon {
-          @apply mr-2 size-4;
-        }
+      .buttonIcon {
+        @apply mr-2 size-4;
+      }
+    }
+
+    .forceSubmitStatus {
+      @apply flex w-full items-center justify-center gap-2 text-red-600;
+
+      .loadingIcon {
+        @apply size-4 animate-spin;
       }
 
       .forceSubmitMessage {
-        @apply w-full text-center text-sm font-medium text-red-600;
+        @apply text-center text-sm font-medium;
       }
     }
+  }
 }

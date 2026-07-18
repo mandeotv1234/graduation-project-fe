@@ -47,7 +47,10 @@ import type {
   RegradeAllRequest,
   RegradeAllScope
 } from '@/lib/types'
-import { subscribeToTeacherGradingResult } from '@/lib/socket'
+import {
+  subscribeToConnect,
+  subscribeToTeacherGradingResult
+} from '@/lib/socket'
 import { regradeAllExamResults } from '@/lib/actions'
 import { getExamResults } from '@/lib/actions/teacher.action'
 import { formatDateTime } from '@/lib/utils/time'
@@ -122,6 +125,44 @@ function getResultStatusLabel(status: TeacherExamResult['status']) {
   }
 }
 
+const BULK_REGRADE_POLL_INTERVAL_MS = 2500
+
+interface BulkRegradeMonitor {
+  request?: RegradeAllRequest
+  queuedCount: number
+}
+
+function filterResultsByRegradeScope(
+  results: TeacherExamResult[],
+  request?: RegradeAllRequest
+) {
+  const scope = request?.scope ?? 'ALL_ATTEMPTS'
+  switch (scope) {
+    case 'FIRST_ATTEMPT':
+      return results.filter((result) => result.attemptNumber === 1)
+    case 'SPECIFIC_ATTEMPT':
+      return results.filter(
+        (result) => result.attemptNumber === request?.attemptNumber
+      )
+    case 'LATEST_ATTEMPT': {
+      const latestByStudent = new Map<number, TeacherExamResult>()
+      for (const result of results) {
+        const current = latestByStudent.get(result.studentId)
+        if (!current || result.attemptNumber > current.attemptNumber) {
+          latestByStudent.set(result.studentId, result)
+        }
+      }
+      return Array.from(latestByStudent.values())
+    }
+    default:
+      return results
+  }
+}
+
+function isGradingInProgress(status: TeacherExamResult['status']) {
+  return status === 'PENDING' || status === 'GRADING'
+}
+
 export function ExamResultsView({
   examId,
   examTitle,
@@ -147,6 +188,8 @@ export function ExamResultsView({
     'timeDesc' | 'timeAsc' | 'scoreDesc' | 'scoreAsc'
   >('timeDesc')
   const [isRegradingAll, setIsRegradingAll] = useState(false)
+  const [bulkRegradeMonitor, setBulkRegradeMonitor] =
+    useState<BulkRegradeMonitor | null>(null)
   const [regradeScope, setRegradeScope] =
     useState<RegradeAllScope>('ALL_ATTEMPTS')
   const [specificAttemptNumber, setSpecificAttemptNumber] = useState(1)
@@ -154,8 +197,7 @@ export function ExamResultsView({
     Record<number, number>
   >({})
   const [activeTab, setActiveTab] = useState('results')
-  // Tracks remaining re-grade jobs so socket handler can suppress toasts & block new-entry adds
-  const regradingRemainingRef = useRef(0)
+  const isBulkRegradingRef = useRef(false)
   const didMountRef = useRef(false)
 
   const isMultiAttemptExam = maxAttempts !== 1
@@ -234,7 +276,17 @@ export function ExamResultsView({
       const res = await regradeAllExamResults(examId, request)
       if (res.data) {
         const { queuedCount, skippedCount } = res.data
-        regradingRemainingRef.current = queuedCount
+        if (queuedCount === 0) {
+          toast.success('Không có bài nào cần chấm lại')
+          setIsRegradingAll(false)
+          return
+        }
+
+        isBulkRegradingRef.current = true
+        setBulkRegradeMonitor({
+          request,
+          queuedCount
+        })
         toast.loading(
           `Đang chấm lại ${queuedCount} bài...` +
             (skippedCount > 0 ? ` (bỏ qua ${skippedCount} bài)` : ''),
@@ -242,13 +294,13 @@ export function ExamResultsView({
         )
       } else {
         toast.error(res.message ?? 'Không thể chấm lại toàn bộ')
+        setIsRegradingAll(false)
         router.refresh()
       }
     } catch {
       toast.error('Lỗi kết nối khi chấm lại toàn bộ')
-      router.refresh()
-    } finally {
       setIsRegradingAll(false)
+      router.refresh()
     }
   }
 
@@ -297,34 +349,117 @@ export function ExamResultsView({
   ])
 
   useEffect(() => {
-    // Socket connection for real-time updates
-    const unsubscribe = subscribeToTeacherGradingResult(
-      examId,
-      (rawNotification: unknown) => {
-        const notification = rawNotification as GradingNotificationDto
-        const isBulkRegrade = regradingRemainingRef.current > 0
+    if (!bulkRegradeMonitor) return
 
-        setRefreshKey((key) => key + 1)
+    let cancelled = false
+    let pollTimer: ReturnType<typeof setTimeout> | undefined
 
-        if (isBulkRegrade) {
-          regradingRemainingRef.current -= 1
-          if (regradingRemainingRef.current <= 0) {
-            toast.success('Đã chấm lại xong tất cả bài', {
-              id: 'regrade-progress'
-            })
-          }
-        } else {
-          const score = notification.totalScore ?? notification.score ?? 0
-          const name = notification.studentName || 'Học sinh'
-          toast.success(`${name} vừa nộp bài — ${score} điểm`)
-        }
+    const finishBulkRegrade = (scopedResults: TeacherExamResult[]) => {
+      isBulkRegradingRef.current = false
+      setBulkRegradeMonitor(null)
+      setIsRegradingAll(false)
+      setRefreshKey((key) => key + 1)
+
+      const failedCount = scopedResults.filter(
+        (result) =>
+          result.status === 'FAILED' || result.status === 'SYSTEM_ERROR'
+      ).length
+      if (failedCount > 0) {
+        toast.warning(
+          `Đã chấm lại xong ${bulkRegradeMonitor.queuedCount} bài, ${failedCount} bài gặp lỗi`,
+          { id: 'regrade-progress' }
+        )
+      } else {
+        toast.success(
+          `Đã chấm lại thành công ${bulkRegradeMonitor.queuedCount} bài`,
+          { id: 'regrade-progress' }
+        )
       }
-    )
+    }
+
+    const pollBulkRegrade = async () => {
+      try {
+        const response = await getExamResults(examId, {
+          page: 1,
+          size: 100000,
+          encounterMode: 'all',
+          scoreFilter: 'all',
+          sortOrder: 'timeDesc'
+        })
+
+        if (cancelled) return
+
+        if (response.data) {
+          const scopedResults = filterResultsByRegradeScope(
+            response.data,
+            bulkRegradeMonitor.request
+          )
+          const activeCount = scopedResults.filter((result) =>
+            isGradingInProgress(result.status)
+          ).length
+
+          if (
+            scopedResults.length >= bulkRegradeMonitor.queuedCount &&
+            activeCount === 0
+          ) {
+            finishBulkRegrade(scopedResults)
+            return
+          }
+        }
+      } catch {
+        // Keep polling after a transient request failure.
+      }
+
+      if (!cancelled) {
+        pollTimer = setTimeout(pollBulkRegrade, BULK_REGRADE_POLL_INTERVAL_MS)
+      }
+    }
+
+    pollTimer = setTimeout(pollBulkRegrade, BULK_REGRADE_POLL_INTERVAL_MS)
 
     return () => {
-      unsubscribe?.()
+      cancelled = true
+      if (pollTimer) clearTimeout(pollTimer)
+    }
+  }, [bulkRegradeMonitor, examId])
+
+  useEffect(() => {
+    let unsubscribeGradingResult: (() => void) | undefined
+
+    const subscribe = () => {
+      unsubscribeGradingResult?.()
+      unsubscribeGradingResult = subscribeToTeacherGradingResult(
+        examId,
+        (rawNotification: unknown) => {
+          const notification = rawNotification as GradingNotificationDto
+
+          setRefreshKey((key) => key + 1)
+
+          if (!isBulkRegradingRef.current) {
+            const score = notification.totalScore ?? notification.score ?? 0
+            const name = notification.studentName || 'Học sinh'
+            toast.success(`${name} vừa nộp bài — ${score} điểm`)
+          }
+        }
+      )
+    }
+
+    const unsubscribeConnect = subscribeToConnect(subscribe)
+
+    return () => {
+      unsubscribeConnect()
+      unsubscribeGradingResult?.()
     }
   }, [examId])
+
+  useEffect(
+    () => () => {
+      if (isBulkRegradingRef.current) {
+        toast.dismiss('regrade-progress')
+      }
+    },
+    []
+  )
 
   let baseResults = [...results]
 

@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef } from 'react'
 
 import { reportViolation } from '@/lib/actions/anti-cheat.action'
 import { sendHeartbeat } from '@/lib/actions/heartbeat.action'
+import { IS_PRODUCTION_ENV } from '@/lib/constants/environment'
 import {
-  MAX_VIOLATIONS_BEFORE_SUBMIT,
+  resolveMaxViolations,
   VIOLATION_LABELS,
   ViolationType
 } from '@/lib/constants/violation'
@@ -13,6 +14,7 @@ import { runIntegrityCanary } from '@/lib/utils'
 import {
   addViolation,
   markViolationSynced,
+  setForceSubmitted,
   setTotalViolations,
   setBlurred,
   setFullscreen,
@@ -33,7 +35,8 @@ export function useAntiCheat({
   enabled = true,
   settings
 }: UseAntiCheatOptions) {
-  const antiCheatEnabled = enabled
+  const antiCheatEnabled = enabled && IS_PRODUCTION_ENV
+  const violationLimit = resolveMaxViolations(settings?.maxViolations)
 
   const dispatch = useAppDispatch()
   const { totalViolations, isFullscreen } = useAppSelector(
@@ -74,7 +77,14 @@ export function useAntiCheat({
       const timestamp = new Date().toISOString()
       const violationDetail = detail || VIOLATION_LABELS[type]
 
-      dispatch(addViolation({ type, detail: violationDetail, timestamp }))
+      dispatch(
+        addViolation({
+          type,
+          detail: violationDetail,
+          timestamp,
+          maxViolations: violationLimit
+        })
+      )
 
       // Send to backend
       try {
@@ -92,9 +102,11 @@ export function useAntiCheat({
 
           // Backend already auto-submitted — only show modal, DO NOT trigger FE submit
           if (result.data.autoSubmitted) {
+            dispatch(setForceSubmitted(true))
+            dispatch(setBlurred(false))
             dispatch(
               showWarning(
-                `Bạn đã vi phạm ${count}/${MAX_VIOLATIONS_BEFORE_SUBMIT} lần. Bài thi đã được nộp tự động!`
+                `Bạn đã vi phạm ${count}/${violationLimit} lần. Bài thi đã được nộp tự động!`
               )
             )
             // Do not call onForceSubmit — backend already handled it
@@ -105,7 +117,7 @@ export function useAntiCheat({
           if (settings?.autoSubmitOnViolation) {
             dispatch(
               showWarning(
-                `Cảnh báo vi phạm! Bạn đã vi phạm ${count}/${MAX_VIOLATIONS_BEFORE_SUBMIT} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
+                `Cảnh báo vi phạm! Bạn đã vi phạm ${count}/${violationLimit} lần. Sau ${violationLimit} lần bài thi sẽ bị nộp tự động.`
               )
             )
           } else {
@@ -125,7 +137,7 @@ export function useAntiCheat({
         if (settings?.autoSubmitOnViolation) {
           dispatch(
             showWarning(
-              `Cảnh báo vi phạm! Bạn đã vi phạm ${newTotal} lần. Sau ${MAX_VIOLATIONS_BEFORE_SUBMIT} lần bài thi sẽ bị nộp tự động.`
+              `Cảnh báo vi phạm! Bạn đã vi phạm ${newTotal}/${violationLimit} lần. Sau ${violationLimit} lần bài thi sẽ bị nộp tự động.`
             )
           )
         } else {
@@ -137,7 +149,13 @@ export function useAntiCheat({
         }
       }
     },
-    [dispatch, examId, antiCheatEnabled, settings?.autoSubmitOnViolation] // Stable deps — no totalViolations
+    [
+      dispatch,
+      examId,
+      antiCheatEnabled,
+      settings?.autoSubmitOnViolation,
+      violationLimit
+    ] // Stable deps — no totalViolations
   )
 
   // 1. Detect tab switch / browser minimize (debounced — prevent duplicates)
@@ -177,6 +195,7 @@ export function useAntiCheat({
         clearTimeout(blurTimeoutRef.current)
         blurTimeoutRef.current = null
       }
+      if (settings?.forceFullscreen && !document.fullscreenElement) return
       dispatch(setBlurred(false))
     }
 
@@ -190,27 +209,53 @@ export function useAntiCheat({
       window.removeEventListener('focus', handleFocus)
       if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current)
     }
-  }, [antiCheatEnabled, recordViolation, dispatch, settings?.trackTabSwitch])
+  }, [
+    antiCheatEnabled,
+    recordViolation,
+    dispatch,
+    settings?.trackTabSwitch,
+    settings?.forceFullscreen
+  ])
 
   // 2. Detect fullscreen exit
   useEffect(() => {
-    if (!antiCheatEnabled || settings?.forceFullscreen === false) return
+    if (!antiCheatEnabled || settings?.forceFullscreen !== true) return
 
     const handleFullscreenChange = () => {
       const isCurrentlyFullscreen = !!document.fullscreenElement
       dispatch(setFullscreen(isCurrentlyFullscreen))
 
-      if (!isCurrentlyFullscreen && isFullscreenRef.current) {
-        recordViolation(ViolationType.FULLSCREEN_EXIT)
+      if (!isCurrentlyFullscreen) {
+        if (isFullscreenRef.current) {
+          recordViolation(ViolationType.FULLSCREEN_EXIT)
+        }
         dispatch(setBlurred(true))
+      } else {
+        dispatch(setBlurred(false))
       }
     }
 
     document.addEventListener('fullscreenchange', handleFullscreenChange)
+    handleFullscreenChange()
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }
-  }, [antiCheatEnabled, recordViolation, dispatch])
+  }, [antiCheatEnabled, recordViolation, dispatch, settings?.forceFullscreen])
+
+  useEffect(() => {
+    if (!antiCheatEnabled || settings?.forceFullscreen !== true) return
+
+    const blockFullscreenExitShortcut = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' && event.key !== 'F11') return
+      event.preventDefault()
+      event.stopPropagation()
+    }
+
+    document.addEventListener('keydown', blockFullscreenExitShortcut, true)
+    return () => {
+      document.removeEventListener('keydown', blockFullscreenExitShortcut, true)
+    }
+  }, [antiCheatEnabled, settings?.forceFullscreen])
 
   // 3. Block Copy / Cut / Paste / Right Click (block only — NOT counted as violation)
   useEffect(() => {
@@ -388,7 +433,7 @@ export function useAntiCheat({
 
   // 6. Prevent leaving page during active exam
   useEffect(() => {
-    if (!enabled) return
+    if (!antiCheatEnabled) return
 
     // Standard beforeunload for refresh/close
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -406,7 +451,7 @@ export function useAntiCheat({
       console.log('[AntiCheat] Cleaning up beforeunload guard')
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
-  }, [enabled])
+  }, [antiCheatEnabled])
 
   // 7. Heartbeat loop + integrity canary (Tier 2 anti-tamper).
   //    Heartbeats let the server detect tampering: a stopped stream (killed scripts)
@@ -446,7 +491,7 @@ export function useAntiCheat({
 
   // Request fullscreen
   const requestFullscreen = useCallback(async () => {
-    if (!antiCheatEnabled || settings?.forceFullscreen === false) return
+    if (!antiCheatEnabled || settings?.forceFullscreen !== true) return
     try {
       await document.documentElement.requestFullscreen()
       dispatch(setFullscreen(true))
