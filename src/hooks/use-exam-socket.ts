@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
 import { useAppDispatch } from '@/lib/redux/hooks'
 import {
   resetAntiCheat,
+  setForceSubmitted,
   showWarning
 } from '@/lib/redux/slices/anti-cheat.slice'
 import { connectStomp, getStompClient } from '@/lib/socket'
@@ -19,6 +20,7 @@ interface UseExamSocketOptions {
   onTimeSync?: (remainingSeconds: number) => void
   onGradingResult?: (result: unknown) => void
   onKicked?: () => void
+  onAutoSubmitted?: () => void
 }
 
 interface GradingResultMessage {
@@ -33,7 +35,8 @@ export function useExamSocket({
   onForceSubmit,
   onTimeSync,
   onGradingResult,
-  onKicked
+  onKicked,
+  onAutoSubmitted
 }: UseExamSocketOptions) {
   const dispatch = useAppDispatch()
   const isConnected = useRef(false)
@@ -42,11 +45,13 @@ export function useExamSocket({
   const onTimeSyncRef = useRef(onTimeSync)
   const onGradingResultRef = useRef(onGradingResult)
   const onKickedRef = useRef(onKicked)
+  const onAutoSubmittedRef = useRef(onAutoSubmitted)
 
   onForceSubmitRef.current = onForceSubmit
   onTimeSyncRef.current = onTimeSync
   onGradingResultRef.current = onGradingResult
   onKickedRef.current = onKicked
+  onAutoSubmittedRef.current = onAutoSubmitted
 
   const cleanupSubs = () => {
     subsRef.current.forEach((unsub) => {
@@ -75,6 +80,17 @@ export function useExamSocket({
             const payload = JSON.parse(message.body) as ViolationNotification
 
             if (payload.autoSubmitted) {
+              const payloadStudentId = Number(payload.studentId)
+              if (
+                studentId === undefined ||
+                !Number.isFinite(payloadStudentId) ||
+                payloadStudentId !== studentId
+              ) {
+                return
+              }
+
+              onAutoSubmittedRef.current?.()
+              dispatch(setForceSubmitted(true))
               dispatch(
                 showWarning(
                   'Bài thi của bạn đã bị nộp tự động do vi phạm quy chế thi.'

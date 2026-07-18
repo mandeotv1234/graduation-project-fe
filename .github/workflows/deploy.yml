@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+      - fix/GRAD-223-Fix-UI-co-author-delete-exam
 
 env:
   REGISTRY: registry.digitalocean.com/graduation
@@ -29,6 +30,7 @@ jobs:
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}" \
+            --build-arg NEXT_PUBLIC_ENV="${{ secrets.NEXT_PUBLIC_ENV }}" \
             --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}" \
             --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_SECRET="${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET }}" \
             --build-arg NEXT_PUBLIC_AZURE_AD_CLIENT_ID="${{ secrets.NEXT_PUBLIC_AZURE_AD_CLIENT_ID }}" \

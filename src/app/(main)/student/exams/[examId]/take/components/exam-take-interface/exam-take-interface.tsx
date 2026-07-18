@@ -602,6 +602,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       window.onbeforeunload = null
       window.location.href = '/student/exams'
     }, [bypassAntiCheat]),
+    onAutoSubmitted: bypassAntiCheat,
     onGradingResult: (rawResult: unknown) => {
       const result = rawResult as {
         status: string
@@ -1561,6 +1562,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         open={examTake.showConfirmDialog}
         onOpenChange={examTake.setShowConfirmDialog}
         onConfirm={() => {
+          bypassAntiCheat()
           clearLocalDraft()
           examTake.handleConfirmSubmit()
         }}

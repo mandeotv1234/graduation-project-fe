@@ -84,7 +84,7 @@ export function ClassTeachersSection({
   }
 
   const handleRemoveTeacher = async () => {
-    if (!teacherToRemove) return
+    if (!teacherToRemove || !isCreator) return
 
     const result = await callApi(
       removeTeacherFromClass(classId, teacherToRemove.id)
@@ -195,6 +195,7 @@ export function ClassTeachersSection({
       <div className="divide-y divide-border">
         {sortedTeachers.map((teacher) => {
           const canRemove = isCreator && !teacher.isCreator
+          const showRemoveAction = !teacher.isCreator
 
           return (
             <div
@@ -225,13 +226,18 @@ export function ClassTeachersSection({
                 </div>
               </div>
 
-              {canRemove ? (
+              {showRemoveAction ? (
                 <Button
                   variant="outline"
                   size="sm"
                   className="w-fit gap-2 border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => setTeacherToRemove(teacher)}
-                  disabled={isLoading}
+                  disabled={isLoading || !canRemove}
+                  title={
+                    canRemove
+                      ? 'Gỡ giáo viên khỏi lớp'
+                      : 'Chỉ người tạo lớp mới có thể gỡ giáo viên'
+                  }
                 >
                   <Trash2 className="h-4 w-4" />
                   Gỡ khỏi lớp

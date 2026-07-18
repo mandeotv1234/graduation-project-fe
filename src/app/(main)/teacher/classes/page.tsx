@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import { getClasses } from '@/lib/actions'
 import { ClassesList } from '@/app/(main)/teacher/classes/components/classes-list'
+import { decodeJwtPayload, getCookie } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Lớp học'
@@ -20,6 +21,10 @@ export default async function TeacherClassesPage({
   const response = await getClasses(page, 10)
   const classes = response.data || []
   const pagination = response.meta?.pagination
+  const accessToken = await getCookie('accessToken')
+  const currentTeacherId = accessToken
+    ? (decodeJwtPayload(accessToken)?.uid ?? null)
+    : null
 
   return (
     <div className="space-y-8">
@@ -27,6 +32,7 @@ export default async function TeacherClassesPage({
         classes={classes}
         pagination={pagination}
         currentPage={page}
+        currentTeacherId={currentTeacherId}
       />
     </div>
   )
