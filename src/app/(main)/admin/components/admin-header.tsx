@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { LogoutOverlay } from '@/components/shared/logout-overlay'
 import { ModeToggle } from '@/components/shared/mode-toggle'
 import { PATH } from '@/lib/constants'
 import { logout, getMe } from '@/lib/actions'
@@ -36,6 +37,7 @@ export function AdminHeader() {
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-lg border-b border-border/60">
+      <LogoutOverlay open={isLoggingOut} />
       <div className="mx-auto flex h-16 w-full items-center justify-between px-4">
         <Link
           href={PATH.ADMIN_FEEDBACKS}

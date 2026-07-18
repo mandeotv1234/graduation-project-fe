@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 
 import { TeacherNotificationBell } from '@/app/(main)/teacher/components/teacher-notification-bell'
 import { GlobalSearch } from '@/components/shared/global-search'
+import { LogoutOverlay } from '@/components/shared/logout-overlay'
 import { ModeToggle } from '@/components/shared/mode-toggle'
 import { Button } from '@/components/ui/button'
 import { getMe, logout } from '@/lib/actions'
@@ -44,6 +45,7 @@ export function TeacherHeader() {
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-lg border-b border-border/60">
+      <LogoutOverlay open={isLoggingOut} />
       <div className="mx-auto flex h-16 w-full items-center justify-between px-4">
         <Link
           href={PATH.TEACHER_CLASSES}

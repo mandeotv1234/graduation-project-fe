@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Loader2, LogOut } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { LogoutOverlay } from '@/components/shared/logout-overlay'
 import { ModeToggle } from '@/components/shared/mode-toggle'
 import { PATH } from '@/lib/constants'
 import { logout, getMe } from '@/lib/actions'
@@ -36,6 +37,7 @@ export function StudentHeader() {
 
   return (
     <header className={styles.header}>
+      <LogoutOverlay open={isLoggingOut} />
       <div className={styles.headerContent}>
         <div className="flex-1" />
 
