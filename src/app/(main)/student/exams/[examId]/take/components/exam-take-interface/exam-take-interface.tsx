@@ -602,6 +602,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       window.onbeforeunload = null
       window.location.href = '/student/exams'
     }, [bypassAntiCheat]),
+    onAutoSubmitted: bypassAntiCheat,
     onGradingResult: (rawResult: unknown) => {
       const result = rawResult as {
         status: string
@@ -966,6 +967,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       <ViolationWarningModal
         maxViolations={exam.settings?.maxViolations}
         autoSubmitOnViolation={exam.settings?.autoSubmitOnViolation}
+        requireFullscreen={exam.settings?.forceFullscreen}
       />
       <BlurOverlay requireFullscreen={exam.settings?.forceFullscreen} />
       <NetworkStatusBanner
@@ -1561,6 +1563,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         open={examTake.showConfirmDialog}
         onOpenChange={examTake.setShowConfirmDialog}
         onConfirm={() => {
+          bypassAntiCheat()
           clearLocalDraft()
           examTake.handleConfirmSubmit()
         }}

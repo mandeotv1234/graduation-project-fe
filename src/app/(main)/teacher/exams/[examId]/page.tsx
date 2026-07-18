@@ -94,6 +94,7 @@ export default async function TeacherExamDetailPage({
         templateManagement={templateManagementRes.data ?? null}
         canShareTemplate={canShareTemplate}
         shareDisabledReason={shareDisabledReason}
+        canDeleteExam={templateManagementRes.data?.canManage ?? false}
       />
     </Suspense>
   )

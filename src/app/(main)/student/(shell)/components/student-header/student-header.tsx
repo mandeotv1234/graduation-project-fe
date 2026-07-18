@@ -1,9 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { LogOut } from 'lucide-react'
+import { Loader2, LogOut } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { LogoutOverlay } from '@/components/shared/logout-overlay'
 import { ModeToggle } from '@/components/shared/mode-toggle'
 import { PATH } from '@/lib/constants'
 import { logout, getMe } from '@/lib/actions'
@@ -14,6 +15,7 @@ import styles from '@/app/(main)/student/(shell)/components/student-header/stude
 export function StudentHeader() {
   const router = useRouter()
   const [user, setUser] = useState<UserType | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     getMe().then((res) => {
@@ -22,12 +24,20 @@ export function StudentHeader() {
   }, [])
 
   const handleLogout = async () => {
-    await logout()
-    router.push(PATH.LOGIN)
+    if (isLoggingOut) return
+
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      router.push(PATH.LOGIN)
+    } catch {
+      setIsLoggingOut(false)
+    }
   }
 
   return (
     <header className={styles.header}>
+      <LogoutOverlay open={isLoggingOut} />
       <div className={styles.headerContent}>
         <div className="flex-1" />
 
@@ -46,10 +56,16 @@ export function StudentHeader() {
               variant="ghost"
               size="icon"
               onClick={handleLogout}
+              disabled={isLoggingOut}
               className={styles.logoutButton}
-              title="Đăng xuất"
+              title={isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
+              aria-label={isLoggingOut ? 'Đang đăng xuất' : 'Đăng xuất'}
             >
-              <LogOut className="h-5 w-5" />
+              {isLoggingOut ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <LogOut className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { reportViolation } from '@/lib/actions/anti-cheat.action'
 import { sendHeartbeat } from '@/lib/actions/heartbeat.action'
@@ -35,7 +35,7 @@ export function useAntiCheat({
   enabled = true,
   settings
 }: UseAntiCheatOptions) {
-  const antiCheatEnabled = enabled && IS_PRODUCTION_ENV
+  const antiCheatConfigured = enabled && IS_PRODUCTION_ENV
   const violationLimit = resolveMaxViolations(settings?.maxViolations)
 
   const dispatch = useAppDispatch()
@@ -55,6 +55,15 @@ export function useAntiCheat({
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Debounce blur/visibility events
 
   const lastViolationTimeRef = useRef(0)
+  const isBypassedRef = useRef(false)
+  const [isBypassed, setIsBypassed] = useState(false)
+  const antiCheatEnabled = antiCheatConfigured && !isBypassed
+
+  const bypassAntiCheat = useCallback(() => {
+    isBypassedRef.current = true
+    setIsBypassed(true)
+    dispatch(setBlurred(false))
+  }, [dispatch])
 
   // Monotonic heartbeat sequence — a ref so it survives effect re-runs (not reset to 1),
   // otherwise the server would read a regressed seq as a replay and false-flag tampering.
@@ -63,7 +72,7 @@ export function useAntiCheat({
   // Record violation — stable callback (does not depend on totalViolations)
   const recordViolation = useCallback(
     async (type: ViolationType, detail?: string) => {
-      if (!antiCheatEnabled) return
+      if (!antiCheatEnabled || isBypassedRef.current) return
       const now = Date.now()
       // Rate limiting: Prevent spamming violations if events fire wildly (e.g. 50 times/sec)
       if (now - lastViolationTimeRef.current < 2000) {
@@ -92,6 +101,8 @@ export function useAntiCheat({
           violationType: type,
           description: violationDetail
         })
+        if (isBypassedRef.current) return
+
         if (result.data) {
           dispatch(markViolationSynced(result.data.violationId.toString()))
 
@@ -102,6 +113,7 @@ export function useAntiCheat({
 
           // Backend already auto-submitted — only show modal, DO NOT trigger FE submit
           if (result.data.autoSubmitted) {
+            bypassAntiCheat()
             dispatch(setForceSubmitted(true))
             dispatch(setBlurred(false))
             dispatch(
@@ -153,6 +165,7 @@ export function useAntiCheat({
       dispatch,
       examId,
       antiCheatEnabled,
+      bypassAntiCheat,
       settings?.autoSubmitOnViolation,
       violationLimit
     ] // Stable deps — no totalViolations
@@ -429,8 +442,6 @@ export function useAntiCheat({
     }
   }, [antiCheatEnabled, recordViolation])
 
-  const isBypassedRef = useRef(false)
-
   // 6. Prevent leaving page during active exam
   useEffect(() => {
     if (!antiCheatEnabled) return
@@ -462,16 +473,24 @@ export function useAntiCheat({
     const intervalSec = settings?.heartbeatIntervalSec ?? 8
 
     const tick = () => {
+      if (isBypassedRef.current) return
+
       const failedChecks = runIntegrityCanary()
-      sendHeartbeat(examId, {
+      void sendHeartbeat(examId, {
         seq: ++heartbeatSeqRef.current,
         clientTs: Date.now(),
         integrityOk: failedChecks.length === 0,
         failedChecks
-      }).catch((error) => {
-        // Network failure must not break the exam — server absence-detection is the backstop.
-        console.warn('[AntiCheat] Heartbeat failed', error)
       })
+        .then((result) => {
+          if (!result.data && !isBypassedRef.current) {
+            console.warn('[AntiCheat] Heartbeat rejected', result.message)
+          }
+        })
+        .catch((error) => {
+          // Network failure must not break the exam — server absence-detection is the backstop.
+          console.warn('[AntiCheat] Heartbeat failed', error)
+        })
     }
 
     tick() // send immediately so the server starts tracking without a full interval delay
@@ -485,24 +504,20 @@ export function useAntiCheat({
     settings?.heartbeatIntervalSec
   ])
 
-  const bypassAntiCheat = useCallback(() => {
-    isBypassedRef.current = true
-  }, [])
-
   // Request fullscreen
   const requestFullscreen = useCallback(async () => {
-    if (!antiCheatEnabled || settings?.forceFullscreen !== true) return
+    if (!antiCheatConfigured || settings?.forceFullscreen !== true) return
     try {
       await document.documentElement.requestFullscreen()
       dispatch(setFullscreen(true))
     } catch {
       console.warn('[AntiCheat] Fullscreen request denied')
     }
-  }, [dispatch, antiCheatEnabled, settings?.forceFullscreen])
+  }, [dispatch, antiCheatConfigured, settings?.forceFullscreen])
 
   // Exit fullscreen
   const exitFullscreen = useCallback(async () => {
-    if (!antiCheatEnabled) return
+    if (!antiCheatConfigured) return
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen()
@@ -511,7 +526,7 @@ export function useAntiCheat({
     } catch {
       console.warn('[AntiCheat] Exit fullscreen failed')
     }
-  }, [dispatch, antiCheatEnabled])
+  }, [dispatch, antiCheatConfigured])
 
   return {
     recordViolation,

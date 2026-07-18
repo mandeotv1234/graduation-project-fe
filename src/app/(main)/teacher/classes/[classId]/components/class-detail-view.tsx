@@ -137,6 +137,10 @@ export function ClassDetailView({
       getExamStatus(exam.startTime, exam.endTime) === 'in_progress'
   ).length
   const studentStartIndex = (currentStudentPage - 1) * 10
+  const isExamCreator = (examId: number) =>
+    exams.some(
+      (exam) => exam.id === examId && exam.creatorId === currentTeacherId
+    )
 
   const handleBanStudent = () => {
     if (!studentToBan) return
@@ -168,7 +172,7 @@ export function ClassDetailView({
   }
 
   const handleDeleteExam = async () => {
-    if (!examToDelete) return
+    if (!examToDelete || !isExamCreator(examToDelete)) return
 
     startTransition(async () => {
       try {
@@ -371,8 +375,19 @@ export function ClassDetailView({
                         variant="ghost"
                         size="icon"
                         className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => setExamToDelete(exam.id)}
-                        title="Xóa bài thi"
+                        onClick={() => {
+                          if (exam.creatorId === currentTeacherId) {
+                            setExamToDelete(exam.id)
+                          }
+                        }}
+                        disabled={
+                          isPending || exam.creatorId !== currentTeacherId
+                        }
+                        title={
+                          exam.creatorId === currentTeacherId
+                            ? 'Xóa bài thi'
+                            : 'Chỉ người tạo bài thi mới có thể xóa'
+                        }
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

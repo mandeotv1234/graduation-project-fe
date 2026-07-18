@@ -21,7 +21,10 @@ import { IS_PRODUCTION_ENV, PATH } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { WaitingApprovalOverlay } from '@/app/(main)/exam/components/waiting-approval-overlay/waiting-approval-overlay'
-import { setFullscreen } from '@/lib/redux/slices/anti-cheat.slice'
+import {
+  resetAntiCheat,
+  setFullscreen
+} from '@/lib/redux/slices/anti-cheat.slice'
 import { useAppDispatch } from '@/lib/redux/hooks'
 import styles from './exam-start-interface.module.scss'
 
@@ -129,6 +132,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
           return
         }
 
+        dispatch(resetAntiCheat())
         router.push(PATH.STUDENT_EXAM_DOING(exam.examId))
       } else {
         if (result.code === 'STUDENT_BANNED') {
@@ -263,6 +267,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
           // Retry startSession — session is now force-overridden by teacher
           const result = await callStartSession(exam.examId)
           if (result.data?.sessionStarted) {
+            dispatch(resetAntiCheat())
             router.push(PATH.STUDENT_EXAM_DOING(exam.examId))
           } else {
             setError('Không thể kết nối lại phiên thi. Vui lòng thử lại.')

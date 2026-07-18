@@ -78,6 +78,7 @@ type TeacherExamDetailContentProps = {
   templateManagement: TeacherExamTemplateVersionsResponse | null
   canShareTemplate: boolean
   shareDisabledReason?: string
+  canDeleteExam: boolean
 }
 
 function getStatusMeta(
@@ -198,7 +199,8 @@ export function TeacherExamDetailContent({
   questions,
   templateManagement,
   canShareTemplate,
-  shareDisabledReason
+  shareDisabledReason,
+  canDeleteExam
 }: TeacherExamDetailContentProps) {
   const [displayExam, setDisplayExam] = useState(exam)
   const [displaySpecification, setDisplaySpecification] =
@@ -324,6 +326,8 @@ export function TeacherExamDetailContent({
   }
 
   const handleDeleteExam = async () => {
+    if (!canDeleteExam) return
+
     setIsDeleting(true)
     try {
       const res = await deleteExam(exam.id)
@@ -511,7 +515,12 @@ export function TeacherExamDetailContent({
                   variant="outline"
                   size="sm"
                   className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive border-border"
-                  disabled={isDeleting}
+                  disabled={isDeleting || !canDeleteExam}
+                  title={
+                    canDeleteExam
+                      ? 'Xóa bài thi'
+                      : 'Chỉ người tạo bài thi mới có thể xóa'
+                  }
                 >
                   {isDeleting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -537,7 +546,7 @@ export function TeacherExamDetailContent({
                   <AlertDialogAction
                     className="bg-destructive hover:bg-destructive/90 transition-colors"
                     onClick={handleDeleteExam}
-                    disabled={isDeleting}
+                    disabled={isDeleting || !canDeleteExam}
                   >
                     Xác nhận xóa
                   </AlertDialogAction>

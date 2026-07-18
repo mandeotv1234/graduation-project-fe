@@ -27,16 +27,26 @@ interface ClassesListProps {
   classes: ClassListItem[]
   pagination?: PaginationMeta
   currentPage: number
+  currentTeacherId: number | null
 }
 
-function ClassCard({ item }: { item: ClassListItem }) {
+function ClassCard({
+  item,
+  currentTeacherId
+}: {
+  item: ClassListItem
+  currentTeacherId: number | null
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const isDeleted = item.deletedAt !== null
+  const canManageClass = currentTeacherId === item.creatorId
 
   function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
+    if (!canManageClass) return
+
     startTransition(async () => {
       try {
         await deleteClass(item.id)
@@ -51,6 +61,8 @@ function ClassCard({ item }: { item: ClassListItem }) {
   function handleRestore(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
+    if (!canManageClass) return
+
     startTransition(async () => {
       try {
         await restoreClass(item.id)
@@ -138,8 +150,13 @@ function ClassCard({ item }: { item: ClassListItem }) {
               variant="outline"
               size="sm"
               className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/10"
-              disabled={isPending}
+              disabled={isPending || !canManageClass}
               onClick={handleRestore}
+              title={
+                canManageClass
+                  ? 'Khôi phục lớp học'
+                  : 'Chỉ người tạo lớp mới có thể khôi phục lớp'
+              }
             >
               <RotateCcw className="h-3.5 w-3.5" />
               Khôi phục
@@ -148,9 +165,19 @@ function ClassCard({ item }: { item: ClassListItem }) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-              disabled={isPending}
+              className={cn(
+                'h-8 w-8 text-muted-foreground transition-opacity',
+                canManageClass
+                  ? 'opacity-0 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100'
+                  : 'cursor-not-allowed opacity-40'
+              )}
+              disabled={isPending || !canManageClass}
               onClick={handleDelete}
+              title={
+                canManageClass
+                  ? 'Xóa lớp học'
+                  : 'Chỉ người tạo lớp mới có thể xóa lớp'
+              }
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -209,7 +236,8 @@ function Pagination({
 export function ClassesList({
   classes,
   pagination,
-  currentPage
+  currentPage,
+  currentTeacherId
 }: ClassesListProps) {
   if (classes.length === 0) {
     return (
@@ -254,7 +282,11 @@ export function ClassesList({
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {classes.map((item) => (
-          <ClassCard key={item.id} item={item} />
+          <ClassCard
+            key={item.id}
+            item={item}
+            currentTeacherId={currentTeacherId}
+          />
         ))}
       </div>
 
