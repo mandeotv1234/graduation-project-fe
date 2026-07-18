@@ -2,7 +2,7 @@
 @reference '../../../../globals.css';
 
 .overlayContainer {
-  @apply fixed inset-0 z-100 flex items-center justify-center bg-black/90 backdrop-blur-xl;
+  @apply pointer-events-auto fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-xl;
 
   .contentWrapper {
     @apply mx-4 max-w-md space-y-6 text-center;

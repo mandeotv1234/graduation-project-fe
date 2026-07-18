@@ -967,6 +967,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
       <ViolationWarningModal
         maxViolations={exam.settings?.maxViolations}
         autoSubmitOnViolation={exam.settings?.autoSubmitOnViolation}
+        requireFullscreen={exam.settings?.forceFullscreen}
       />
       <BlurOverlay requireFullscreen={exam.settings?.forceFullscreen} />
       <NetworkStatusBanner

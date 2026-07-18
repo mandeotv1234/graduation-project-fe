@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, Loader2, Maximize } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -19,7 +20,10 @@ export function BlurOverlay({ requireFullscreen = false }: BlurOverlayProps) {
   const [isRequesting, setIsRequesting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (!IS_PRODUCTION_ENV || !requireFullscreen || !isBlurred || isFullscreen) {
+  const isVisible =
+    IS_PRODUCTION_ENV && requireFullscreen && isBlurred && !isFullscreen
+
+  if (!isVisible || typeof document === 'undefined') {
     return null
   }
 
@@ -42,7 +46,7 @@ export function BlurOverlay({ requireFullscreen = false }: BlurOverlayProps) {
     }
   }
 
-  return (
+  return createPortal(
     <div className={styles.overlayContainer}>
       <div className={styles.contentWrapper}>
         <div className={styles.iconContainer}>
@@ -70,6 +74,7 @@ export function BlurOverlay({ requireFullscreen = false }: BlurOverlayProps) {
           {isRequesting ? 'Đang bật toàn màn hình...' : 'Trở lại toàn màn hình'}
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

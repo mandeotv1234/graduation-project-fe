@@ -20,20 +20,25 @@ import { hideWarning } from '@/lib/redux/slices/anti-cheat.slice'
 interface ViolationWarningModalProps {
   maxViolations?: number
   autoSubmitOnViolation?: boolean
+  requireFullscreen?: boolean
 }
 
 export function ViolationWarningModal({
   maxViolations,
-  autoSubmitOnViolation = false
+  autoSubmitOnViolation = false,
+  requireFullscreen = false
 }: ViolationWarningModalProps) {
   const dispatch = useAppDispatch()
   const {
     isWarningVisible,
     warningMessage,
     totalViolations,
-    isForceSubmitted
+    isForceSubmitted,
+    isBlurred,
+    isFullscreen
   } = useAppSelector((state) => state.antiCheat)
   const violationLimit = resolveMaxViolations(maxViolations)
+  const isRecoveringFullscreen = requireFullscreen && isBlurred && !isFullscreen
 
   if (!IS_PRODUCTION_ENV) return null
 
@@ -51,7 +56,10 @@ export function ViolationWarningModal({
   }
 
   return (
-    <AlertDialog open={isWarningVisible} onOpenChange={handleClose}>
+    <AlertDialog
+      open={isWarningVisible && !isRecoveringFullscreen}
+      onOpenChange={handleClose}
+    >
       <AlertDialogContent
         className={`${styles.modalContent} ${styles[severity]}`}
       >
