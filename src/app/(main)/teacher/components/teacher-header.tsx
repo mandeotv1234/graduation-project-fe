@@ -1,6 +1,6 @@
 'use client'
 
-import { GraduationCap, LogOut } from 'lucide-react'
+import { GraduationCap, Loader2, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react'
 export function TeacherHeader() {
   const router = useRouter()
   const [user, setUser] = useState<UserType | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     // 1. Fetch current user info
@@ -30,8 +31,15 @@ export function TeacherHeader() {
   }, [])
 
   const handleLogout = async () => {
-    await logout()
-    router.push(PATH.LOGIN)
+    if (isLoggingOut) return
+
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      router.push(PATH.LOGIN)
+    } catch {
+      setIsLoggingOut(false)
+    }
   }
 
   return (
@@ -68,10 +76,16 @@ export function TeacherHeader() {
               variant="ghost"
               size="icon"
               onClick={handleLogout}
+              disabled={isLoggingOut}
               className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-              title="Đăng xuất"
+              title={isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
+              aria-label={isLoggingOut ? 'Đang đăng xuất' : 'Đăng xuất'}
             >
-              <LogOut className="h-5 w-5" />
+              {isLoggingOut ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <LogOut className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>

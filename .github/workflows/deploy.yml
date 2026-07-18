@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - develop
-      - fix/GRAD-223-Fix-UI-co-author-delete-exam
 
 env:
   REGISTRY: registry.digitalocean.com/graduation

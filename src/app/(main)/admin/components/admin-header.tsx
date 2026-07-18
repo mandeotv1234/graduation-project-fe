@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { LogOut, ShieldCheck } from 'lucide-react'
+import { Loader2, LogOut, ShieldCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -14,6 +14,7 @@ import type { User } from '@/lib/types'
 export function AdminHeader() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     getMe().then((res) => {
@@ -22,8 +23,15 @@ export function AdminHeader() {
   }, [])
 
   const handleLogout = async () => {
-    await logout()
-    router.push(PATH.LOGIN)
+    if (isLoggingOut) return
+
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      router.push(PATH.LOGIN)
+    } catch {
+      setIsLoggingOut(false)
+    }
   }
 
   return (
@@ -54,10 +62,16 @@ export function AdminHeader() {
               variant="ghost"
               size="icon"
               onClick={handleLogout}
+              disabled={isLoggingOut}
               className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-              title="Đăng xuất"
+              title={isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
+              aria-label={isLoggingOut ? 'Đang đăng xuất' : 'Đăng xuất'}
             >
-              <LogOut className="h-5 w-5" />
+              {isLoggingOut ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <LogOut className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>
