@@ -45,7 +45,10 @@ import {
 } from '@/lib/types'
 import { SystemPresetList } from './system-preset-list'
 import { CreateTableTreeRubric } from './create-table-tree-rubric'
-import { InsertDataTreeRubric } from './insert-data-tree-rubric'
+import {
+  INSERT_DATA_MODIFIER_OPTIONS,
+  InsertDataTreeRubric
+} from './insert-data-tree-rubric'
 import { SelectQueryTreeRubric } from './select-query-tree-rubric'
 
 export type RuleQuestionType = 'CREATE_TABLE' | 'SELECT_QUERY' | 'INSERT_DATA'
@@ -96,6 +99,10 @@ const SELECT_TARGET_OPTIONS = ALL_TARGET_OPTIONS.filter((option) =>
   ['COLUMN', 'COLUMN_ORDER', 'ROW', 'CELL_VALUE', 'ROW_ORDER'].includes(
     option.value
   )
+)
+
+const INSERT_TARGET_OPTIONS = ALL_TARGET_OPTIONS.filter((option) =>
+  ['ROW', 'CELL_VALUE', 'ROW_ORDER', 'FOREIGN_KEY'].includes(option.value)
 )
 
 const SELECT_CONDITION_OPTIONS: Partial<
@@ -278,9 +285,9 @@ function toNumber(value: unknown, defaultValue: number) {
 }
 
 function getTargetOptions(questionType: RuleQuestionType) {
-  return questionType === 'CREATE_TABLE'
-    ? CREATE_TARGET_OPTIONS
-    : SELECT_TARGET_OPTIONS
+  if (questionType === 'CREATE_TABLE') return CREATE_TARGET_OPTIONS
+  if (questionType === 'INSERT_DATA') return INSERT_TARGET_OPTIONS
+  return SELECT_TARGET_OPTIONS
 }
 
 function getDefaultTarget(questionType: RuleQuestionType): GradingRuleTarget {
@@ -319,7 +326,9 @@ function getModifierOptions(
   const scopedOptions =
     questionType === 'CREATE_TABLE'
       ? CREATE_MODIFIER_OPTIONS
-      : SELECT_MODIFIER_OPTIONS
+      : questionType === 'INSERT_DATA'
+        ? INSERT_DATA_MODIFIER_OPTIONS
+        : SELECT_MODIFIER_OPTIONS
   return scopedOptions[target] || []
 }
 

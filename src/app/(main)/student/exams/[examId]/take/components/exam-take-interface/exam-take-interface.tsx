@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAntiCheat } from '@/hooks/use-anti-cheat'
 import { useExamSocket } from '@/hooks/use-exam-socket'
-import { useExamTimer } from '@/hooks/use-exam-timer'
+import { useExamTimer, type ExamTimerPhase } from '@/hooks/use-exam-timer'
 import { clearExamSchema, getExamSpecification, getMe } from '@/lib/actions'
 import { getExamTime } from '@/lib/actions/anti-cheat.action'
 import { fetchExamPdfBlobUrl } from '@/lib/api/pdf-client'
@@ -426,6 +426,8 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   const [sessionStarted, setSessionStarted] = useState(false)
   const [user, setUser] = useState<UserType | null>(null)
   const [initialSeconds, setInitialSeconds] = useState(0)
+  const [initialTimerPhase, setInitialTimerPhase] =
+    useState<ExamTimerPhase>('REGULAR')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editorSchema, setEditorSchema] = useState<SchemaTable[]>([])
@@ -583,12 +585,18 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     [examTake, bypassAntiCheat, clearLocalDraft]
   )
 
-  const { setServerTime, remainingSeconds } = useExamTimer({
+  const {
+    setServerTime,
+    remainingSeconds,
+    phase: timerPhase
+  } = useExamTimer({
     examId: exam.examId,
     initialSeconds,
+    initialPhase: initialTimerPhase,
     enabled: examActive,
     allowOvertime: exam.settings?.allowOvertime,
-    onTimeUp: !exam.settings?.allowOvertime ? handleForceSubmit : undefined
+    lateThresholdSeconds: Math.max(0, exam.lateThreshold ?? 0) * 60,
+    onTimeUp: handleForceSubmit
   })
 
   useExamSocket({
@@ -780,6 +788,17 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   useEffect(() => {
     if (!examActive) return
 
+    if (timerPhase === 'LATE') {
+      if (remainingSeconds === 60) {
+        toast.error('Chỉ còn 1 phút trong thời gian nộp trễ!')
+      } else if (remainingSeconds === 30) {
+        toast.error('Chỉ còn 30 giây để nộp bài!')
+      }
+      return
+    }
+
+    if (timerPhase !== 'REGULAR') return
+
     if (remainingSeconds === 300) {
       toast.warning('Còn lại 5 phút!')
     } else if (remainingSeconds === 60) {
@@ -787,7 +806,19 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     } else if (remainingSeconds === 30) {
       toast.error('Cảnh báo: Chỉ còn 30 giây cuối cùng!')
     }
-  }, [remainingSeconds, examActive])
+  }, [remainingSeconds, examActive, timerPhase])
+
+  const previousTimerPhaseRef = useRef<ExamTimerPhase>('REGULAR')
+  useEffect(() => {
+    if (
+      examActive &&
+      timerPhase === 'LATE' &&
+      previousTimerPhaseRef.current !== 'LATE'
+    ) {
+      toast.warning('Đã hết giờ làm bài. Bạn đang trong thời gian nộp trễ.')
+    }
+    previousTimerPhaseRef.current = timerPhase
+  }, [examActive, timerPhase])
 
   // Keyboard shortcuts: Alt+S (toggle spec/question), Alt+← (prev), Alt+→ (next)
   useEffect(() => {
@@ -847,13 +878,15 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
 
   const timerState = getTimerState(remainingSeconds)
   const timerClass =
-    timerState === 'critical'
-      ? styles.critical
-      : timerState === 'danger'
-        ? styles.danger
-        : timerState === 'warning'
-          ? styles.warning
-          : ''
+    timerPhase === 'LATE'
+      ? styles.late
+      : timerState === 'critical'
+        ? styles.critical
+        : timerState === 'danger'
+          ? styles.danger
+          : timerState === 'warning'
+            ? styles.warning
+            : ''
 
   // Only conditionally render UI, never call hooks conditionally
   useEffect(() => {
@@ -870,6 +903,9 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         if (userRes.data) setUser(userRes.data)
 
         if (timeRes.data && timeRes.data.remainingSeconds > 0) {
+          setInitialTimerPhase(
+            timeRes.data.status === 'LATE_SUBMISSION' ? 'LATE' : 'REGULAR'
+          )
           setInitialSeconds(timeRes.data.remainingSeconds)
           setSessionStarted(true)
 
@@ -959,7 +995,11 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
           style={{
             width: `${Math.max(
               0,
-              (remainingSeconds / (exam.durationMinutes * 60)) * 100
+              (remainingSeconds /
+                (timerPhase === 'LATE'
+                  ? Math.max(1, (exam.lateThreshold ?? 0) * 60)
+                  : exam.durationMinutes * 60)) *
+                100
             )}%`
           }}
         />
@@ -1218,7 +1258,12 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
                         timerState === 'normal' ? 'text-primary' : ''
                       }`}
                     />
-                    <span>{formatTime(remainingSeconds)}</span>
+                    {timerPhase === 'LATE' && (
+                      <span className="font-sans text-[10px] font-semibold uppercase">
+                        Nộp trễ
+                      </span>
+                    )}
+                    <span>{formatTime(Math.max(0, remainingSeconds))}</span>
                   </div>
                   <Button
                     onClick={examTake.handleRequestSubmit}

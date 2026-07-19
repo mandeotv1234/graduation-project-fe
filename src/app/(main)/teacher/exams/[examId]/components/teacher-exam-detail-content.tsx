@@ -333,8 +333,7 @@ export function TeacherExamDetailContent({
       const res = await deleteExam(exam.id)
       if (res.code === 'OK') {
         toast.success('Xóa bài thi thành công')
-        router.push(PATH.TEACHER_CLASS_DETAIL(exam.classId))
-        router.refresh()
+        router.replace(PATH.TEACHER_CLASS_DETAIL(exam.classId))
       } else {
         toast.error(res.message || 'Không thể xóa bài thi')
       }

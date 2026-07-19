@@ -57,6 +57,7 @@ export {
   generateSpecificationSchemaFromDDL,
   getExamSpecification,
   saveExamSpecification,
+  createExamSpecificationFromQuestions,
   createExamQuestionsBatch,
   getSpecificationDetail,
   updateSpecification,

@@ -29,6 +29,7 @@ export const PATH = {
   TEACHER_EXAM_DETAIL: (examId: number) => `/teacher/exams/${examId}`,
   TEACHER_EXAM_RESULT: (examId: number, resultId: number) =>
     `/teacher/exams/${examId}/results/${resultId}`,
+  TEACHER_EXAM_RESULTS: (examId: number) => `/teacher/exams/${examId}/results`,
   TEACHER_EXAM_MONITOR: (examId: number) => `/teacher/exams/${examId}/monitor`,
   TEACHER_EXAM_QUESTIONS: (examId: number) =>
     `/teacher/exams/${examId}/questions`,

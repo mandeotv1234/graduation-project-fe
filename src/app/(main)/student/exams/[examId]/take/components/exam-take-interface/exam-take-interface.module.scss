@@ -111,6 +111,10 @@
           &.critical {
             @apply text-white bg-rose-700 border-rose-800 shadow-[0_0_15px_rgba(190,18,60,0.4)] animate-pulse;
           }
+
+          &.late {
+            @apply text-white bg-rose-700 border-rose-800 shadow-[0_0_15px_rgba(190,18,60,0.35)];
+          }
         }
 
         .submitBtn {

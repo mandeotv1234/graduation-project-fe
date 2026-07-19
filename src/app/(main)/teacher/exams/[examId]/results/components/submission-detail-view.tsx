@@ -1,6 +1,12 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useTransition
+} from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -40,7 +46,9 @@ import {
   getExamResults
 } from '@/lib/actions'
 import { formatDateTime } from '@/lib/utils/time'
+import { PATH } from '@/lib/constants/path'
 import { QuestionCard } from './question-card'
+import { SubmissionDetailSkeleton } from './submission-detail-skeleton'
 import styles from './submission-detail-view.module.scss'
 
 interface SubmissionDetailViewProps {
@@ -77,6 +85,7 @@ export function SubmissionDetailView({
   detail: initialDetail
 }: SubmissionDetailViewProps) {
   const router = useRouter()
+  const [isSwitchingAttempt, startAttemptTransition] = useTransition()
 
   // Attempt switcher: all attempts of this student for this exam
   const [attempts, setAttempts] = useState<
@@ -298,6 +307,10 @@ export function SubmissionDetailView({
         ? styles.scoreMedium
         : styles.scoreLow
 
+  if (isSwitchingAttempt) {
+    return <SubmissionDetailSkeleton />
+  }
+
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -308,7 +321,7 @@ export function SubmissionDetailView({
             size="icon"
             className={styles.backButton}
             aria-label="Quay lại danh sách kết quả"
-            onClick={() => router.push(`/teacher/exams/${examId}/results`)}
+            onClick={() => router.push(PATH.TEACHER_EXAM_RESULTS(examId))}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -438,11 +451,13 @@ export function SubmissionDetailView({
                 className={`${styles.attemptPill} ${
                   a.resultId === resultId ? styles.attemptPillActive : ''
                 }`}
+                disabled={isSwitchingAttempt}
+                aria-current={a.resultId === resultId ? 'page' : undefined}
                 onClick={() => {
-                  if (a.resultId !== resultId) {
-                    router.push(
-                      `/teacher/exams/${examId}/results/${a.resultId}`
-                    )
+                  if (a.resultId !== resultId && !isSwitchingAttempt) {
+                    startAttemptTransition(() => {
+                      router.push(PATH.TEACHER_EXAM_RESULT(examId, a.resultId))
+                    })
                   }
                 }}
               >

@@ -79,6 +79,15 @@ export async function saveExamSpecification(
   )
 }
 
+export async function createExamSpecificationFromQuestions(
+  examId: number
+): Promise<ApiResponse<ExamSpecification>> {
+  return apiClient.post<ExamSpecification>(
+    ENDPOINTS.EXAM_SPECIFICATION_FROM_QUESTIONS(examId),
+    {}
+  )
+}
+
 export async function createExamQuestionsBatch(
   examId: number,
   data: CreateExamQuestionsBatchRequest

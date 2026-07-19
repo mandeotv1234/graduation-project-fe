@@ -67,6 +67,9 @@ function localizeError(message: string): string {
   if (/already ended|exam has ended|đã kết thúc/i.test(message)) {
     return 'Bài thi đã kết thúc.'
   }
+  if (/has not started|not started yet|chưa bắt đầu/i.test(message)) {
+    return 'Bài thi chưa được bắt đầu.'
+  }
   return message
 }
 
@@ -89,7 +92,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
   // The exam can no longer be started for any reason
   const cannotStart = examEnded || attemptsExhausted
   const [canStart, setCanStart] = useState(() => {
-    if (exam.maxAttempts === 1 && exam.startTime) {
+    if (exam.startTime) {
       return new Date(exam.startTime).getTime() <= Date.now()
     }
     return true
@@ -160,6 +163,10 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
 
   const handleStartExam = async () => {
     if (!agreed) return
+    if (exam.startTime && new Date(exam.startTime).getTime() > Date.now()) {
+      setError('Bài thi chưa được bắt đầu.')
+      return
+    }
     const ended = exam.endTime
       ? new Date(exam.endTime).getTime() <= Date.now()
       : false
@@ -201,7 +208,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
   }, [exam.endTime])
 
   useEffect(() => {
-    if (!exam.startTime || exam.maxAttempts !== 1) return
+    if (!exam.startTime) return
     const startObj = new Date(exam.startTime).getTime()
 
     const updateCountdown = () => {
@@ -226,7 +233,7 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
     updateCountdown()
     const intervalId = setInterval(updateCountdown, 1000)
     return () => clearInterval(intervalId)
-  }, [exam.startTime, exam.maxAttempts])
+  }, [exam.startTime])
 
   useEffect(() => {
     if (
@@ -442,13 +449,15 @@ export function ExamStartInterface({ exam }: ExamStartInterfaceProps) {
           </section>
 
           {/* Error message */}
-          {(error || cannotStart) && (
+          {(error || cannotStart || !canStart) && (
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive text-center">
               {error
                 ? localizeError(error)
-                : examEnded
-                  ? 'Bài thi đã kết thúc.'
-                  : 'Bạn đã hết lượt làm bài.'}
+                : !canStart
+                  ? 'Bài thi chưa được bắt đầu.'
+                  : examEnded
+                    ? 'Bài thi đã kết thúc.'
+                    : 'Bạn đã hết lượt làm bài.'}
             </div>
           )}
 

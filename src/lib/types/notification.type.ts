@@ -5,6 +5,7 @@ export interface TeacherNotificationDto {
   id: number
   teacherId: number
   examId: number
+  resultId?: number
   studentId: number
   studentName: string
   violationType: string
@@ -22,6 +23,7 @@ export interface UnreadCountDto {
 
 // WebSocket Grading Results
 export interface GradingNotificationDto {
+  resultId?: number
   submissionId?: number
   attemptNumber?: number
   examId: number

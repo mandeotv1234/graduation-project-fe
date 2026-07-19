@@ -1362,6 +1362,11 @@
     background: #f1f5f9;
     border-color: #cbd5e1;
   }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
 }
 
 .attemptPillActive {
