@@ -77,6 +77,8 @@ export const ENDPOINTS = Object.freeze({
 
   // Exam Specification (teacher: POST, student: GET)
   EXAM_SPECIFICATION: (examId: number) => `/exams/${examId}/specification`,
+  EXAM_SPECIFICATION_FROM_QUESTIONS: (examId: number) =>
+    `/exams/${examId}/specification/from-questions`,
   EXAM_CREATE_BATCH_QUESTIONS: (examId: number) => `/exams/${examId}/questions`,
   EXAM_GENERATE_RUBRIC: '/exams/generate-rubric',
   EXAM_REFINE_RUBRIC_TESTCASES: '/exams/refine-rubric-testcases',

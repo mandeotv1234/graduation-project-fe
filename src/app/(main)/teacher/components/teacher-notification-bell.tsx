@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Bell, Trash2, CheckCheck, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -39,11 +39,13 @@ import {
   getMe
 } from '@/lib/actions'
 import { formatDateTime } from '@/lib/utils/time'
+import { PATH } from '@/lib/constants'
 
 // ─── Unified NotificationItem (supports both API & realtime) ─────────
 interface NotificationItem {
   id: string | number
   examId: number
+  resultId?: number
   studentId?: number
   attemptNumber?: number
   studentName: string
@@ -66,6 +68,7 @@ function mapDtoToItem(dto: TeacherNotificationDto): NotificationItem {
   return {
     id: dto.id,
     examId: dto.examId,
+    resultId: dto.resultId,
     studentId: dto.studentId,
     attemptNumber: extractAttemptNumber(dto.description),
     studentName: dto.studentName,
@@ -192,6 +195,7 @@ function showViolationToast(item: NotificationItem) {
 // ─── Main Component ──────────────────────────────────────────────────
 export function TeacherNotificationBell() {
   const router = useRouter()
+  const pathname = usePathname()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [open, setOpen] = useState(false)
 
@@ -447,7 +451,7 @@ export function TeacherNotificationBell() {
             return
           }
 
-          if (payload.status !== 'SUBMITTED') return
+          if (!['SUBMITTED', 'COMPLETED'].includes(payload.status)) return
 
           const realtimeKey = getGradingRealtimeKey(payload)
           if (!markRealtimeNotificationSeenRef.current(realtimeKey)) return
@@ -455,18 +459,22 @@ export function TeacherNotificationBell() {
           const newItem: NotificationItem = {
             id: `grade-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             examId: payload.examId || 0,
+            resultId: payload.resultId,
             studentId: payload.studentId,
             attemptNumber: payload.attemptNumber,
             studentName: payload.studentName || 'Học sinh',
-            violationType: 'NỘP BÀI',
+            violationType:
+              payload.status === 'COMPLETED' ? 'KẾT QUẢ CHẤM' : 'NỘP BÀI',
             description:
               payload.message ||
-              (payload.attemptNumber
-                ? `Đã nộp bài lần ${payload.attemptNumber}. Đang chấm điểm.`
-                : 'Đã nộp bài. Đang chấm điểm.'),
+              (payload.status === 'COMPLETED'
+                ? `Đã chấm xong: ${payload.totalScore ?? 0}/${payload.maxScore ?? 0} điểm.`
+                : payload.attemptNumber
+                  ? `Đã nộp bài lần ${payload.attemptNumber}. Đang chấm điểm.`
+                  : 'Đã nộp bài. Đang chấm điểm.'),
             violationCount: 0,
             autoSubmitted: false,
-            timestamp: new Date().toISOString(),
+            timestamp: payload.gradedAt || new Date().toISOString(),
             read: false,
             persisted: false
           }
@@ -483,17 +491,30 @@ export function TeacherNotificationBell() {
           // Vẫn bật popup nhỏ nếu đang ở trang giám sát
           const isMonitorPage = window.location.pathname.endsWith('/monitor')
           if (isMonitorPage) {
-            toast.info(`Học sinh ${newItem.studentName} vừa nộp bài`, {
-              id: `toast-grade-${payload.examId}-${payload.studentId || payload.studentName}`,
-              description: 'Đang chấm điểm.',
-              action: payload.examId
-                ? {
-                    label: 'Xem',
-                    onClick: () =>
-                      (window.location.href = `/teacher/exams/${payload.examId}/results`)
-                  }
-                : undefined
-            })
+            const isCompleted = payload.status === 'COMPLETED'
+            toast.info(
+              isCompleted
+                ? `Đã chấm xong bài của ${newItem.studentName}`
+                : `Học sinh ${newItem.studentName} vừa nộp bài`,
+              {
+                id: `toast-grade-${payload.examId}-${payload.studentId || payload.studentName}`,
+                description: isCompleted
+                  ? `${payload.totalScore ?? 0}/${payload.maxScore ?? 0} điểm.`
+                  : 'Đang chấm điểm.',
+                action: payload.examId
+                  ? {
+                      label: 'Xem',
+                      onClick: () =>
+                        (window.location.href = payload.resultId
+                          ? PATH.TEACHER_EXAM_RESULT(
+                              payload.examId,
+                              payload.resultId
+                            )
+                          : PATH.TEACHER_EXAM_RESULTS(payload.examId))
+                    }
+                  : undefined
+              }
+            )
           }
         } catch {
           // silent
@@ -604,7 +625,9 @@ export function TeacherNotificationBell() {
     VIOLATION_LABELS[type as ViolationType] || type
 
   const getSeverityColor = (type: string) => {
-    if (type === 'NỘP BÀI') return 'text-green-600 dark:text-green-400'
+    if (type === 'NỘP BÀI' || type === 'KẾT QUẢ CHẤM') {
+      return 'text-green-600 dark:text-green-400'
+    }
     switch (type) {
       case ViolationType.DEVTOOLS_OPEN:
       case ViolationType.PASTE:
@@ -744,12 +767,20 @@ export function TeacherNotificationBell() {
 
                       // 2. Navigate to the relevant page
                       const href =
-                        notification.violationType === 'NỘP BÀI'
-                          ? `/teacher/exams/${notification.examId}/results`
-                          : `/teacher/exams/${notification.examId}/monitor`
+                        notification.violationType === 'NỘP BÀI' ||
+                        notification.violationType === 'KẾT QUẢ CHẤM'
+                          ? notification.resultId
+                            ? PATH.TEACHER_EXAM_RESULT(
+                                notification.examId,
+                                notification.resultId
+                              )
+                            : PATH.TEACHER_EXAM_RESULTS(notification.examId)
+                          : PATH.TEACHER_EXAM_MONITOR(notification.examId)
 
                       setOpen(false)
-                      router.push(href)
+                      if (pathname !== href) {
+                        router.push(href)
+                      }
                     }}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -780,12 +811,28 @@ export function TeacherNotificationBell() {
                           </p>
                         )}
                         <div className="mt-1 flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground">
-                            Vi phạm #{notification.violationCount}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            •
-                          </span>
+                          {notification.violationType === 'NỘP BÀI' ||
+                          notification.violationType === 'KẾT QUẢ CHẤM' ? (
+                            notification.attemptNumber != null && (
+                              <>
+                                <span className="text-[10px] text-muted-foreground">
+                                  Lần thi #{notification.attemptNumber}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  •
+                                </span>
+                              </>
+                            )
+                          ) : (
+                            <>
+                              <span className="text-[10px] text-muted-foreground">
+                                Vi phạm #{notification.violationCount}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                •
+                              </span>
+                            </>
+                          )}
                           <span className="text-[10px] text-muted-foreground">
                             {formatTimestamp(notification.timestamp)}
                           </span>

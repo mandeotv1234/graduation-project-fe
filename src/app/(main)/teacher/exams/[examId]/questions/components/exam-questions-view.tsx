@@ -2032,9 +2032,12 @@ export function ExamQuestionsView({
       <PdfUploadDialog
         open={showPdfDialog}
         examId={examId}
+        hasSpecification={Boolean(specification)}
         onClose={() => setShowPdfDialog(false)}
         onQuestionsCreated={(created) => {
           setQuestions((prev) => [...prev, ...created])
+          setShowPdfDialog(false)
+          router.refresh()
         }}
       />
     </div>

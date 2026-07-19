@@ -79,7 +79,7 @@ export interface ExamTimeResponse {
   remainingSeconds: number
   secondsUntilStart: number
   durationMinutes: number
-  status: string
+  status: 'WAITING' | 'IN_PROGRESS' | 'LATE_SUBMISSION' | 'ENDED'
   expired: boolean
 }
 

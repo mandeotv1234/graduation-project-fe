@@ -91,7 +91,7 @@ export const INSERT_DATA_TREE_CONFIG: GroupConfig[] = [
   }
 ]
 
-const INSERT_DATA_MODIFIER_OPTIONS: Partial<
+export const INSERT_DATA_MODIFIER_OPTIONS: Partial<
   Record<GradingRuleTarget, RuleModifierOption[]>
 > = {
   ROW: [{ value: 'SORT_ASC', label: 'Sắp xếp tăng dần trước khi so khớp' }],

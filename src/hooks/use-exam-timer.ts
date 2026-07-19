@@ -4,27 +4,42 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getExamTime } from '@/lib/actions/anti-cheat.action'
 
+export type ExamTimerPhase = 'REGULAR' | 'LATE' | 'ENDED'
+
 interface UseExamTimerOptions {
   examId: number
   initialSeconds?: number
+  initialPhase?: ExamTimerPhase
   syncIntervalMs?: number
   onTimeUp?: (reason: string) => void
   enabled?: boolean
   allowOvertime?: boolean
+  lateThresholdSeconds?: number
+}
+
+function getTimerPhase(status: string): ExamTimerPhase {
+  if (status === 'LATE_SUBMISSION') return 'LATE'
+  if (status === 'ENDED') return 'ENDED'
+  return 'REGULAR'
 }
 
 export function useExamTimer({
   examId,
   initialSeconds = 0,
+  initialPhase = 'REGULAR',
   syncIntervalMs = 30_000,
   onTimeUp,
   enabled = true,
-  allowOvertime = false
+  allowOvertime = false,
+  lateThresholdSeconds
 }: UseExamTimerOptions) {
   const [remainingSeconds, setRemainingSeconds] = useState(initialSeconds)
-  const [isExpired, setIsExpired] = useState(false)
+  const [phase, setPhase] = useState<ExamTimerPhase>(initialPhase)
   const [hasInitialized, setHasInitialized] = useState(false)
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const expirationNotifiedRef = useRef(false)
+  const hasFiniteLateWindow = lateThresholdSeconds !== undefined
+  const normalizedLateThresholdSeconds = Math.max(0, lateThresholdSeconds ?? 0)
 
   const onTimeUpRef = useRef(onTimeUp)
   useEffect(() => {
@@ -35,9 +50,11 @@ export function useExamTimer({
   useEffect(() => {
     if (initialSeconds > 0) {
       setRemainingSeconds(initialSeconds)
+      setPhase(initialPhase)
+      expirationNotifiedRef.current = false
       setHasInitialized(true)
     }
-  }, [initialSeconds])
+  }, [initialPhase, initialSeconds])
 
   // Sync from backend (authoritative server time)
   const syncTime = useCallback(async () => {
@@ -45,6 +62,11 @@ export function useExamTimer({
       const result = await getExamTime(examId)
       if (result.data) {
         setRemainingSeconds(result.data.remainingSeconds)
+        const serverPhase = getTimerPhase(result.data.status)
+        setPhase(serverPhase)
+        if (serverPhase !== 'ENDED') {
+          expirationNotifiedRef.current = false
+        }
         setHasInitialized(true)
       }
     } catch {
@@ -58,29 +80,56 @@ export function useExamTimer({
     setHasInitialized(true)
   }, [])
 
-  // Watch remainingSeconds to safely trigger onTimeUp (outside render/updater phase)
+  // Move between the regular and finite late-submission countdowns.
   useEffect(() => {
-    if (remainingSeconds <= 0 && !isExpired && enabled && hasInitialized) {
-      setIsExpired(true)
-      onTimeUpRef.current?.('TIME_UP')
+    if (!enabled || !hasInitialized || remainingSeconds > 0) return
+
+    if (phase === 'ENDED') {
+      if (!expirationNotifiedRef.current) {
+        expirationNotifiedRef.current = true
+        onTimeUpRef.current?.('TIME_UP')
+      }
+      return
     }
-  }, [remainingSeconds, isExpired, enabled, hasInitialized])
+
+    if (phase === 'REGULAR' && allowOvertime) {
+      // Teacher preview intentionally keeps an unbounded negative timer.
+      if (!hasFiniteLateWindow) return
+
+      if (normalizedLateThresholdSeconds > 0) {
+        setPhase('LATE')
+        setRemainingSeconds(normalizedLateThresholdSeconds)
+        return
+      }
+    }
+
+    setPhase('ENDED')
+    setRemainingSeconds(0)
+  }, [
+    allowOvertime,
+    enabled,
+    hasFiniteLateWindow,
+    hasInitialized,
+    normalizedLateThresholdSeconds,
+    phase,
+    remainingSeconds
+  ])
 
   // Local countdown (visual only — runs only when enabled)
   useEffect(() => {
-    if ((isExpired && !allowOvertime) || !enabled || !hasInitialized) return
+    if (phase === 'ENDED' || !enabled || !hasInitialized) return
 
     const timer = setInterval(() => {
       setRemainingSeconds((prev) => {
-        if (prev <= 0 && !allowOvertime) {
-          return 0
+        if (prev <= 0) {
+          return allowOvertime && !hasFiniteLateWindow ? prev - 1 : 0
         }
         return prev - 1
       })
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isExpired, enabled, allowOvertime, hasInitialized])
+  }, [allowOvertime, enabled, hasFiniteLateWindow, hasInitialized, phase])
 
   // Periodic server sync (only sync when enabled)
   useEffect(() => {
@@ -98,5 +147,11 @@ export function useExamTimer({
     }
   }, [syncTime, syncIntervalMs, enabled])
 
-  return { remainingSeconds, isExpired, syncTime, setServerTime }
+  return {
+    remainingSeconds,
+    phase,
+    isExpired: phase === 'ENDED',
+    syncTime,
+    setServerTime
+  }
 }

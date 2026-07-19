@@ -20,7 +20,10 @@ export default function CreateExamPageClient({
   const classIdNum = Number(classId)
   const router = useRouter()
   const { callApi, isLoading } = useApi()
-  const [pendingExamId, setPendingExamId] = useState<number | null>(null)
+  const [pendingExam, setPendingExam] = useState<{
+    id: number
+    hasSpecification: boolean
+  } | null>(null)
 
   const onSubmit = async (
     data: ExamFormValues,
@@ -42,7 +45,10 @@ export default function CreateExamPageClient({
 
     if (pdfFile && options?.autoExtractFromPdf) {
       // PDF uploaded + giáo viên chọn tách câu hỏi → mở hộp thoại AI trước khi điều hướng
-      setPendingExamId(result.data.id)
+      setPendingExam({
+        id: result.data.id,
+        hasSpecification: Boolean(result.data.specificationId)
+      })
     } else {
       router.push(PATH.TEACHER_EXAM_DETAIL(result.data.id))
     }
@@ -57,15 +63,16 @@ export default function CreateExamPageClient({
         submitLabel="Tạo bài thi"
       />
 
-      {pendingExamId !== null && (
+      {pendingExam !== null && (
         <PdfUploadDialog
           open
-          examId={pendingExamId}
+          examId={pendingExam.id}
+          hasSpecification={pendingExam.hasSpecification}
           onQuestionsCreated={() => {
-            router.push(PATH.TEACHER_EXAM_QUESTIONS(pendingExamId))
+            router.push(PATH.TEACHER_EXAM_QUESTIONS(pendingExam.id))
           }}
           onClose={() => {
-            router.push(PATH.TEACHER_EXAM_DETAIL(pendingExamId))
+            router.push(PATH.TEACHER_EXAM_DETAIL(pendingExam.id))
           }}
         />
       )}

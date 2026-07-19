@@ -136,6 +136,7 @@ export interface ExtractedQuestionDraft {
 
 export interface ExtractQuestionsFromPdfResult {
   questions: ExtractedQuestionDraft[]
+  schemaScript: string
 }
 
 // POST /api/exams/{examId}/execute-sql → ExecuteSqlRequestDto / ExecuteSqlResponseDto
@@ -551,6 +552,7 @@ export interface CreateExamQuestionBatch {
 }
 
 export interface CreateExamQuestionsBatchRequest {
+  schemaContext?: string
   questions: CreateExamQuestionBatch[]
 }
 
