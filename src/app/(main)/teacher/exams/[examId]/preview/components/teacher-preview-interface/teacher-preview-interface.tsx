@@ -52,6 +52,138 @@ interface TeacherPreviewInterfaceProps {
   questions: ExamQuestionItem[]
 }
 
+type SchemaMeta = NonNullable<ExecuteSqlResponse['schema']>
+
+function normalizeSchemaName(value?: string | null) {
+  return value?.trim().toLowerCase() ?? ''
+}
+
+function parseSpecificationSchemaJson(
+  rawSchemaJson: ExamSpecification['schemaJson']
+): SpecificationSchemaJsonTable[] {
+  if (Array.isArray(rawSchemaJson)) return rawSchemaJson
+  if (typeof rawSchemaJson !== 'string' || !rawSchemaJson.trim()) return []
+
+  try {
+    const parsed = JSON.parse(rawSchemaJson)
+    return Array.isArray(parsed)
+      ? (parsed as SpecificationSchemaJsonTable[])
+      : []
+  } catch {
+    return []
+  }
+}
+
+function buildSpecificationSchemaMeta(
+  specification: ExamSpecification | null
+): SchemaMeta {
+  if (!specification) return []
+
+  const schemaTables = parseSpecificationSchemaJson(specification.schemaJson)
+  if (schemaTables.length > 0) {
+    const tableNames = new Set(
+      schemaTables
+        .map((table) => normalizeSchemaName(table.tableName))
+        .filter(Boolean)
+    )
+
+    return schemaTables.map((table) => {
+      const foreignKeyByColumn = new Map<
+        string,
+        { referencesTable: string; referencesColumn: string }
+      >()
+
+      ;(table.foreignKeys || []).forEach((foreignKey) => {
+        foreignKey.sourceColumns.forEach((sourceColumn, index) => {
+          const referencesColumn = foreignKey.targetColumns[index]
+          if (!sourceColumn || !foreignKey.targetTable || !referencesColumn) {
+            return
+          }
+          foreignKeyByColumn.set(normalizeSchemaName(sourceColumn), {
+            referencesTable: foreignKey.targetTable,
+            referencesColumn
+          })
+        })
+      })
+
+      table.columns.forEach((column) => {
+        const columnKey = normalizeSchemaName(column.columnName)
+        if (
+          foreignKeyByColumn.has(columnKey) ||
+          !column.foreignKey ||
+          !column.referencesTable ||
+          !column.referencesColumn
+        ) {
+          return
+        }
+        foreignKeyByColumn.set(columnKey, {
+          referencesTable: column.referencesTable,
+          referencesColumn: column.referencesColumn
+        })
+      })
+
+      return {
+        tableName: table.tableName,
+        columns: table.columns.map((column) => {
+          const foreignKey = foreignKeyByColumn.get(
+            normalizeSchemaName(column.columnName)
+          )
+          const hasValidForeignKey = Boolean(
+            foreignKey &&
+            tableNames.has(normalizeSchemaName(foreignKey.referencesTable))
+          )
+
+          return {
+            columnName: column.columnName,
+            dataType: column.dataType,
+            primaryKey: Boolean(column.primaryKey),
+            nullable: column.nullable ?? false,
+            foreignKey: hasValidForeignKey,
+            referencesTable: hasValidForeignKey
+              ? foreignKey!.referencesTable
+              : null,
+            referencesColumn: hasValidForeignKey
+              ? foreignKey!.referencesColumn
+              : null,
+            foreignKeys: hasValidForeignKey
+              ? [
+                  {
+                    referencesTable: foreignKey!.referencesTable,
+                    referencesColumn: foreignKey!.referencesColumn
+                  }
+                ]
+              : []
+          }
+        })
+      }
+    })
+  }
+
+  return (specification.entities || []).map((entity) => ({
+    tableName: entity.entityName,
+    columns: entity.attributes.map((attribute) => ({
+      columnName: attribute.attributeName,
+      dataType: attribute.dataType,
+      primaryKey: Boolean(attribute.isPrimaryKey),
+      nullable: Boolean(attribute.isNullable),
+      foreignKey: false,
+      referencesTable: null,
+      referencesColumn: null,
+      foreignKeys: []
+    }))
+  }))
+}
+
+function hasDiagramNodes(diagramData?: string | null) {
+  if (!diagramData?.trim()) return false
+  try {
+    const parsed = JSON.parse(diagramData) as { nodes?: unknown[] }
+    return Array.isArray(parsed.nodes) && parsed.nodes.length > 0
+  } catch {
+    return false
+  }
+}
+
 export function TeacherPreviewInterface({
   exam,
   questions
@@ -80,49 +212,45 @@ export function TeacherPreviewInterface({
   )
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
 
+  const specificationSchemaMeta = useMemo(
+    () => buildSpecificationSchemaMeta(examSpecification),
+    [examSpecification]
+  )
+  const overviewSchemaMeta = useMemo(
+    () =>
+      schemaMeta && schemaMeta.length > 0
+        ? schemaMeta
+        : specificationSchemaMeta,
+    [schemaMeta, specificationSchemaMeta]
+  )
+
   const schemaTablesForOverview = useMemo(() => {
-    if (schemaMeta && schemaMeta.length > 0) {
-      return schemaMeta.map((table) => ({
-        tableName: table.tableName,
-        columns: table.columns.map((col) => ({
-          name: col.columnName,
-          type: col.dataType,
-          primaryKey: Boolean(col.primaryKey),
-          nullable: Boolean(col.nullable),
-          foreignKey: Boolean((col as { foreignKey?: boolean }).foreignKey),
-          referencesTable:
-            (col as { referencesTable?: string | null }).referencesTable ??
-            null,
-          referencesColumn:
-            (col as { referencesColumn?: string | null }).referencesColumn ??
-            null,
-          unique: Boolean((col as { unique?: boolean }).unique),
-          autoIncrement: Boolean(
-            (col as { autoIncrement?: boolean }).autoIncrement
-          )
-        }))
-      }))
-    }
-    return editorSchema.map((table) => ({
+    return overviewSchemaMeta.map((table) => ({
       tableName: table.tableName,
       columns: table.columns.map((col) => ({
-        name: col.name,
-        type: col.type,
-        primaryKey: false,
-        nullable: true,
-        foreignKey: false,
-        referencesTable: null,
-        referencesColumn: null,
-        unique: false,
-        autoIncrement: false
+        name: col.columnName,
+        type: col.dataType,
+        primaryKey: Boolean(col.primaryKey),
+        nullable: Boolean(col.nullable),
+        foreignKey: Boolean(col.foreignKey),
+        referencesTable: col.referencesTable ?? null,
+        referencesColumn: col.referencesColumn ?? null
       }))
     }))
-  }, [editorSchema, schemaMeta])
+  }, [overviewSchemaMeta])
 
   const schemaDiagramData = useMemo(() => {
-    if (!schemaMeta || schemaMeta.length === 0) return null
-    return JSON.stringify(buildInitialSchemaDiagram(schemaMeta))
-  }, [schemaMeta])
+    if (schemaMeta && schemaMeta.length > 0) {
+      return JSON.stringify(buildInitialSchemaDiagram(schemaMeta))
+    }
+    if (hasDiagramNodes(examSpecification?.schemaDiagram)) {
+      return examSpecification!.schemaDiagram!
+    }
+    if (specificationSchemaMeta.length > 0) {
+      return JSON.stringify(buildInitialSchemaDiagram(specificationSchemaMeta))
+    }
+    return null
+  }, [examSpecification, schemaMeta, specificationSchemaMeta])
 
   const applySchemaMeta = useCallback(
     (
@@ -218,37 +346,15 @@ export function TeacherPreviewInterface({
         const spec: ExamSpecification | null = res.data ?? null
         if (!spec) return
         setExamSpecification(spec)
-
-        let parsedSchemaJson: SpecificationSchemaJsonTable[] = []
-        const rawSchemaJson = spec.schemaJson
-        if (typeof rawSchemaJson === 'string' && rawSchemaJson.trim()) {
-          try {
-            const parsed = JSON.parse(rawSchemaJson)
-            if (Array.isArray(parsed))
-              parsedSchemaJson = parsed as SpecificationSchemaJsonTable[]
-          } catch {
-            parsedSchemaJson = []
-          }
-        } else if (Array.isArray(rawSchemaJson)) {
-          parsedSchemaJson = rawSchemaJson
-        }
-
-        const specTables: SchemaTable[] =
-          spec.entities?.length > 0
-            ? spec.entities.map((entity) => ({
-                tableName: entity.entityName,
-                columns: entity.attributes.map((attr) => ({
-                  name: attr.attributeName,
-                  type: attr.dataType
-                }))
-              }))
-            : parsedSchemaJson.map((table) => ({
-                tableName: table.tableName,
-                columns: table.columns.map((col) => ({
-                  name: col.columnName,
-                  type: col.dataType
-                }))
-              }))
+        const specTables: SchemaTable[] = buildSpecificationSchemaMeta(
+          spec
+        ).map((table) => ({
+          tableName: table.tableName,
+          columns: table.columns.map((column) => ({
+            name: column.columnName,
+            type: column.dataType
+          }))
+        }))
 
         // Only apply spec schema if real sandbox schema hasn't loaded yet
         setEditorSchema((current) =>
@@ -518,7 +624,7 @@ export function TeacherPreviewInterface({
                       </button>
                     </div>
                   </div>
-                  <ScrollArea className="min-h-0 flex-1">
+                  <ScrollArea className="min-h-0 flex-1 overflow-hidden">
                     {specViewMode === 'table' ? (
                       <div className="space-y-2 p-2">
                         {schemaTablesForOverview.length > 0 ? (
@@ -871,7 +977,7 @@ export function TeacherPreviewInterface({
                         </button>
                       </div>
                     </div>
-                    <ScrollArea className="flex-1">
+                    <ScrollArea className="min-h-0 flex-1 overflow-hidden">
                       {specViewMode === 'table' ? (
                         <div className="space-y-3 p-4">
                           {schemaTablesForOverview.length > 0 ? (
