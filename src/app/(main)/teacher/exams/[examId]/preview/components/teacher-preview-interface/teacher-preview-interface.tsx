@@ -624,67 +624,69 @@ export function TeacherPreviewInterface({
                       </button>
                     </div>
                   </div>
-                  <ScrollArea className="min-h-0 flex-1 overflow-hidden">
+                  <div className="min-h-0 flex-1 overflow-hidden">
                     {specViewMode === 'table' ? (
-                      <div className="space-y-2 p-2">
-                        {schemaTablesForOverview.length > 0 ? (
-                          schemaTablesForOverview.map((table) => (
-                            <div
-                              key={table.tableName}
-                              className="overflow-hidden rounded border border-border/70"
-                            >
-                              <div className="border-b border-border bg-muted/30 px-2 py-1.5 text-xs font-semibold text-primary">
-                                {table.tableName}
-                              </div>
-                              <table className="w-full text-xs">
-                                <thead className="bg-muted/20 text-muted-foreground">
-                                  <tr>
-                                    <th className="border-b border-r border-border px-2 py-1.5 text-left">
-                                      Cột
-                                    </th>
-                                    <th className="border-b border-r border-border px-2 py-1.5 text-left">
-                                      Kiểu
-                                    </th>
-                                    <th className="border-b border-border px-2 py-1.5 text-left">
-                                      Ràng buộc
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {table.columns.map((col) => (
-                                    <tr
-                                      key={`${table.tableName}-${col.name}`}
-                                      className="odd:bg-background even:bg-muted/10"
-                                    >
-                                      <td className="border-r border-border px-2 py-1 font-medium text-foreground">
-                                        {col.name}
-                                      </td>
-                                      <td className="border-r border-border px-2 py-1 font-mono text-[10px] text-muted-foreground">
-                                        {col.type}
-                                      </td>
-                                      <td className="px-2 py-1 text-[10px] text-muted-foreground">
-                                        {[
-                                          col.primaryKey ? 'PK' : null,
-                                          col.foreignKey ? 'FK' : null,
-                                          !col.nullable ? 'NOT NULL' : null
-                                        ]
-                                          .filter(Boolean)
-                                          .join(' · ')}
-                                      </td>
+                      <ScrollArea className="h-full">
+                        <div className="space-y-2 p-2">
+                          {schemaTablesForOverview.length > 0 ? (
+                            schemaTablesForOverview.map((table) => (
+                              <div
+                                key={table.tableName}
+                                className="overflow-hidden rounded border border-border/70"
+                              >
+                                <div className="border-b border-border bg-muted/30 px-2 py-1.5 text-xs font-semibold text-primary">
+                                  {table.tableName}
+                                </div>
+                                <table className="w-full text-xs">
+                                  <thead className="bg-muted/20 text-muted-foreground">
+                                    <tr>
+                                      <th className="border-b border-r border-border px-2 py-1.5 text-left">
+                                        Cột
+                                      </th>
+                                      <th className="border-b border-r border-border px-2 py-1.5 text-left">
+                                        Kiểu
+                                      </th>
+                                      <th className="border-b border-border px-2 py-1.5 text-left">
+                                        Ràng buộc
+                                      </th>
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                  </thead>
+                                  <tbody>
+                                    {table.columns.map((col) => (
+                                      <tr
+                                        key={`${table.tableName}-${col.name}`}
+                                        className="odd:bg-background even:bg-muted/10"
+                                      >
+                                        <td className="border-r border-border px-2 py-1 font-medium text-foreground">
+                                          {col.name}
+                                        </td>
+                                        <td className="border-r border-border px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                                          {col.type}
+                                        </td>
+                                        <td className="px-2 py-1 text-[10px] text-muted-foreground">
+                                          {[
+                                            col.primaryKey ? 'PK' : null,
+                                            col.foreignKey ? 'FK' : null,
+                                            !col.nullable ? 'NOT NULL' : null
+                                          ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="flex h-20 items-center justify-center text-xs text-muted-foreground">
+                              Chưa có thông tin schema
                             </div>
-                          ))
-                        ) : (
-                          <div className="flex h-20 items-center justify-center text-xs text-muted-foreground">
-                            Chưa có thông tin schema
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      </ScrollArea>
                     ) : (
-                      <div className="min-h-[300px]">
+                      <div className="h-full min-h-[300px] w-full">
                         {schemaDiagramData ? (
                           <TeacherSchemaDiagram
                             diagramData={schemaDiagramData}
@@ -697,7 +699,7 @@ export function TeacherPreviewInterface({
                         )}
                       </div>
                     )}
-                  </ScrollArea>
+                  </div>
                 </div>
               )}
             </div>
@@ -977,67 +979,69 @@ export function TeacherPreviewInterface({
                         </button>
                       </div>
                     </div>
-                    <ScrollArea className="min-h-0 flex-1 overflow-hidden">
+                    <div className="min-h-0 flex-1 overflow-hidden">
                       {specViewMode === 'table' ? (
-                        <div className="space-y-3 p-4">
-                          {schemaTablesForOverview.length > 0 ? (
-                            schemaTablesForOverview.map((table) => (
-                              <div
-                                key={table.tableName}
-                                className="overflow-hidden rounded-lg border border-border"
-                              >
-                                <div className="border-b border-border bg-muted/50 px-3 py-2 text-sm font-semibold text-primary">
-                                  {table.tableName}
-                                </div>
-                                <table className="w-full text-sm">
-                                  <thead className="bg-muted/30 text-muted-foreground">
-                                    <tr>
-                                      <th className="border-b border-r border-border px-3 py-2 text-left">
-                                        Cột
-                                      </th>
-                                      <th className="border-b border-r border-border px-3 py-2 text-left">
-                                        Kiểu
-                                      </th>
-                                      <th className="border-b border-border px-3 py-2 text-left">
-                                        Ràng buộc
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {table.columns.map((col) => (
-                                      <tr
-                                        key={`${table.tableName}-${col.name}`}
-                                        className="odd:bg-background even:bg-muted/10"
-                                      >
-                                        <td className="border-r border-border px-3 py-1.5 font-medium">
-                                          {col.name}
-                                        </td>
-                                        <td className="border-r border-border px-3 py-1.5 font-mono text-xs text-muted-foreground">
-                                          {col.type}
-                                        </td>
-                                        <td className="px-3 py-1.5 text-xs text-muted-foreground">
-                                          {[
-                                            col.primaryKey ? 'PK' : null,
-                                            col.foreignKey ? 'FK' : null,
-                                            !col.nullable ? 'NOT NULL' : null
-                                          ]
-                                            .filter(Boolean)
-                                            .join(' · ')}
-                                        </td>
+                        <ScrollArea className="h-full">
+                          <div className="space-y-3 p-4">
+                            {schemaTablesForOverview.length > 0 ? (
+                              schemaTablesForOverview.map((table) => (
+                                <div
+                                  key={table.tableName}
+                                  className="overflow-hidden rounded-lg border border-border"
+                                >
+                                  <div className="border-b border-border bg-muted/50 px-3 py-2 text-sm font-semibold text-primary">
+                                    {table.tableName}
+                                  </div>
+                                  <table className="w-full text-sm">
+                                    <thead className="bg-muted/30 text-muted-foreground">
+                                      <tr>
+                                        <th className="border-b border-r border-border px-3 py-2 text-left">
+                                          Cột
+                                        </th>
+                                        <th className="border-b border-r border-border px-3 py-2 text-left">
+                                          Kiểu
+                                        </th>
+                                        <th className="border-b border-border px-3 py-2 text-left">
+                                          Ràng buộc
+                                        </th>
                                       </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                                    </thead>
+                                    <tbody>
+                                      {table.columns.map((col) => (
+                                        <tr
+                                          key={`${table.tableName}-${col.name}`}
+                                          className="odd:bg-background even:bg-muted/10"
+                                        >
+                                          <td className="border-r border-border px-3 py-1.5 font-medium">
+                                            {col.name}
+                                          </td>
+                                          <td className="border-r border-border px-3 py-1.5 font-mono text-xs text-muted-foreground">
+                                            {col.type}
+                                          </td>
+                                          <td className="px-3 py-1.5 text-xs text-muted-foreground">
+                                            {[
+                                              col.primaryKey ? 'PK' : null,
+                                              col.foreignKey ? 'FK' : null,
+                                              !col.nullable ? 'NOT NULL' : null
+                                            ]
+                                              .filter(Boolean)
+                                              .join(' · ')}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+                                Chưa có thông tin schema
                               </div>
-                            ))
-                          ) : (
-                            <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-                              Chưa có thông tin schema
-                            </div>
-                          )}
-                        </div>
+                            )}
+                          </div>
+                        </ScrollArea>
                       ) : (
-                        <div className="h-full min-h-[400px]">
+                        <div className="h-full min-h-[400px] w-full">
                           {schemaDiagramData ? (
                             <TeacherSchemaDiagram
                               diagramData={schemaDiagramData}
@@ -1050,7 +1054,7 @@ export function TeacherPreviewInterface({
                           )}
                         </div>
                       )}
-                    </ScrollArea>
+                    </div>
                   </div>
                 )
               ) : examTake.currentQuestion ? (
