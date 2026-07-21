@@ -39,6 +39,22 @@ function findTestCaseByLabel(
   )
 }
 
+function getRawTestCaseWeight(testCase: RoutineTestCase): number {
+  if (
+    typeof testCase.score_weight === 'number' &&
+    Number.isFinite(testCase.score_weight)
+  ) {
+    return Math.abs(testCase.score_weight)
+  }
+  if (
+    typeof testCase.penalty_value === 'number' &&
+    Number.isFinite(testCase.penalty_value)
+  ) {
+    return Math.abs(testCase.penalty_value)
+  }
+  return 1
+}
+
 export function RoutineTestGrader({
   examId,
   rubric,
@@ -86,17 +102,19 @@ export function RoutineTestGrader({
       const metadataHasNoPoints = cases.length > 0 && routines.length > 0
       const testCasePointPool = effectiveTotalPoints
 
-      const totalWeight =
-        cases.reduce((sum, tc) => {
-          const weight = Math.abs(Number(tc.score_weight) || 0)
-          return sum + (weight > 0 ? weight : 0)
-        }, 0) || cases.length
+      const rawWeights = new Map(
+        cases.map((testCase) => [testCase, getRawTestCaseWeight(testCase)])
+      )
+      const rawWeightTotal = Array.from(rawWeights.values()).reduce(
+        (sum, weight) => sum + weight,
+        0
+      )
+      const useEqualWeights = rawWeightTotal === 0
+      const totalWeight = useEqualWeights ? cases.length : rawWeightTotal
 
       const maxPointsForCase = (tc: RoutineTestCase) => {
-        const weight =
-          Math.abs(Number(tc.score_weight) || 0) > 0
-            ? Math.abs(Number(tc.score_weight) || 0)
-            : 1
+        if (totalWeight === 0) return 0
+        const weight = useEqualWeights ? 1 : (rawWeights.get(tc) ?? 0)
         return testCasePointPool * (weight / totalWeight)
       }
 

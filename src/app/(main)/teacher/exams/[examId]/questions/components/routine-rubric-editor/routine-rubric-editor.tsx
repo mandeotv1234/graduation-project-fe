@@ -100,6 +100,22 @@ function normalizeRoutineTestCase(
   }
 }
 
+function normalizeRoutine(
+  routine: RoutineRubricRoutine,
+  questionType: 'FUNCTION' | 'STORED_PROCEDURE'
+): RoutineRubricRoutine {
+  return {
+    ...routine,
+    expected_type: routine.expected_type || questionType,
+    parameters: Array.isArray(routine.parameters)
+      ? routine.parameters.map((parameter) => ({
+          ...parameter,
+          expected_mode: parameter.expected_mode || 'IN'
+        }))
+      : []
+  }
+}
+
 function normalizeRoutinePayload(
   payload: GradingRubric['grading_payload'] | undefined,
   questionType: 'FUNCTION' | 'STORED_PROCEDURE' = 'STORED_PROCEDURE'
@@ -142,7 +158,9 @@ function normalizeRoutinePayload(
   return {
     grading_settings: settings,
     routines: Array.isArray(payloadRecord.routines)
-      ? (payloadRecord.routines as RoutineRubricRoutine[])
+      ? (payloadRecord.routines as RoutineRubricRoutine[]).map((routine) =>
+          normalizeRoutine(routine, questionType)
+        )
       : [],
     test_cases: Array.isArray(payloadRecord.test_cases)
       ? (payloadRecord.test_cases as RoutineTestCase[]).map((tc, index) =>
