@@ -9,8 +9,8 @@ export interface FeedbackItem {
   uiUxRating: number
   systemReliabilityRating: number
   npsScore: number
-  featureRequests?: string
-  generalFeedback?: string
+  featureRequests?: string | null
+  generalFeedback?: string | null
   createdAt: string
 }
 

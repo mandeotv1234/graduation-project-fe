@@ -28,6 +28,14 @@ export async function getAdminFeedbacks(
   }) as Promise<PaginatedApiResponse<FeedbackItem>>
 }
 
+export async function getAdminFeedback(
+  feedbackId: number
+): Promise<ApiResponse<FeedbackItem>> {
+  return apiClient.get<FeedbackItem>(ENDPOINTS.ADMIN_FEEDBACK(feedbackId), {
+    cache: 'no-store'
+  })
+}
+
 export async function getAdminUsers(
   params: AdminPaginationParams = {}
 ): Promise<PaginatedApiResponse<AdminUserItem>> {

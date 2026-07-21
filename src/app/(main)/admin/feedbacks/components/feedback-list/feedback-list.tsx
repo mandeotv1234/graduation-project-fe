@@ -2,8 +2,11 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { Star, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 import { getAdminFeedbacks } from '@/lib/actions/admin.action'
+import { PATH } from '@/lib/constants'
 import type { FeedbackItem } from '@/lib/types/admin.type'
 import type { PaginationMeta } from '@/lib/types/teacher.type'
 import { cn } from '@/lib/utils'
@@ -50,6 +53,7 @@ function NpsScore({ value }: { value: number }) {
 }
 
 export function FeedbackList() {
+  const router = useRouter()
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([])
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
   const [page, setPage] = useState(1)
@@ -119,17 +123,22 @@ export function FeedbackList() {
               {feedbacks.map((fb) => (
                 <tr
                   key={fb.id}
-                  className="hover:bg-surface-container/30 transition-colors"
+                  onClick={() => router.push(PATH.ADMIN_FEEDBACK_DETAIL(fb.id))}
+                  className="cursor-pointer transition-colors hover:bg-surface-container/30"
                 >
                   <td className="px-4 py-3">
-                    <div>
+                    <Link
+                      href={PATH.ADMIN_FEEDBACK_DETAIL(fb.id)}
+                      onClick={(event) => event.stopPropagation()}
+                      className="block rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    >
                       <p className="font-medium text-foreground">
                         {fb.studentName}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {fb.studentEmail}
                       </p>
-                    </div>
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     #{fb.examId}
