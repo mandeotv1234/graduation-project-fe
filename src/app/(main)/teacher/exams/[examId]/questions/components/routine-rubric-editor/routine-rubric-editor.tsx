@@ -1182,7 +1182,7 @@ export function RoutineRubricEditor({
               <p className="text-xs text-muted-foreground">
                 {questionType === 'STORED_PROCEDURE'
                   ? 'Backend dùng metadata routine từ rubric để kiểm tra tên, loại và số lượng tham số. Với stored procedure có test case, metadata chỉ là kiểm tra cấu trúc; điểm chấm lấy từ trọng số các test case.'
-                  : 'Backend dùng metadata routine từ rubric để kiểm tra tên, loại và số lượng tham số. Với function, metadata vẫn tham gia điểm theo logic chấm routine hiện tại.'}
+                  : 'Function phải đúng tên, loại, kiểu trả về và contract tham số trước khi chạy test case. Metadata là điều kiện bắt buộc, không cộng điểm; test case chiếm 100% điểm.'}
               </p>
             </div>
           </div>
