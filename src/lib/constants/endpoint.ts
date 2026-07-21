@@ -157,6 +157,7 @@ export const ENDPOINTS = Object.freeze({
 
   // Admin
   ADMIN_FEEDBACKS: '/admin/feedbacks',
+  ADMIN_FEEDBACK: (feedbackId: number) => `/admin/feedbacks/${feedbackId}`,
   ADMIN_USERS: '/admin/users',
   ADMIN_USER_ROLE: (userId: number) => `/admin/users/${userId}/role`,
 

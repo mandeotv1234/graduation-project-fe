@@ -100,6 +100,22 @@ function normalizeRoutineTestCase(
   }
 }
 
+function normalizeRoutine(
+  routine: RoutineRubricRoutine,
+  questionType: 'FUNCTION' | 'STORED_PROCEDURE'
+): RoutineRubricRoutine {
+  return {
+    ...routine,
+    expected_type: routine.expected_type || questionType,
+    parameters: Array.isArray(routine.parameters)
+      ? routine.parameters.map((parameter) => ({
+          ...parameter,
+          expected_mode: parameter.expected_mode || 'IN'
+        }))
+      : []
+  }
+}
+
 function normalizeRoutinePayload(
   payload: GradingRubric['grading_payload'] | undefined,
   questionType: 'FUNCTION' | 'STORED_PROCEDURE' = 'STORED_PROCEDURE'
@@ -142,7 +158,9 @@ function normalizeRoutinePayload(
   return {
     grading_settings: settings,
     routines: Array.isArray(payloadRecord.routines)
-      ? (payloadRecord.routines as RoutineRubricRoutine[])
+      ? (payloadRecord.routines as RoutineRubricRoutine[]).map((routine) =>
+          normalizeRoutine(routine, questionType)
+        )
       : [],
     test_cases: Array.isArray(payloadRecord.test_cases)
       ? (payloadRecord.test_cases as RoutineTestCase[]).map((tc, index) =>
@@ -1182,7 +1200,7 @@ export function RoutineRubricEditor({
               <p className="text-xs text-muted-foreground">
                 {questionType === 'STORED_PROCEDURE'
                   ? 'Backend dùng metadata routine từ rubric để kiểm tra tên, loại và số lượng tham số. Với stored procedure có test case, metadata chỉ là kiểm tra cấu trúc; điểm chấm lấy từ trọng số các test case.'
-                  : 'Backend dùng metadata routine từ rubric để kiểm tra tên, loại và số lượng tham số. Với function, metadata vẫn tham gia điểm theo logic chấm routine hiện tại.'}
+                  : 'Function phải đúng tên, loại, kiểu trả về và contract tham số trước khi chạy test case. Metadata là điều kiện bắt buộc, không cộng điểm; test case chiếm 100% điểm.'}
               </p>
             </div>
           </div>

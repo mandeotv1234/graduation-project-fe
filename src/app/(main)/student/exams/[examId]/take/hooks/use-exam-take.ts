@@ -10,14 +10,28 @@ import {
   StudentExamDetail,
   ExecuteSqlResponse,
   SubmitExamResponse,
-  TeacherExamResultDetail
+  StudentExamResultDetail
 } from '@/lib/types'
 
 const GRADING_POLL_INTERVAL_MS = 3000
-const GRADING_POLL_TIMEOUT_MS = 5 * 60 * 1000
+
+function isGradingComplete(
+  result: Pick<SubmitExamResponse, 'status' | 'totalScore' | 'maxScore'>,
+  requireScore: boolean
+) {
+  if (result.status !== 'COMPLETED') return false
+  if (!requireScore) return true
+
+  return (
+    typeof result.totalScore === 'number' &&
+    Number.isFinite(result.totalScore) &&
+    typeof result.maxScore === 'number' &&
+    Number.isFinite(result.maxScore)
+  )
+}
 
 function mapResultDetailToSubmitResponse(
-  detail: TeacherExamResultDetail,
+  detail: StudentExamResultDetail,
   previous: SubmitExamResponse | null,
   examId: number,
   resultId: number
@@ -28,8 +42,8 @@ function mapResultDetailToSubmitResponse(
     studentId: detail.studentId,
     submittedAt: detail.submittedAt,
     status: detail.status,
-    totalScore: detail.totalScore,
-    maxScore: detail.maxScore,
+    totalScore: detail.totalScore ?? undefined,
+    maxScore: detail.maxScore ?? undefined,
     correctCount: detail.correctCount,
     totalQuestions: detail.totalQuestions,
     details: detail.questionResults.map((question) => ({
@@ -76,6 +90,7 @@ export function useExamTake(
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [isCloudError, setIsCloudError] = useState(false)
   const isSubmittingRef = useRef(false)
+  const shouldShowResult = Boolean(exam.settings?.showResultAfterSubmit)
 
   const currentQuestion = questions[currentQuestionIndex]
 
@@ -159,16 +174,27 @@ export function useExamTake(
       const response = await callApi(submitExam(exam.examId, submitData), false)
 
       if (response.data) {
-        if (response.data.status === 'COMPLETED') {
+        if (isGradingComplete(response.data, shouldShowResult)) {
           setSubmitResult(response.data)
           setIsSubmitted(true)
-        } else {
-          // ACCEPTED or PENDING — save details for later merge with grading result
+        } else if (
+          response.data.status === 'PENDING' ||
+          response.data.status === 'GRADING' ||
+          response.data.status === 'COMPLETED'
+        ) {
+          // A COMPLETED response without a score is not ready for display yet.
           setSubmitResult(response.data)
           setIsGrading(true)
           toast.success(
             'Bài thi đã được nộp thành công. Vui lòng đợi trong giây lát để hệ thống chấm điểm...'
           )
+        } else {
+          setSubmitResult(response.data)
+          setIsGrading(false)
+          toast.error(
+            'Chấm bài thất bại. Bạn có thể xem trạng thái trong trang kết quả.'
+          )
+          router.push(PATH.STUDENT_EXAMS)
         }
       } else {
         // If we get an error response (like 401/403/500) during submission,
@@ -188,7 +214,15 @@ export function useExamTake(
       // Allow retry if failed (or just keep it locked if success)
       isSubmittingRef.current = false
     }
-  }, [questions, answers, exam.examId, callApi, isSubmitted])
+  }, [
+    questions,
+    answers,
+    exam.examId,
+    callApi,
+    isSubmitted,
+    router,
+    shouldShowResult
+  ])
 
   useEffect(() => {
     const resultId = submitResult?.resultId
@@ -196,7 +230,6 @@ export function useExamTake(
 
     let cancelled = false
     let timer: ReturnType<typeof setTimeout> | undefined
-    const startedAt = Date.now()
     const pollingResultId = resultId
 
     function scheduleNextPoll() {
@@ -209,18 +242,20 @@ export function useExamTake(
         if (cancelled) return
 
         const detail = response.data
-        if (detail?.status === 'COMPLETED') {
-          setSubmitResult((prev) =>
-            mapResultDetailToSubmitResponse(
-              detail,
-              prev,
-              exam.examId,
-              pollingResultId
-            )
+        if (detail) {
+          const nextResult = mapResultDetailToSubmitResponse(
+            detail,
+            submitResult,
+            exam.examId,
+            pollingResultId
           )
-          setIsGrading(false)
-          setIsSubmitted(true)
-          return
+
+          if (isGradingComplete(nextResult, shouldShowResult)) {
+            setSubmitResult(nextResult)
+            setIsGrading(false)
+            setIsSubmitted(true)
+            return
+          }
         }
 
         if (detail?.status === 'FAILED' || detail?.status === 'SYSTEM_ERROR') {
@@ -243,14 +278,6 @@ export function useExamTake(
         console.warn('[useExamTake] Poll grading result failed:', error)
       }
 
-      if (Date.now() - startedAt >= GRADING_POLL_TIMEOUT_MS) {
-        toast.info(
-          'Bài đã được nộp và vẫn đang chấm. Bạn có thể theo dõi kết quả trong danh sách bài thi.'
-        )
-        router.push(PATH.STUDENT_EXAMS)
-        return
-      }
-
       if (!cancelled) {
         scheduleNextPoll()
       }
@@ -262,7 +289,14 @@ export function useExamTake(
       cancelled = true
       if (timer) clearTimeout(timer)
     }
-  }, [exam.examId, isGrading, isSubmitted, router, submitResult?.resultId])
+  }, [
+    exam.examId,
+    isGrading,
+    isSubmitted,
+    router,
+    shouldShowResult,
+    submitResult
+  ])
 
   const handleBackToExams = useCallback(() => {
     router.push(PATH.STUDENT_EXAMS)

@@ -17,7 +17,7 @@ import {
   StudentExamResultResponse,
   StudentFeedbackResponse,
   PaginatedResult,
-  TeacherExamResultDetail
+  StudentExamResultDetail
 } from '@/lib/types'
 
 export interface PaginationParams {
@@ -148,8 +148,8 @@ export async function getMyResults(
 
 export async function getMyResultDetail(
   resultId: number
-): Promise<ApiResponse<TeacherExamResultDetail>> {
-  return apiClient.get<TeacherExamResultDetail>(
+): Promise<ApiResponse<StudentExamResultDetail>> {
+  return apiClient.get<StudentExamResultDetail>(
     ENDPOINTS.MY_RESULT_DETAIL(resultId),
     {
       cache: 'no-store'

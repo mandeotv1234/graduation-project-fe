@@ -35,6 +35,15 @@ export default async function StudentResultDetailPage({
   }
 
   const result = response.data
+  if (result.status !== 'COMPLETED') {
+    return <ResultError message="Bài làm đang được hệ thống chấm điểm." />
+  }
+  if (result.totalScore === null || result.maxScore === null) {
+    return (
+      <ResultError message="Giáo viên chưa cho phép xem kết quả bài làm này." />
+    )
+  }
+
   const progressExamId = await resolveProgressExamId(
     parsedResultId,
     result.examId

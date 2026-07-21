@@ -47,6 +47,8 @@ export const PATH = {
   // Admin paths
   ADMIN: '/admin',
   ADMIN_FEEDBACKS: '/admin/feedbacks',
+  ADMIN_FEEDBACK_DETAIL: (feedbackId: number) =>
+    `/admin/feedbacks/${feedbackId}`,
   ADMIN_USERS: '/admin/users'
 }
 

@@ -39,6 +39,22 @@ function findTestCaseByLabel(
   )
 }
 
+function getRawTestCaseWeight(testCase: RoutineTestCase): number {
+  if (
+    typeof testCase.score_weight === 'number' &&
+    Number.isFinite(testCase.score_weight)
+  ) {
+    return Math.abs(testCase.score_weight)
+  }
+  if (
+    typeof testCase.penalty_value === 'number' &&
+    Number.isFinite(testCase.penalty_value)
+  ) {
+    return Math.abs(testCase.penalty_value)
+  }
+  return 1
+}
+
 export function RoutineTestGrader({
   examId,
   rubric,
@@ -67,58 +83,48 @@ export function RoutineTestGrader({
       ? totalPoints
       : rubricTotalPoints
 
-  const {
-    testCases,
-    metadataDiagnosticOnly,
-    getTestCaseMaxPoints,
-    whiteboxRules
-  } = useMemo(() => {
-    const payload =
-      rubric?.grading_payload && typeof rubric.grading_payload === 'object'
-        ? (rubric.grading_payload as Record<string, unknown>)
-        : null
+  const { testCases, metadataNonScoring, getTestCaseMaxPoints, whiteboxRules } =
+    useMemo(() => {
+      const payload =
+        rubric?.grading_payload && typeof rubric.grading_payload === 'object'
+          ? (rubric.grading_payload as Record<string, unknown>)
+          : null
 
-    const cases = Array.isArray(payload?.test_cases)
-      ? (payload.test_cases as RoutineTestCase[])
-      : []
+      const cases = Array.isArray(payload?.test_cases)
+        ? (payload.test_cases as RoutineTestCase[])
+        : []
 
-    const routines = Array.isArray(payload?.routines) ? payload.routines : []
-    const rules = Array.isArray(payload?.whitebox_rules)
-      ? (payload.whitebox_rules as WhiteboxRule[])
-      : []
+      const routines = Array.isArray(payload?.routines) ? payload.routines : []
+      const rules = Array.isArray(payload?.whitebox_rules)
+        ? (payload.whitebox_rules as WhiteboxRule[])
+        : []
 
-    const diagnosticOnly =
-      rubric?.question_category === 'STORED_PROCEDURE' &&
-      cases.length > 0 &&
-      routines.length > 0
+      const metadataHasNoPoints = cases.length > 0 && routines.length > 0
+      const testCasePointPool = effectiveTotalPoints
 
-    const testCasePointPool = diagnosticOnly
-      ? effectiveTotalPoints
-      : cases.length > 0
-        ? effectiveTotalPoints * 0.8
-        : effectiveTotalPoints
+      const rawWeights = new Map(
+        cases.map((testCase) => [testCase, getRawTestCaseWeight(testCase)])
+      )
+      const rawWeightTotal = Array.from(rawWeights.values()).reduce(
+        (sum, weight) => sum + weight,
+        0
+      )
+      const useEqualWeights = rawWeightTotal === 0
+      const totalWeight = useEqualWeights ? cases.length : rawWeightTotal
 
-    const totalWeight =
-      cases.reduce((sum, tc) => {
-        const weight = Math.abs(Number(tc.score_weight) || 0)
-        return sum + (weight > 0 ? weight : 0)
-      }, 0) || cases.length
+      const maxPointsForCase = (tc: RoutineTestCase) => {
+        if (totalWeight === 0) return 0
+        const weight = useEqualWeights ? 1 : (rawWeights.get(tc) ?? 0)
+        return testCasePointPool * (weight / totalWeight)
+      }
 
-    const maxPointsForCase = (tc: RoutineTestCase) => {
-      const weight =
-        Math.abs(Number(tc.score_weight) || 0) > 0
-          ? Math.abs(Number(tc.score_weight) || 0)
-          : 1
-      return testCasePointPool * (weight / totalWeight)
-    }
-
-    return {
-      testCases: cases,
-      metadataDiagnosticOnly: diagnosticOnly,
-      getTestCaseMaxPoints: maxPointsForCase,
-      whiteboxRules: rules
-    }
-  }, [rubric, effectiveTotalPoints])
+      return {
+        testCases: cases,
+        metadataNonScoring: metadataHasNoPoints,
+        getTestCaseMaxPoints: maxPointsForCase,
+        whiteboxRules: rules
+      }
+    }, [rubric, effectiveTotalPoints])
 
   const handleTest = async () => {
     if (!rubric || !studentSql.trim()) {
@@ -172,7 +178,7 @@ export function RoutineTestGrader({
       )
     }
 
-    if (metadataDiagnosticOnly) {
+    if (metadataNonScoring) {
       return (
         <span className="shrink-0 text-right text-muted-foreground">-</span>
       )

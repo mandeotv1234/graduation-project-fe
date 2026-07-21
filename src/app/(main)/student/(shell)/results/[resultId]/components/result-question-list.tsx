@@ -4,11 +4,11 @@ import DOMPurify from 'dompurify'
 import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { SqlViewer } from '@/components/shared/sql-viewer/sql-viewer'
-import type { QuestionResultDetail } from '@/lib/types'
+import type { StudentQuestionResultDetail } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 interface ResultQuestionListProps {
-  questionResults: QuestionResultDetail[]
+  questionResults: StudentQuestionResultDetail[]
 }
 
 export function ResultQuestionList({
@@ -31,7 +31,7 @@ function QuestionResultCard({
   question,
   index
 }: {
-  question: QuestionResultDetail
+  question: StudentQuestionResultDetail
   index: number
 }) {
   const isSuccess = question.isCorrect && !question.errorMessage
@@ -101,29 +101,33 @@ function QuestionResultCard({
           </div>
         )}
 
-        {question.gradingTrace?.items?.filter((item) => item.kind === 'WHITEBOX_CHECK').length ? (
+        {question.gradingTrace?.items?.filter(
+          (item) => item.kind === 'WHITEBOX_CHECK'
+        ).length ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
             <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-amber-700 dark:text-amber-400">
               <AlertCircle className="h-4 w-4" />
               Trừ điểm phương pháp (cách viết câu lệnh)
             </div>
             <ul className="space-y-1.5">
-              {question.gradingTrace.items.filter((item) => item.kind === 'WHITEBOX_CHECK').map((item, i) => (
-                <li
-                  key={i}
-                  className="flex items-start justify-between gap-3 text-sm text-amber-800 dark:text-amber-300"
-                >
-                  <span>
-                    {item.label.replace(/^\[Whitebox\]\s*/, '')}
-                    {item.message ? ` — ${item.message}` : ''}
-                  </span>
-                  {item.deductedPoints != null && item.deductedPoints > 0 && (
-                    <span className="shrink-0 font-semibold">
-                      −{Number(item.deductedPoints).toFixed(2)}đ
+              {question.gradingTrace.items
+                .filter((item) => item.kind === 'WHITEBOX_CHECK')
+                .map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start justify-between gap-3 text-sm text-amber-800 dark:text-amber-300"
+                  >
+                    <span>
+                      {item.label.replace(/^\[Whitebox\]\s*/, '')}
+                      {item.message ? ` — ${item.message}` : ''}
                     </span>
-                  )}
-                </li>
-              ))}
+                    {item.deductedPoints != null && item.deductedPoints > 0 && (
+                      <span className="shrink-0 font-semibold">
+                        −{Number(item.deductedPoints).toFixed(2)}đ
+                      </span>
+                    )}
+                  </li>
+                ))}
             </ul>
           </div>
         ) : null}

@@ -370,6 +370,22 @@ export interface TeacherExamResultDetail extends TeacherExamResult {
   lastGradedAt?: string
 }
 
+export interface StudentExamResultDetail extends Omit<
+  TeacherExamResultDetail,
+  'totalScore' | 'maxScore' | 'questionResults'
+> {
+  totalScore: number | null
+  maxScore: number | null
+  questionResults: StudentQuestionResultDetail[]
+}
+
+export interface StudentQuestionResultDetail extends Omit<
+  QuestionResultDetail,
+  'correctQuery'
+> {
+  correctQuery: string | null
+}
+
 export interface QuestionResultDetail {
   questionId: number
   // ExamSubmission.id for the per-question submission — used by override API
