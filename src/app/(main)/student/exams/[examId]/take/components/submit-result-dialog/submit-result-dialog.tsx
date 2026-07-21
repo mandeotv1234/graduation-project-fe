@@ -13,7 +13,8 @@ import {
   ArrowLeft,
   AlertCircle,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react'
 import { SubmitExamResponse } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -39,8 +40,33 @@ export function SubmitResultDialog({
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
 
+  const totalScore =
+    typeof result.totalScore === 'number' && Number.isFinite(result.totalScore)
+      ? result.totalScore
+      : null
+  const maxScore =
+    typeof result.maxScore === 'number' && Number.isFinite(result.maxScore)
+      ? result.maxScore
+      : null
+
   const toggleExpand = (id: number) => {
     setExpandedQuestions((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  if (result.status !== 'COMPLETED') {
+    return (
+      <div className={styles.dialogOverlay}>
+        <div className={cn(styles.resultCard, 'max-w-xl p-12 text-center')}>
+          <Loader2 className="mx-auto mb-6 h-12 w-12 animate-spin text-primary" />
+          <h2 className="mb-4 text-2xl font-bold text-foreground">
+            Hệ thống đang chấm bài...
+          </h2>
+          <p className="text-muted-foreground">
+            Bài làm đã được ghi nhận. Kết quả sẽ hiển thị ngay khi chấm xong.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   // Handle case where result is restricted
@@ -90,17 +116,23 @@ export function SubmitResultDialog({
     )
   }
 
-  const hasValidScores =
-    typeof result.totalScore === 'number' &&
-    typeof result.maxScore === 'number' &&
-    result.maxScore > 0
+  if (totalScore === null || maxScore === null) {
+    return (
+      <div className={styles.dialogOverlay}>
+        <div className={cn(styles.resultCard, 'max-w-xl p-12 text-center')}>
+          <Loader2 className="mx-auto mb-6 h-12 w-12 animate-spin text-primary" />
+          <h2 className="mb-4 text-2xl font-bold text-foreground">
+            Đang đồng bộ kết quả...
+          </h2>
+          <p className="text-muted-foreground">
+            Hệ thống đã chấm xong và đang tải điểm bài làm của bạn.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
-  const isSuccess =
-    hasValidScores &&
-    result.totalScore !== undefined &&
-    result.maxScore !== undefined
-      ? result.totalScore >= result.maxScore * 0.5
-      : false
+  const isSuccess = maxScore > 0 && totalScore >= maxScore * 0.5
 
   return (
     <>
@@ -130,8 +162,8 @@ export function SubmitResultDialog({
           <div className={styles.statsGrid}>
             <div className={styles.statItem}>
               <div className={styles.value}>
-                <span className={styles.big}>{result.totalScore || 0}</span>
-                <span className={styles.small}>/{result.maxScore || 0}</span>
+                <span className={styles.big}>{totalScore}</span>
+                <span className={styles.small}>/{maxScore}</span>
               </div>
               <span className={styles.label}>Điểm số</span>
             </div>
@@ -139,12 +171,7 @@ export function SubmitResultDialog({
             <div className={styles.statItem}>
               <div className={styles.value}>
                 <span className={styles.big}>
-                  {result.maxScore
-                    ? (
-                        ((result.totalScore || 0) / result.maxScore) *
-                        100
-                      ).toFixed(1)
-                    : 0}
+                  {maxScore ? ((totalScore / maxScore) * 100).toFixed(1) : 0}
                 </span>
                 <span className={styles.small}>%</span>
               </div>

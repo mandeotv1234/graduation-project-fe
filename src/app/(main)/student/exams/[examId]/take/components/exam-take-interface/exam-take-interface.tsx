@@ -540,7 +540,8 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
   // Exam logic hooks (always called, never conditionally)
   const examTake = useExamTake(exam, questions)
 
-  const examActive = sessionStarted && !examTake.isSubmitted
+  const examActive =
+    sessionStarted && !examTake.isSubmitted && !examTake.isGrading
 
   const { bypassAntiCheat } = useAntiCheat({
     examId: exam.examId,
@@ -616,7 +617,16 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         status: string
         reason?: string
       } & SubmitExamResponse
-      if (result.status === 'COMPLETED') {
+      const shouldShowResult = Boolean(exam.settings?.showResultAfterSubmit)
+      const hasCompletedResult =
+        result.status === 'COMPLETED' &&
+        (!shouldShowResult ||
+          (typeof result.totalScore === 'number' &&
+            Number.isFinite(result.totalScore) &&
+            typeof result.maxScore === 'number' &&
+            Number.isFinite(result.maxScore)))
+
+      if (hasCompletedResult) {
         examTake.setSubmitResult((prev) => ({
           ...(prev || {}),
           ...result,
@@ -625,7 +635,10 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
         }))
         examTake.setIsGrading(false)
         examTake.setIsSubmitted(true)
-      } else if (result.status === 'FAILED') {
+      } else if (
+        result.status === 'FAILED' ||
+        result.status === 'SYSTEM_ERROR'
+      ) {
         toast.error(
           'Chấm bài thất bại: ' + (result.reason || 'Lỗi không xác định')
         )
@@ -981,7 +994,7 @@ export function ExamTakeInterface({ exam, questions }: ExamTakeInterfaceProps) {
     return (
       <SubmitResultDialog
         result={examTake.submitResult}
-        showResult={exam.settings?.showResultAfterSubmit}
+        showResult={Boolean(exam.settings?.showResultAfterSubmit)}
         onBack={examTake.handleBackToExams}
       />
     )

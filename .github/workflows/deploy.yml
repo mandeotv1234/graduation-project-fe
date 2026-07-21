@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+      - feature/GRAD-228-Fix-UI-Routine-Grading-Display
 
 env:
   REGISTRY: registry.digitalocean.com/graduation
