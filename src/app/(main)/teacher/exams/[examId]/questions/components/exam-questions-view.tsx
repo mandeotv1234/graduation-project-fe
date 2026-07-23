@@ -510,6 +510,33 @@ export function ExamQuestionsView({
     id: number,
     data: UpdateExamQuestionRequest
   ) => {
+    if (
+      !Number.isFinite(data.points) ||
+      data.points < 0.1 ||
+      data.points > 10 ||
+      Math.abs(data.points * 100 - Math.round(data.points * 100)) > 1e-8
+    ) {
+      toast.error(
+        'Điểm mỗi câu phải từ 0.1 đến 10 và có tối đa 2 chữ số thập phân'
+      )
+      return
+    }
+    const difficultyLevel = data.difficultyLevel ?? 1
+    if (
+      !Number.isInteger(difficultyLevel) ||
+      difficultyLevel < 1 ||
+      difficultyLevel > 5
+    ) {
+      toast.error('Độ khó câu hỏi phải là số nguyên từ 1 đến 5')
+      return
+    }
+    const otherPoints = questions
+      .filter((question) => question.id !== id)
+      .reduce((sum, question) => sum + question.points, 0)
+    if (otherPoints + data.points > 10) {
+      toast.error('Tổng điểm các câu hỏi không được vượt quá 10 điểm')
+      return
+    }
     setUpdatingQuestionId(id)
     try {
       const res = await updateExamQuestion(examId, id, data)
@@ -555,8 +582,33 @@ export function ExamQuestionsView({
       )
       return
     }
-    if (!q.points || q.points <= 0) {
-      toast.error('Điểm phải lớn hơn 0')
+    if (
+      !Number.isFinite(q.points) ||
+      q.points < 0.1 ||
+      q.points > 10 ||
+      Math.abs(q.points * 100 - Math.round(q.points * 100)) > 1e-8
+    ) {
+      toast.error(
+        'Điểm mỗi câu phải từ 0.1 đến 10 và có tối đa 2 chữ số thập phân'
+      )
+      return
+    }
+    const difficultyLevel = q.difficultyLevel
+    if (
+      difficultyLevel == null ||
+      !Number.isInteger(difficultyLevel) ||
+      difficultyLevel < 1 ||
+      difficultyLevel > 5
+    ) {
+      toast.error('Độ khó câu hỏi phải là số nguyên từ 1 đến 5')
+      return
+    }
+    const existingTotal = questions.reduce(
+      (sum, question) => sum + question.points,
+      0
+    )
+    if (existingTotal + q.points > 10) {
+      toast.error('Tổng điểm các câu hỏi không được vượt quá 10 điểm')
       return
     }
 
@@ -901,8 +953,9 @@ export function ExamQuestionsView({
                     points: Number(e.target.value)
                   }))
                 }
-                min={0.5}
-                step={0.5}
+                min={0.1}
+                max={10}
+                step={0.1}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
@@ -1398,8 +1451,9 @@ export function ExamQuestionsView({
                                 points: Number(e.target.value)
                               })
                             }
-                            min={0.5}
-                            step={0.5}
+                            min={0.1}
+                            max={10}
+                            step={0.1}
                             readOnly={step === finalStep}
                             className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           />

@@ -694,8 +694,9 @@ export function QuestionItem({
                     points: Number(e.target.value)
                   }))
                 }
-                min={0.5}
-                step={0.5}
+                min={0.1}
+                max={10}
+                step={0.1}
                 className="w-16 rounded-md border border-border bg-sub-background px-2 py-1.5 text-sm text-center"
               />
             </div>

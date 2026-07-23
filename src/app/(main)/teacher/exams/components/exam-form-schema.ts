@@ -1,30 +1,37 @@
 import { z } from 'zod'
+import {
+  examDurationSchema,
+  examLateThresholdSchema,
+  examMaxAttemptsSchema,
+  examTitleSchema,
+  gradingMethodSchema,
+  maxViolationsSchema,
+  scoreDisplayModeSchema,
+  validateExamTiming
+} from './exam-form-validation'
 
 export const examSchema = z
   .object({
-    title: z.string().min(1, 'Vui lòng nhập tiêu đề bài thi'),
+    title: examTitleSchema,
     /** 0 = chưa gắn đặc tả; có thể bổ sung sau. */
     specificationId: z.coerce.number().int().min(0, 'Mã đặc tả không hợp lệ'),
-    durationMinutes: z.coerce.number().min(1, 'Thời lượng phải lớn hơn 0'),
+    durationMinutes: examDurationSchema,
     startTime: z.string().optional(),
     endTime: z.string().optional(),
     description: z.string().optional(),
     isPublished: z.boolean().default(true),
-    maxAttempts: z.coerce.number().min(1, 'Số lần làm bài phải lớn hơn 0'),
-    lateThreshold: z.coerce.number().min(0, 'Ngưỡng nộp trễ không hợp lệ'),
+    maxAttempts: examMaxAttemptsSchema,
+    lateThreshold: examLateThresholdSchema,
     settings: z.object({
       preventCopyPaste: z.boolean().default(true),
       forceFullscreen: z.boolean().default(true),
       trackTabSwitch: z.boolean().default(true),
       autoSubmitOnViolation: z.boolean().default(false),
-      maxViolations: z.coerce
-        .number()
-        .min(1, 'Số lần vi phạm phải lớn hơn 0')
-        .optional(),
+      maxViolations: maxViolationsSchema,
       allowReview: z.boolean().default(true),
-      scoreDisplayMode: z.string().default('after_closed'),
+      scoreDisplayMode: scoreDisplayModeSchema,
       allowOvertime: z.boolean().default(false),
-      gradingMethod: z.string().default('highest_score'),
+      gradingMethod: gradingMethodSchema,
       showResultAfterSubmit: z.boolean().default(false),
       isLoadDdl: z.boolean().default(false),
       seedDatasetId: z
@@ -36,21 +43,7 @@ export const examSchema = z
     })
   })
   .superRefine((value, context) => {
-    if (value.startTime && value.endTime) {
-      const startTime = new Date(value.startTime).getTime()
-      const endTime = new Date(value.endTime).getTime()
-      if (
-        Number.isFinite(startTime) &&
-        Number.isFinite(endTime) &&
-        endTime <= startTime
-      ) {
-        context.addIssue({
-          code: 'custom',
-          path: ['endTime'],
-          message: 'Thời gian kết thúc phải sau thời gian bắt đầu'
-        })
-      }
-    }
+    validateExamTiming(value, context)
 
     if (value.settings.isLoadDdl && !value.settings.seedDatasetId) {
       context.addIssue({
