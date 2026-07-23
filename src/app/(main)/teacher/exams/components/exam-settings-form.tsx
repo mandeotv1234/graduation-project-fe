@@ -13,7 +13,6 @@ import {
   Loader2,
   Plus,
   Save,
-  Settings,
   ShieldAlert
 } from 'lucide-react'
 
@@ -117,6 +116,7 @@ export function ExamSettingsForm({
     formState: { errors }
   } = useForm<ExamSettingsFormInput, unknown, ExamSettingsFormValues>({
     resolver: zodResolver(examSettingsFormSchema),
+    mode: 'onChange',
     defaultValues: {
       ...initialValues,
       settings: normalizeExamSettings(initialValues.settings)
@@ -280,6 +280,7 @@ export function ExamSettingsForm({
 
       <form
         id={formId}
+        noValidate
         onSubmit={handleSubmit(handleValidSubmit)}
         className="grid grid-cols-1 gap-8 lg:grid-cols-3"
       >
@@ -301,6 +302,7 @@ export function ExamSettingsForm({
                 </label>
                 <Input
                   {...register('title')}
+                  maxLength={255}
                   placeholder="VD: Bài thi CSDL - Giữa kỳ"
                   className="focus-visible:ring-blue-500"
                 />
@@ -384,6 +386,8 @@ export function ExamSettingsForm({
                     <Input
                       {...register('durationMinutes')}
                       type="number"
+                      min={1}
+                      max={240}
                       className="pl-9 focus-visible:ring-blue-500"
                     />
                     <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -406,6 +410,11 @@ export function ExamSettingsForm({
                     type="datetime-local"
                     className="focus-visible:ring-blue-500"
                   />
+                  {errors.startTime && (
+                    <p className="mt-1 text-xs text-destructive">
+                      {errors.startTime.message}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-foreground">
@@ -467,6 +476,7 @@ export function ExamSettingsForm({
                     {...register('maxAttempts')}
                     type="number"
                     min={1}
+                    max={99}
                     className="focus-visible:ring-blue-500"
                   />
                   {errors.maxAttempts && (
@@ -483,6 +493,7 @@ export function ExamSettingsForm({
                     {...register('lateThreshold')}
                     type="number"
                     min={0}
+                    max={240}
                     className="focus-visible:ring-blue-500"
                   />
                   {errors.lateThreshold && (
@@ -667,6 +678,7 @@ export function ExamSettingsForm({
                     {...register('settings.maxViolations')}
                     type="number"
                     min={1}
+                    max={100}
                     className="max-w-[200px] focus-visible:ring-blue-500"
                   />
                   {errors.settings?.maxViolations && (
@@ -720,14 +732,6 @@ export function ExamSettingsForm({
                     </p>
                   )}
                 </div>
-              </div>
-
-              <div className="mt-4 flex items-start gap-3 rounded-lg border border-orange-500/20 bg-orange-500/10 p-4">
-                <Settings className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-600" />
-                <p className="text-xs text-orange-700 dark:text-orange-400">
-                  Lưu ý: Các thiết lập gian lận sẽ yêu cầu trình duyệt cấp quyền
-                  đặc biệt cho ứng dụng khi bắt đầu làm bài.
-                </p>
               </div>
             </div>
           </section>

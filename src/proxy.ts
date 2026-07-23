@@ -50,6 +50,15 @@ function redirectToRoleHome(
   return NextResponse.redirect(new URL(ROLE_DEFAULT_PATH[role], request.url))
 }
 
+function redirectToLogin(request: NextRequest): NextResponse {
+  const loginUrl = new URL(PATH.LOGIN, request.url)
+  loginUrl.searchParams.set(
+    'returnUrl',
+    `${request.nextUrl.pathname}${request.nextUrl.search}`
+  )
+  return clearAuthCookies(NextResponse.redirect(loginUrl))
+}
+
 function enforceRouteRole(
   request: NextRequest,
   role: UserRole
@@ -208,21 +217,18 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!refreshToken) {
-    const response = NextResponse.redirect(new URL(PATH.LOGIN, request.url))
-    return clearAuthCookies(response)
+    return redirectToLogin(request)
   }
 
   const tokenData = await refreshAccessToken(refreshToken)
 
   if (!tokenData) {
-    const response = NextResponse.redirect(new URL(PATH.LOGIN, request.url))
-    return clearAuthCookies(response)
+    return redirectToLogin(request)
   }
 
   const refreshedRole = roleFromAccessToken(tokenData.accessToken)
   if (!refreshedRole) {
-    const response = NextResponse.redirect(new URL(PATH.LOGIN, request.url))
-    return clearAuthCookies(response)
+    return redirectToLogin(request)
   }
 
   const requiredRole = requiredRoleForPath(pathname)

@@ -12,6 +12,10 @@ import { useGoogleLogin } from '@react-oauth/google'
 import { useRouter } from 'next/navigation'
 import { useMsal } from '@azure/msal-react'
 import { loginRequest } from '@/lib/msal-config'
+import {
+  consumeSafeReturnUrl,
+  rememberRequestedReturnUrl
+} from '@/lib/utils/auth-redirect'
 
 export function useLogin() {
   const { callApi, isLoading } = useApi()
@@ -37,18 +41,23 @@ export function useLogin() {
     (accessToken: string) => {
       const decoded = decodeJwtPayload(accessToken)
       const role = decoded?.role
+      const returnUrl = consumeSafeReturnUrl(role)
+      if (returnUrl) {
+        router.replace(returnUrl)
+        return
+      }
       switch (role) {
         case ROLES.STUDENT:
-          router.push(PATH.STUDENT_EXAMS)
+          router.replace(PATH.STUDENT_EXAMS)
           break
         case ROLES.TEACHER:
-          router.push(PATH.TEACHER_CLASSES)
+          router.replace(PATH.TEACHER_CLASSES)
           break
         case ROLES.ADMIN:
-          router.push(PATH.ADMIN_FEEDBACKS)
+          router.replace(PATH.ADMIN_FEEDBACKS)
           break
         default:
-          router.push(PATH.HOME)
+          router.replace(PATH.HOME)
       }
     },
     [router]
@@ -111,6 +120,7 @@ export function useLogin() {
 
   // Use redirect flow instead of popup - much more reliable
   const onMicrosoftLogin = () => {
+    rememberRequestedReturnUrl()
     instance.loginRedirect(loginRequest)
   }
 

@@ -38,6 +38,22 @@ interface ClassTeachersSectionProps {
   teachers: ClassTeacher[]
 }
 
+const ALLOWED_TEACHER_EMAIL_DOMAINS = ['@fit.hcmus.edu.vn'] as const
+const VNG_TEST_TEACHER_EMAIL = 'manh@vng.com.vn'
+
+function isAllowedTeacherEmail(email: string) {
+  if (email === VNG_TEST_TEACHER_EMAIL) return true
+
+  const atIndex = email.lastIndexOf('@')
+  return (
+    atIndex > 0 &&
+    email.indexOf('@') === atIndex &&
+    ALLOWED_TEACHER_EMAIL_DOMAINS.some(
+      (domain) => email.substring(atIndex) === domain
+    )
+  )
+}
+
 export function ClassTeachersSection({
   classId,
   creatorId,
@@ -71,6 +87,10 @@ export function ClassTeachersSection({
       toast.error('Vui lòng nhập email giảng viên')
       return
     }
+    if (!isAllowedTeacherEmail(normalizedEmail)) {
+      toast.error('Email giảng viên phải thuộc tên miền @fit.hcmus.edu.vn')
+      return
+    }
 
     const result = await callApi(
       addTeacherToClass(classId, { email: normalizedEmail })
@@ -96,23 +116,24 @@ export function ClassTeachersSection({
     }
   }
 
-  const emailDomain = '@fit.hcmus.edu.vn'
   const atIndex = email.indexOf('@')
   const typedDomain =
     atIndex !== -1 ? email.substring(atIndex).toLowerCase() : ''
+  const suggestedDomain =
+    ALLOWED_TEACHER_EMAIL_DOMAINS.find(
+      (domain) => domain.startsWith(typedDomain) && domain !== typedDomain
+    ) ?? ''
   const showSuggestion =
-    atIndex !== -1 &&
-    emailDomain.startsWith(typedDomain) &&
-    typedDomain !== emailDomain
+    atIndex !== -1 && typedDomain.length > 0 && Boolean(suggestedDomain)
 
   const suggestionText = showSuggestion
-    ? emailDomain.substring(typedDomain.length)
+    ? suggestedDomain.substring(typedDomain.length)
     : ''
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Tab' && showSuggestion) {
       e.preventDefault()
-      setEmail(email.substring(0, atIndex) + emailDomain)
+      setEmail(email.substring(0, atIndex) + suggestedDomain)
     }
   }
 
@@ -152,7 +173,7 @@ export function ClassTeachersSection({
             <DialogTitle>Thêm giáo viên vào lớp</DialogTitle>
             <DialogDescription>
               Nhập email tài khoản giảng viên để cấp quyền quản lý lớp và bài
-              thi. Có thể gõ <strong>@</strong> sau đó nhấn <strong>Tab</strong>{' '}
+              thi. Có thể nhập <strong>@</strong> rồi nhấn <strong>Tab</strong>{' '}
               để hoàn thành tên miền.
             </DialogDescription>
           </DialogHeader>
