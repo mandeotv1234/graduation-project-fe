@@ -89,6 +89,7 @@ export function Pagination({
           onBlur={commitPage}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
+              event.preventDefault()
               event.currentTarget.blur()
             }
           }}
@@ -103,6 +104,7 @@ export function Pagination({
 
       <div className="flex items-center justify-end gap-2">
         <Button
+          type="button"
           variant="ghost"
           size="icon-sm"
           disabled={safePage <= 1}
@@ -112,6 +114,7 @@ export function Pagination({
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <Button
+          type="button"
           variant="ghost"
           size="icon-sm"
           disabled={safePage >= safeTotalPages}

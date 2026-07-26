@@ -22,6 +22,7 @@ import * as XLSX from 'xlsx'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Pagination } from '@/components/shared/pagination'
 import {
   Dialog,
   DialogContent,
@@ -40,7 +41,14 @@ import {
 } from '@/components/ui/table'
 import { useApi } from '@/hooks/use-api'
 import { createClass, updateClass } from '@/lib/actions'
-import { PATH } from '@/lib/constants'
+import {
+  CLASS_CODE_MAX_LENGTH,
+  isValidStudentCode,
+  PATH,
+  SEMESTER_MAX_LENGTH,
+  STUDENT_CODE_LENGTH,
+  STUDENTS_PER_PAGE
+} from '@/lib/constants'
 import { CreateClassStudentInfo } from '@/lib/types'
 
 interface EditClassPageProps {
@@ -61,7 +69,6 @@ interface ConflictRow extends CreateClassStudentInfo {
   errorType: ConflictErrorType[]
 }
 
-const CLASS_CODE_MAX_LENGTH = 20
 type AddStudentMode = 'single' | 'bulk'
 
 export function EditClassPage({
@@ -79,6 +86,7 @@ export function EditClassPage({
 
   // Search & Select states
   const [searchQuery, setSearchQuery] = useState('')
+  const [studentPage, setStudentPage] = useState(1)
   const [selectedIndices, setSelectedIndices] = useState<number[]>([])
 
   // Conflict modal states
@@ -178,7 +186,8 @@ export function EditClassPage({
       const errors: ConflictErrorType[] = []
 
       if (!item.mssv) errors.push('missing')
-      if (item.mssv && /\D/.test(item.mssv)) errors.push('invalid_format')
+      if (item.mssv && !isValidStudentCode(item.mssv))
+        errors.push('invalid_format')
       if (item.mssv && fileMssvCounts[item.mssv] > 1)
         errors.push('duplicate_internal')
       if (item.mssv && currentMssvs.has(item.mssv))
@@ -261,7 +270,8 @@ export function EditClassPage({
       const cleanMssv = item.studentId.trim()
 
       if (!cleanMssv) errors.push('missing')
-      if (cleanMssv && /\D/.test(cleanMssv)) errors.push('invalid_format')
+      if (cleanMssv && !isValidStudentCode(cleanMssv))
+        errors.push('invalid_format')
       if (cleanMssv && newFileCounts[cleanMssv] > 1)
         errors.push('duplicate_internal')
       if (cleanMssv && currentMssvs.has(cleanMssv))
@@ -338,10 +348,12 @@ export function EditClassPage({
       return
     }
 
-    const invalidCodes = parsedCodes.filter((code) => !/^\d+$/.test(code))
+    const invalidCodes = parsedCodes.filter((code) => !isValidStudentCode(code))
     if (invalidCodes.length > 0) {
       toast.error(
-        `MSSV chỉ được chứa chữ số: ${invalidCodes.slice(0, 3).join(', ')}`
+        `MSSV phải gồm đúng ${STUDENT_CODE_LENGTH} chữ số: ${invalidCodes
+          .slice(0, 3)
+          .join(', ')}`
       )
       return
     }
@@ -378,17 +390,24 @@ export function EditClassPage({
       return
     }
 
-    const firstNewIndex = students.length
+    const lastNewIndex = students.length + parsedCodes.length - 1
     const newStudents = parsedCodes.map((studentId) => ({
       studentId,
       fullName: ''
     }))
     setStudents((prev) => [...prev, ...newStudents])
+    setSearchQuery('')
+    setStudentPage(
+      Math.max(
+        1,
+        Math.ceil((students.length + newStudents.length) / STUDENTS_PER_PAGE)
+      )
+    )
     closeAddStudentModal()
     toast.success(`Đã thêm ${newStudents.length} sinh viên`)
 
     setTimeout(() => {
-      const row = document.getElementById(`student-row-${firstNewIndex}`)
+      const row = document.getElementById(`student-row-${lastNewIndex}`)
       row?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }, 100)
   }
@@ -449,12 +468,30 @@ export function EditClassPage({
       return
     }
 
+    if (semester.trim().length > SEMESTER_MAX_LENGTH) {
+      toast.error(`Học kỳ không được vượt quá ${SEMESTER_MAX_LENGTH} ký tự`)
+      return
+    }
+
     const validStudents = students
       .map((s) => ({
         studentId: s.studentId.trim(),
         fullName: s.fullName.trim()
       }))
       .filter((s) => s.studentId)
+
+    const invalidStudentIds = validStudents.filter(
+      (student) => !isValidStudentCode(student.studentId)
+    )
+    if (invalidStudentIds.length > 0) {
+      toast.error(
+        `MSSV phải gồm đúng ${STUDENT_CODE_LENGTH} chữ số: ${invalidStudentIds
+          .slice(0, 3)
+          .map((student) => student.studentId)
+          .join(', ')}`
+      )
+      return
+    }
 
     const uniqueStudentIds = new Set(
       validStudents.map((s) => s.studentId.trim())
@@ -509,11 +546,20 @@ export function EditClassPage({
       )
     })
 
+  const totalStudentPages = Math.max(
+    1,
+    Math.ceil(filteredStudents.length / STUDENTS_PER_PAGE)
+  )
+  const safeStudentPage = Math.min(studentPage, totalStudentPages)
+  const paginatedStudents = filteredStudents.slice(
+    (safeStudentPage - 1) * STUDENTS_PER_PAGE,
+    safeStudentPage * STUDENTS_PER_PAGE
+  )
   const isAllSelected =
-    filteredStudents.length > 0 &&
-    filteredStudents.every((s) => selectedIndices.includes(s.originalIndex))
+    paginatedStudents.length > 0 &&
+    paginatedStudents.every((s) => selectedIndices.includes(s.originalIndex))
   const validStudentCount = students.filter((student) =>
-    student.studentId.trim()
+    isValidStudentCode(student.studentId.trim())
   ).length
   const duplicateStudentCount = Object.values(mssvCounts).reduce(
     (total, count) => total + (count > 1 ? count : 0),
@@ -524,11 +570,11 @@ export function EditClassPage({
     if (checked) {
       const newSelections = new Set([
         ...selectedIndices,
-        ...filteredStudents.map((s) => s.originalIndex)
+        ...paginatedStudents.map((s) => s.originalIndex)
       ])
       setSelectedIndices(Array.from(newSelections))
     } else {
-      const filteredIndices = filteredStudents.map((s) => s.originalIndex)
+      const filteredIndices = paginatedStudents.map((s) => s.originalIndex)
       setSelectedIndices((prev) =>
         prev.filter((idx) => !filteredIndices.includes(idx))
       )
@@ -648,9 +694,14 @@ export function EditClassPage({
                 value={semester}
                 onChange={(e) => setSemester(e.target.value)}
                 placeholder="VD: HK2 2025-2026"
+                maxLength={SEMESTER_MAX_LENGTH}
                 className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Tối đa {SEMESTER_MAX_LENGTH} ký tự ({semester.length}/
+                {SEMESTER_MAX_LENGTH})
+              </p>
             </div>
           </div>
         </section>
@@ -677,7 +728,10 @@ export function EditClassPage({
                   type="text"
                   placeholder="Tìm MSSV, họ tên..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setStudentPage(1)
+                  }}
                   className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm transition-colors focus:border-outline focus:outline-none focus:ring-0 lg:w-[240px]"
                 />
               </div>
@@ -781,10 +835,11 @@ export function EditClassPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student, localIndex) => {
+                {paginatedStudents.length > 0 ? (
+                  paginatedStudents.map((student, localIndex) => {
                     const mssv = student.studentId.trim()
                     const isDuplicate = mssv !== '' && mssvCounts[mssv] > 1
+                    const isInvalid = mssv !== '' && !isValidStudentCode(mssv)
                     const oIdx = student.originalIndex
                     const displayName = student.fullName.trim()
                     const hasRealName = displayName && displayName !== mssv
@@ -794,7 +849,7 @@ export function EditClassPage({
                         key={`student-row-${oIdx}`}
                         id={`student-row-${oIdx}`}
                         className={
-                          isDuplicate
+                          isDuplicate || isInvalid
                             ? 'border-border bg-destructive/10 hover:bg-destructive/15'
                             : 'border-border/60 hover:bg-muted/30'
                         }
@@ -808,7 +863,9 @@ export function EditClassPage({
                                   : 'group-hover:hidden'
                               }
                             >
-                              {localIndex + 1}
+                              {(safeStudentPage - 1) * STUDENTS_PER_PAGE +
+                                localIndex +
+                                1}
                             </span>
                             <div
                               className={
@@ -828,30 +885,48 @@ export function EditClassPage({
                           </div>
                         </TableCell>
                         <TableCell className="align-middle">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={student.studentId}
-                              onChange={(e) => {
-                                const onlyNumbers = e.target.value.replace(
-                                  /\D/g,
-                                  ''
-                                )
-                                updateStudent(oIdx, 'studentId', onlyNumbers)
-                              }}
-                              placeholder="MSSV (VD: 22120201)"
-                              className={`h-9 w-full rounded-md border border-transparent bg-background/60 px-3 text-sm text-foreground transition-colors focus:border-outline focus:outline-none focus:ring-0 ${
-                                isDuplicate
-                                  ? 'font-semibold text-destructive'
-                                  : ''
-                              }`}
-                            />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={STUDENT_CODE_LENGTH}
+                                value={student.studentId}
+                                onChange={(e) => {
+                                  const onlyNumbers = e.target.value.replace(
+                                    /\D/g,
+                                    ''
+                                  )
+                                  updateStudent(oIdx, 'studentId', onlyNumbers)
+                                }}
+                                placeholder="MSSV (VD: 22120201)"
+                                className={`h-9 w-full rounded-md border border-transparent bg-background/60 px-3 text-sm text-foreground transition-colors focus:border-outline focus:outline-none focus:ring-0 ${
+                                  isDuplicate || isInvalid
+                                    ? 'font-semibold text-destructive'
+                                    : ''
+                                }`}
+                              />
+                              {(isDuplicate || isInvalid) && (
+                                <span
+                                  title={
+                                    isDuplicate
+                                      ? 'Mã số sinh viên này đang bị trùng lặp'
+                                      : `MSSV phải gồm đúng ${STUDENT_CODE_LENGTH} chữ số`
+                                  }
+                                  className="flex shrink-0 cursor-help items-center"
+                                >
+                                  <AlertCircle className="h-4 w-4 text-destructive" />
+                                </span>
+                              )}
+                            </div>
+                            {isInvalid && (
+                              <p className="text-xs text-destructive">
+                                MSSV phải gồm đúng {STUDENT_CODE_LENGTH} chữ số
+                              </p>
+                            )}
                             {isDuplicate && (
-                              <span
-                                title="Mã số sinh viên này đang bị trùng lặp"
-                                className="flex shrink-0 cursor-help items-center"
-                              >
-                                <AlertCircle className="h-4 w-4 text-destructive" />
+                              <span className="text-xs text-destructive">
+                                MSSV đang bị trùng lặp
                               </span>
                             )}
                           </div>
@@ -900,6 +975,16 @@ export function EditClassPage({
               </TableBody>
             </Table>
           </div>
+          {filteredStudents.length > STUDENTS_PER_PAGE && (
+            <Pagination
+              className="border-t border-border px-4 py-3"
+              page={safeStudentPage}
+              totalPages={totalStudentPages}
+              totalItems={filteredStudents.length}
+              pageSize={STUDENTS_PER_PAGE}
+              onPageChange={setStudentPage}
+            />
+          )}
         </section>
 
         <div className="sticky bottom-0 z-10 flex justify-end gap-3 rounded-lg border border-border bg-card/95 p-3 shadow-sm backdrop-blur">
@@ -979,6 +1064,8 @@ export function EditClassPage({
                 </label>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  maxLength={STUDENT_CODE_LENGTH}
                   value={addStudentInput}
                   onChange={(event) =>
                     setAddStudentInput(event.target.value.replace(/\D/g, ''))
@@ -1069,6 +1156,8 @@ export function EditClassPage({
                     <TableCell className="align-middle">
                       <input
                         type="text"
+                        inputMode="numeric"
+                        maxLength={STUDENT_CODE_LENGTH}
                         value={row.studentId}
                         onChange={(e) =>
                           updateConflictRow(
@@ -1086,7 +1175,9 @@ export function EditClassPage({
                           <span>• Thiếu MSSV</span>
                         )}
                         {row.errorType.includes('invalid_format') && (
-                          <span>• MSSV chứa ký tự chữ (chỉ nhận số)</span>
+                          <span>
+                            • MSSV phải gồm đúng {STUDENT_CODE_LENGTH} chữ số
+                          </span>
                         )}
                         {row.errorType.includes('duplicate_internal') && (
                           <span>• MSSV trùng với dòng khác trong file</span>
