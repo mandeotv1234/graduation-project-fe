@@ -8,12 +8,16 @@ import { Plus, Trash2, Save, UserPlus, Upload, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import { PATH } from '@/lib/constants'
+import {
+  CLASS_CODE_MAX_LENGTH,
+  isValidStudentCode,
+  PATH,
+  SEMESTER_MAX_LENGTH,
+  STUDENT_CODE_LENGTH
+} from '@/lib/constants'
 import { createClass } from '@/lib/actions'
 import { useApi } from '@/hooks/use-api'
 import { CreateClassStudentInfo } from '@/lib/types'
-
-const CLASS_CODE_MAX_LENGTH = 20
 
 export default function CreateClassPage() {
   const router = useRouter()
@@ -88,6 +92,19 @@ export default function CreateClassPage() {
     }
 
     if (newStudents.length > 0) {
+      const invalidStudentIds = newStudents.filter(
+        (student) => !isValidStudentCode(student.studentId)
+      )
+      if (invalidStudentIds.length > 0) {
+        toast.error(
+          `MSSV phải gồm đúng ${STUDENT_CODE_LENGTH} chữ số: ${invalidStudentIds
+            .slice(0, 3)
+            .map((student) => student.studentId)
+            .join(', ')}`
+        )
+        return
+      }
+
       setStudents((prev) => {
         // Khử trùng lặp và loại bỏ các trường rỗng
         const currentValid = prev.filter((s) => s.studentId)
@@ -170,12 +187,30 @@ export default function CreateClassPage() {
       return
     }
 
+    if (semester.trim().length > SEMESTER_MAX_LENGTH) {
+      toast.error(`Học kỳ không được vượt quá ${SEMESTER_MAX_LENGTH} ký tự`)
+      return
+    }
+
     const validStudents = students
       .map((s) => ({
         studentId: s.studentId.trim(),
         fullName: s.fullName.trim()
       }))
       .filter((s) => s.studentId)
+
+    const invalidStudentIds = validStudents.filter(
+      (student) => !isValidStudentCode(student.studentId)
+    )
+    if (invalidStudentIds.length > 0) {
+      toast.error(
+        `MSSV phải gồm đúng ${STUDENT_CODE_LENGTH} chữ số: ${invalidStudentIds
+          .slice(0, 3)
+          .map((student) => student.studentId)
+          .join(', ')}`
+      )
+      return
+    }
 
     const uniqueStudentIds = new Set(validStudents.map((s) => s.studentId))
     if (uniqueStudentIds.size !== validStudents.length) {
@@ -229,7 +264,9 @@ export default function CreateClassPage() {
               <input
                 type="text"
                 value={classCode}
-                onChange={(e) => setClassCode(e.target.value)}
+                onChange={(e) =>
+                  setClassCode(e.target.value.slice(0, CLASS_CODE_MAX_LENGTH))
+                }
                 placeholder="VD: 22120-CSDL-01"
                 maxLength={CLASS_CODE_MAX_LENGTH}
                 className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -247,11 +284,18 @@ export default function CreateClassPage() {
               <input
                 type="text"
                 value={semester}
-                onChange={(e) => setSemester(e.target.value)}
+                onChange={(e) =>
+                  setSemester(e.target.value.slice(0, SEMESTER_MAX_LENGTH))
+                }
                 placeholder="VD: HK2 2025-2026"
+                maxLength={SEMESTER_MAX_LENGTH}
                 className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Tối đa {SEMESTER_MAX_LENGTH} ký tự ({semester.length}/
+                {SEMESTER_MAX_LENGTH})
+              </p>
             </div>
           </div>
         </div>
@@ -364,39 +408,58 @@ export default function CreateClassPage() {
           </div>
 
           <div className="space-y-3">
-            {students.map((student, index) => (
-              <div
-                key={`student-${index}-${student.studentId}`}
-                className="flex items-center gap-3 rounded-lg border border-border bg-background p-3"
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
-                  {index + 1}
-                </span>
-                <input
-                  type="text"
-                  value={student.studentId}
-                  onChange={(e) =>
-                    updateStudent(
-                      index,
-                      'studentId',
-                      e.target.value.replace(/\D/g, '')
-                    )
-                  }
-                  placeholder="MSSV (VD: 22120201)"
-                  className="flex h-9 flex-1 rounded-md border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeStudent(index)}
-                  className="shrink-0 text-muted-foreground hover:text-destructive"
-                  disabled={students.length <= 1}
+            {students.map((student, index) => {
+              const studentCode = student.studentId.trim()
+              const isInvalid =
+                studentCode !== '' && !isValidStudentCode(studentCode)
+
+              return (
+                <div
+                  key={`student-${index}`}
+                  className="flex items-start gap-3 rounded-lg border border-border bg-background p-3"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+                    {index + 1}
+                  </span>
+                  <div className="flex-1 space-y-1">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={STUDENT_CODE_LENGTH}
+                      value={student.studentId}
+                      onChange={(e) =>
+                        updateStudent(
+                          index,
+                          'studentId',
+                          e.target.value.replace(/\D/g, '')
+                        )
+                      }
+                      placeholder="MSSV (VD: 22120201)"
+                      className={`flex h-9 w-full rounded-md border bg-background px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        isInvalid
+                          ? 'border-destructive text-destructive'
+                          : 'border-border'
+                      }`}
+                    />
+                    {isInvalid && (
+                      <p className="text-xs text-destructive">
+                        MSSV phải gồm đúng {STUDENT_CODE_LENGTH} chữ số
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeStudent(index)}
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    disabled={students.length <= 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )
+            })}
           </div>
         </div>
 
