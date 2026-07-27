@@ -264,7 +264,9 @@ export default function CreateClassPage() {
               <input
                 type="text"
                 value={classCode}
-                onChange={(e) => setClassCode(e.target.value)}
+                onChange={(e) =>
+                  setClassCode(e.target.value.slice(0, CLASS_CODE_MAX_LENGTH))
+                }
                 placeholder="VD: 22120-CSDL-01"
                 maxLength={CLASS_CODE_MAX_LENGTH}
                 className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -282,7 +284,9 @@ export default function CreateClassPage() {
               <input
                 type="text"
                 value={semester}
-                onChange={(e) => setSemester(e.target.value)}
+                onChange={(e) =>
+                  setSemester(e.target.value.slice(0, SEMESTER_MAX_LENGTH))
+                }
                 placeholder="VD: HK2 2025-2026"
                 maxLength={SEMESTER_MAX_LENGTH}
                 className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
