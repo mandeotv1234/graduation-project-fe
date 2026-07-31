@@ -604,6 +604,7 @@ export interface GradingSettings {
   allow_implicit_constraints: boolean
   positive_only_scoring?: boolean
   skip_child_checks_when_table_missing?: boolean
+  data_type_families?: string[][]
 }
 
 export interface RubricColumn {

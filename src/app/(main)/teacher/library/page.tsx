@@ -10,7 +10,7 @@ export default function LibraryPage() {
           Thư viện
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Duyệt và clone đề thi mẫu được chia sẻ bởi giáo viên khác.
+          Duyệt và tạo bảng sao từ đề thi mẫu được chia sẻ bởi giáo viên khác.
         </p>
       </div>
 

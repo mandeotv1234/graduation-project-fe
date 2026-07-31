@@ -551,7 +551,7 @@ export function InsertDataRubricEditor({
                   className="h-8 min-w-0 max-w-[13rem] justify-start truncate text-xs"
                   title={tableName}
                 >
-                  <span className="truncate">TC{tIdx + 1}</span>
+                  <span className="truncate">{tableName}</span>
                 </Button>
               )
             })}
