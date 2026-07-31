@@ -68,14 +68,14 @@ export function CloneExamTemplateDialog({
         classId: selectedClassId
       })
       toast.success(
-        `Đã clone đề thi "${res.data?.title}" với ${res.data?.questionCount} câu hỏi`
+        `Đã tạo đề thi "${res.data?.title}" với ${res.data?.questionCount} câu hỏi`
       )
       onClose()
       if (res.data?.examId) {
         router.push(PATH.TEACHER_EXAM_DETAIL(res.data.examId))
       }
     } catch {
-      toast.error('Clone đề thi thất bại')
+      toast.error('Tạo bảng sao đề thi thất bại')
     } finally {
       setCloning(false)
     }
@@ -85,7 +85,7 @@ export function CloneExamTemplateDialog({
     <Dialog open={sourceExamId !== null} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Clone đề thi mẫu vào lớp</DialogTitle>
+          <DialogTitle>Tạo bảng sao từ đề thi mẫu vào lớp</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">

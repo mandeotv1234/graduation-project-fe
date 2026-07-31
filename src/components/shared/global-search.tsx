@@ -368,7 +368,7 @@ const FEATURE_SEARCH_ITEMS: FeatureSearchItem[] = [
   },
   {
     title: 'Thư viện đề thi',
-    description: 'Quản lý và clone đề thi mẫu',
+    description: 'Quản lý và tạo bảng sao từ đề thi mẫu',
     href: PATH.TEACHER_LIBRARY,
     keywords: [
       'thư viện',
