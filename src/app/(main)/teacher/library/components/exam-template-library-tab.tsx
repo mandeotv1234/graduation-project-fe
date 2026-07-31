@@ -114,7 +114,7 @@ export function ExamTemplateLibraryTab() {
                 className="w-full gap-2"
                 onClick={() => setCloneSourceExamId(template.sourceExamId)}
               >
-                Clone vào lớp
+                Tạo bản sao vào lớp
               </Button>
             </div>
           </div>
