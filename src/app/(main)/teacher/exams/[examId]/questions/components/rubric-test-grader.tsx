@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { testGradeCreateTable } from '@/lib/actions'
-import { GradingRubric, WhiteboxRule } from '@/lib/types'
+import { GradingRubric, GradingSettings, WhiteboxRule } from '@/lib/types'
 import { AlertTriangle, Loader2, Play } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -13,6 +13,51 @@ interface RubricTestGraderProps {
   rubric: GradingRubric | null
   correctQuery?: string
   totalPoints?: number
+}
+
+const DEFAULT_CREATE_DATA_TYPE_FAMILIES = [
+  ['VARCHAR', 'NVARCHAR', 'CHAR', 'NCHAR', 'TEXT', 'NTEXT'],
+  ['INT', 'BIGINT', 'SMALLINT', 'TINYINT'],
+  ['FLOAT', 'REAL', 'DECIMAL', 'NUMERIC', 'MONEY']
+]
+
+function sanitizeCreateTableSettings(
+  settings: Record<string, unknown>
+): Partial<GradingSettings> {
+  const next = { ...settings }
+  delete next.check_data_type_family
+  delete next.strict_data_type_length
+  return next as Partial<GradingSettings>
+}
+
+function withCreateTableDefaultSettings(rubric: GradingRubric): GradingRubric {
+  if (rubric.question_category !== 'CREATE_TABLE') {
+    return rubric
+  }
+
+  const payload =
+    rubric.grading_payload && typeof rubric.grading_payload === 'object'
+      ? (rubric.grading_payload as Record<string, unknown>)
+      : {}
+  const currentSettings =
+    payload.grading_settings && typeof payload.grading_settings === 'object'
+      ? sanitizeCreateTableSettings(
+          payload.grading_settings as Record<string, unknown>
+        )
+      : {}
+
+  return {
+    ...rubric,
+    grading_payload: {
+      ...payload,
+      grading_settings: {
+        data_type_families: DEFAULT_CREATE_DATA_TYPE_FAMILIES.map((group) => [
+          ...group
+        ]),
+        ...currentSettings
+      }
+    }
+  }
 }
 
 export function RubricTestGrader({
@@ -49,7 +94,7 @@ export function RubricTestGrader({
       const response = await testGradeCreateTable({
         correctQuery: correctQuery.trim(),
         studentQuery: studentSql.trim(),
-        gradingRubric: JSON.stringify(rubric),
+        gradingRubric: JSON.stringify(withCreateTableDefaultSettings(rubric)),
         totalPoints: effectiveTotalPoints
       })
 

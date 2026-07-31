@@ -36,6 +36,7 @@ import {
 } from '@/lib/actions'
 import {
   GradingRubric,
+  GradingSettings,
   GradingRuleAction,
   GradingRuleCondition,
   GradingRuleModifier,
@@ -53,11 +54,15 @@ import { SelectQueryTreeRubric } from './select-query-tree-rubric'
 
 export type RuleQuestionType = 'CREATE_TABLE' | 'SELECT_QUERY' | 'INSERT_DATA'
 
+type RubricEditorSettings = GradingSettings
+
 interface GradingRulesEditorProps {
   questionType: RuleQuestionType
   totalPoints: number
   rules: InsertDataGradingRule[]
+  settings?: RubricEditorSettings
   onChange: (rules: InsertDataGradingRule[]) => void
+  onChangeSettings?: (settings: RubricEditorSettings) => void
   correctQuery?: string
   questionContent?: string
   contextSummary?: string
@@ -68,8 +73,13 @@ const ALL_TARGET_OPTIONS: Array<{ value: GradingRuleTarget; label: string }> = [
   { value: 'TABLE', label: 'Bảng' },
   { value: 'COLUMN', label: 'Cột' },
   { value: 'DATA_TYPE', label: 'Kiểu dữ liệu' },
+  { value: 'NULLABILITY', label: 'NULL / NOT NULL' },
+  { value: 'IDENTITY', label: 'IDENTITY' },
   { value: 'PRIMARY_KEY', label: 'Khóa chính' },
   { value: 'FOREIGN_KEY', label: 'Khóa ngoại' },
+  { value: 'UNIQUE', label: 'Unique' },
+  { value: 'CHECK', label: 'Check' },
+  { value: 'DEFAULT', label: 'Default' },
   { value: 'CONSTRAINT_LOCAL', label: 'Ràng buộc cục bộ' },
   { value: 'COLUMN_ORDER', label: 'Thứ tự cột' },
   { value: 'ROW', label: 'Dòng dữ liệu' },
@@ -85,8 +95,13 @@ const CREATE_TARGET_OPTIONS: Array<{
     'TABLE',
     'COLUMN',
     'DATA_TYPE',
+    'NULLABILITY',
+    'IDENTITY',
     'PRIMARY_KEY',
     'FOREIGN_KEY',
+    'UNIQUE',
+    'CHECK',
+    'DEFAULT',
     'CONSTRAINT_LOCAL',
     'COLUMN_ORDER'
   ].includes(option.value)
@@ -294,10 +309,68 @@ function getDefaultTarget(questionType: RuleQuestionType): GradingRuleTarget {
   return questionType === 'CREATE_TABLE' ? 'TABLE' : 'ROW'
 }
 
+function getCreateTreeConditionOptions(target: GradingRuleTarget) {
+  const options: Partial<
+    Record<
+      GradingRuleTarget,
+      Array<{ value: GradingRuleCondition; label: string }>
+    >
+  > = {
+    TABLE: [
+      { value: 'IS_MISSING', label: 'Thiếu' },
+      { value: 'IS_EXTRA', label: 'Thừa' },
+      { value: 'NOT_EQUAL', label: 'Sai tên' }
+    ],
+    COLUMN: [
+      { value: 'IS_MISSING', label: 'Thiếu' },
+      { value: 'IS_EXTRA', label: 'Thừa' },
+      { value: 'NOT_EQUAL', label: 'Sai tên' }
+    ],
+    DATA_TYPE: [
+      { value: 'FAMILY_MISMATCH', label: 'Sai họ kiểu dữ liệu' },
+      { value: 'SIZE_MISMATCH', label: 'Sai kích thước' }
+    ],
+    NULLABILITY: [{ value: 'NOT_EQUAL', label: 'Sai NULL / NOT NULL' }],
+    IDENTITY: [{ value: 'NOT_EQUAL', label: 'Sai IDENTITY' }],
+    PRIMARY_KEY: [
+      { value: 'IS_MISSING', label: 'Thiếu' },
+      { value: 'IS_EXTRA', label: 'Thừa' },
+      { value: 'MISMATCH', label: 'Sai cấu trúc' }
+    ],
+    FOREIGN_KEY: [
+      { value: 'IS_MISSING', label: 'Thiếu' },
+      { value: 'IS_EXTRA', label: 'Thừa' },
+      { value: 'MISMATCH', label: 'Sai cấu trúc' }
+    ],
+    UNIQUE: [
+      { value: 'IS_MISSING', label: 'Thiếu' },
+      { value: 'IS_EXTRA', label: 'Thừa' }
+    ],
+    CHECK: [
+      { value: 'IS_MISSING', label: 'Thiếu' },
+      { value: 'IS_EXTRA', label: 'Thừa' },
+      { value: 'EXPRESSION_MISMATCH', label: 'Sai biểu thức' }
+    ],
+    DEFAULT: [
+      { value: 'IS_MISSING', label: 'Thiếu' },
+      { value: 'IS_EXTRA', label: 'Thừa' },
+      { value: 'VALUE_MISMATCH', label: 'Sai giá trị' }
+    ],
+    COLUMN_ORDER: [{ value: 'OUT_OF_ORDER', label: 'Sai thứ tự' }]
+  }
+
+  return options[target] || []
+}
+
 function getConditionOptions(
   target: GradingRuleTarget,
   questionType: RuleQuestionType
 ) {
+  if (questionType === 'CREATE_TABLE') {
+    const createTreeOptions = getCreateTreeConditionOptions(target)
+    if (createTreeOptions.length > 0) return createTreeOptions
+  }
+
   const scopedOptions =
     questionType === 'CREATE_TABLE'
       ? CREATE_CONDITION_OPTIONS
@@ -755,7 +828,9 @@ export function GradingRulesEditor({
   questionType,
   totalPoints,
   rules,
+  settings,
   onChange,
+  onChangeSettings,
   onTablesPatch,
   correctQuery,
   questionContent,
@@ -1177,8 +1252,7 @@ export function GradingRulesEditor({
       setRuleDraft(draftWithFriendlyName)
       setSpecialMode(isDescriptionOnlySpecialRule(draftWithFriendlyName))
       toast.success('AI đã điền nháp 1 quy tắc, kiểm tra lại rồi bấm Lưu.')
-    } catch (error) {
-      console.error('AI generate rule draft failed:', error)
+    } catch {
       toast.error('Lỗi khi gọi AI. Vui lòng thử lại.')
     } finally {
       setIsGeneratingByAi(false)
@@ -1313,8 +1387,7 @@ export function GradingRulesEditor({
       onChange([...normalizedRules, ...nextRules])
       setIsModalOpen(false)
       toast.success(`AI đã thêm ${nextRules.length} quy tắc vào danh sách.`)
-    } catch (error) {
-      console.error('AI generate multiple rules failed:', error)
+    } catch {
       toast.error('Lỗi khi gọi AI. Vui lòng thử lại.')
     } finally {
       setIsGeneratingMultipleByAi(false)
@@ -1326,7 +1399,9 @@ export function GradingRulesEditor({
       {questionType === 'CREATE_TABLE' && (
         <CreateTableTreeRubric
           rules={normalizedRules}
+          settings={settings}
           onChange={onChange}
+          onChangeSettings={onChangeSettings}
           headerAction={
             <Button
               type="button"

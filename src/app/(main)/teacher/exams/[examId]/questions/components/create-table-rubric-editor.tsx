@@ -10,6 +10,7 @@ import { buildCreateTablesFromAnswer } from '@/lib/actions'
 import {
   ConstraintType,
   CreateTableGradingPayload,
+  GradingSettings,
   GradingRubric,
   InsertDataGradingRule,
   MissingPenaltyAction,
@@ -32,17 +33,45 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { apiClient } from '@/lib/api'
 import { GradingRulesEditor } from './grading-rules-editor'
 import { WhiteboxRulesEditor } from './whitebox-rules-editor'
 import { TeacherSqlEditor } from './teacher-sql-editor'
 
 // ===== Default factories =====
 
+const DEFAULT_CREATE_DATA_TYPE_FAMILIES = [
+  ['VARCHAR', 'NVARCHAR', 'CHAR', 'NCHAR', 'TEXT', 'NTEXT'],
+  ['INT', 'BIGINT', 'SMALLINT', 'TINYINT'],
+  ['FLOAT', 'REAL', 'DECIMAL', 'NUMERIC', 'MONEY']
+]
+
+function createDefaultGradingSettings() {
+  return {
+    syntax_error_action: 'FAIL_ALL' as const,
+    case_sensitive_names: false,
+    allow_implicit_constraints: true,
+    data_type_families: DEFAULT_CREATE_DATA_TYPE_FAMILIES.map((group) => [
+      ...group
+    ])
+  }
+}
+
+function sanitizeCreateTableSettings(
+  settings: Record<string, unknown>
+): Partial<GradingSettings> {
+  const next = { ...settings }
+  delete next.check_data_type_family
+  delete next.strict_data_type_length
+  return next as Partial<GradingSettings>
+}
+
 function createDefaultRubric(totalPoints: number): GradingRubric {
   return {
     total_points: totalPoints,
     question_category: 'CREATE_TABLE',
     grading_payload: {
+      grading_settings: createDefaultGradingSettings(),
       grading_rules: [],
       tables: [],
       whitebox_rules: [],
@@ -167,15 +196,24 @@ function normalizeCreateTablePayload(
 
   const payloadRecord = payload as Record<string, unknown>
 
+  const currentSettings =
+    payloadRecord.grading_settings &&
+    typeof payloadRecord.grading_settings === 'object'
+      ? sanitizeCreateTableSettings(
+          payloadRecord.grading_settings as Record<string, unknown>
+        )
+      : null
+
   return {
     grading_rules: Array.isArray(payloadRecord.grading_rules)
       ? (payloadRecord.grading_rules as InsertDataGradingRule[])
       : [],
-    grading_settings:
-      payloadRecord.grading_settings &&
-      typeof payloadRecord.grading_settings === 'object'
-        ? (payloadRecord.grading_settings as CreateTableGradingPayload['grading_settings'])
-        : undefined,
+    grading_settings: currentSettings
+      ? {
+          ...createDefaultGradingSettings(),
+          ...currentSettings
+        }
+      : createDefaultGradingSettings(),
     whitebox_rules: Array.isArray(payloadRecord.whitebox_rules)
       ? (payloadRecord.whitebox_rules as WhiteboxRule[])
       : [],
@@ -220,34 +258,38 @@ function normalizeSqlTypeBase(type: string): string {
   return noParams.trim() || 'VARCHAR'
 }
 
-const SQL_TYPES = [
-  'INT',
-  'BIGINT',
-  'SMALLINT',
-  'TINYINT',
-  'VARCHAR',
-  'NVARCHAR',
-  'CHAR',
-  'NCHAR',
-  'TEXT',
-  'NTEXT',
-  'DECIMAL',
-  'NUMERIC',
-  'FLOAT',
-  'REAL',
-  'MONEY',
-  'DATE',
-  'DATETIME',
-  'DATETIME2',
-  'TIME',
-  'TIMESTAMP',
-  'BIT',
-  'BINARY',
-  'VARBINARY',
-  'IMAGE',
-  'UNIQUEIDENTIFIER',
-  'XML'
-]
+function useMsSqlTypes() {
+  const [types, setTypes] = useState<string[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadTypes = async () => {
+      const response = await apiClient.get<string[]>(
+        '/sql-metadata/mssql-types',
+        {
+          cache: 'no-store'
+        }
+      )
+
+      if (cancelled || !Array.isArray(response.data)) return
+
+      setTypes(
+        response.data.map((type) => normalizeSqlTypeBase(type)).filter(Boolean)
+      )
+    }
+
+    loadTypes().catch(() => {
+      if (!cancelled) setTypes([])
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return types
+}
 
 const CONSTRAINT_TYPES: { value: ConstraintType; label: string }[] = [
   { value: 'PRIMARY_KEY', label: 'Khóa chính' },
@@ -343,6 +385,22 @@ export function CreateTableRubricEditor({
         grading_payload: {
           ...normalizedPayload,
           grading_rules: newRules,
+          tables: normalizedPayload.tables
+        }
+      }
+    })
+  }
+
+  const setGradingSettings = (newSettings: GradingSettings) => {
+    updateRubric((r) => {
+      const normalizedPayload = normalizeCreateTablePayload(r.grading_payload)
+      return {
+        ...r,
+        total_points: totalPoints,
+        question_category: 'CREATE_TABLE',
+        grading_payload: {
+          ...normalizedPayload,
+          grading_settings: newSettings,
           tables: normalizedPayload.tables
         }
       }
@@ -556,7 +614,9 @@ export function CreateTableRubricEditor({
           questionType="CREATE_TABLE"
           totalPoints={totalPoints}
           rules={gradingRules}
+          settings={payload.grading_settings}
           onChange={setGradingRules}
+          onChangeSettings={setGradingSettings}
           onTablesPatch={(tablePatches) => {
             if (!tablePatches || tablePatches.length === 0) return
             const nextTables = [...tables]
@@ -1122,6 +1182,7 @@ function TableEditor({
   onChange: (t: RubricTable) => void
   onRemove: () => void
 }) {
+  const sqlTypes = useMsSqlTypes()
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div
@@ -1313,7 +1374,7 @@ function TableEditor({
                             }}
                             className="w-full rounded border border-border bg-sub-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           >
-                            {SQL_TYPES.map((t) => (
+                            {sqlTypes.map((t: string) => (
                               <option key={t} value={t}>
                                 {t}
                               </option>
